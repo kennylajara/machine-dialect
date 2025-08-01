@@ -35,6 +35,20 @@ warn_unused_configs = true
 disallow_untyped_defs = true
 explicit_package_bases = true
 
+# Ignore import errors for libraries without type stubs
+[[tool.mypy.overrides]]
+module = ["rfc3986", "rfc3986.*"]
+ignore_missing_imports = true
+
+# Ignore misc errors in test files (mostly for pytest decorators)
+[[tool.mypy.overrides]]
+module = [
+    "machine_dialect.lexer.tests.*",
+    "machine_dialect.parser.tests.*",
+    "machine_dialect.repl.tests.*"
+]
+disable_error_code = ["misc"]
+
 [tool.pytest.ini_options]
 testpaths = ["machine_dialect"]
 pythonpath = []

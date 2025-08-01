@@ -5,8 +5,10 @@ repository.
 
 ## Project Status
 
-Machine Dialect is a natural language programming project that allows writing code using more natural,
-English-like syntax. The project includes a lexer implementation in Python and a Markdown linter in Rust.
+Machine Dialect is a natural language programming project that allows writing code using more
+natural,
+English-like syntax. The project includes a lexer implementation in Python and a Markdown linter
+in Rust.
 
 ## Development Notes
 
@@ -16,7 +18,8 @@ English-like syntax. The project includes a lexer implementation in Python and a
 
 ## Test-Driven Development (TDD)
 
-**IMPORTANT**: This project follows Test-Driven Development (TDD) practices. When working on any implementation:
+**IMPORTANT**: This project follows Test-Driven Development (TDD) practices. When working on any
+implementation:
 
 1. **ALWAYS check for existing tests first** before implementing any feature
 1. Tests define the expected behavior - implementation must satisfy the tests
@@ -26,12 +29,27 @@ English-like syntax. The project includes a lexer implementation in Python and a
 
 ## Type Safety and MyPy
 
-**CRITICAL**: This project maintains strict type safety. MyPy errors MUST be fixed before committing:
+**CRITICAL**: This project maintains strict type safety. MyPy errors MUST be fixed before
+committing:
 
 1. **NEVER disable MyPy checks** - strict typing is enforced for code quality
 1. **ALL functions must have type annotations** - no exceptions
 1. **Fix MyPy errors immediately** - do not postpone or work around them
 1. Type safety prevents runtime errors and improves code maintainability
+
+## Documentation Standards
+
+**MANDATORY**: All Python code in this project MUST include comprehensive docstrings following
+Google style:
+
+1. **ALWAYS add docstrings** to all modules, classes, methods, and functions
+1. **Follow Google style docstrings** as documented in `docs/meta/google_docstrings_guide.md`
+1. **Include all relevant sections**: Args, Returns, Raises, Examples, etc.
+1. **With type annotations**, don't repeat type information in docstrings
+1. **Document all public APIs** - no exceptions
+
+See the complete guide at `docs/meta/google_docstrings_guide.md` for detailed examples and
+formatting requirements.
 
 ## Project Structure
 

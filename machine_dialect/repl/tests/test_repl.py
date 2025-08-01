@@ -21,7 +21,12 @@ for input_text in test_inputs:
     print("-" * 60)
 
     lexer = Lexer(input_text)
-    tokens = list(lexer.tokenize())
+    errors, tokens = lexer.tokenize()
+
+    if errors:
+        print(f"Errors ({len(errors)}):")
+        for error in errors:
+            print(f"  {error}")
 
     print(f"Tokens ({len(tokens)}):")
     for token in tokens:

@@ -101,9 +101,11 @@ class TokenType(Enum):
 class Token(NamedTuple):
     type: TokenType
     literal: str
+    line: int
+    position: int
 
     def __str__(self) -> str:
-        return f"Type: {self.type}, Literal: {self.literal}"
+        return f"Type: {self.type}, Literal: {self.literal}, Line: {self.line}, Position: {self.position}"
 
 
 def lookup_token_type(literal: str) -> TokenType:

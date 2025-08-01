@@ -84,22 +84,46 @@ Print: "Average per item: " + **average**.
 ```text
 machine_dialect/
 ├── machine_dialect/         # Main Python package
+│   ├── __main__.py          # Entry point for python -m machine_dialect
+│   ├── ast/                 # Abstract Syntax Tree implementation
+│   │   ├── __init__.py
+│   │   ├── ast_node.py      # Base AST node class
+│   │   ├── expressions.py   # Expression AST nodes
+│   │   ├── program.py       # Program AST node
+│   │   └── statements.py    # Statement AST nodes
+│   ├── helpers/             # Helper utilities
+│   │   ├── __init__.py
+│   │   └── validators.py    # Validation utilities
 │   ├── lexer/               # Lexer implementation
 │   │   ├── __init__.py
 │   │   ├── lexer.py         # Main lexer class
-│   │   └── tokens.py        # TokenType enum and Token class definitions
-│   ├── repl/                # REPL implementation
-│   │   ├── tests/           # REPL tests
+│   │   ├── tests/           # Lexer tests
 │   │   │   ├── __init__.py
-│   │   │   └── test_repl.py
+│   │   │   ├── test_lexer.py         # Main lexer tests
+│   │   │   └── test_url_literals.py  # URL literal tests
+│   │   └── tokens.py        # TokenType enum and Token class definitions
+│   ├── parser/              # Parser implementation
 │   │   ├── __init__.py
-│   │   └── repl.py          # Interactive REPL for tokenization
-│   └── __main__.py          # Entry point for python -m machine_dialect
+│   │   ├── parser.py        # Main parser class
+│   │   └── tests/           # Parser tests
+│   │       ├── __init__.py
+│   │       ├── test_program.py         # Program parsing tests
+│   │       └── test_set_statements.py  # Set statement tests
+│   └── repl/                # REPL implementation
+│       ├── __init__.py
+│       ├── repl.py          # Interactive REPL for tokenization
+│       └── tests/           # REPL tests
+│           ├── __init__.py
+│           └── test_repl.py
+├── machine_dialect.egg-info/  # Python package metadata
 ├── md_linter/               # Rust-based Markdown linter
 │   ├── src/
 │   │   ├── main.rs
 │   │   ├── config.rs
 │   │   └── rules/          # Linting rules
+│   │       ├── mod.rs
+│   │       └── md013.rs
+│   ├── target/              # Rust build artifacts (gitignored)
 │   ├── Cargo.toml
 │   └── Cargo.lock
 ├── pyproject.toml           # Python project configuration

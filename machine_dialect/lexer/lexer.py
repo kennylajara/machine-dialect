@@ -1,3 +1,5 @@
+from machine_dialect.errors.exceptions import MDNameError
+from machine_dialect.errors.messages import NAME_UNDEFINED
 from machine_dialect.helpers.validators import is_valid_url
 from machine_dialect.lexer.tokens import Token, TokenType, lookup_token_type
 
@@ -6,9 +8,17 @@ class Lexer:
     def __init__(self, source: str) -> None:
         self.source = source
         self.position = 0
+        self.line = 1
+        self.column = 0
         self.current_char: str | None = self.source[0] if source else None
 
     def advance(self) -> None:
+        if self.current_char == "\n":
+            self.line += 1
+            self.column = 0
+        else:
+            self.column += 1
+
         self.position += 1
         if self.position >= len(self.source):
             self.current_char = None
@@ -25,8 +35,10 @@ class Lexer:
         while self.current_char and self.current_char.isspace():
             self.advance()
 
-    def read_number(self) -> tuple[str, bool]:
+    def read_number(self) -> tuple[str, bool, int, int]:
         start_pos = self.position
+        start_line = self.line
+        start_column = self.column
         has_dot = False
 
         while self.current_char and (self.current_char.isdigit() or self.current_char == "."):
@@ -41,17 +53,21 @@ class Lexer:
                 has_dot = True
             self.advance()
 
-        return self.source[start_pos : self.position], has_dot
+        return self.source[start_pos : self.position], has_dot, start_line, start_column
 
-    def read_identifier(self) -> str:
+    def read_identifier(self) -> tuple[str, int, int]:
         start_pos = self.position
+        start_line = self.line
+        start_column = self.column
         while self.current_char and (self.current_char.isalnum() or self.current_char == "_"):
             self.advance()
-        return self.source[start_pos : self.position]
+        return self.source[start_pos : self.position], start_line, start_column
 
-    def read_string(self) -> str:
+    def read_string(self) -> tuple[str, int, int]:
         quote_char = self.current_char
         start_pos = self.position
+        start_line = self.line
+        start_column = self.column
         self.advance()  # Skip opening quote
 
         while self.current_char and self.current_char != quote_char:
@@ -60,10 +76,12 @@ class Lexer:
         if self.current_char == quote_char:
             self.advance()  # Skip closing quote
 
-        return self.source[start_pos : self.position]
+        return self.source[start_pos : self.position], start_line, start_column
 
-    def read_backtick_string(self) -> str:
+    def read_backtick_string(self) -> tuple[str, int, int]:
         start_pos = self.position
+        start_line = self.line
+        start_column = self.column
         self.advance()  # Skip opening backtick
 
         while self.current_char and self.current_char != "`":
@@ -72,10 +90,12 @@ class Lexer:
         if self.current_char == "`":
             self.advance()  # Skip closing backtick
 
-        return self.source[start_pos : self.position]
+        return self.source[start_pos : self.position], start_line, start_column
 
-    def read_triple_backtick_string(self) -> str:
+    def read_triple_backtick_string(self) -> tuple[str, int, int]:
         start_pos = self.position
+        start_line = self.line
+        start_column = self.column
         # Skip opening triple backticks
         self.advance()  # First `
         self.advance()  # Second `
@@ -96,10 +116,11 @@ class Lexer:
                 break
             self.advance()
 
-        return self.source[start_pos : self.position]
+        return self.source[start_pos : self.position], start_line, start_column
 
-    def tokenize(self) -> list[Token]:
-        tokens = []
+    def tokenize(self) -> tuple[list[MDNameError], list[Token]]:
+        errors: list[MDNameError] = []
+        tokens: list[Token] = []
 
         while self.current_char is not None:
             # Skip whitespace
@@ -109,27 +130,27 @@ class Lexer:
 
             # Numbers
             if self.current_char.isdigit():
-                literal, is_float = self.read_number()
+                literal, is_float, line, pos = self.read_number()
                 token_type = TokenType.LIT_FLOAT if is_float else TokenType.LIT_INT
-                tokens.append(Token(token_type, literal))
+                tokens.append(Token(token_type, literal, line, pos))
                 continue
 
             # Identifiers and keywords
             if self.current_char.isalpha() or self.current_char == "_":
-                literal = self.read_identifier()
+                literal, line, pos = self.read_identifier()
                 token_type = lookup_token_type(literal)
-                tokens.append(Token(token_type, literal))
+                tokens.append(Token(token_type, literal, line, pos))
                 continue
 
             # Strings
             if self.current_char in ('"', "'"):
-                literal = self.read_string()
+                literal, line, pos = self.read_string()
                 # Remove quotes from the literal for URL validation
                 url_to_validate = literal[1:-1] if len(literal) > 2 else literal
                 if is_valid_url(url_to_validate):
-                    tokens.append(Token(TokenType.LIT_URL, literal))
+                    tokens.append(Token(TokenType.LIT_URL, literal, line, pos))
                 else:
-                    tokens.append(Token(TokenType.LIT_TEXT, literal))
+                    tokens.append(Token(TokenType.LIT_TEXT, literal, line, pos))
                 continue
 
             # Backtick strings
@@ -140,28 +161,31 @@ class Lexer:
                     and self.position + 2 < len(self.source)
                     and self.source[self.position + 2] == "`"
                 ):
-                    literal = self.read_triple_backtick_string()
-                    tokens.append(Token(TokenType.LIT_TRIPLE_BACKTICK, literal))
+                    literal, line, pos = self.read_triple_backtick_string()
+                    tokens.append(Token(TokenType.LIT_TRIPLE_BACKTICK, literal, line, pos))
                 else:
-                    literal = self.read_backtick_string()
-                    tokens.append(Token(TokenType.LIT_BACKTICK, literal))
+                    literal, line, pos = self.read_backtick_string()
+                    tokens.append(Token(TokenType.LIT_BACKTICK, literal, line, pos))
                 continue
 
             # Two-character operators
             if self.current_char == "=" and self.peek() == "=":
-                tokens.append(Token(TokenType.OP_EQ, "=="))
+                line, pos = self.line, self.column
+                tokens.append(Token(TokenType.OP_EQ, "==", line, pos))
                 self.advance()
                 self.advance()
                 continue
 
             if self.current_char == "!" and self.peek() == "=":
-                tokens.append(Token(TokenType.OP_NOT_EQ, "!="))
+                line, pos = self.line, self.column
+                tokens.append(Token(TokenType.OP_NOT_EQ, "!=", line, pos))
                 self.advance()
                 self.advance()
                 continue
 
             if self.current_char == "*" and self.peek() == "*":
-                tokens.append(Token(TokenType.OP_TWO_STARS, "**"))
+                line, pos = self.line, self.column
+                tokens.append(Token(TokenType.OP_TWO_STARS, "**", line, pos))
                 self.advance()
                 self.advance()
                 continue
@@ -189,12 +213,22 @@ class Lexer:
 
             if self.current_char in char_to_token:
                 token_type = char_to_token[self.current_char]
-                tokens.append(Token(token_type, self.current_char))
+                line, pos = self.line, self.column
+                tokens.append(Token(token_type, self.current_char, line, pos))
                 self.advance()
                 continue
 
             # If we get here, it's an illegal character
-            tokens.append(Token(TokenType.MISC_ILLEGAL, self.current_char))
+            line, pos = self.line, self.column
+            token = Token(TokenType.MISC_ILLEGAL, self.current_char, line, pos)
+            tokens.append(token)
+            errors.append(
+                MDNameError(
+                    message=NAME_UNDEFINED.substitute(name=self.current_char),
+                    line=line,
+                    column=pos,
+                )
+            )
             self.advance()
 
-        return tokens
+        return errors, tokens

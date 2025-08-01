@@ -9,7 +9,7 @@ __all__ = [
     "ASTNode",
     "Expression",
     "Identifier",
+    "Program",
     "SetStatement",
     "Statement",
-    "Program",
 ]

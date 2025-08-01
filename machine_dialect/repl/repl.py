@@ -4,6 +4,8 @@ Machine Dialect REPL (Read-Eval-Print Loop)
 Tokenizes input and displays the resulting tokens.
 """
 
+import sys
+
 from machine_dialect.lexer.lexer import Lexer
 from machine_dialect.lexer.tokens import Token
 
@@ -15,14 +17,14 @@ class REPL:
 
     def print_welcome(self) -> None:
         print("Machine Dialect REPL v0.1.0")
-        print("Type 'exit' or 'quit' to exit, 'help' for help")
+        print("Type 'exit' to exit, 'help' for help")
         print("-" * 50)
 
     def print_help(self) -> None:
         print("\nAvailable commands:")
-        print("  exit, quit  - Exit the REPL")
-        print("  help        - Show this help message")
-        print("  clear       - Clear the screen")
+        print("  exit   - Exit the REPL")
+        print("  help   - Show this help message")
+        print("  clear  - Clear the screen")
         print("\nEnter any text to see its tokens.")
         print("Example: if x > 0 then return true")
         print()
@@ -57,8 +59,8 @@ class REPL:
             print(f"Error: {e}")
             print()
 
-    def run(self) -> None:
-        """Main REPL loop"""
+    def run(self) -> int:
+        """Main REPL loop. Returns exit code."""
         self.print_welcome()
 
         while self.running:
@@ -67,10 +69,10 @@ class REPL:
                 user_input = input(self.prompt).strip()
 
                 # Check for commands
-                if user_input.lower() in ["exit", "quit"]:
+                if user_input.lower() == "exit":
                     print("Goodbye!")
                     self.running = False
-                    break
+                    return 0  # Normal exit
                 elif user_input.lower() == "help":
                     self.print_help()
                 elif user_input.lower() == "clear":
@@ -80,20 +82,22 @@ class REPL:
                     # Tokenize and print
                     self.tokenize_and_print(user_input)
 
-            except KeyboardInterrupt:
-                print("\nUse 'exit' or 'quit' to exit.")
-            except EOFError:
+            except (KeyboardInterrupt, EOFError):
                 print("\nGoodbye!")
                 self.running = False
-                break
+                return 0  # Normal exit via Ctrl+D
             except Exception as e:
                 print(f"Unexpected error: {e}")
+                return 1  # Error exit
+
+        return 0  # Default normal exit
 
 
 def main() -> None:
     """Entry point for the REPL"""
     repl = REPL()
-    repl.run()
+    exit_code = repl.run()
+    sys.exit(exit_code)
 
 
 if __name__ == "__main__":

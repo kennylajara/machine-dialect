@@ -4,7 +4,9 @@ version = "0.1.0"
 description = "Machine Dialect - Natural language programming in Markdown"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "rfc3986>=2.0.0",
+]
 
 [tool.setuptools.packages.find]
 include = ["machine_dialect*"]

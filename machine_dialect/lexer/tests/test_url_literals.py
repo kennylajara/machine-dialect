@@ -1,0 +1,141 @@
+from machine_dialect.lexer import Lexer, TokenType
+
+
+class TestURLLiterals:
+    def test_http_url_detection(self) -> None:
+        source = '"http://example.com"'
+        lexer = Lexer(source)
+        tokens = list(lexer.tokenize())
+
+        assert len(tokens) == 1
+        assert tokens[0].type == TokenType.LIT_URL
+        assert tokens[0].literal == '"http://example.com"'
+
+    def test_https_url_detection(self) -> None:
+        source = '"https://www.example.com/path"'
+        lexer = Lexer(source)
+        tokens = list(lexer.tokenize())
+
+        assert len(tokens) == 1
+        assert tokens[0].type == TokenType.LIT_URL
+        assert tokens[0].literal == '"https://www.example.com/path"'
+
+    def test_ftp_url_detection(self) -> None:
+        source = '"ftp://files.example.com/file.txt"'
+        lexer = Lexer(source)
+        tokens = list(lexer.tokenize())
+
+        assert len(tokens) == 1
+        assert tokens[0].type == TokenType.LIT_URL
+        assert tokens[0].literal == '"ftp://files.example.com/file.txt"'
+
+    def test_url_with_query_params(self) -> None:
+        source = '"https://api.example.com/data?key=value&foo=bar"'
+        lexer = Lexer(source)
+        tokens = list(lexer.tokenize())
+
+        assert len(tokens) == 1
+        assert tokens[0].type == TokenType.LIT_URL
+        assert tokens[0].literal == '"https://api.example.com/data?key=value&foo=bar"'
+
+    def test_url_with_fragment(self) -> None:
+        source = '"https://example.com/page#section"'
+        lexer = Lexer(source)
+        tokens = list(lexer.tokenize())
+
+        assert len(tokens) == 1
+        assert tokens[0].type == TokenType.LIT_URL
+        assert tokens[0].literal == '"https://example.com/page#section"'
+
+    def test_url_with_port(self) -> None:
+        source = '"http://localhost:8080/api"'
+        lexer = Lexer(source)
+        tokens = list(lexer.tokenize())
+
+        assert len(tokens) == 1
+        assert tokens[0].type == TokenType.LIT_URL
+        assert tokens[0].literal == '"http://localhost:8080/api"'
+
+    def test_non_url_string(self) -> None:
+        source = '"Hello, World!"'
+        lexer = Lexer(source)
+        tokens = list(lexer.tokenize())
+
+        assert len(tokens) == 1
+        assert tokens[0].type == TokenType.LIT_TEXT
+        assert tokens[0].literal == '"Hello, World!"'
+
+    def test_invalid_url_format(self) -> None:
+        source = '"http://invalid url with spaces"'
+        lexer = Lexer(source)
+        tokens = list(lexer.tokenize())
+
+        assert len(tokens) == 1
+        assert tokens[0].type == TokenType.LIT_TEXT
+        assert tokens[0].literal == '"http://invalid url with spaces"'
+
+    def test_url_without_scheme(self) -> None:
+        source = '"example.com"'
+        lexer = Lexer(source)
+        tokens = list(lexer.tokenize())
+
+        # Without scheme, it should be treated as regular text
+        assert len(tokens) == 1
+        assert tokens[0].type == TokenType.LIT_TEXT
+        assert tokens[0].literal == '"example.com"'
+
+    def test_single_quoted_url(self) -> None:
+        source = "'https://example.com'"
+        lexer = Lexer(source)
+        tokens = list(lexer.tokenize())
+
+        assert len(tokens) == 1
+        assert tokens[0].type == TokenType.LIT_URL
+        assert tokens[0].literal == "'https://example.com'"
+
+    def test_empty_string(self) -> None:
+        source = '""'
+        lexer = Lexer(source)
+        tokens = list(lexer.tokenize())
+
+        assert len(tokens) == 1
+        assert tokens[0].type == TokenType.LIT_TEXT
+        assert tokens[0].literal == '""'
+
+    def test_multiple_urls_in_source(self) -> None:
+        source = 'Set `url1` to "https://api.example.com" and `url2` to "https://docs.example.com"'
+        lexer = Lexer(source)
+        tokens = list(lexer.tokenize())
+
+        # Find URL tokens
+        url_tokens = [t for t in tokens if t.type == TokenType.LIT_URL]
+        assert len(url_tokens) == 2
+        assert url_tokens[0].literal == '"https://api.example.com"'
+        assert url_tokens[1].literal == '"https://docs.example.com"'
+
+    def test_url_with_special_characters(self) -> None:
+        source = '"https://example.com/path?q=test+query&id=123#anchor"'
+        lexer = Lexer(source)
+        tokens = list(lexer.tokenize())
+
+        assert len(tokens) == 1
+        assert tokens[0].type == TokenType.LIT_URL
+        assert tokens[0].literal == '"https://example.com/path?q=test+query&id=123#anchor"'
+
+    def test_mailto_url(self) -> None:
+        source = '"mailto:user@example.com"'
+        lexer = Lexer(source)
+        tokens = list(lexer.tokenize())
+
+        assert len(tokens) == 1
+        assert tokens[0].type == TokenType.LIT_URL
+        assert tokens[0].literal == '"mailto:user@example.com"'
+
+    def test_data_url(self) -> None:
+        source = '"data:text/plain;base64,SGVsbG8="'
+        lexer = Lexer(source)
+        tokens = list(lexer.tokenize())
+
+        assert len(tokens) == 1
+        assert tokens[0].type == TokenType.LIT_URL
+        assert tokens[0].literal == '"data:text/plain;base64,SGVsbG8="'

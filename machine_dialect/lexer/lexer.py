@@ -1,3 +1,4 @@
+from machine_dialect.helpers.validators import is_valid_url
 from machine_dialect.lexer.tokens import Token, TokenType, lookup_token_type
 
 
@@ -123,7 +124,12 @@ class Lexer:
             # Strings
             if self.current_char in ('"', "'"):
                 literal = self.read_string()
-                tokens.append(Token(TokenType.LIT_STRING, literal))
+                # Remove quotes from the literal for URL validation
+                url_to_validate = literal[1:-1] if len(literal) > 2 else literal
+                if is_valid_url(url_to_validate):
+                    tokens.append(Token(TokenType.LIT_URL, literal))
+                else:
+                    tokens.append(Token(TokenType.LIT_TEXT, literal))
                 continue
 
             # Backtick strings

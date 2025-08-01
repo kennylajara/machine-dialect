@@ -39,7 +39,8 @@ class TokenType(Enum):
     # Literals
     LIT_INT = auto()
     LIT_FLOAT = auto()
-    LIT_STRING = auto()
+    LIT_TEXT = auto()
+    LIT_URL = auto()
     LIT_BACKTICK = auto()
     LIT_TRIPLE_BACKTICK = auto()
 

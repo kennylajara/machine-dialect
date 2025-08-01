@@ -12,9 +12,9 @@ class TestLexer:
             ("3.14", [Token(TokenType.LIT_FLOAT, "3.14")]),
             ("0", [Token(TokenType.LIT_INT, "0")]),
             # Strings
-            ('"hello"', [Token(TokenType.LIT_STRING, '"hello"')]),
-            ("'world'", [Token(TokenType.LIT_STRING, "'world'")]),
-            ('""', [Token(TokenType.LIT_STRING, '""')]),
+            ('"hello"', [Token(TokenType.LIT_TEXT, '"hello"')]),
+            ("'world'", [Token(TokenType.LIT_TEXT, "'world'")]),
+            ('""', [Token(TokenType.LIT_TEXT, '""')]),
             # Backtick strings
             ("`code`", [Token(TokenType.LIT_BACKTICK, "`code`")]),
             ("`variable_name`", [Token(TokenType.LIT_BACKTICK, "`variable_name`")]),

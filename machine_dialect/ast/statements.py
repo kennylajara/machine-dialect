@@ -21,3 +21,15 @@ class SetStatement(Statement):
         if self.value:
             out += str(self.value)
         return out
+
+
+class ReturnStatement(Statement):
+    def __init__(self, token: Token, return_value: Expression | None = None) -> None:
+        super().__init__(token)
+        self.return_value = return_value
+
+    def __str__(self) -> str:
+        out = f"{self.token.literal}"
+        if self.return_value:
+            out += f" {self.return_value}"
+        return out

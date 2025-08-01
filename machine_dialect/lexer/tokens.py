@@ -158,7 +158,8 @@ def lookup_token_type(literal: str) -> TokenType:
         # else statement
         "otherwise": TokenType.KW_ELSE,
         # return value.
-        "returns": TokenType.KW_RETURN,
+        "give back": TokenType.KW_RETURN,
+        "gives back": TokenType.KW_RETURN,
         # The typical functions: Define a rule called `add` that takes two numbers and returns another number.
         "rule": TokenType.KW_RULE,
         # declare variable: set `a` as integer.

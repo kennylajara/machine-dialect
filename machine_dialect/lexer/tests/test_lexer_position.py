@@ -23,9 +23,9 @@ class TestLexerPosition:
     def test_multiline_positions(self) -> None:
         """Test that tokens across multiple lines have correct line numbers."""
         source = """if true then
-    returns 42
+    give back 42
 else
-    returns 0"""
+    gives back 0"""
 
         lexer = Lexer(source)
         errors, tokens = lexer.tokenize()
@@ -36,11 +36,11 @@ else
             Token(TokenType.KW_IF, "if", line=1, position=0),
             Token(TokenType.KW_TRUE, "true", line=1, position=3),
             Token(TokenType.KW_THEN, "then", line=1, position=8),
-            Token(TokenType.KW_RETURN, "returns", line=2, position=4),
-            Token(TokenType.LIT_INT, "42", line=2, position=12),
+            Token(TokenType.KW_RETURN, "give back", line=2, position=4),
+            Token(TokenType.LIT_INT, "42", line=2, position=14),
             Token(TokenType.KW_ELSE, "else", line=3, position=0),
-            Token(TokenType.KW_RETURN, "returns", line=4, position=4),
-            Token(TokenType.LIT_INT, "0", line=4, position=12),
+            Token(TokenType.KW_RETURN, "gives back", line=4, position=4),
+            Token(TokenType.LIT_INT, "0", line=4, position=15),
         ]
 
         assert tokens == expected

@@ -63,6 +63,56 @@ class Lexer:
             self.advance()
         return self.source[start_pos : self.position], start_line, start_column
 
+    def check_multi_word_keyword(self, first_word: str, line: int, pos: int) -> tuple[str | None, int]:
+        """Check if the identifier starts a multi-word keyword.
+
+        Args:
+            first_word: The first word that was read
+            line: Line number of the first word
+            pos: Column position of the first word
+
+        Returns:
+            Tuple of (multi_word_keyword, end_position) if found, otherwise (None, current_position)
+        """
+        # Save current state
+        saved_position = self.position
+        saved_line = self.line
+        saved_column = self.column
+        saved_char = self.current_char
+
+        # Skip whitespace after first word
+        start_whitespace = self.position
+        while self.current_char and self.current_char.isspace() and self.current_char != "\n":
+            self.advance()
+
+        # If we hit newline or no whitespace, not a multi-word keyword
+        if self.position == start_whitespace or not self.current_char or not self.current_char.isalpha():
+            # Restore state
+            self.position = saved_position
+            self.line = saved_line
+            self.column = saved_column
+            self.current_char = saved_char
+            return None, self.position
+
+        # Read the next word
+        next_word_start = self.position
+        while self.current_char and (self.current_char.isalnum() or self.current_char == "_"):
+            self.advance()
+
+        second_word = self.source[next_word_start : self.position]
+        two_words = f"{first_word} {second_word}"
+
+        # Check if it's a multi-word keyword
+        if lookup_token_type(two_words) != TokenType.MISC_IDENT:
+            return two_words, self.position
+
+        # Not a multi-word keyword, restore state
+        self.position = saved_position
+        self.line = saved_line
+        self.column = saved_column
+        self.current_char = saved_char
+        return None, self.position
+
     def read_string(self) -> tuple[str, int, int]:
         quote_char = self.current_char
         start_pos = self.position
@@ -138,8 +188,15 @@ class Lexer:
             # Identifiers and keywords
             if self.current_char.isalpha() or self.current_char == "_":
                 literal, line, pos = self.read_identifier()
-                token_type = lookup_token_type(literal)
-                tokens.append(Token(token_type, literal, line, pos))
+
+                # Check for multi-word keywords
+                multi_word, _ = self.check_multi_word_keyword(literal, line, pos)
+                if multi_word:
+                    token_type = lookup_token_type(multi_word)
+                    tokens.append(Token(token_type, multi_word, line, pos))
+                else:
+                    token_type = lookup_token_type(literal)
+                    tokens.append(Token(token_type, literal, line, pos))
                 continue
 
             # Strings

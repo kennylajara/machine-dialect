@@ -1,6 +1,7 @@
 from machine_dialect.ast import (
     Identifier,
     Program,
+    ReturnStatement,
     SetStatement,
     Statement,
 )
@@ -168,6 +169,26 @@ class Parser:
 
         return let_statement
 
+    def _parse_return_statement(self) -> ReturnStatement | None:
+        """Parse a return statement.
+
+        Expects: give back expression or gives back expression
+
+        Returns:
+            A ReturnStatement AST node if successful, None if parsing fails.
+        """
+        assert self._current_token is not None
+        return_statement = ReturnStatement(token=self._current_token)
+
+        # TODO: Finish when we know how to parse expressions
+        # For now, consume tokens until EOF or next statement keyword
+        assert self._current_token is not None
+        while self._current_token.type not in [TokenType.MISC_EOF, TokenType.PUNCT_PERIOD]:
+            self._advance_tokens()
+            assert self._current_token is not None
+
+        return return_statement
+
     def _parse_statement(self) -> Statement | None:
         """Parse a single statement.
 
@@ -181,5 +202,7 @@ class Parser:
 
         if self._current_token.type == TokenType.KW_SET:
             return self._parse_let_statement()
+        elif self._current_token.type == TokenType.KW_RETURN:
+            return self._parse_return_statement()
         else:
             return None

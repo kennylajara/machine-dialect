@@ -5,7 +5,7 @@
       <sourceFolder url="file://$MODULE_DIR$/machine_dialect" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/.venv" />
     </content>
-    <orderEntry type="jdk" jdkName="/usr/bin/python3 (3)" jdkType="Python SDK" />
+    <orderEntry type="jdk" jdkName="Python 3.12.3 WSL (Ubuntu): (/home/kennio/personal/machine_dialect/.venv/bin/python)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
 </module>

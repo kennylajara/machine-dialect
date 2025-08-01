@@ -90,6 +90,14 @@ This is crucial for:
 - Installing dependencies
 - Running the application
 
+After activating the virtual environment, install the package in editable mode:
+
+```bash
+uv pip install -e .
+```
+
+This ensures that `machine_dialect` can be imported in tests and scripts.
+
 ## Common Tasks
 
 ### Running Tests

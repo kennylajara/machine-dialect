@@ -1,10 +1,13 @@
 [project]
 name = "machine-dialect"
 version = "0.1.0"
-description = "Add your description here"
+description = "Machine Dialect - Natural language programming in Markdown"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = []
+
+[tool.setuptools.packages.find]
+include = ["machine_dialect*"]
 
 [dependency-groups]
 dev = [

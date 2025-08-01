@@ -37,7 +37,7 @@ class MDBaseException(ABC):
         self._message = message
         self._line = line
         self._column = column
-        self._filename = filename
+        self._filename = filename or "<standard-input>"
 
     def __str__(self) -> str:
         """Return string representation of the exception.
@@ -178,6 +178,28 @@ class MDNameError(MDException):
         Traceback (most recent call last):
             ...
         MDNameError: name 'nonexistent' is not defined
+    """
+
+
+class MDSyntaxError(MDException):
+    """Raised when a syntax error is encountered.
+
+    This exception is raised when the parser encounters syntactically
+    incorrect Machine Dialect code. This includes malformed expressions,
+    invalid statement structure, or improper use of keywords.
+
+    Example:
+        >>> if x = 5:  # Should use 'is' for comparison
+        ...     pass
+        Traceback (most recent call last):
+            ...
+        MDSyntaxError: invalid syntax
+
+        >>> def function(
+        ...     # Missing closing parenthesis
+        Traceback (most recent call last):
+            ...
+        MDSyntaxError: unexpected EOF while parsing
     """
 
 

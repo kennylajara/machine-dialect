@@ -4,7 +4,8 @@ from machine_dialect.ast import (
     SetStatement,
     Statement,
 )
-from machine_dialect.errors.exceptions import MDBaseException
+from machine_dialect.errors.exceptions import MDBaseException, MDSyntaxError
+from machine_dialect.errors.messages import UNEXPECTED_TOKEN
 from machine_dialect.lexer import Lexer, Token, TokenType
 
 
@@ -30,7 +31,7 @@ class Parser:
 
         # Get tokens and errors from the lexer
         lexer_errors, self._tokens = lexer.tokenize()
-        self.errors: list[MDBaseException] = list(lexer_errors)
+        self._errors: list[MDBaseException] = list(lexer_errors)
         self._token_index = 0
 
         self._advance_tokens()
@@ -64,7 +65,20 @@ class Parser:
         Returns:
             True if there are any errors, False otherwise.
         """
-        return len(self.errors) > 0
+        return len(self._errors) > 0
+
+    @property
+    def errors(self) -> list[MDBaseException]:
+        """Get the list of errors encountered during parsing.
+
+        This includes both lexical errors from the tokenizer and syntax errors
+        from the parser. Errors are collected in the order they were encountered.
+
+        Returns:
+            List of MDBaseException instances representing all errors found
+            during lexical analysis and parsing.
+        """
+        return self._errors
 
     def _advance_tokens(self) -> None:
         """Advance to the next token in the stream.
@@ -93,7 +107,31 @@ class Parser:
         if self._peek_token.type == token_type:
             self._advance_tokens()
             return True
+
+        self._expected_token_error(token_type)
         return False
+
+    def _expected_token_error(self, token_type: TokenType) -> None:
+        """Record an error for an unexpected token.
+
+        Creates and adds a syntax error to the errors list when the parser
+        encounters a token different from what was expected.
+
+        Args:
+            token_type: The token type that was expected but not found.
+        """
+        assert self._peek_token is not None
+        error_message = UNEXPECTED_TOKEN.substitute(
+            token_literal=self._peek_token.literal,
+            expected_token_type=token_type,
+            received_token_type=self._peek_token.type,
+        )
+        error = MDSyntaxError(
+            message=error_message,
+            line=self._peek_token.line,
+            column=self._peek_token.position,
+        )
+        self.errors.append(error)
 
     def _parse_let_statement(self) -> SetStatement | None:
         """Parse a Set statement.

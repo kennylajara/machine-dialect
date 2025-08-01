@@ -155,7 +155,7 @@ class TestLexer:
                     Token(TokenType.OP_TWO_STARS, "**", line=1, position=0),
                     Token(TokenType.KW_IS, "is", line=1, position=0),
                     Token(TokenType.MISC_IDENT, "greater", line=1, position=0),
-                    Token(TokenType.MISC_IDENT, "than", line=1, position=0),
+                    Token(TokenType.MISC_STOPWORD, "than", line=1, position=0),
                     Token(TokenType.LIT_INT, "0", line=1, position=0),
                     Token(TokenType.PUNCT_COMMA, ",", line=1, position=0),
                     Token(TokenType.KW_THEN, "then", line=1, position=0),
@@ -182,7 +182,7 @@ class TestLexer:
                 [
                     Token(TokenType.KW_DEFINE, "define", line=1, position=0),
                     Token(TokenType.KW_RULE, "rule", line=1, position=0),
-                    Token(TokenType.MISC_IDENT, "that", line=1, position=0),
+                    Token(TokenType.MISC_STOPWORD, "that", line=1, position=0),
                     Token(TokenType.KW_RETURN, "give back", line=1, position=0),
                     Token(TokenType.LIT_INT, "42", line=1, position=0),
                 ],

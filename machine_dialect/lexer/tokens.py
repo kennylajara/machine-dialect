@@ -7,6 +7,9 @@ from typing import (
     NamedTuple,
 )
 
+import nltk
+from nltk.corpus import stopwords
+
 
 @unique
 class TokenType(Enum):
@@ -48,6 +51,7 @@ class TokenType(Enum):
     MISC_EOF = auto()
     MISC_ILLEGAL = auto()
     MISC_IDENT = auto()
+    MISC_STOPWORD = auto()
 
     # Keywords
     KW_ACTION = auto()
@@ -106,6 +110,16 @@ class Token(NamedTuple):
 
     def __str__(self) -> str:
         return f"Type: {self.type}, Literal: {self.literal}, Line: {self.line}, Position: {self.position}"
+
+
+# Download stopwords if not already available
+try:
+    nltk.data.find("corpora/stopwords")
+except LookupError:
+    nltk.download("stopwords", quiet=True)
+
+# Cache stopwords for performance
+ENGLISH_STOPWORDS = set(stopwords.words("english"))
 
 
 def lookup_token_type(literal: str) -> TokenType:
@@ -199,4 +213,14 @@ def lookup_token_type(literal: str) -> TokenType:
         "DataType": TokenType.KW_DATATYPE,
     }
 
-    return keywords.get(literal, TokenType.MISC_IDENT)
+    # First check if it's a keyword
+    token_type = keywords.get(literal)
+    if token_type is not None:
+        return token_type
+
+    # Check if it's a stopword (case-insensitive)
+    if literal.lower() in ENGLISH_STOPWORDS:
+        return TokenType.MISC_STOPWORD
+
+    # Default to identifier
+    return TokenType.MISC_IDENT

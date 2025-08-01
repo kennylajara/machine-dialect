@@ -86,13 +86,20 @@ class Parser:
 
         Moves the peek token to current token and reads the next token
         into peek token. If no more tokens are available, sets peek token
-        to EOF.
+        to EOF. Automatically skips MISC_STOPWORD tokens.
         """
         self._current_token = self._peek_token
-        if self._token_index < len(self._tokens):
+
+        # Skip any stopword tokens
+        while self._token_index < len(self._tokens):
             self._peek_token = self._tokens[self._token_index]
             self._token_index += 1
+
+            # If it's not a stopword, we're done
+            if self._peek_token.type != TokenType.MISC_STOPWORD:
+                break
         else:
+            # No more tokens available
             self._peek_token = Token(TokenType.MISC_EOF, "", line=1, position=0)
 
     def _expected_token(self, token_type: TokenType) -> bool:

@@ -79,10 +79,111 @@ Print: "Average per item: " + **average**.
 - AI models can generate this structure with very little training.
 - Humans can preview and edit it using standard Markdown tools.
 
+## Project Structure
+
+```text
+machine_dialect/
+├── machine_dialect/         # Main Python package
+│   ├── lexer/               # Lexer implementation
+│   │   ├── __init__.py
+│   │   ├── lexer.py         # Main lexer class
+│   │   └── tokens.py        # TokenType enum and Token class definitions
+│   ├── repl/                # REPL implementation
+│   │   ├── tests/           # REPL tests
+│   │   │   ├── __init__.py
+│   │   │   └── test_repl.py
+│   │   ├── __init__.py
+│   │   └── repl.py          # Interactive REPL for tokenization
+│   └── __main__.py          # Entry point for python -m machine_dialect
+├── md_linter/               # Rust-based Markdown linter
+│   ├── src/
+│   │   ├── main.rs
+│   │   ├── config.rs
+│   │   └── rules/          # Linting rules
+│   ├── Cargo.toml
+│   └── Cargo.lock
+├── pyproject.toml           # Python project configuration
+├── uv.lock                  # UV package manager lock file
+├── CLAUDE.md               # AI assistant guidance
+└── README.md               # This file
+```
+
+### Key Components
+
+- **Lexer**: Tokenizes Machine Dialect source code into structured tokens
+- **Tokens**: Defines all token types with clear prefixes (KW_for keywords, OP\_ for operators, etc.)
+- **Tests**: Comprehensive test suite following Test-Driven Development (TDD)
+- **MD Linter**: Ensures consistent formatting of Machine Dialect source files
+
 ## Status
 
-> ⚠️ This project is a prototype. We’re exploring syntax design, parsing strategies, and possible
+> ⚠️ This project is a prototype. We're exploring syntax design, parsing strategies, and possible
 > runtimes. Expect breaking changes. Contributions welcome.
+
+## Getting Started
+
+### Prerequisites
+
+- Python 3.12 or higher
+- UV package manager for Python
+- Rust (optional, for the Markdown linter)
+
+### Installation
+
+1. Clone the repository:
+
+   ```bash
+   git clone https://github.com/yourusername/machine_dialect.git
+   cd machine_dialect
+   ```
+
+1. Create and activate a virtual environment:
+
+   ```bash
+   python -m venv .venv
+   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+   ```
+
+1. Install dependencies:
+
+   ```bash
+   uv sync
+   ```
+
+### Running Tests
+
+```bash
+python -m pytest machine_dialect/lexer/tests/test_lexer.py -v
+```
+
+### Using the REPL
+
+Start the interactive REPL to tokenize Machine Dialect code:
+
+```bash
+python -m machine_dialect
+# or
+python machine_dialect/repl/repl.py
+```
+
+Example REPL session:
+
+```text
+md> if x > 0 then return true
+
+Tokens (7):
+--------------------------------------------------
+  Type                 | Literal
+--------------------------------------------------
+  KW_IF                | 'if'
+  MISC_IDENT           | 'x'
+  OP_GT                | '>'
+  LIT_INT              | '0'
+  KW_THEN              | 'then'
+  MISC_IDENT           | 'return'
+  KW_TRUE              | 'true'
+--------------------------------------------------
+```
 
 ## Goals
 

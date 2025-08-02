@@ -7,7 +7,14 @@ duplication and make tests more readable.
 
 from typing import Any, cast
 
-from machine_dialect.ast import Expression, ExpressionStatement, Identifier, Program
+from machine_dialect.ast import (
+    Expression,
+    ExpressionStatement,
+    FloatLiteral,
+    Identifier,
+    IntegerLiteral,
+    Program,
+)
 from machine_dialect.parser import Parser
 
 
@@ -48,12 +55,16 @@ def assert_literal_expression(
     value_type: type = type(expected_value)
 
     if value_type is str:
-        assert_identifier(expression, expected_value)
+        _assert_identifier(expression, expected_value)
+    elif value_type is int:
+        _assert_integer_literal(expression, expected_value)
+    elif value_type is float:
+        _assert_float_literal(expression, expected_value)
     else:
         raise AssertionError(f"Unhandled literal expression: {expression}. Got={value_type}")
 
 
-def assert_identifier(expression: Expression, expected_value: str) -> None:
+def _assert_identifier(expression: Expression, expected_value: str) -> None:
     """Test that an identifier expression has the expected value.
 
     Verifies both the identifier's value attribute and its token's literal
@@ -70,3 +81,49 @@ def assert_identifier(expression: Expression, expected_value: str) -> None:
     identifier: Identifier = cast(Identifier, expression)
     assert identifier.value == expected_value, f"Identifier value={identifier.value} != {expected_value}"
     assert identifier.token.literal == expected_value, f"Identifier token={identifier.token} != {expected_value}"
+
+
+def _assert_integer_literal(expression: Expression, expected_value: int) -> None:
+    """Test that an integer literal expression has the expected value.
+
+    Verifies both the integer literal's value attribute and its token's literal
+    match the expected value.
+
+    Args:
+        expression: The expression to test (must be an IntegerLiteral).
+        expected_value: The expected integer value.
+
+    Raises:
+        AssertionError: If the expression is not an IntegerLiteral or if
+            the value doesn't match the expected value.
+    """
+    assert isinstance(expression, IntegerLiteral), f"Expected IntegerLiteral, got {type(expression).__name__}"
+    integer_literal = expression
+    assert integer_literal.value == expected_value, f"Integer value={integer_literal.value} != {expected_value}"
+    assert integer_literal.token.literal == str(
+        expected_value
+    ), f"Integer token literal={integer_literal.token.literal} != {expected_value}"
+
+
+def _assert_float_literal(expression: Expression, expected_value: float) -> None:
+    """Test that a float literal expression has the expected value.
+
+    Verifies both the float literal's value attribute and its token's literal
+    match the expected value.
+
+    Args:
+        expression: The expression to test (must be a FloatLiteral).
+        expected_value: The expected float value.
+
+    Raises:
+        AssertionError: If the expression is not a FloatLiteral or if
+            the value doesn't match the expected value.
+    """
+    assert isinstance(expression, FloatLiteral), f"Expected FloatLiteral, got {type(expression).__name__}"
+    float_literal = expression
+    assert float_literal.value == expected_value, f"Float value={float_literal.value} != {expected_value}"
+    # For float literals, we compare the string representation to avoid precision issues
+    expected_str = str(expected_value)
+    actual_str = float_literal.token.literal
+    # Handle cases like 3.0 vs 3.0 or 3.14 vs 3.14
+    assert float(actual_str) == float(expected_str), f"Float token literal={actual_str} != {expected_str}"

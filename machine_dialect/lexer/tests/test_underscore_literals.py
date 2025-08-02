@@ -111,12 +111,13 @@ class TestUnderscoreLiterals:
         assert not is_literal_token(tokens[0])
 
     def test_incomplete_wrapped_literal(self) -> None:
-        """Test incomplete wrapped literal falls back to identifier."""
-        source = "_42"  # Missing closing underscore
+        """Test incomplete wrapped literal with invalid pattern is marked as illegal."""
+        source = "_42"  # Missing closing underscore and starts with _ followed by digits
         lexer = Lexer(source)
         errors, tokens = lexer.tokenize()
 
-        assert len(errors) == 0
+        # This should now produce an error because _42 is an invalid identifier pattern
+        assert len(errors) == 1
         assert len(tokens) == 1
-        assert tokens[0].type == TokenType.MISC_IDENT
+        assert tokens[0].type == TokenType.MISC_ILLEGAL
         assert tokens[0].literal == "_42"

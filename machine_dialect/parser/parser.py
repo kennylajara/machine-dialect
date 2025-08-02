@@ -4,14 +4,20 @@ from enum import IntEnum
 from machine_dialect.ast import (
     Expression,
     ExpressionStatement,
+    FloatLiteral,
     Identifier,
+    IntegerLiteral,
     Program,
     ReturnStatement,
     SetStatement,
     Statement,
 )
 from machine_dialect.errors.exceptions import MDBaseException, MDSyntaxError
-from machine_dialect.errors.messages import UNEXPECTED_TOKEN
+from machine_dialect.errors.messages import (
+    INVALID_FLOAT_LITERAL,
+    INVALID_INTEGER_LITERAL,
+    UNEXPECTED_TOKEN,
+)
 from machine_dialect.lexer import Lexer, Token, TokenType
 
 PrefixParseFunc = Callable[[], Expression | None]
@@ -198,12 +204,58 @@ class Parser:
 
         return expression_statement
 
+    def _parse_float_literal(self) -> FloatLiteral | None:
+        assert self._current_token is not None
+
+        # The lexer has already validated and cleaned the literal
+        # so we can directly parse it as a float
+        try:
+            value = float(self._current_token.literal)
+        except ValueError:
+            # This shouldn't happen if the lexer is working correctly
+            error_message = INVALID_FLOAT_LITERAL.substitute(literal=self._current_token.literal)
+            error = MDSyntaxError(
+                message=error_message,
+                line=self._current_token.line,
+                column=self._current_token.position,
+            )
+            self.errors.append(error)
+            return None
+
+        return FloatLiteral(
+            token=self._current_token,
+            value=value,
+        )
+
     def _parse_identifier(self) -> Identifier:
         assert self._current_token is not None
 
         return Identifier(
             token=self._current_token,
             value=self._current_token.literal,
+        )
+
+    def _parse_integer_literal(self) -> IntegerLiteral | None:
+        assert self._current_token is not None
+
+        # The lexer has already validated and cleaned the literal
+        # so we can directly parse it as an integer
+        try:
+            value = int(self._current_token.literal)
+        except ValueError:
+            # This shouldn't happen if the lexer is working correctly
+            error_message = INVALID_INTEGER_LITERAL.substitute(literal=self._current_token.literal)
+            error = MDSyntaxError(
+                message=error_message,
+                line=self._current_token.line,
+                column=self._current_token.position,
+            )
+            self.errors.append(error)
+            return None
+
+        return IntegerLiteral(
+            token=self._current_token,
+            value=value,
         )
 
     def _parse_let_statement(self) -> SetStatement | None:
@@ -335,6 +387,8 @@ class Parser:
         """
         return {
             TokenType.MISC_IDENT: self._parse_identifier,
+            TokenType.LIT_INT: self._parse_integer_literal,
+            TokenType.LIT_FLOAT: self._parse_float_literal,
         }
 
     @staticmethod

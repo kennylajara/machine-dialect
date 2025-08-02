@@ -140,6 +140,8 @@ def is_valid_identifier(literal: str) -> bool:
     - Start with a letter (a-z, A-Z) or underscore (_)
     - Followed by any number of letters, digits, underscores, spaces, or hyphens
     - Cannot be empty
+    - Special case: underscore followed by only digits is ILLEGAL (e.g., _42, _123)
+    - Special case: underscore(s) + digits + underscore(s) is ILLEGAL (e.g., _42_, __42__)
     """
     if not literal:
         return False
@@ -147,6 +149,14 @@ def is_valid_identifier(literal: str) -> bool:
     # First character must be letter or underscore
     if not (literal[0].isalpha() or literal[0] == "_"):
         return False
+
+    # Check for invalid underscore number patterns
+    if literal[0] == "_":
+        # Remove leading underscores and check if the first character is a digit
+        stripped = literal.lstrip("_")
+        if stripped and stripped[0].isdigit():
+            # This is an invalid pattern like _42, __42, _123abc, etc.
+            return False
 
     # Rest can be alphanumeric, underscore, space, or hyphen
     return all(c.isalnum() or c in ("_", " ", "-") for c in literal[1:])

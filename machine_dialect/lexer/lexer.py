@@ -154,7 +154,7 @@ class Lexer:
         """Tokenize a number and return the appropriate token."""
         literal, is_float, _, _ = self.read_number()
         token_type = TokenType.LIT_FLOAT if is_float else TokenType.LIT_INT
-        return Token(token_type, literal, line, pos)
+        return Token(token_type, "0" + literal if literal.startswith(".") else literal, line, pos)
 
     def tokenize_string(self, line: int, pos: int) -> Token:
         """Tokenize a string and return the appropriate token."""
@@ -199,6 +199,15 @@ class Lexer:
 
         self.advance()  # Skip opening underscore
 
+        # Check if there's another underscore immediately after (invalid pattern like __ or ___)
+        if self.current_char == "_":
+            # Multiple underscores at the start - invalid pattern
+            self.position = start_pos
+            self.line = start_line
+            self.column = start_column
+            self.current_char = self.source[self.position] if self.position < len(self.source) else None
+            return None
+
         # Check what's inside the underscores
         if self.current_char is None:
             # Restore position if incomplete
@@ -208,14 +217,26 @@ class Lexer:
             self.current_char = self.source[self.position] if self.position < len(self.source) else None
             return None
 
-        # Handle numbers
-        if self.current_char and self.current_char.isdigit():
+        # Handle numbers (including those starting with decimal point)
+        peek_result = self.peek()
+        if self.current_char and (
+            self.current_char.isdigit()
+            or (self.current_char == "." and peek_result is not None and peek_result.isdigit())
+        ):
             # Use the helper function
             num_token = self.tokenize_number(self.line, self.column)
 
             # Check for closing underscore
             if self.current_char == "_":
                 self.advance()  # Skip closing underscore
+                # Check if there's another underscore (invalid pattern like _42__)
+                if self.current_char == "_":
+                    # Multiple underscores at the end - invalid pattern
+                    self.position = start_pos
+                    self.line = start_line
+                    self.column = start_column
+                    self.current_char = self.source[self.position] if self.position < len(self.source) else None
+                    return None
                 # Return the literal without underscores
                 return num_token.literal, num_token.type, start_line, start_column
 
@@ -227,6 +248,14 @@ class Lexer:
             # Check for closing underscore
             if self.current_char == "_":
                 self.advance()  # Skip closing underscore
+                # Check if there's another underscore (invalid pattern like _"hello"__)
+                if self.current_char == "_":
+                    # Multiple underscores at the end - invalid pattern
+                    self.position = start_pos
+                    self.line = start_line
+                    self.column = start_column
+                    self.current_char = self.source[self.position] if self.position < len(self.source) else None
+                    return None
                 # Return the literal without underscores
                 return str_token.literal, str_token.type, start_line, start_column
 
@@ -241,6 +270,14 @@ class Lexer:
                 # Check for closing underscore
                 if self.current_char == "_":
                     self.advance()  # Skip closing underscore
+                    # Check if there's another underscore (invalid pattern like _true__)
+                    if self.current_char == "_":
+                        # Multiple underscores at the end - invalid pattern
+                        self.position = start_pos
+                        self.line = start_line
+                        self.column = start_column
+                        self.current_char = self.source[self.position] if self.position < len(self.source) else None
+                        return None
                     # Return the canonical literal without underscores
                     return canonical_literal, token_type, start_line, start_column
 
@@ -324,18 +361,122 @@ class Lexer:
                     literal, token_type, line, pos = literal_result
                     tokens.append(Token(token_type, literal, line, pos))
                     continue
+
+                # Check if this is an incomplete underscore pattern (like _3.14 or _.25)
+                next_char = self.peek()
+                next_next_char = self.peek(2)
+                if next_char and (
+                    next_char.isdigit()
+                    or (next_char == "." and next_next_char is not None and next_next_char.isdigit())
+                ):
+                    # This looks like an incomplete underscore literal
+                    line, pos = self.line, self.column
+                    # Read the entire pattern
+                    start_pos = self.position
+                    self.advance()  # Skip underscore
+
+                    # Read the number part
+                    peek_char = self.peek()
+                    if self.current_char == "." and peek_char is not None and peek_char.isdigit():
+                        self.tokenize_number(self.line, self.column)
+                    elif self.current_char and self.current_char.isdigit():
+                        self.tokenize_number(self.line, self.column)
+
+                    # Also consume any trailing underscores
+                    while self.current_char == "_":
+                        self.advance()
+
+                    # Create an illegal token for the entire pattern
+                    illegal_literal = self.source[start_pos : self.position]
+                    token = Token(TokenType.MISC_ILLEGAL, illegal_literal, line, pos)
+                    tokens.append(token)
+                    errors.append(
+                        MDNameError(
+                            message=NAME_UNDEFINED.substitute(name=illegal_literal),
+                            line=line,
+                            column=pos,
+                        )
+                    )
+                    continue
                 # If not a literal, fall through to identifier handling
 
             # Numbers (both wrapped and unwrapped are allowed)
             if self.current_char.isdigit():
                 line, pos = self.line, self.column
                 token = self.tokenize_number(line, pos)
-                tokens.append(token)
+
+                # Check if followed by underscore (invalid pattern like 3.14_)
+                if self.current_char == "_":
+                    # This is an invalid pattern - number followed by underscore
+                    start_pos = self.position - len(token.literal)
+                    self.advance()  # Skip underscore
+                    illegal_literal = self.source[start_pos : self.position]
+
+                    # Replace the valid number token with an illegal token
+                    illegal_token = Token(TokenType.MISC_ILLEGAL, illegal_literal, line, pos)
+                    tokens.append(illegal_token)
+                    errors.append(
+                        MDNameError(
+                            message=NAME_UNDEFINED.substitute(name=illegal_literal),
+                            line=line,
+                            column=pos,
+                        )
+                    )
+                else:
+                    tokens.append(token)
                 continue
 
             # Identifiers and keywords
             if self.current_char.isalpha() or self.current_char == "_":
                 line, pos = self.line, self.column
+
+                # Special handling for multiple underscores followed by number
+                if self.current_char == "_":
+                    # Count consecutive underscores
+                    underscore_count = 0
+                    temp_pos = self.position
+                    while temp_pos < len(self.source) and self.source[temp_pos] == "_":
+                        underscore_count += 1
+                        temp_pos += 1
+
+                    # Check if followed by a number (digit or decimal point)
+                    if temp_pos < len(self.source) and (
+                        self.source[temp_pos].isdigit()
+                        or (
+                            self.source[temp_pos] == "."
+                            and temp_pos + 1 < len(self.source)
+                            and self.source[temp_pos + 1].isdigit()
+                        )
+                    ):
+                        if underscore_count > 1:
+                            # Multiple underscores followed by number - read entire pattern
+                            start_pos = self.position
+
+                            # Skip underscores
+                            for _ in range(underscore_count):
+                                self.advance()
+
+                            # Read the number part
+                            self.tokenize_number(self.line, self.column)
+
+                            # Check for trailing underscores
+                            trailing_underscores = 0
+                            while self.current_char == "_":
+                                trailing_underscores += 1
+                                self.advance()
+
+                            # Create illegal token for entire pattern
+                            illegal_literal = self.source[start_pos : self.position]
+                            token = Token(TokenType.MISC_ILLEGAL, illegal_literal, line, pos)
+                            tokens.append(token)
+                            errors.append(
+                                MDNameError(
+                                    message=NAME_UNDEFINED.substitute(name=illegal_literal),
+                                    line=line,
+                                    column=pos,
+                                )
+                            )
+                            continue
 
                 # Check for multi-word keywords first
                 literal, ident_line, ident_pos = self.read_identifier()
@@ -348,6 +489,15 @@ class Lexer:
                     # Regular identifier, keyword, or boolean literal
                     token_type, canonical_literal = lookup_token_type(literal)
                     tokens.append(Token(token_type, canonical_literal, ident_line, ident_pos))
+                    if token_type == TokenType.MISC_ILLEGAL:
+                        # Add error for illegal identifier pattern
+                        errors.append(
+                            MDNameError(
+                                message=NAME_UNDEFINED.substitute(name=canonical_literal),
+                                line=ident_line,
+                                column=ident_pos,
+                            )
+                        )
                 continue
 
             # Strings
@@ -428,6 +578,40 @@ class Lexer:
                 tokens.append(Token(TokenType.OP_TWO_STARS, "**", line, pos))
                 self.advance()
                 self.advance()
+                continue
+
+            # Check for floats starting with decimal point (e.g., .5, .25)
+            peek_char = self.peek()
+            if self.current_char == "." and peek_char is not None and peek_char.isdigit():
+                line, pos = self.line, self.column
+                token = self.tokenize_number(line, pos)
+
+                # Check if followed by underscore (invalid pattern like .25_)
+                if self.current_char == "_":
+                    # This is an invalid pattern - number followed by underscore
+                    # For numbers starting with ., we need to account for the original source
+                    if token.literal.startswith("0.") and self.source[pos] == ".":
+                        # Original started with . but token has 0. prefix
+                        original_length = len(token.literal) - 1  # Remove the added 0
+                    else:
+                        original_length = len(token.literal)
+
+                    start_pos = self.position - original_length
+                    self.advance()  # Skip underscore
+                    illegal_literal = self.source[start_pos : self.position]
+
+                    # Replace the valid number token with an illegal token
+                    illegal_token = Token(TokenType.MISC_ILLEGAL, illegal_literal, line, pos)
+                    tokens.append(illegal_token)
+                    errors.append(
+                        MDNameError(
+                            message=NAME_UNDEFINED.substitute(name=illegal_literal),
+                            line=line,
+                            column=pos,
+                        )
+                    )
+                else:
+                    tokens.append(token)
                 continue
 
             # Single-character tokens

@@ -16,7 +16,7 @@ class SetStatement(Statement):
     def __str__(self) -> str:
         out = f"{self.token.literal} "
         if self.name:
-            out += f"`{self.name}` "
+            out += f"{self.name} "
         out += "to "
         if self.value:
             out += str(self.value)
@@ -29,7 +29,7 @@ class ReturnStatement(Statement):
         self.return_value = return_value
 
     def __str__(self) -> str:
-        out = f"{self.token.literal}"
+        out = f"\n{self.token.literal}"
         if self.return_value:
             out += f" {self.return_value}"
         return out

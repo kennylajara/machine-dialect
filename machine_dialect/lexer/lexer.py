@@ -4,6 +4,11 @@ from machine_dialect.helpers.validators import is_valid_url
 from machine_dialect.lexer.tokens import Token, TokenType, lookup_token_type
 
 
+def is_literal_token(token: Token) -> bool:
+    """Check if a token represents a literal value."""
+    return token.type in (TokenType.LIT_INT, TokenType.LIT_FLOAT, TokenType.LIT_TEXT, TokenType.LIT_URL)
+
+
 class Lexer:
     def __init__(self, source: str) -> None:
         self.source = source
@@ -168,6 +173,76 @@ class Lexer:
 
         return self.source[start_pos : self.position], start_line, start_column
 
+    def tokenize_number(self, line: int, pos: int) -> Token:
+        """Tokenize a number and return the appropriate token."""
+        literal, is_float, _, _ = self.read_number()
+        token_type = TokenType.LIT_FLOAT if is_float else TokenType.LIT_INT
+        return Token(token_type, literal, line, pos)
+
+    def tokenize_string(self, line: int, pos: int) -> Token:
+        """Tokenize a string and return the appropriate token."""
+        literal, _, _ = self.read_string()
+        # Remove quotes from the literal for URL validation
+        url_to_validate = literal[1:-1] if len(literal) > 2 else literal
+        if is_valid_url(url_to_validate):
+            return Token(TokenType.LIT_URL, literal, line, pos)
+        else:
+            return Token(TokenType.LIT_TEXT, literal, line, pos)
+
+    def read_underscore_literal(self) -> tuple[str, TokenType, int, int] | None:
+        """Read an underscore-wrapped literal (e.g., _42_, _"Hello"_, _3.14_).
+
+        Returns:
+            Tuple of (literal, token_type, line, column) if valid literal found,
+            None otherwise.
+        """
+        if self.current_char != "_":
+            return None
+
+        start_pos = self.position
+        start_line = self.line
+        start_column = self.column
+
+        self.advance()  # Skip opening underscore
+
+        # Check what's inside the underscores
+        if self.current_char is None:
+            # Restore position if incomplete
+            self.position = start_pos
+            self.line = start_line
+            self.column = start_column
+            self.current_char = self.source[self.position] if self.position < len(self.source) else None
+            return None
+
+        # Handle numbers
+        if self.current_char and self.current_char.isdigit():
+            # Use the helper function
+            num_token = self.tokenize_number(self.line, self.column)
+
+            # Check for closing underscore
+            if self.current_char == "_":
+                self.advance()  # Skip closing underscore
+                full_literal = self.source[start_pos : self.position]
+                return full_literal, num_token.type, start_line, start_column
+
+        # Handle strings
+        elif self.current_char in ('"', "'"):
+            # Use the helper function
+            str_token = self.tokenize_string(self.line, self.column)
+
+            # Check for closing underscore
+            if self.current_char == "_":
+                self.advance()  # Skip closing underscore
+                full_literal = self.source[start_pos : self.position]
+                return full_literal, str_token.type, start_line, start_column
+
+        # Not a valid underscore literal, restore position
+        self.position = start_pos
+        self.line = start_line
+        self.column = start_column
+        self.current_char = self.source[self.position] if self.position < len(self.source) else None
+        return None
+
     def tokenize(self) -> tuple[list[MDNameError], list[Token]]:
         errors: list[MDNameError] = []
         tokens: list[Token] = []
@@ -178,11 +253,20 @@ class Lexer:
                 self.skip_whitespace()
                 continue
 
-            # Numbers
+            # Check for underscore-wrapped literals first
+            if self.current_char == "_":
+                literal_result = self.read_underscore_literal()
+                if literal_result:
+                    literal, token_type, line, pos = literal_result
+                    tokens.append(Token(token_type, literal, line, pos))
+                    continue
+                # If not a literal, fall through to identifier handling
+
+            # Numbers (both wrapped and unwrapped are allowed)
             if self.current_char.isdigit():
-                literal, is_float, line, pos = self.read_number()
-                token_type = TokenType.LIT_FLOAT if is_float else TokenType.LIT_INT
-                tokens.append(Token(token_type, literal, line, pos))
+                line, pos = self.line, self.column
+                token = self.tokenize_number(line, pos)
+                tokens.append(token)
                 continue
 
             # Identifiers and keywords
@@ -201,13 +285,9 @@ class Lexer:
 
             # Strings
             if self.current_char in ('"', "'"):
-                literal, line, pos = self.read_string()
-                # Remove quotes from the literal for URL validation
-                url_to_validate = literal[1:-1] if len(literal) > 2 else literal
-                if is_valid_url(url_to_validate):
-                    tokens.append(Token(TokenType.LIT_URL, literal, line, pos))
-                else:
-                    tokens.append(Token(TokenType.LIT_TEXT, literal, line, pos))
+                line, pos = self.line, self.column
+                token = self.tokenize_string(line, pos)
+                tokens.append(token)
                 continue
 
             # Backtick strings

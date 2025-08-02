@@ -10,4 +10,4 @@ class Program(ASTNode):
         for statement in self.statements:
             out.append(str(statement))
 
-        return "".join(out)
+        return ".\n".join(out) + ".\n"

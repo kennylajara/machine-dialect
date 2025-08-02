@@ -147,7 +147,7 @@ class TestLexer:
                 ],
             ),
             (
-                "if **x** is greater than 0, then return **true**",
+                "if **x** is greater than 0, then give back **true**",
                 [
                     Token(TokenType.KW_IF, "if", line=1, position=0),
                     Token(TokenType.OP_TWO_STARS, "**", line=1, position=0),
@@ -159,7 +159,7 @@ class TestLexer:
                     Token(TokenType.LIT_INT, "0", line=1, position=0),
                     Token(TokenType.PUNCT_COMMA, ",", line=1, position=0),
                     Token(TokenType.KW_THEN, "then", line=1, position=0),
-                    Token(TokenType.MISC_IDENT, "return", line=1, position=0),
+                    Token(TokenType.KW_RETURN, "give back", line=1, position=0),
                     Token(TokenType.OP_TWO_STARS, "**", line=1, position=0),
                     Token(TokenType.KW_TRUE, "true", line=1, position=0),
                     Token(TokenType.OP_TWO_STARS, "**", line=1, position=0),

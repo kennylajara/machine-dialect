@@ -8,9 +8,9 @@ class TestASTStringRepresentation:
             statements=[
                 SetStatement(
                     token=Token(TokenType.KW_SET, "Set", 1, 0),
-                    name=Identifier(token=Token(TokenType.LIT_BACKTICK, "`my_var`", 1, 4), value="my_var"),
+                    name=Identifier(token=Token(TokenType.MISC_IDENT, "my_var", 1, 4), value="my_var"),
                     value=Identifier(
-                        token=Token(TokenType.LIT_BACKTICK, "`other_var`", 1, 15),
+                        token=Token(TokenType.MISC_IDENT, "other_var", 1, 15),
                         value="other_var",
                     ),
                 )
@@ -26,7 +26,7 @@ class TestASTStringRepresentation:
             statements=[
                 ReturnStatement(
                     token=Token(TokenType.KW_RETURN, "Give back", 1, 0),
-                    return_value=Identifier(token=Token(TokenType.LIT_BACKTICK, "`my_var`", 1, 7), value="my_var"),
+                    return_value=Identifier(token=Token(TokenType.MISC_IDENT, "my_var", 1, 7), value="my_var"),
                 )
             ]
         )
@@ -40,17 +40,17 @@ class TestASTStringRepresentation:
             statements=[
                 SetStatement(
                     token=Token(TokenType.KW_SET, "Set", 1, 0),
-                    name=Identifier(token=Token(TokenType.LIT_BACKTICK, "`x`", 1, 4), value="x"),
+                    name=Identifier(token=Token(TokenType.MISC_IDENT, "x", 1, 4), value="x"),
                     value=IntegerLiteral(token=Token(TokenType.LIT_INT, "_42_", 1, 11), value=42),
                 ),
                 SetStatement(
                     token=Token(TokenType.KW_SET, "Set", 2, 0),
-                    name=Identifier(token=Token(TokenType.LIT_BACKTICK, "`y`", 2, 4), value="y"),
-                    value=Identifier(token=Token(TokenType.LIT_BACKTICK, "`x`", 2, 11), value="x"),
+                    name=Identifier(token=Token(TokenType.MISC_IDENT, "result", 2, 4), value="result"),
+                    value=Identifier(token=Token(TokenType.MISC_IDENT, "x", 2, 11), value="x"),
                 ),
                 ReturnStatement(
                     token=Token(TokenType.KW_RETURN, "Give back", 3, 0),
-                    return_value=Identifier(token=Token(TokenType.LIT_BACKTICK, "`y`", 3, 7), value="y"),
+                    return_value=Identifier(token=Token(TokenType.MISC_IDENT, "result", 3, 7), value="result"),
                 ),
             ]
         )
@@ -58,5 +58,5 @@ class TestASTStringRepresentation:
         program_str = str(program)
 
         # The Program concatenates statements with ".\n" and adds final ".\n"
-        expected = "Set `x` to _42_.\nSet `y` to `x`.\n\nGive back `y`.\n"
+        expected = "Set `x` to _42_.\nSet `result` to `x`.\n\nGive back `result`.\n"
         assert program_str == expected

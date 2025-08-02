@@ -166,12 +166,12 @@ class Parser:
         assert self._current_token is not None
         let_statement = SetStatement(token=self._current_token)
 
-        # Expect backtick identifier like `X`
-        if not self._expected_token(TokenType.LIT_BACKTICK):
+        # Expect identifier (which may have come from backticks)
+        if not self._expected_token(TokenType.MISC_IDENT):
             return None
 
-        # Extract identifier from backticks
-        identifier_value = self._current_token.literal.strip("`")
+        # Use the identifier value directly (backticks already stripped by lexer)
+        identifier_value = self._current_token.literal
         let_statement.name = Identifier(token=self._current_token, value=identifier_value)
 
         # Expect "to" keyword
@@ -184,7 +184,7 @@ class Parser:
             self._current_token is not None
             and self._current_token.type != TokenType.MISC_EOF
             and self._peek_token is not None
-            and self._peek_token.type != TokenType.KW_SET
+            and self._peek_token.type != TokenType.PUNCT_PERIOD
         ):
             self._advance_tokens()
 

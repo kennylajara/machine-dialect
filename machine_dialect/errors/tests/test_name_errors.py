@@ -62,7 +62,7 @@ class TestParserErrors:
     def test_parser_continues_after_lexer_errors(self) -> None:
         """Test that parser continues parsing despite lexer errors."""
         # Source with an error but valid structure
-        source = "Set `X` to @ Set `Y` to 123"
+        source = "Set `X` to @. Set `result` to 123."
         lexer = Lexer(source)
         parser = Parser(lexer)
 
@@ -83,7 +83,7 @@ class TestParserErrors:
         assert program.statements[0].name is not None
         assert program.statements[0].name.value == "X"
         assert program.statements[1].name is not None
-        assert program.statements[1].name.value == "Y"
+        assert program.statements[1].name.value == "result"
 
     def test_empty_source_no_errors(self) -> None:
         """Test that empty source produces no errors."""

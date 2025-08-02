@@ -21,10 +21,10 @@ class TestSetStatements:
         assert statement.name is not None
         assert isinstance(statement.name, Identifier)
         assert statement.name.value == "X"
-        assert statement.name.token.literal == "`X`"
+        assert statement.name.token.literal == "X"
 
     def test_parse_set_float(self) -> None:
-        source: str = "Set `Y` to 3.14"
+        source: str = "Set `price` to 3.14"
         lexer: Lexer = Lexer(source)
         parser: Parser = Parser(lexer)
 
@@ -39,8 +39,8 @@ class TestSetStatements:
 
         assert statement.name is not None
         assert isinstance(statement.name, Identifier)
-        assert statement.name.value == "Y"
-        assert statement.name.token.literal == "`Y`"
+        assert statement.name.value == "price"
+        assert statement.name.token.literal == "price"
 
     def test_parse_set_string(self) -> None:
         source: str = 'Set `Z` to "Hello, World!"'
@@ -59,14 +59,14 @@ class TestSetStatements:
         assert statement.name is not None
         assert isinstance(statement.name, Identifier)
         assert statement.name.value == "Z"
-        assert statement.name.token.literal == "`Z`"
+        assert statement.name.token.literal == "Z"
 
     def test_parse_multiple_set_statements(self) -> None:
         source: str = "\n".join(
             [
-                "Set `X` to 1",
-                "Set `Y` to 3.14",
-                'Set `Z` to "Hello, World!"',
+                "Set `X` to 1.",
+                "Set `price` to 3.14.",
+                'Set `Z` to "Hello, World!".',
             ]
         )
 
@@ -83,24 +83,24 @@ class TestSetStatements:
         assert isinstance(statement1, SetStatement)
         assert statement1.name is not None
         assert statement1.name.value == "X"
-        assert statement1.name.token.type == TokenType.LIT_BACKTICK
-        assert statement1.name.token.literal == "`X`"
+        assert statement1.name.token.type == TokenType.MISC_IDENT
+        assert statement1.name.token.literal == "X"
 
         # Check second statement
         statement2 = program.statements[1]
         assert isinstance(statement2, SetStatement)
         assert statement2.name is not None
-        assert statement2.name.value == "Y"
-        assert statement2.name.token.type == TokenType.LIT_BACKTICK
-        assert statement2.name.token.literal == "`Y`"
+        assert statement2.name.value == "price"
+        assert statement2.name.token.type == TokenType.MISC_IDENT
+        assert statement2.name.token.literal == "price"
 
         # Check third statement
         statement3 = program.statements[2]
         assert isinstance(statement3, SetStatement)
         assert statement3.name is not None
         assert statement3.name.value == "Z"
-        assert statement3.name.token.type == TokenType.LIT_BACKTICK
-        assert statement3.name.token.literal == "`Z`"
+        assert statement3.name.token.type == TokenType.MISC_IDENT
+        assert statement3.name.token.literal == "Z"
 
     def test_set_statement_string_representation(self) -> None:
         source: str = "Set `X` to 1"

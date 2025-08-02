@@ -25,8 +25,8 @@ class Lexer:
         else:
             self.current_char = self.source[self.position]
 
-    def peek(self) -> str | None:
-        peek_pos = self.position + 1
+    def peek(self, offset: int = 1) -> str | None:
+        peek_pos = self.position + offset
         if peek_pos >= len(self.source):
             return None
         return self.source[peek_pos]
@@ -128,20 +128,6 @@ class Lexer:
 
         return self.source[start_pos : self.position], start_line, start_column
 
-    def read_backtick_string(self) -> tuple[str, int, int]:
-        start_pos = self.position
-        start_line = self.line
-        start_column = self.column
-        self.advance()  # Skip opening backtick
-
-        while self.current_char and self.current_char != "`":
-            self.advance()
-
-        if self.current_char == "`":
-            self.advance()  # Skip closing backtick
-
-        return self.source[start_pos : self.position], start_line, start_column
-
     def read_triple_backtick_string(self) -> tuple[str, int, int]:
         start_pos = self.position
         start_line = self.line
@@ -153,12 +139,7 @@ class Lexer:
 
         # Look for closing triple backticks
         while self.current_char:
-            if (
-                self.current_char == "`"
-                and self.peek() == "`"
-                and self.position + 2 < len(self.source)
-                and self.source[self.position + 2] == "`"
-            ):
+            if self.current_char == "`" and self.peek() == "`" and self.peek(2) == "`":
                 # Skip closing triple backticks
                 self.advance()
                 self.advance()
@@ -385,20 +366,49 @@ class Lexer:
                 tokens.append(token)
                 continue
 
-            # Backtick strings
+            # Backtick handling
             if self.current_char == "`":
                 # Check for triple backticks
-                if (
-                    self.peek() == "`"
-                    and self.position + 2 < len(self.source)
-                    and self.source[self.position + 2] == "`"
-                ):
+                if self.peek() == "`" and self.peek(2) == "`":
                     literal, line, pos = self.read_triple_backtick_string()
                     tokens.append(Token(TokenType.LIT_TRIPLE_BACKTICK, literal, line, pos))
-                else:
-                    literal, line, pos = self.read_backtick_string()
-                    tokens.append(Token(TokenType.LIT_BACKTICK, literal, line, pos))
-                continue
+                    continue
+
+                # Single backtick - try to read identifier
+                start_pos = self.position
+                start_line = self.line
+                start_column = self.column
+
+                self.advance()  # Skip opening backtick
+
+                # Read content until closing backtick
+                identifier_start = self.position
+                while self.current_char and self.current_char != "`":
+                    self.advance()
+
+                identifier = self.source[identifier_start : self.position]
+
+                # Check if we have a closing backtick and valid identifier
+                if self.current_char == "`" and identifier:
+                    from machine_dialect.lexer.tokens import is_valid_identifier
+
+                    if is_valid_identifier(identifier):
+                        # Valid identifier - consume closing backtick and check token type
+                        self.advance()
+                        token_type = lookup_token_type(identifier)
+                        # Only accept if it's not illegal
+                        if token_type != TokenType.MISC_ILLEGAL:
+                            tokens.append(Token(token_type, identifier, start_line, start_column))
+                            continue
+
+                # Not a valid identifier - restore to just after the opening backtick
+                # and treat the backtick as illegal
+                self.position = start_pos
+                self.line = start_line
+                self.column = start_column
+                self.current_char = self.source[self.position] if self.position < len(self.source) else None
+
+                # Fall through to handle backtick as illegal character
 
             # Two-character operators
             if self.current_char == "=" and self.peek() == "=":
@@ -459,6 +469,7 @@ class Lexer:
 
             # If we get here, it's an illegal character
             line, pos = self.line, self.column
+            assert self.current_char is not None  # Loop invariant
             token = Token(TokenType.MISC_ILLEGAL, self.current_char, line, pos)
             tokens.append(token)
             errors.append(

@@ -12,9 +12,9 @@ from machine_dialect.parser import Parser
 class TestExpectedTokenErrors:
     """Test cases for expected token error handling."""
 
-    def test_missing_backtick_after_set(self) -> None:
-        """Test error when Set statement is missing the backtick identifier."""
-        source = "Set X to 42"  # Missing backticks around X
+    def test_missing_identifier_after_set(self) -> None:
+        """Test error when Set statement is missing the identifier."""
+        source = "Set 42 to X"  # 42 is not a valid identifier
         lexer = Lexer(source)
         parser = Parser(lexer)
 
@@ -25,9 +25,9 @@ class TestExpectedTokenErrors:
         assert len(parser.errors) == 1
         assert isinstance(parser.errors[0], MDSyntaxError)
 
-        # Error should mention expected backtick
+        # Error should mention expected identifier
         error_msg = str(parser.errors[0])
-        assert "TokenType.LIT_BACKTICK" in error_msg or "backtick" in error_msg.lower()
+        assert "misc_ident" in error_msg.lower() or "identifier" in error_msg.lower()
 
     def test_missing_to_keyword(self) -> None:
         """Test error when Set statement is missing the 'to' keyword."""
@@ -48,9 +48,9 @@ class TestExpectedTokenErrors:
 
     def test_multiple_expected_token_errors(self) -> None:
         """Test multiple expected token errors in one parse."""
-        source = """Set X 42
-Set `Y` 3.14
-Set Z to "hello"
+        source = """Set 42 to X
+Set price 3.14
+Set to "hello"
 """
         lexer = Lexer(source)
         parser = Parser(lexer)
@@ -67,14 +67,15 @@ Set Z to "hello"
 
     def test_empty_identifier(self) -> None:
         """Test error with empty backtick identifier."""
-        source = "Set `` to 42"  # Empty identifier
+        source = "Set `` to 42"  # Empty backticks produce illegal tokens
         lexer = Lexer(source)
         parser = Parser(lexer)
 
-        program = parser.parse()
+        parser.parse()
 
-        # Parser should handle empty identifier gracefully
-        assert len(program.statements) == 1
+        # Should have errors (from lexer producing illegal tokens)
+        # Empty backticks produce two illegal backtick characters
+        assert parser.has_errors() is True
 
     def test_unclosed_backtick(self) -> None:
         """Test error with unclosed backtick identifier."""
@@ -89,7 +90,7 @@ Set Z to "hello"
 
     def test_error_location_info(self) -> None:
         """Test that expected token errors have correct location information."""
-        source = "Set X to 42"  # Error at position of X
+        source = "Set 42 to X"  # Error at position of 42
         lexer = Lexer(source)
         parser = Parser(lexer)
 
@@ -122,9 +123,9 @@ Set Z to "hello"
 
     def test_parser_continues_after_expected_token_error(self) -> None:
         """Test that parser continues parsing after encountering expected token errors."""
-        source = """Set X to 42
-Set `Y` to 3.14
-Set `Z` 99
+        source = """Set 42 to X.
+Set `price` to 3.14.
+Set `Z` 99.
 """
         lexer = Lexer(source)
         parser = Parser(lexer)
@@ -133,7 +134,7 @@ Set `Z` 99
 
         # Should have errors for first and third statements
         assert parser.has_errors() is True
-        # We expect at least 2 errors: missing backtick in first, missing 'to' in third
+        # We expect at least 2 errors: expected identifier in first, missing 'to' in third
         assert len(parser.errors) >= 2
 
         # The parser should attempt to parse all statements, even if some fail
@@ -145,7 +146,7 @@ Set `Z` 99
         from machine_dialect.ast import SetStatement
 
         valid_statements = [
-            s for s in program.statements if isinstance(s, SetStatement) and s.name and s.name.value == "Y"
+            s for s in program.statements if isinstance(s, SetStatement) and s.name and s.name.value == "price"
         ]
         assert len(valid_statements) == 1
 

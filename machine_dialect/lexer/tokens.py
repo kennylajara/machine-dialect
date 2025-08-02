@@ -48,7 +48,6 @@ class TokenType(Enum):
     PUNCT_HASH = auto()
 
     # Literals
-    LIT_BACKTICK = auto()
     LIT_FALSE = auto()
     LIT_FLOAT = auto()
     LIT_INT = auto()
@@ -133,6 +132,25 @@ class Token(NamedTuple):
 
     def __str__(self) -> str:
         return f"Type: {self.type}, Literal: {self.literal}, Line: {self.line}, Position: {self.position}"
+
+
+def is_valid_identifier(literal: str) -> bool:
+    """Check if a string is a valid identifier.
+
+    Valid identifiers:
+    - Start with a letter (a-z, A-Z) or underscore (_)
+    - Followed by any number of letters, digits, underscores, spaces, or hyphens
+    - Cannot be empty
+    """
+    if not literal:
+        return False
+
+    # First character must be letter or underscore
+    if not (literal[0].isalpha() or literal[0] == "_"):
+        return False
+
+    # Rest can be alphanumeric, underscore, space, or hyphen
+    return all(c.isalnum() or c in ("_", " ", "-") for c in literal[1:])
 
 
 def lookup_token_type(literal: str) -> TokenType:
@@ -233,5 +251,9 @@ def lookup_token_type(literal: str) -> TokenType:
     if literal.lower() in ENGLISH_STOPWORDS:
         return TokenType.MISC_STOPWORD
 
-    # Default to identifier
-    return TokenType.MISC_IDENT
+    # Only return MISC_IDENT if it's a valid identifier
+    if is_valid_identifier(literal):
+        return TokenType.MISC_IDENT
+
+    # If not a valid identifier, it's illegal
+    return TokenType.MISC_ILLEGAL

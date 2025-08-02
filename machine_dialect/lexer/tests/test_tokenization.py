@@ -18,11 +18,24 @@ class TestLexer:
             ('"hello"', [Token(TokenType.LIT_TEXT, '"hello"', line=1, position=0)]),
             ("'world'", [Token(TokenType.LIT_TEXT, "'world'", line=1, position=0)]),
             ('""', [Token(TokenType.LIT_TEXT, '""', line=1, position=0)]),
-            # Backtick strings
-            ("`code`", [Token(TokenType.LIT_BACKTICK, "`code`", line=1, position=0)]),
-            ("`variable_name`", [Token(TokenType.LIT_BACKTICK, "`variable_name`", line=1, position=0)]),
-            ("`42`", [Token(TokenType.LIT_BACKTICK, "`42`", line=1, position=0)]),
-            ("``", [Token(TokenType.LIT_BACKTICK, "``", line=1, position=0)]),
+            # Backtick identifiers (backticks consumed by lexer)
+            ("`code`", [Token(TokenType.MISC_IDENT, "code", line=1, position=0)]),
+            ("`variable_name`", [Token(TokenType.MISC_IDENT, "variable_name", line=1, position=0)]),
+            (
+                "`42`",
+                [
+                    Token(TokenType.MISC_ILLEGAL, "`", line=1, position=0),
+                    Token(TokenType.LIT_INT, "42", line=1, position=0),
+                    Token(TokenType.MISC_ILLEGAL, "`", line=1, position=0),
+                ],
+            ),  # Numbers are not valid identifier starts
+            (
+                "``",
+                [
+                    Token(TokenType.MISC_ILLEGAL, "`", line=1, position=0),
+                    Token(TokenType.MISC_ILLEGAL, "`", line=1, position=0),
+                ],
+            ),  # Empty backticks are illegal
             # Triple backtick strings
             ("```python```", [Token(TokenType.LIT_TRIPLE_BACKTICK, "```python```", line=1, position=0)]),
             (
@@ -138,12 +151,12 @@ class TestLexer:
                 ],
             ),
             (
-                "Set `name` to `John`",
+                'Set `name` to _"John"_',
                 [
                     Token(TokenType.KW_SET, "Set", line=1, position=0),
-                    Token(TokenType.LIT_BACKTICK, "`name`", line=1, position=0),
+                    Token(TokenType.MISC_IDENT, "name", line=1, position=0),
                     Token(TokenType.KW_TO, "to", line=1, position=0),
-                    Token(TokenType.LIT_BACKTICK, "`John`", line=1, position=0),
+                    Token(TokenType.LIT_TEXT, '"John"', line=1, position=0),
                 ],
             ),
             (
@@ -193,8 +206,13 @@ class TestLexer:
         lexer = Lexer(input_text)
         errors, tokens = lexer.tokenize()
 
-        # For these tests, we expect no errors
-        assert len(errors) == 0, f"Unexpected errors: {errors}"
+        # Check if we expect errors for this test case
+        # Backticks with invalid identifiers produce errors
+        if input_text in ("`42`", "``"):
+            assert len(errors) == 2, f"Expected 2 errors for {input_text}, got {len(errors)}: {errors}"
+        else:
+            # For other tests, we expect no errors
+            assert len(errors) == 0, f"Unexpected errors: {errors}"
 
         assert len(tokens) == len(expected_tokens), f"Expected {len(expected_tokens)} tokens, got {len(tokens)}"
 

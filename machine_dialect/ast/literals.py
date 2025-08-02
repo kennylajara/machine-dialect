@@ -39,3 +39,15 @@ class StringLiteral(Expression):
         # Display with underscores for the new syntax
         # The value includes the quotes
         return f"_{self.value}_"
+
+
+class BooleanLiteral(Expression):
+    """Represents a boolean literal expression."""
+
+    def __init__(self, token: Token, value: bool) -> None:
+        super().__init__(token)
+        self.value = value
+
+    def __str__(self) -> str:
+        # Display with underscores for the new syntax
+        return f"_{self.value!s}_"

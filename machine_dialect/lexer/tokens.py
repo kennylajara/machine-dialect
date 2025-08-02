@@ -39,12 +39,14 @@ class TokenType(Enum):
     PUNCT_HASH = auto()
 
     # Literals
-    LIT_INT = auto()
-    LIT_FLOAT = auto()
-    LIT_TEXT = auto()
-    LIT_URL = auto()
     LIT_BACKTICK = auto()
+    LIT_FALSE = auto()
+    LIT_FLOAT = auto()
+    LIT_INT = auto()
+    LIT_TEXT = auto()
     LIT_TRIPLE_BACKTICK = auto()
+    LIT_TRUE = auto()
+    LIT_URL = auto()
 
     # Special
     MISC_EOF = auto()
@@ -63,7 +65,6 @@ class TokenType(Enum):
     KW_CLASS = auto()
     KW_DEFINE = auto()
     KW_ELSE = auto()
-    KW_FALSE = auto()
     KW_FLOAT = auto()
     KW_FLOATS = auto()
     KW_FROM = auto()
@@ -88,7 +89,6 @@ class TokenType(Enum):
     KW_TO = auto()
     KW_TRAIT = auto()
     KW_TRAITS = auto()
-    KW_TRUE = auto()
     KW_WITH = auto()
     KW_URL = auto()
     KW_URLS = auto()
@@ -136,7 +136,7 @@ def lookup_token_type(literal: str) -> TokenType:
         # else statement
         "else": TokenType.KW_ELSE,
         # boolean primitive: false
-        "false": TokenType.KW_FALSE,
+        "False": TokenType.LIT_FALSE,
         # float typing: set `a` as float | set `a` to float 3.14
         "Float": TokenType.KW_FLOAT,
         "Floats": TokenType.KW_FLOATS,
@@ -185,7 +185,7 @@ def lookup_token_type(literal: str) -> TokenType:
         "trait": TokenType.KW_TRAIT,
         "traits": TokenType.KW_TRAITS,
         # boolean primitive: true
-        "true": TokenType.KW_TRUE,
+        "True": TokenType.LIT_TRUE,
         # parameters:
         #   tell **alice** to **walk**.
         #   tell **alice** to **walk** with `speed` = `10`.

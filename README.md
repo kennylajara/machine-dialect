@@ -205,7 +205,7 @@ Tokens (7):
   LIT_INT              | '0'
   KW_THEN              | 'then'
   MISC_IDENT           | 'return'
-  KW_TRUE              | 'true'
+  LIT_TRUE              | 'true'
 --------------------------------------------------
 ```
 

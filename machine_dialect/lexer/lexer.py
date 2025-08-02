@@ -6,7 +6,14 @@ from machine_dialect.lexer.tokens import Token, TokenType, lookup_token_type
 
 def is_literal_token(token: Token) -> bool:
     """Check if a token represents a literal value."""
-    return token.type in (TokenType.LIT_INT, TokenType.LIT_FLOAT, TokenType.LIT_TEXT, TokenType.LIT_URL)
+    return token.type in (
+        TokenType.LIT_INT,
+        TokenType.LIT_FLOAT,
+        TokenType.LIT_TEXT,
+        TokenType.LIT_URL,
+        TokenType.LIT_TRUE,
+        TokenType.LIT_FALSE,
+    )
 
 
 class Lexer:
@@ -189,6 +196,28 @@ class Lexer:
         else:
             return Token(TokenType.LIT_TEXT, literal, line, pos)
 
+    def read_identifier_until_underscore(self) -> tuple[str, int, int]:
+        """Read an identifier but stop at underscore (for underscore literals)."""
+        start_pos = self.position
+        start_line = self.line
+        start_column = self.column
+        while self.current_char and self.current_char.isalnum():
+            self.advance()
+        return self.source[start_pos : self.position], start_line, start_column
+
+    def tokenize_identifier_or_boolean(self, line: int, pos: int) -> Token:
+        """Tokenize an identifier or boolean literal."""
+        literal, _, _ = self.read_identifier()
+
+        # Check if it's a boolean literal
+        if literal in ("True", "False"):
+            token_type = TokenType.LIT_TRUE if literal == "True" else TokenType.LIT_FALSE
+            return Token(token_type, literal, line, pos)
+
+        # Otherwise, it's a regular identifier or keyword
+        token_type = lookup_token_type(literal)
+        return Token(token_type, literal, line, pos)
+
     def read_underscore_literal(self) -> tuple[str, TokenType, int, int] | None:
         """Read an underscore-wrapped literal (e.g., _42_, _"Hello"_, _3.14_).
 
@@ -222,8 +251,8 @@ class Lexer:
             # Check for closing underscore
             if self.current_char == "_":
                 self.advance()  # Skip closing underscore
-                full_literal = self.source[start_pos : self.position]
-                return full_literal, num_token.type, start_line, start_column
+                # Return the literal without underscores
+                return num_token.literal, num_token.type, start_line, start_column
 
         # Handle strings
         elif self.current_char in ('"', "'"):
@@ -233,8 +262,22 @@ class Lexer:
             # Check for closing underscore
             if self.current_char == "_":
                 self.advance()  # Skip closing underscore
-                full_literal = self.source[start_pos : self.position]
-                return full_literal, str_token.type, start_line, start_column
+                # Return the literal without underscores
+                return str_token.literal, str_token.type, start_line, start_column
+
+        # Handle boolean literals (True/False) or identifiers
+        elif self.current_char and self.current_char.isalpha():
+            # Read identifier until underscore
+            literal, _, _ = self.read_identifier_until_underscore()
+
+            # Check if it's a boolean literal
+            if literal in ("True", "False"):
+                # Check for closing underscore
+                if self.current_char == "_":
+                    self.advance()  # Skip closing underscore
+                    # Return the literal without underscores
+                    token_type = TokenType.LIT_TRUE if literal == "True" else TokenType.LIT_FALSE
+                    return literal, token_type, start_line, start_column
 
         # Not a valid underscore literal, restore position
         self.position = start_pos
@@ -271,16 +314,24 @@ class Lexer:
 
             # Identifiers and keywords
             if self.current_char.isalpha() or self.current_char == "_":
-                literal, line, pos = self.read_identifier()
+                line, pos = self.line, self.column
 
-                # Check for multi-word keywords
-                multi_word, _ = self.check_multi_word_keyword(literal, line, pos)
+                # Check for multi-word keywords first
+                literal, ident_line, ident_pos = self.read_identifier()
+                multi_word, _ = self.check_multi_word_keyword(literal, ident_line, ident_pos)
+
                 if multi_word:
                     token_type = lookup_token_type(multi_word)
-                    tokens.append(Token(token_type, multi_word, line, pos))
+                    tokens.append(Token(token_type, multi_word, ident_line, ident_pos))
                 else:
-                    token_type = lookup_token_type(literal)
-                    tokens.append(Token(token_type, literal, line, pos))
+                    # Check if it's a boolean literal
+                    if literal in ("True", "False"):
+                        token_type = TokenType.LIT_TRUE if literal == "True" else TokenType.LIT_FALSE
+                        tokens.append(Token(token_type, literal, ident_line, ident_pos))
+                    else:
+                        # Regular identifier or keyword
+                        token_type = lookup_token_type(literal)
+                        tokens.append(Token(token_type, literal, ident_line, ident_pos))
                 continue
 
             # Strings

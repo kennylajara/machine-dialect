@@ -7,6 +7,9 @@ class TestLexer:
     @pytest.mark.parametrize(
         "input_text,expected_tokens",
         [
+            # Boolean
+            ("True", [Token(TokenType.LIT_TRUE, "True", line=1, position=0)]),
+            ("False", [Token(TokenType.LIT_FALSE, "False", line=1, position=0)]),
             # Numbers
             ("123", [Token(TokenType.LIT_INT, "123", line=1, position=0)]),
             ("3.14", [Token(TokenType.LIT_FLOAT, "3.14", line=1, position=0)]),
@@ -42,8 +45,6 @@ class TestLexer:
             ("define", [Token(TokenType.KW_DEFINE, "define", line=1, position=0)]),
             ("give back", [Token(TokenType.KW_RETURN, "give back", line=1, position=0)]),
             ("gives back", [Token(TokenType.KW_RETURN, "gives back", line=1, position=0)]),
-            ("true", [Token(TokenType.KW_TRUE, "true", line=1, position=0)]),
-            ("false", [Token(TokenType.KW_FALSE, "false", line=1, position=0)]),
             ("and", [Token(TokenType.KW_AND, "and", line=1, position=0)]),
             ("or", [Token(TokenType.KW_OR, "or", line=1, position=0)]),
             ("is", [Token(TokenType.KW_IS, "is", line=1, position=0)]),
@@ -147,7 +148,7 @@ class TestLexer:
                 ],
             ),
             (
-                "if **x** is greater than 0, then give back **true**",
+                "if **x** is greater than 0, then give back _True_",
                 [
                     Token(TokenType.KW_IF, "if", line=1, position=0),
                     Token(TokenType.OP_TWO_STARS, "**", line=1, position=0),
@@ -160,13 +161,11 @@ class TestLexer:
                     Token(TokenType.PUNCT_COMMA, ",", line=1, position=0),
                     Token(TokenType.KW_THEN, "then", line=1, position=0),
                     Token(TokenType.KW_RETURN, "give back", line=1, position=0),
-                    Token(TokenType.OP_TWO_STARS, "**", line=1, position=0),
-                    Token(TokenType.KW_TRUE, "true", line=1, position=0),
-                    Token(TokenType.OP_TWO_STARS, "**", line=1, position=0),
+                    Token(TokenType.LIT_TRUE, "True", line=1, position=0),
                 ],
             ),
             (
-                "if x > 0 then gives back true",
+                "if x > 0 then gives back True",
                 [
                     Token(TokenType.KW_IF, "if", line=1, position=0),
                     Token(TokenType.MISC_IDENT, "x", line=1, position=0),
@@ -174,7 +173,7 @@ class TestLexer:
                     Token(TokenType.LIT_INT, "0", line=1, position=0),
                     Token(TokenType.KW_THEN, "then", line=1, position=0),
                     Token(TokenType.KW_RETURN, "gives back", line=1, position=0),
-                    Token(TokenType.KW_TRUE, "true", line=1, position=0),
+                    Token(TokenType.LIT_TRUE, "True", line=1, position=0),
                 ],
             ),
             (

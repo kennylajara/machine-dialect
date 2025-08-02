@@ -11,7 +11,7 @@ class TestUnderscoreLiterals:
         assert len(errors) == 0
         assert len(tokens) == 1
         assert tokens[0].type == TokenType.LIT_INT
-        assert tokens[0].literal == "_42_"
+        assert tokens[0].literal == "42"
         assert is_literal_token(tokens[0])
 
     def test_wrapped_float(self) -> None:
@@ -23,7 +23,7 @@ class TestUnderscoreLiterals:
         assert len(errors) == 0
         assert len(tokens) == 1
         assert tokens[0].type == TokenType.LIT_FLOAT
-        assert tokens[0].literal == "_3.14_"
+        assert tokens[0].literal == "3.14"
         assert is_literal_token(tokens[0])
 
     def test_wrapped_string(self) -> None:
@@ -35,7 +35,7 @@ class TestUnderscoreLiterals:
         assert len(errors) == 0
         assert len(tokens) == 1
         assert tokens[0].type == TokenType.LIT_TEXT
-        assert tokens[0].literal == '_"Hello, World!"_'
+        assert tokens[0].literal == '"Hello, World!"'
         assert is_literal_token(tokens[0])
 
     def test_unwrapped_integer(self) -> None:
@@ -88,7 +88,7 @@ class TestUnderscoreLiterals:
 
         # First literal is wrapped
         assert literal_tokens[0].type == TokenType.LIT_INT
-        assert literal_tokens[0].literal == "_42_"
+        assert literal_tokens[0].literal == "42"
 
         # Second literal is unwrapped
         assert literal_tokens[1].type == TokenType.LIT_FLOAT

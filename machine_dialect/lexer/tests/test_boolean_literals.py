@@ -75,16 +75,18 @@ class TestBooleanLiterals:
         assert boolean_tokens[1].literal == "False"
 
     def test_lowercase_not_boolean(self) -> None:
-        """Test that lowercase true/false are not boolean literals."""
+        """Test that lowercase true/false are now recognized as boolean literals."""
         source = "true false"
         lexer = Lexer(source)
         errors, tokens = lexer.tokenize()
 
         assert len(errors) == 0
-        # Due to identifier merging, consecutive identifiers become one
-        assert len(tokens) == 1
-        assert tokens[0].type == TokenType.MISC_IDENT
-        assert tokens[0].literal == "true false"
+        # Now lowercase booleans are recognized as boolean literals
+        assert len(tokens) == 2
+        assert tokens[0].type == TokenType.LIT_TRUE
+        assert tokens[0].literal == "True"  # Canonical form
+        assert tokens[1].type == TokenType.LIT_FALSE
+        assert tokens[1].literal == "False"  # Canonical form
 
     def test_incomplete_wrapped_boolean(self) -> None:
         """Test incomplete wrapped boolean falls back to identifier."""

@@ -228,7 +228,8 @@ class Parser:
         else:
             return None
 
-    def _register_infix_funcs(self) -> InfixParseFuncs:
+    @staticmethod
+    def _register_infix_funcs() -> InfixParseFuncs:
         """Register infix parsing functions for each token type.
 
         Infix parsing functions handle expressions where an operator appears
@@ -255,7 +256,8 @@ class Parser:
         """
         return {}
 
-    def _register_prefix_funcs(self) -> PrefixParseFuncs:
+    @staticmethod
+    def _register_prefix_funcs() -> PrefixParseFuncs:
         """Register prefix parsing functions for each token type.
 
         Prefix parsing functions handle expressions that start with a specific
@@ -284,7 +286,8 @@ class Parser:
         """
         return {}
 
-    def _register_postfix_funcs(self) -> PostfixParseFuncs:
+    @staticmethod
+    def _register_postfix_funcs() -> PostfixParseFuncs:
         """Register postfix parsing functions for each token type.
 
         Postfix parsing functions handle expressions where an operator appears

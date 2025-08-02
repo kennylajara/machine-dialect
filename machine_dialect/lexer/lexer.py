@@ -103,7 +103,8 @@ class Lexer:
         two_words = f"{first_word} {second_word}"
 
         # Check if it's a multi-word keyword
-        if lookup_token_type(two_words) != TokenType.MISC_IDENT:
+        token_type, _ = lookup_token_type(two_words)
+        if token_type != TokenType.MISC_IDENT:
             return two_words, self.position
 
         # Not a multi-word keyword, restore state
@@ -178,14 +179,9 @@ class Lexer:
         """Tokenize an identifier or boolean literal."""
         literal, _, _ = self.read_identifier()
 
-        # Check if it's a boolean literal
-        if literal in ("True", "False"):
-            token_type = TokenType.LIT_TRUE if literal == "True" else TokenType.LIT_FALSE
-            return Token(token_type, literal, line, pos)
-
-        # Otherwise, it's a regular identifier or keyword
-        token_type = lookup_token_type(literal)
-        return Token(token_type, literal, line, pos)
+        # Check the token type (handles boolean literals, keywords, identifiers)
+        token_type, canonical_literal = lookup_token_type(literal)
+        return Token(token_type, canonical_literal, line, pos)
 
     def read_underscore_literal(self) -> tuple[str, TokenType, int, int] | None:
         """Read an underscore-wrapped literal (e.g., _42_, _"Hello"_, _3.14_).
@@ -239,14 +235,14 @@ class Lexer:
             # Read identifier until underscore
             literal, _, _ = self.read_identifier_until_underscore()
 
-            # Check if it's a boolean literal
-            if literal in ("True", "False"):
+            # Check the token type (handles boolean literals too)
+            token_type, canonical_literal = lookup_token_type(literal)
+            if token_type in (TokenType.LIT_TRUE, TokenType.LIT_FALSE):
                 # Check for closing underscore
                 if self.current_char == "_":
                     self.advance()  # Skip closing underscore
-                    # Return the literal without underscores
-                    token_type = TokenType.LIT_TRUE if literal == "True" else TokenType.LIT_FALSE
-                    return literal, token_type, start_line, start_column
+                    # Return the canonical literal without underscores
+                    return canonical_literal, token_type, start_line, start_column
 
         # Not a valid underscore literal, restore position
         self.position = start_pos
@@ -299,10 +295,10 @@ class Lexer:
             self.advance()  # Skip second closing asterisk
 
             # Check if the identifier is a keyword
-            token_type = lookup_token_type(identifier)
+            token_type, canonical_literal = lookup_token_type(identifier)
             if token_type.meta_type == TokenMetaType.KW:
                 # It's a keyword, return without asterisks
-                return identifier, token_type, start_line, start_column
+                return canonical_literal, token_type, start_line, start_column
 
         # Not a valid keyword or missing closing asterisks, restore position
         self.position = start_pos
@@ -346,17 +342,12 @@ class Lexer:
                 multi_word, _ = self.check_multi_word_keyword(literal, ident_line, ident_pos)
 
                 if multi_word:
-                    token_type = lookup_token_type(multi_word)
-                    tokens.append(Token(token_type, multi_word, ident_line, ident_pos))
+                    token_type, canonical_literal = lookup_token_type(multi_word)
+                    tokens.append(Token(token_type, canonical_literal, ident_line, ident_pos))
                 else:
-                    # Check if it's a boolean literal
-                    if literal in ("True", "False"):
-                        token_type = TokenType.LIT_TRUE if literal == "True" else TokenType.LIT_FALSE
-                        tokens.append(Token(token_type, literal, ident_line, ident_pos))
-                    else:
-                        # Regular identifier or keyword
-                        token_type = lookup_token_type(literal)
-                        tokens.append(Token(token_type, literal, ident_line, ident_pos))
+                    # Regular identifier, keyword, or boolean literal
+                    token_type, canonical_literal = lookup_token_type(literal)
+                    tokens.append(Token(token_type, canonical_literal, ident_line, ident_pos))
                 continue
 
             # Strings
@@ -395,10 +386,10 @@ class Lexer:
                     if is_valid_identifier(identifier):
                         # Valid identifier - consume closing backtick and check token type
                         self.advance()
-                        token_type = lookup_token_type(identifier)
+                        token_type, canonical_literal = lookup_token_type(identifier)
                         # Only accept if it's not illegal
                         if token_type != TokenType.MISC_ILLEGAL:
-                            tokens.append(Token(token_type, identifier, start_line, start_column))
+                            tokens.append(Token(token_type, canonical_literal, start_line, start_column))
                             continue
 
                 # Not a valid identifier - restore to just after the opening backtick

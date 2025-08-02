@@ -21,6 +21,7 @@ class TestLexer:
             # Backtick identifiers (backticks consumed by lexer)
             ("`code`", [Token(TokenType.MISC_IDENT, "code", line=1, position=0)]),
             ("`variable_name`", [Token(TokenType.MISC_IDENT, "variable_name", line=1, position=0)]),
+            # Numbers in backticks are not valid identifiers, so we get illegal tokens
             (
                 "`42`",
                 [
@@ -28,14 +29,15 @@ class TestLexer:
                     Token(TokenType.LIT_INT, "42", line=1, position=0),
                     Token(TokenType.MISC_ILLEGAL, "`", line=1, position=0),
                 ],
-            ),  # Numbers are not valid identifier starts
+            ),
+            # Empty backticks produce two illegal backtick tokens
             (
                 "``",
                 [
                     Token(TokenType.MISC_ILLEGAL, "`", line=1, position=0),
                     Token(TokenType.MISC_ILLEGAL, "`", line=1, position=0),
                 ],
-            ),  # Empty backticks are illegal
+            ),
             # Triple backtick strings
             ("```python```", [Token(TokenType.LIT_TRIPLE_BACKTICK, "```python```", line=1, position=0)]),
             (
@@ -68,7 +70,6 @@ class TestLexer:
             ("action", [Token(TokenType.KW_ACTION, "action", line=1, position=0)]),
             ("actions", [Token(TokenType.KW_ACTIONS, "actions", line=1, position=0)]),
             ("apply", [Token(TokenType.KW_CALL, "apply", line=1, position=0)]),
-            ("assign", [Token(TokenType.KW_ASSIGN, "assign", line=1, position=0)]),
             ("Boolean", [Token(TokenType.KW_BOOL, "Boolean", line=1, position=0)]),
             ("Float", [Token(TokenType.KW_FLOAT, "Float", line=1, position=0)]),
             ("Floats", [Token(TokenType.KW_FLOATS, "Floats", line=1, position=0)]),
@@ -206,13 +207,11 @@ class TestLexer:
         lexer = Lexer(input_text)
         errors, tokens = lexer.tokenize()
 
-        # Check if we expect errors for this test case
-        # Backticks with invalid identifiers produce errors
-        if input_text in ("`42`", "``"):
-            assert len(errors) == 2, f"Expected 2 errors for {input_text}, got {len(errors)}: {errors}"
-        else:
-            # For other tests, we expect no errors
-            assert len(errors) == 0, f"Unexpected errors: {errors}"
+        # Count expected illegal tokens
+        illegal_count = sum(1 for token in expected_tokens if token.type == TokenType.MISC_ILLEGAL)
+
+        # For tests with illegal tokens, we expect errors
+        assert len(errors) == illegal_count, f"Expected {illegal_count} errors, got {len(errors)}: {errors}"
 
         assert len(tokens) == len(expected_tokens), f"Expected {len(expected_tokens)} tokens, got {len(tokens)}"
 

@@ -1,3 +1,6 @@
+from ast import Expression
+from collections.abc import Callable
+
 from machine_dialect.ast import (
     Identifier,
     Program,
@@ -8,6 +11,13 @@ from machine_dialect.ast import (
 from machine_dialect.errors.exceptions import MDBaseException, MDSyntaxError
 from machine_dialect.errors.messages import UNEXPECTED_TOKEN
 from machine_dialect.lexer import Lexer, Token, TokenType
+
+PrefixParseFunc = Callable[[], Expression | None]
+InfixParseFunc = Callable[[Expression], Expression | None]
+PostfixParseFunc = Callable[[Expression], Expression | None]
+PrefixParseFuncs = dict[TokenType, PrefixParseFunc]
+InfixParseFuncs = dict[TokenType, InfixParseFunc]
+PostfixParseFuncs = dict[TokenType, PostfixParseFunc]
 
 
 class Parser:
@@ -34,6 +44,10 @@ class Parser:
         lexer_errors, self._tokens = lexer.tokenize()
         self._errors: list[MDBaseException] = list(lexer_errors)
         self._token_index = 0
+
+        self._prefix_parse_funcs: PrefixParseFuncs = self._register_prefix_funcs()
+        self._infix_parse_funcs: InfixParseFuncs = self._register_infix_funcs()
+        self._postfix_parse_funcs: PostfixParseFuncs = self._register_postfix_funcs()
 
         self._advance_tokens()
         self._advance_tokens()
@@ -213,3 +227,88 @@ class Parser:
             return self._parse_return_statement()
         else:
             return None
+
+    def _register_infix_funcs(self) -> InfixParseFuncs:
+        """Register infix parsing functions for each token type.
+
+        Infix parsing functions handle expressions where an operator appears
+        between operands (e.g., "1 + 2", "a * b"). Each function takes the
+        left-hand expression as an argument and returns the complete expression.
+
+        The parser uses these functions when it encounters a token in the middle
+        of an expression. For example, when parsing "1 + 2", after parsing "1",
+        the parser sees "+" and calls the registered infix function for PLUS,
+        passing "1" as the left operand.
+
+        Returns:
+            Dictionary mapping TokenType to InfixParseFunc callbacks.
+            Each callback signature: (left: Expression) -> Optional[Expression]
+
+        Example:
+            When implemented, might look like:
+            return {
+                TokenType.OP_PLUS: self._parse_infix_expression,
+                TokenType.OP_MINUS: self._parse_infix_expression,
+                TokenType.OP_MULTIPLY: self._parse_infix_expression,
+                TokenType.DELIM_LPAREN: self._parse_call_expression,
+            }
+        """
+        return {}
+
+    def _register_prefix_funcs(self) -> PrefixParseFuncs:
+        """Register prefix parsing functions for each token type.
+
+        Prefix parsing functions handle expressions that start with a specific
+        token type. This includes literals (numbers, strings), identifiers,
+        prefix operators (e.g., "-5", "not true"), and grouped expressions
+        (parentheses).
+
+        The parser calls these functions when it encounters a token at the
+        beginning of an expression. For example, when parsing "-5", the parser
+        sees "-" and calls the registered prefix function for MINUS.
+
+        Returns:
+            Dictionary mapping TokenType to PrefixParseFunc callbacks.
+            Each callback signature: () -> Optional[Expression]
+
+        Example:
+            When implemented, might look like:
+            return {
+                TokenType.LIT_IDENTIFIER: self._parse_identifier,
+                TokenType.LIT_NUMBER: self._parse_number_literal,
+                TokenType.LIT_STRING: self._parse_string_literal,
+                TokenType.OP_MINUS: self._parse_prefix_expression,
+                TokenType.KW_NOT: self._parse_prefix_expression,
+                TokenType.DELIM_LPAREN: self._parse_grouped_expression,
+            }
+        """
+        return {}
+
+    def _register_postfix_funcs(self) -> PostfixParseFuncs:
+        """Register postfix parsing functions for each token type.
+
+        Postfix parsing functions handle expressions where an operator appears
+        after the operand (e.g., "i++", "factorial!", array indexing "arr[0]").
+        Each function takes the left-hand expression as an argument and returns
+        the complete expression.
+
+        The parser uses these functions when it encounters a token after a
+        complete expression. For example, when parsing "i++", after parsing "i",
+        the parser sees "++" and calls the registered postfix function for
+        INCREMENT, passing "i" as the operand.
+
+        Returns:
+            Dictionary mapping TokenType to PostfixParseFunc callbacks.
+            Each callback signature: (left: Expression) -> Optional[Expression]
+
+        Example:
+            When implemented, might look like:
+            return {
+                TokenType.OP_INCREMENT: self._parse_postfix_expression,
+                TokenType.OP_DECREMENT: self._parse_postfix_expression,
+                TokenType.OP_FACTORIAL: self._parse_postfix_expression,
+                TokenType.DELIM_LBRACKET: self._parse_index_expression,
+                TokenType.PUNCT_QUESTION: self._parse_ternary_expression,
+            }
+        """
+        return {}

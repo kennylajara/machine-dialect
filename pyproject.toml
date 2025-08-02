@@ -6,7 +6,6 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "rfc3986>=2.0.0",
-    "nltk>=3.8.0",
 ]
 
 [tool.setuptools.packages.find]
@@ -38,7 +37,7 @@ explicit_package_bases = true
 
 # Ignore import errors for libraries without type stubs
 [[tool.mypy.overrides]]
-module = ["rfc3986", "rfc3986.*", "nltk", "nltk.*"]
+module = ["rfc3986", "rfc3986.*"]
 ignore_missing_imports = true
 
 # Ignore misc errors in test files (mostly for pytest decorators)

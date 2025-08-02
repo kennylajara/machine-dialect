@@ -7,8 +7,7 @@ from typing import (
     NamedTuple,
 )
 
-import nltk
-from nltk.corpus import stopwords
+from machine_dialect.helpers.stopwords import ENGLISH_STOPWORDS
 
 
 @unique
@@ -110,16 +109,6 @@ class Token(NamedTuple):
 
     def __str__(self) -> str:
         return f"Type: {self.type}, Literal: {self.literal}, Line: {self.line}, Position: {self.position}"
-
-
-# Download stopwords if not already available
-try:
-    nltk.data.find("corpora/stopwords")
-except LookupError:
-    nltk.download("stopwords", quiet=True)
-
-# Cache stopwords for performance
-ENGLISH_STOPWORDS = set(stopwords.words("english"))
 
 
 def lookup_token_type(literal: str) -> TokenType:

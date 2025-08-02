@@ -10,6 +10,15 @@ from typing import (
 from machine_dialect.helpers.stopwords import ENGLISH_STOPWORDS
 
 
+class TokenMetaType(Enum):
+    OP = "operator"
+    DELIM = "delimiter"
+    PUNCT = "punctuation"
+    LIT = "literal"
+    MISC = "misc"
+    KW = "keyword"
+
+
 @unique
 class TokenType(Enum):
     # Operators
@@ -62,7 +71,6 @@ class TokenType(Enum):
     KW_ASSIGN = auto()
     KW_BOOL = auto()
     KW_CALL = auto()
-    KW_CLASS = auto()
     KW_DEFINE = auto()
     KW_ELSE = auto()
     KW_FLOAT = auto()
@@ -100,6 +108,22 @@ class TokenType(Enum):
     KW_TIMES = auto()
     KW_DATATYPE = auto()
 
+    @property
+    def meta_type(self) -> TokenMetaType:
+        name_str = getattr(self, "name", "")
+        if name_str.startswith("KW_"):
+            return TokenMetaType.KW
+        if name_str.startswith("DELIM_"):
+            return TokenMetaType.DELIM
+        if name_str.startswith("PUNCT_"):
+            return TokenMetaType.PUNCT
+        if name_str.startswith("LIT_"):
+            return TokenMetaType.LIT
+        if name_str.startswith("OP_"):
+            return TokenMetaType.OP
+
+        return TokenMetaType.MISC
+
 
 class Token(NamedTuple):
     type: TokenType
@@ -129,8 +153,6 @@ def lookup_token_type(literal: str) -> TokenType:
         "assign": TokenType.KW_ASSIGN,
         # boolean:
         "Boolean": TokenType.KW_BOOL,
-        # class typing: Define a **blueprint** called `Person`
-        "class": TokenType.KW_CLASS,
         # declare function: define a `sum` as function
         "define": TokenType.KW_DEFINE,
         # else statement

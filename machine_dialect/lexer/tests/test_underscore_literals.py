@@ -1,4 +1,8 @@
-from machine_dialect.lexer import Lexer, TokenType, is_literal_token
+from machine_dialect.lexer import Lexer, Token, TokenMetaType, TokenType
+
+
+def is_literal_token(token: Token) -> bool:
+    return token.type.meta_type == TokenMetaType.LIT
 
 
 class TestUnderscoreLiterals:
@@ -82,17 +86,17 @@ class TestUnderscoreLiterals:
 
         assert len(errors) == 0
 
-        # Find the literal tokens
-        literal_tokens = [t for t in tokens if is_literal_token(t)]
-        assert len(literal_tokens) == 2
+        # Find the numeric literal tokens (excluding backtick literals)
+        numeric_literals = [t for t in tokens if t.type in (TokenType.LIT_INT, TokenType.LIT_FLOAT)]
+        assert len(numeric_literals) == 2
 
         # First literal is wrapped
-        assert literal_tokens[0].type == TokenType.LIT_INT
-        assert literal_tokens[0].literal == "42"
+        assert numeric_literals[0].type == TokenType.LIT_INT
+        assert numeric_literals[0].literal == "42"
 
         # Second literal is unwrapped
-        assert literal_tokens[1].type == TokenType.LIT_FLOAT
-        assert literal_tokens[1].literal == "3.14"
+        assert numeric_literals[1].type == TokenType.LIT_FLOAT
+        assert numeric_literals[1].literal == "3.14"
 
     def test_underscore_in_identifier(self) -> None:
         """Test that underscores in identifiers don't interfere with literal syntax."""

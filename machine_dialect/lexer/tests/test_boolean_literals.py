@@ -1,4 +1,8 @@
-from machine_dialect.lexer import Lexer, TokenType, is_literal_token
+from machine_dialect.lexer import Lexer, Token, TokenMetaType, TokenType
+
+
+def is_literal_token(token: Token) -> bool:
+    return token.type.meta_type == TokenMetaType.LIT
 
 
 class TestBooleanLiterals:

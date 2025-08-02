@@ -1,19 +1,7 @@
 from machine_dialect.errors.exceptions import MDNameError
 from machine_dialect.errors.messages import NAME_UNDEFINED
 from machine_dialect.helpers.validators import is_valid_url
-from machine_dialect.lexer.tokens import Token, TokenType, lookup_token_type
-
-
-def is_literal_token(token: Token) -> bool:
-    """Check if a token represents a literal value."""
-    return token.type in (
-        TokenType.LIT_INT,
-        TokenType.LIT_FLOAT,
-        TokenType.LIT_TEXT,
-        TokenType.LIT_URL,
-        TokenType.LIT_TRUE,
-        TokenType.LIT_FALSE,
-    )
+from machine_dialect.lexer.tokens import Token, TokenMetaType, TokenType, lookup_token_type
 
 
 class Lexer:
@@ -286,6 +274,62 @@ class Lexer:
         self.current_char = self.source[self.position] if self.position < len(self.source) else None
         return None
 
+    def read_double_asterisk_keyword(self) -> tuple[str, TokenType, int, int] | None:
+        """Read a double-asterisk-wrapped keyword (e.g., **define**, **blueprint**).
+
+        Returns:
+            Tuple of (literal, token_type, line, column) if valid keyword found,
+            None otherwise.
+        """
+        if not (self.current_char == "*" and self.peek() == "*"):
+            return None
+
+        start_pos = self.position
+        start_line = self.line
+        start_column = self.column
+
+        self.advance()  # Skip first asterisk
+        self.advance()  # Skip second asterisk
+
+        # Check what's inside the asterisks
+        if self.current_char is None or not self.current_char.isalpha():
+            # Restore position if not a valid identifier start
+            self.position = start_pos
+            self.line = start_line
+            self.column = start_column
+            self.current_char = self.source[self.position] if self.position < len(self.source) else None
+            return None
+
+        # Read the identifier
+        identifier_start = self.position
+        while self.current_char and (self.current_char.isalnum() or self.current_char == "_"):
+            self.advance()
+
+        identifier = self.source[identifier_start : self.position]
+
+        # Check for multi-word keywords
+        multi_word, _ = self.check_multi_word_keyword(identifier, self.line, self.column)
+        if multi_word:
+            identifier = multi_word
+
+        # Check if it's followed by closing double asterisks
+        if self.current_char == "*" and self.peek() == "*":
+            self.advance()  # Skip first closing asterisk
+            self.advance()  # Skip second closing asterisk
+
+            # Check if the identifier is a keyword
+            token_type = lookup_token_type(identifier)
+            if token_type.meta_type == TokenMetaType.KW:
+                # It's a keyword, return without asterisks
+                return identifier, token_type, start_line, start_column
+
+        # Not a valid keyword or missing closing asterisks, restore position
+        self.position = start_pos
+        self.line = start_line
+        self.column = start_column
+        self.current_char = self.source[self.position] if self.position < len(self.source) else None
+        return None
+
     def tokenize(self) -> tuple[list[MDNameError], list[Token]]:
         errors: list[MDNameError] = []
         tokens: list[Token] = []
@@ -371,7 +415,14 @@ class Lexer:
                 self.advance()
                 continue
 
+            # Check for double-asterisk keywords before operator
             if self.current_char == "*" and self.peek() == "*":
+                keyword_result = self.read_double_asterisk_keyword()
+                if keyword_result:
+                    literal, token_type, line, pos = keyword_result
+                    tokens.append(Token(token_type, literal, line, pos))
+                    continue
+                # If not a keyword, it's the ** operator
                 line, pos = self.line, self.column
                 tokens.append(Token(TokenType.OP_TWO_STARS, "**", line, pos))
                 self.advance()

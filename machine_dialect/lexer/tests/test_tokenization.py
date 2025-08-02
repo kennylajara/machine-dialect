@@ -57,7 +57,6 @@ class TestLexer:
             ("apply", [Token(TokenType.KW_CALL, "apply", line=1, position=0)]),
             ("assign", [Token(TokenType.KW_ASSIGN, "assign", line=1, position=0)]),
             ("Boolean", [Token(TokenType.KW_BOOL, "Boolean", line=1, position=0)]),
-            ("class", [Token(TokenType.KW_CLASS, "class", line=1, position=0)]),
             ("Float", [Token(TokenType.KW_FLOAT, "Float", line=1, position=0)]),
             ("Floats", [Token(TokenType.KW_FLOATS, "Floats", line=1, position=0)]),
             ("from", [Token(TokenType.KW_FROM, "from", line=1, position=0)]),

@@ -1,9 +1,9 @@
-from .lexer import Lexer, is_literal_token
-from .tokens import Token, TokenType
+from .lexer import Lexer
+from .tokens import Token, TokenMetaType, TokenType
 
 __all__ = [
     "Lexer",
     "Token",
     "TokenType",
-    "is_literal_token",
+    "TokenMetaType",
 ]

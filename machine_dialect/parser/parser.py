@@ -1,7 +1,9 @@
-from ast import Expression
 from collections.abc import Callable
+from enum import IntEnum
 
 from machine_dialect.ast import (
+    Expression,
+    ExpressionStatement,
     Identifier,
     Program,
     ReturnStatement,
@@ -18,6 +20,16 @@ PostfixParseFunc = Callable[[Expression], Expression | None]
 PrefixParseFuncs = dict[TokenType, PrefixParseFunc]
 InfixParseFuncs = dict[TokenType, InfixParseFunc]
 PostfixParseFuncs = dict[TokenType, PostfixParseFunc]
+
+
+class Precedence(IntEnum):
+    LOWEST = 1
+    EQUAL = 2
+    LESS_GREATER = 3
+    SUM = 4
+    PRODUCT = 5
+    PREFIX = 6
+    CALL = 7
 
 
 class Parser:
@@ -67,6 +79,11 @@ class Parser:
 
         assert self._current_token is not None
         while self._current_token.type != TokenType.MISC_EOF:
+            # Skip standalone periods
+            if self._current_token.type == TokenType.PUNCT_PERIOD:
+                self._advance_tokens()
+                continue
+
             statement = self._parse_statement()
             if statement is not None:
                 program.statements.append(statement)
@@ -155,6 +172,40 @@ class Parser:
         )
         self.errors.append(error)
 
+    def _parse_expression(self) -> Expression | None:
+        assert self._current_token is not None
+
+        if self._current_token.type not in self._prefix_parse_funcs:
+            return None
+
+        prefix_parse_fn = self._prefix_parse_funcs[self._current_token.type]
+
+        return prefix_parse_fn()
+
+    def _parse_expression_statement(self) -> ExpressionStatement | None:
+        assert self._current_token is not None
+
+        expression = self._parse_expression()
+
+        expression_statement = ExpressionStatement(
+            token=self._current_token,
+            expression=expression,
+        )
+
+        assert self._peek_token is not None
+        if self._peek_token.type == TokenType.PUNCT_PERIOD:
+            self._advance_tokens()
+
+        return expression_statement
+
+    def _parse_identifier(self) -> Identifier:
+        assert self._current_token is not None
+
+        return Identifier(
+            token=self._current_token,
+            value=self._current_token.literal,
+        )
+
     def _parse_let_statement(self) -> SetStatement | None:
         """Parse a Set statement.
 
@@ -171,8 +222,7 @@ class Parser:
             return None
 
         # Use the identifier value directly (backticks already stripped by lexer)
-        identifier_value = self._current_token.literal
-        let_statement.name = Identifier(token=self._current_token, value=identifier_value)
+        let_statement.name = self._parse_identifier()
 
         # Expect "to" keyword
         if not self._expected_token(TokenType.KW_TO):
@@ -226,7 +276,7 @@ class Parser:
         elif self._current_token.type == TokenType.KW_RETURN:
             return self._parse_return_statement()
         else:
-            return None
+            return self._parse_expression_statement()
 
     @staticmethod
     def _register_infix_funcs() -> InfixParseFuncs:
@@ -256,8 +306,7 @@ class Parser:
         """
         return {}
 
-    @staticmethod
-    def _register_prefix_funcs() -> PrefixParseFuncs:
+    def _register_prefix_funcs(self) -> PrefixParseFuncs:
         """Register prefix parsing functions for each token type.
 
         Prefix parsing functions handle expressions that start with a specific
@@ -284,7 +333,9 @@ class Parser:
                 TokenType.DELIM_LPAREN: self._parse_grouped_expression,
             }
         """
-        return {}
+        return {
+            TokenType.MISC_IDENT: self._parse_identifier,
+        }
 
     @staticmethod
     def _register_postfix_funcs() -> PostfixParseFuncs:

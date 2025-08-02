@@ -119,7 +119,9 @@ Set to "hello"
 
         # Error message should contain what was expected and what was found
         assert "expected" in error_msg.lower() or "Expected" in error_msg
-        assert "something" in error_msg  # The unexpected token
+        # The parser now expects 'to' after the merged identifier 'X something'
+        # and finds EOF, so check for that
+        assert "TokenType.KW_TO" in error_msg or "to" in error_msg.lower()
 
     def test_parser_continues_after_expected_token_error(self) -> None:
         """Test that parser continues parsing after encountering expected token errors."""

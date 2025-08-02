@@ -103,13 +103,10 @@ class TestBacktickIdentifiers:
         errors, tokens = lexer.tokenize()
 
         assert len(errors) == 0
-        assert len(tokens) == 3
+        # Due to identifier merging, consecutive identifiers become one
+        assert len(tokens) == 1
         assert tokens[0].type == TokenType.MISC_IDENT
-        assert tokens[0].literal == "first"
-        assert tokens[1].type == TokenType.MISC_IDENT
-        assert tokens[1].literal == "second"
-        assert tokens[2].type == TokenType.MISC_IDENT
-        assert tokens[2].literal == "third"
+        assert tokens[0].literal == "first second third"
 
     def test_backtick_with_spaces(self) -> None:
         """Test backtick with spaces inside."""

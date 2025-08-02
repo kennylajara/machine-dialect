@@ -481,4 +481,127 @@ class Lexer:
             )
             self.advance()
 
-        return errors, tokens
+        # Apply post-processing to merge identifiers
+        merged_tokens = self._merge_identifiers(tokens)
+        return errors, merged_tokens
+
+    def _merge_identifiers(self, tokens: list[Token]) -> list[Token]:
+        """Merge consecutive identifiers with stopwords in between.
+
+        This helper function merges sequences of identifiers and stopwords into single
+        identifier tokens, following these rules:
+        1. The sequence must start with an identifier
+        2. The sequence must end with an identifier
+        3. Stopwords in the middle are included
+        4. Trailing stopwords are not included in the merge
+
+        Examples:
+        - "hello world" -> "hello world"
+        - "info collected by the system" -> "info collected by the system"
+        - "the username" -> "the" (stopword), "username" (identifier)
+        - "username are" -> "username" (identifier), "are" (stopword)
+
+        Args:
+            tokens: List of tokens from the initial tokenization.
+
+        Returns:
+            List of tokens with identifiers merged where appropriate.
+        """
+        if not tokens:
+            return tokens
+
+        merged: list[Token] = []
+        i = 0
+
+        while i < len(tokens):
+            token = tokens[i]
+
+            # Check if this token starts an identifier sequence
+            if token.type == TokenType.MISC_IDENT:
+                # Find the extent of the sequence
+                sequence_end = self._find_identifier_sequence_end(tokens, i)
+
+                if sequence_end > i:
+                    # We have a sequence to merge
+                    merged_token = self._create_merged_identifier(tokens, i, sequence_end)
+                    merged.append(merged_token)
+                    i = sequence_end + 1
+                else:
+                    # No merging happened
+                    merged.append(token)
+                    i += 1
+            else:
+                # Not an identifier, keep as is
+                merged.append(token)
+                i += 1
+
+        return merged
+
+    def _find_identifier_sequence_end(self, tokens: list[Token], start: int) -> int:
+        """Find the end index of an identifier sequence that can be merged.
+
+        A mergeable sequence:
+        - Starts with an identifier (at start index)
+        - Can contain identifiers and stopwords
+        - Must end with an identifier
+        - Trailing stopwords are excluded
+
+        Args:
+            tokens: List of all tokens
+            start: Starting index (must be an identifier)
+
+        Returns:
+            Index of the last token in the sequence (inclusive), or start if no merge
+        """
+        i = start
+        last_identifier_index = start
+
+        # Look ahead for identifiers and stopwords
+        while i + 1 < len(tokens):
+            next_token = tokens[i + 1]
+
+            if next_token.type == TokenType.MISC_IDENT:
+                # Continue the sequence and update last identifier position
+                i += 1
+                last_identifier_index = i
+            elif next_token.type == TokenType.MISC_STOPWORD:
+                # Tentatively include stopword, but only if followed by identifier
+                temp_i = i + 1
+
+                # Look ahead past consecutive stopwords
+                while temp_i + 1 < len(tokens) and tokens[temp_i + 1].type == TokenType.MISC_STOPWORD:
+                    temp_i += 1
+
+                # Check if there's an identifier after the stopword(s)
+                if temp_i + 1 < len(tokens) and tokens[temp_i + 1].type == TokenType.MISC_IDENT:
+                    # There's an identifier after stopword(s), include them
+                    i = temp_i
+                else:
+                    # No identifier after stopword(s), end sequence here
+                    break
+            else:
+                # Any other token type ends the sequence
+                break
+
+        return last_identifier_index
+
+    def _create_merged_identifier(self, tokens: list[Token], start: int, end: int) -> Token:
+        """Create a merged identifier token from a sequence of tokens.
+
+        Args:
+            tokens: List of all tokens
+            start: Starting index of the sequence
+            end: Ending index of the sequence (inclusive)
+
+        Returns:
+            A new Token representing the merged identifier
+        """
+        parts = []
+
+        for i in range(start, end + 1):
+            if i > start:
+                parts.append(" ")
+            parts.append(tokens[i].literal)
+
+        merged_literal = "".join(parts)
+        return Token(TokenType.MISC_IDENT, merged_literal, tokens[start].line, tokens[start].position)

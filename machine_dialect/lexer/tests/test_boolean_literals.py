@@ -81,11 +81,10 @@ class TestBooleanLiterals:
         errors, tokens = lexer.tokenize()
 
         assert len(errors) == 0
-        assert len(tokens) == 2
+        # Due to identifier merging, consecutive identifiers become one
+        assert len(tokens) == 1
         assert tokens[0].type == TokenType.MISC_IDENT
-        assert tokens[0].literal == "true"
-        assert tokens[1].type == TokenType.MISC_IDENT
-        assert tokens[1].literal == "false"
+        assert tokens[0].literal == "true false"
 
     def test_incomplete_wrapped_boolean(self) -> None:
         """Test incomplete wrapped boolean falls back to identifier."""

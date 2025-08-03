@@ -43,9 +43,7 @@ ignore_missing_imports = true
 # Ignore misc errors in test files (mostly for pytest decorators)
 [[tool.mypy.overrides]]
 module = [
-    "machine_dialect.lexer.tests.*",
-    "machine_dialect.parser.tests.*",
-    "machine_dialect.repl.tests.*"
+    "machine_dialect.*.tests.*"
 ]
 disable_error_code = ["misc"]
 

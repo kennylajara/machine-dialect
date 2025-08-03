@@ -7,4 +7,7 @@ UNEXPECTED_TOKEN = Template(
 )
 INVALID_INTEGER_LITERAL = Template("Invalid integer literal: '$literal'")
 INVALID_FLOAT_LITERAL = Template("Invalid float literal: '$literal'")
-NO_PARSE_FUNCTION = Template("No parse function was found to parse '$literal'")
+NO_PARSE_FUNCTION = Template("No suitable parse function was found to handle '$literal'")
+EXPECTED_EXPRESSION_AFTER_OPERATOR = Template("expected expression after operator '$operator', got $got")
+UNEXPECTED_TOKEN_AT_START = Template("unexpected token '$token' at start of expression")
+EXPECTED_EXPRESSION = Template("expected expression, got $got")

@@ -1,5 +1,5 @@
 from collections.abc import Callable
-from enum import IntEnum
+from enum import Enum, IntEnum, auto
 
 from machine_dialect.ast import (
     BooleanLiteral,
@@ -7,6 +7,7 @@ from machine_dialect.ast import (
     ExpressionStatement,
     FloatLiteral,
     Identifier,
+    InfixExpression,
     IntegerLiteral,
     PrefixExpression,
     Program,
@@ -16,10 +17,12 @@ from machine_dialect.ast import (
 )
 from machine_dialect.errors.exceptions import MDBaseException, MDSyntaxError
 from machine_dialect.errors.messages import (
+    EXPECTED_EXPRESSION,
     INVALID_FLOAT_LITERAL,
     INVALID_INTEGER_LITERAL,
     NO_PARSE_FUNCTION,
     UNEXPECTED_TOKEN,
+    UNEXPECTED_TOKEN_AT_START,
 )
 from machine_dialect.lexer import Lexer, Token, TokenType
 
@@ -32,13 +35,64 @@ PostfixParseFuncs = dict[TokenType, PostfixParseFunc]
 
 
 class Precedence(IntEnum):
-    LOWEST = 1
-    EQUAL = 2
-    LESS_GREATER = 3
-    SUM = 4
-    PRODUCT = 5
-    PREFIX = 6
-    CALL = 7
+    # Lowest precedence. Used as a default precedence when we don't know yet the actual precedence
+    LOWEST = 0
+    # Assignment, Addition assignment, Subtraction assignment, Multiplication assignment,
+    # Division assignment, Modulus assignment
+    ASSIGNMENT = 1
+    # Ternary conditional
+    TERNARY = 2
+    # Logical OR
+    LOGICAL_OR = 3
+    # Logical AND
+    LOGICAL_AND = 4
+    # Bitwise inclusive OR
+    BITWISE_INCL_OR = 5
+    # Bitwise exclusive OR
+    BITWISE_EXCL_OR = 6
+    # Bitwise AND
+    BITWISE_INCL_AND = 7
+    # Relational Symmetric Comparison: equal, different
+    REL_SYM_COMP = 8
+    # Relational Asymmetric Comparison: GT, GTE, LT, LTE and type comparison
+    REL_ASYM_COMP = 9
+    # Bitwise Shift
+    BITWISE_SHIFT = 10
+    # Mathematical Addition, substraction
+    MATH_ADD_SUB = 11
+    # Mathematical product, division, and modulus
+    MATH_PROD_DIV_MOD = 12
+    # Unary pre-increment, Unary pre-decrement, Unary plus, Unary minus,
+    # Unary logical negation, Unary bitwise complement, Unary type cast
+    UNARY_SIMPLIFIED = 13
+    # Unary post-increment, Unary post-decrement
+    UNARY_POST_OPERATOR = 14
+    # Parentheses, Array subscript, Member selection
+    GROUP = 15
+
+
+class Associativity(Enum):
+    RIGHT_TO_LEFT = auto()
+    LEFT_TO_RIGHT = auto()
+
+
+PRECEDENCES: dict[TokenType, Precedence] = {
+    # Logical operators (lowest precedence)
+    TokenType.KW_OR: Precedence.LOGICAL_OR,
+    TokenType.KW_AND: Precedence.LOGICAL_AND,
+    # Comparison operators
+    TokenType.OP_EQ: Precedence.REL_SYM_COMP,
+    TokenType.OP_NOT_EQ: Precedence.REL_SYM_COMP,
+    TokenType.OP_LT: Precedence.REL_ASYM_COMP,
+    TokenType.OP_GT: Precedence.REL_ASYM_COMP,
+    TokenType.OP_LTE: Precedence.REL_ASYM_COMP,
+    TokenType.OP_GTE: Precedence.REL_ASYM_COMP,
+    # Arithmetic operators
+    TokenType.OP_PLUS: Precedence.MATH_ADD_SUB,
+    TokenType.OP_MINUS: Precedence.MATH_ADD_SUB,
+    TokenType.OP_STAR: Precedence.MATH_PROD_DIV_MOD,
+    TokenType.OP_DIVISION: Precedence.MATH_PROD_DIV_MOD,
+}
 
 
 class Parser:
@@ -181,6 +235,24 @@ class Parser:
         )
         self.errors.append(error)
 
+    def _current_precedence(self) -> Precedence:
+        """Get the precedence of the current token.
+
+        Returns:
+            The precedence level of the current token, or LOWEST if not found.
+        """
+        assert self._current_token is not None
+        return PRECEDENCES.get(self._current_token.type, Precedence.LOWEST)
+
+    def _peek_precedence(self) -> Precedence:
+        """Get the precedence of the peek token.
+
+        Returns:
+            The precedence level of the peek token, or LOWEST if not found.
+        """
+        assert self._peek_token is not None
+        return PRECEDENCES.get(self._peek_token.type, Precedence.LOWEST)
+
     def _parse_expression(self, precedence: Precedence = Precedence.LOWEST) -> Expression | None:
         """Parse an expression with a given precedence level.
 
@@ -193,7 +265,13 @@ class Parser:
         assert self._current_token is not None
 
         if self._current_token.type not in self._prefix_parse_funcs:
-            error_message = NO_PARSE_FUNCTION.substitute(literal=self._current_token.literal)
+            # Check if it's an infix operator at the start
+            if self._current_token.type in self._infix_parse_funcs:
+                error_message = UNEXPECTED_TOKEN_AT_START.substitute(token=self._current_token.literal)
+            elif self._current_token.type == TokenType.MISC_EOF:
+                error_message = EXPECTED_EXPRESSION.substitute(got="<end-of-file>")
+            else:
+                error_message = NO_PARSE_FUNCTION.substitute(literal=self._current_token.literal)
             error = MDSyntaxError(
                 message=error_message,
                 line=self._current_token.line,
@@ -206,7 +284,30 @@ class Parser:
 
         left_expression = prefix_parse_fn()
 
-        # For now, we don't have infix operators, so just return the prefix expression
+        # If prefix parsing failed, return None
+        if left_expression is None:
+            return None
+
+        # Handle infix operators
+        assert self._peek_token is not None
+        while self._peek_token.type != TokenType.PUNCT_PERIOD and precedence < self._peek_precedence():
+            if self._peek_token.type not in self._infix_parse_funcs:
+                return left_expression
+
+            self._advance_tokens()
+
+            assert self._current_token is not None
+            infix_parse_fn = self._infix_parse_funcs[self._current_token.type]
+            new_left = infix_parse_fn(left_expression)
+
+            # If infix parsing failed, return what we have so far
+            if new_left is None:
+                return left_expression
+
+            left_expression = new_left
+
+            assert self._peek_token is not None
+
         return left_expression
 
     def _parse_expression_statement(self) -> ExpressionStatement | None:
@@ -319,8 +420,64 @@ class Parser:
         # Advance past the operator
         self._advance_tokens()
 
-        # Parse the right-hand expression with PREFIX precedence
-        expression.right = self._parse_expression(Precedence.PREFIX)
+        # Parse the right-hand expression with appropriate precedence
+        # All unary operators (including 'not') have high precedence
+        expression.right = self._parse_expression(Precedence.UNARY_SIMPLIFIED)
+
+        return expression
+
+    def _parse_infix_expression(self, left: Expression) -> InfixExpression:
+        """Parse an infix expression.
+
+        Infix expressions consist of a left expression, an infix operator, and a
+        right expression. Examples: 5 + 3, x == y, a and b.
+
+        Args:
+            left: The left-hand expression that was already parsed.
+
+        Returns:
+            An InfixExpression AST node.
+        """
+        assert self._current_token is not None
+
+        # Create the infix expression with the operator and left operand
+        expression = InfixExpression(
+            token=self._current_token,
+            operator=self._current_token.literal.lower()
+            if self._current_token.type in [TokenType.KW_AND, TokenType.KW_OR]
+            else self._current_token.literal,
+            left=left,
+        )
+
+        # Get the precedence of this operator
+        precedence = self._current_precedence()
+
+        # Advance past the operator
+        self._advance_tokens()
+
+        # Parse the right-hand expression
+        expression.right = self._parse_expression(precedence)
+
+        return expression
+
+    def _parse_grouped_expression(self) -> Expression | None:
+        """Parse a grouped expression (expression in parentheses).
+
+        Grouped expressions are expressions wrapped in parentheses, which
+        can be used to override operator precedence.
+
+        Returns:
+            The expression inside the parentheses, or None if parsing fails.
+        """
+        # Advance past the opening parenthesis
+        self._advance_tokens()
+
+        # Parse the inner expression
+        expression = self._parse_expression(Precedence.LOWEST)
+
+        # Expect closing parenthesis
+        if not self._expected_token(TokenType.DELIM_RPAREN):
+            return None
 
         return expression
 
@@ -396,8 +553,7 @@ class Parser:
         else:
             return self._parse_expression_statement()
 
-    @staticmethod
-    def _register_infix_funcs() -> InfixParseFuncs:
+    def _register_infix_funcs(self) -> InfixParseFuncs:
         """Register infix parsing functions for each token type.
 
         Infix parsing functions handle expressions where an operator appears
@@ -422,7 +578,23 @@ class Parser:
                 TokenType.DELIM_LPAREN: self._parse_call_expression,
             }
         """
-        return {}
+        return {
+            # Arithmetic operators
+            TokenType.OP_PLUS: self._parse_infix_expression,
+            TokenType.OP_MINUS: self._parse_infix_expression,
+            TokenType.OP_STAR: self._parse_infix_expression,
+            TokenType.OP_DIVISION: self._parse_infix_expression,
+            # Comparison operators
+            TokenType.OP_EQ: self._parse_infix_expression,
+            TokenType.OP_NOT_EQ: self._parse_infix_expression,
+            TokenType.OP_LT: self._parse_infix_expression,
+            TokenType.OP_GT: self._parse_infix_expression,
+            TokenType.OP_LTE: self._parse_infix_expression,
+            TokenType.OP_GTE: self._parse_infix_expression,
+            # Logical operators
+            TokenType.KW_AND: self._parse_infix_expression,
+            TokenType.KW_OR: self._parse_infix_expression,
+        }
 
     def _register_prefix_funcs(self) -> PrefixParseFuncs:
         """Register prefix parsing functions for each token type.
@@ -459,6 +631,7 @@ class Parser:
             TokenType.LIT_FALSE: self._parse_boolean_literal,
             TokenType.OP_MINUS: self._parse_prefix_expression,
             TokenType.KW_NEGATION: self._parse_prefix_expression,
+            TokenType.DELIM_LPAREN: self._parse_grouped_expression,
         }
 
     @staticmethod

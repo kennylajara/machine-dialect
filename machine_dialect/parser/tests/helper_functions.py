@@ -13,6 +13,7 @@ from machine_dialect.ast import (
     ExpressionStatement,
     FloatLiteral,
     Identifier,
+    InfixExpression,
     IntegerLiteral,
     Program,
 )
@@ -154,3 +155,39 @@ def _assert_boolean_literal(expression: Expression, expected_value: bool) -> Non
     expected_literal = "True" if expected_value else "False"
     actual_literal = boolean_literal.token.literal
     assert actual_literal == expected_literal, f"Boolean token literal={actual_literal} != {expected_literal}"
+
+
+def assert_infix_expression(
+    expression: Expression,
+    left_value: Any,
+    operator: str,
+    right_value: Any,
+) -> None:
+    """Assert that an infix expression has the expected values and operator.
+
+    This function verifies that an expression is an InfixExpression with the
+    correct operator and operand values. It uses assert_literal_expression to
+    check the operands.
+
+    Args:
+        expression: The expression to verify (must be an InfixExpression).
+        left_value: Expected value of the left operand.
+        operator: Expected operator string.
+        right_value: Expected value of the right operand.
+
+    Raises:
+        AssertionError: If the expression is not an InfixExpression or if any
+            part of the expression doesn't match expectations.
+    """
+    assert isinstance(expression, InfixExpression), f"Expected InfixExpression, got {type(expression).__name__}"
+
+    # Check the operator
+    assert expression.operator == operator, f"Expected operator '{operator}', got '{expression.operator}'"
+
+    # Check left operand
+    assert expression.left is not None, "Left operand is None"
+    assert_literal_expression(expression.left, left_value)
+
+    # Check right operand
+    assert expression.right is not None, "Right operand is None"
+    assert_literal_expression(expression.right, right_value)

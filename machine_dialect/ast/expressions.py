@@ -92,3 +92,38 @@ class PrefixExpression(Expression):
         if self.operator == "not":
             return f"({self.operator} {self.right})"
         return f"({self.operator}{self.right})"
+
+
+class InfixExpression(Expression):
+    """An infix expression with an operator between two expressions.
+
+    Infix expressions consist of a left expression, an infix operator, and a
+    right expression. Examples include arithmetic (5 + 3), comparisons (x > y),
+    and logical operations (a and b).
+
+    Attributes:
+        left: The left operand expression.
+        operator: The infix operator as a string (e.g., "+", "==", "and").
+        right: The right operand expression.
+    """
+
+    def __init__(self, token: Token, operator: str, left: Expression) -> None:
+        """Initialize an InfixExpression node.
+
+        Args:
+            token: The token containing the infix operator.
+            operator: The operator string (e.g., "+", "-", "==").
+            left: The left-hand expression.
+        """
+        super().__init__(token)
+        self.operator = operator
+        self.left = left
+        self.right: Expression | None = None
+
+    def __str__(self) -> str:
+        """Return the string representation of the infix expression.
+
+        Returns:
+            The expression in the format "(left operator right)", e.g., "(5 + 3)".
+        """
+        return f"({self.left} {self.operator} {self.right})"

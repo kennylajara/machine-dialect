@@ -15,23 +15,24 @@ class TestParseErrors:
     """Test parsing error handling."""
 
     @pytest.mark.parametrize(
-        "source,expected_literal",
+        "source,expected_literal,expected_message",
         [
-            ("* 42", "*"),  # Multiplication operator at start
-            ("+ 5", "+"),  # Plus operator at start
-            ("/ 10", "/"),  # Division operator at start
-            (") x", ")"),  # Right parenthesis at start
-            ("} x", "}"),  # Right brace at start
-            (", x", ","),  # Comma at start
-            ("; x", ";"),  # Semicolon at start
+            ("* 42", "*", "unexpected token '*' at start of expression"),  # Multiplication operator at start
+            ("+ 5", "+", "unexpected token '+' at start of expression"),  # Plus operator at start
+            ("/ 10", "/", "unexpected token '/' at start of expression"),  # Division operator at start
+            (") x", ")", "No suitable parse function was found to handle ')'"),  # Right parenthesis at start
+            ("} x", "}", "No suitable parse function was found to handle '}'"),  # Right brace at start
+            (", x", ",", "No suitable parse function was found to handle ','"),  # Comma at start
+            ("; x", ";", "No suitable parse function was found to handle ';'"),  # Semicolon at start
         ],
     )
-    def test_no_prefix_parse_function_error(self, source: str, expected_literal: str) -> None:
+    def test_no_prefix_parse_function_error(self, source: str, expected_literal: str, expected_message: str) -> None:
         """Test error reporting when no prefix parse function exists.
 
         Args:
             source: The source code that should trigger an error.
             expected_literal: The literal that should appear in the error message.
+            expected_message: The expected error message.
         """
         lexer = Lexer(source)
         parser = Parser(lexer)
@@ -44,7 +45,7 @@ class TestParseErrors:
         # Check the error type and message
         error = parser.errors[0]
         assert isinstance(error, MDSyntaxError)
-        assert f"No parse function was found to parse '{expected_literal}'" in str(error)
+        assert expected_message in str(error)
 
         # The program should still be created
         assert program is not None
@@ -72,7 +73,7 @@ class TestParseErrors:
         expected_literals = ["*", "+", "/"]
         for error, expected_literal in zip(parser.errors, expected_literals, strict=True):
             assert isinstance(error, MDSyntaxError)
-            assert f"No parse function was found to parse '{expected_literal}'" in str(error)
+            assert f"unexpected token '{expected_literal}' at start of expression" in str(error)
 
     def test_error_location_tracking(self) -> None:
         """Test that errors track correct line and column positions."""

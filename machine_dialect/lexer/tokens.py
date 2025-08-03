@@ -30,7 +30,9 @@ class TokenType(Enum):
     OP_EQ = auto()
     OP_NOT_EQ = auto()
     OP_LT = auto()
+    OP_LTE = auto()
     OP_GT = auto()
+    OP_GTE = auto()
     OP_NEGATION = auto()
     OP_TWO_STARS = auto()
 

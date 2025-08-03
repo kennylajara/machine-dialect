@@ -58,3 +58,35 @@ class Identifier(Expression):
             The identifier wrapped in backticks, e.g., "`variable`".
         """
         return f"`{self.value}`"
+
+
+class PrefixExpression(Expression):
+    """A prefix expression with an operator applied to an expression.
+
+    Prefix expressions consist of a prefix operator followed by an expression.
+    Examples include negative numbers (-42), boolean negation (not True),
+    and other unary operations.
+
+    Attributes:
+        operator: The prefix operator as a string (e.g., "-", "not").
+        right: The expression that the operator is applied to.
+    """
+
+    def __init__(self, token: Token, operator: str) -> None:
+        """Initialize a PrefixExpression node.
+
+        Args:
+            token: The token containing the prefix operator.
+            operator: The operator string (e.g., "-", "not").
+        """
+        super().__init__(token)
+        self.operator = operator
+        self.right: Expression | None = None
+
+    def __str__(self) -> str:
+        """Return the string representation of the prefix expression.
+
+        Returns:
+            The expression in the format "(operator right)", e.g., "(-42)".
+        """
+        return f"({self.operator}{self.right})"

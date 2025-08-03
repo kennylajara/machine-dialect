@@ -50,4 +50,4 @@ class BooleanLiteral(Expression):
 
     def __str__(self) -> str:
         # Display with underscores for the new syntax
-        return f"_{self.value!s}_"
+        return f"_{self.value}_"

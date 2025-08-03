@@ -8,6 +8,7 @@ from machine_dialect.ast import (
     FloatLiteral,
     Identifier,
     IntegerLiteral,
+    PrefixExpression,
     Program,
     ReturnStatement,
     SetStatement,
@@ -179,7 +180,15 @@ class Parser:
         )
         self.errors.append(error)
 
-    def _parse_expression(self) -> Expression | None:
+    def _parse_expression(self, precedence: Precedence = Precedence.LOWEST) -> Expression | None:
+        """Parse an expression with a given precedence level.
+
+        Args:
+            precedence: The minimum precedence level to parse. Defaults to LOWEST.
+
+        Returns:
+            An Expression AST node if successful, None if no valid expression found.
+        """
         assert self._current_token is not None
 
         if self._current_token.type not in self._prefix_parse_funcs:
@@ -187,7 +196,10 @@ class Parser:
 
         prefix_parse_fn = self._prefix_parse_funcs[self._current_token.type]
 
-        return prefix_parse_fn()
+        left_expression = prefix_parse_fn()
+
+        # For now, we don't have infix operators, so just return the prefix expression
+        return left_expression
 
     def _parse_expression_statement(self) -> ExpressionStatement | None:
         assert self._current_token is not None
@@ -278,6 +290,31 @@ class Parser:
             token=self._current_token,
             value=value,
         )
+
+    def _parse_prefix_expression(self) -> PrefixExpression | None:
+        """Parse a prefix expression.
+
+        Prefix expressions consist of a prefix operator followed by an expression.
+        Examples: -42, not True, --5, not not False
+
+        Returns:
+            A PrefixExpression AST node if successful, None if parsing fails.
+        """
+        assert self._current_token is not None
+
+        # Create the prefix expression with the operator
+        expression = PrefixExpression(
+            token=self._current_token,
+            operator=self._current_token.literal,
+        )
+
+        # Advance past the operator
+        self._advance_tokens()
+
+        # Parse the right-hand expression with PREFIX precedence
+        expression.right = self._parse_expression(Precedence.PREFIX)
+
+        return expression
 
     def _parse_let_statement(self) -> SetStatement | None:
         """Parse a Set statement.
@@ -412,6 +449,8 @@ class Parser:
             TokenType.LIT_FLOAT: self._parse_float_literal,
             TokenType.LIT_TRUE: self._parse_boolean_literal,
             TokenType.LIT_FALSE: self._parse_boolean_literal,
+            TokenType.OP_MINUS: self._parse_prefix_expression,
+            TokenType.KW_NEGATION: self._parse_prefix_expression,
         }
 
     @staticmethod

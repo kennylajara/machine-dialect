@@ -89,4 +89,6 @@ class PrefixExpression(Expression):
         Returns:
             The expression in the format "(operator right)", e.g., "(-42)".
         """
+        if self.operator == "not":
+            return f"({self.operator} {self.right})"
         return f"({self.operator}{self.right})"

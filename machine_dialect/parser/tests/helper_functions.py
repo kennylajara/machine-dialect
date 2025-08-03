@@ -8,6 +8,7 @@ duplication and make tests more readable.
 from typing import Any, cast
 
 from machine_dialect.ast import (
+    BooleanLiteral,
     Expression,
     ExpressionStatement,
     FloatLiteral,
@@ -60,6 +61,8 @@ def assert_literal_expression(
         _assert_integer_literal(expression, expected_value)
     elif value_type is float:
         _assert_float_literal(expression, expected_value)
+    elif value_type is bool:
+        _assert_boolean_literal(expression, expected_value)
     else:
         raise AssertionError(f"Unhandled literal expression: {expression}. Got={value_type}")
 
@@ -127,3 +130,27 @@ def _assert_float_literal(expression: Expression, expected_value: float) -> None
     actual_str = float_literal.token.literal
     # Handle cases like 3.0 vs 3.0 or 3.14 vs 3.14
     assert float(actual_str) == float(expected_str), f"Float token literal={actual_str} != {expected_str}"
+
+
+def _assert_boolean_literal(expression: Expression, expected_value: bool) -> None:
+    """Test that a boolean literal expression has the expected value.
+
+    Verifies both the boolean literal's value attribute and its token's literal
+    match the expected value. The token literal should be in canonical form
+    ("True" or "False") regardless of the original case in the source.
+
+    Args:
+        expression: The expression to test (must be a BooleanLiteral).
+        expected_value: The expected boolean value.
+
+    Raises:
+        AssertionError: If the expression is not a BooleanLiteral or if
+            the value doesn't match the expected value.
+    """
+    assert isinstance(expression, BooleanLiteral), f"Expected BooleanLiteral, got {type(expression).__name__}"
+    boolean_literal = expression
+    assert boolean_literal.value == expected_value, f"Boolean value={boolean_literal.value} != {expected_value}"
+    # Check that the token literal is in canonical form
+    expected_literal = "True" if expected_value else "False"
+    actual_literal = boolean_literal.token.literal
+    assert actual_literal == expected_literal, f"Boolean token literal={actual_literal} != {expected_literal}"

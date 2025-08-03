@@ -2,6 +2,7 @@ from collections.abc import Callable
 from enum import IntEnum
 
 from machine_dialect.ast import (
+    BooleanLiteral,
     Expression,
     ExpressionStatement,
     FloatLiteral,
@@ -258,6 +259,26 @@ class Parser:
             value=value,
         )
 
+    def _parse_boolean_literal(self) -> BooleanLiteral:
+        """Parse a boolean literal.
+
+        Returns:
+            A BooleanLiteral AST node.
+
+        Note:
+            The lexer has already validated and provided the canonical
+            representation of the boolean literal ("True" or "False").
+        """
+        assert self._current_token is not None
+
+        # Determine the boolean value based on the token type
+        value = self._current_token.type == TokenType.LIT_TRUE
+
+        return BooleanLiteral(
+            token=self._current_token,
+            value=value,
+        )
+
     def _parse_let_statement(self) -> SetStatement | None:
         """Parse a Set statement.
 
@@ -389,6 +410,8 @@ class Parser:
             TokenType.MISC_IDENT: self._parse_identifier,
             TokenType.LIT_INT: self._parse_integer_literal,
             TokenType.LIT_FLOAT: self._parse_float_literal,
+            TokenType.LIT_TRUE: self._parse_boolean_literal,
+            TokenType.LIT_FALSE: self._parse_boolean_literal,
         }
 
     @staticmethod

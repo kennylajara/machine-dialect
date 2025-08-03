@@ -14,7 +14,7 @@ class TestStatementTerminationRule:
     def test_rule_properties(self) -> None:
         """Test rule ID and description."""
         rule = StatementTerminationRule()
-        assert rule.rule_id == "MD001"
+        assert rule.rule_id == "MD101"
         assert "period" in rule.description.lower()
 
     def test_valid_statement_with_period(self) -> None:
@@ -44,7 +44,7 @@ class TestStatementTerminationRule:
 
         violations = rule.check(node, context)
         assert len(violations) == 1
-        assert violations[0].rule_id == "MD001"
+        assert violations[0].rule_id == "MD101"
         assert violations[0].severity == ViolationSeverity.STYLE
         assert violations[0].line == 1
 
@@ -99,8 +99,8 @@ class TestStatementTerminationRule:
         """Test that rules can be disabled in config."""
         rule = StatementTerminationRule()
 
-        config = {"rules": {"MD001": False}}
+        config = {"rules": {"MD101": False}}
         assert not rule.is_enabled(config)
 
-        config = {"rules": {"MD001": True}}
+        config = {"rules": {"MD101": True}}
         assert rule.is_enabled(config)

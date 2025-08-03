@@ -23,7 +23,7 @@ class StatementTerminationRule(Rule):
     @property
     def rule_id(self) -> str:
         """Return the rule identifier."""
-        return "MD001"
+        return "MD101"
 
     @property
     def description(self) -> str:

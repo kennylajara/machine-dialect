@@ -12,15 +12,15 @@ class TestLinter:
         """Test that linter initializes with default rules."""
         linter = Linter()
         assert len(linter.rules) > 0
-        assert any(rule.rule_id == "MD001" for rule in linter.rules)
+        assert any(rule.rule_id == "MD101" for rule in linter.rules)
 
     def test_linter_with_config(self) -> None:
         """Test linter initialization with configuration."""
-        config = {"rules": {"MD001": False}}
+        config = {"rules": {"MD101": False}}
         linter = Linter(config)
 
-        # MD001 should not be in the rules list
-        assert not any(rule.rule_id == "MD001" for rule in linter.rules)
+        # MD101 should not be in the rules list
+        assert not any(rule.rule_id == "MD101" for rule in linter.rules)
 
     def test_lint_parse_errors(self) -> None:
         """Test that parse errors are reported as violations."""

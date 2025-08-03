@@ -40,7 +40,7 @@ class TestViolation:
     def test_violation_string_representation(self) -> None:
         """Test string representation of violations."""
         violation = Violation(
-            rule_id="MD001",
+            rule_id="MD101",
             message="Missing period",
             severity=ViolationSeverity.STYLE,
             line=5,
@@ -50,7 +50,7 @@ class TestViolation:
         str_repr = str(violation)
         assert "5:10" in str_repr
         assert "style" in str_repr
-        assert "MD001" in str_repr
+        assert "MD101" in str_repr
         assert "Missing period" in str_repr
 
 

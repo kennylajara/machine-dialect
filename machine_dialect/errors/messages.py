@@ -7,3 +7,4 @@ UNEXPECTED_TOKEN = Template(
 )
 INVALID_INTEGER_LITERAL = Template("Invalid integer literal: '$literal'")
 INVALID_FLOAT_LITERAL = Template("Invalid float literal: '$literal'")
+NO_PARSE_FUNCTION = Template("No parse function was found to parse '$literal'")

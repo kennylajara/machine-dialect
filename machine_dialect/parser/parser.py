@@ -18,6 +18,7 @@ from machine_dialect.errors.exceptions import MDBaseException, MDSyntaxError
 from machine_dialect.errors.messages import (
     INVALID_FLOAT_LITERAL,
     INVALID_INTEGER_LITERAL,
+    NO_PARSE_FUNCTION,
     UNEXPECTED_TOKEN,
 )
 from machine_dialect.lexer import Lexer, Token, TokenType
@@ -192,6 +193,13 @@ class Parser:
         assert self._current_token is not None
 
         if self._current_token.type not in self._prefix_parse_funcs:
+            error_message = NO_PARSE_FUNCTION.substitute(literal=self._current_token.literal)
+            error = MDSyntaxError(
+                message=error_message,
+                line=self._current_token.line,
+                column=self._current_token.position,
+            )
+            self.errors.append(error)
             return None
 
         prefix_parse_fn = self._prefix_parse_funcs[self._current_token.type]

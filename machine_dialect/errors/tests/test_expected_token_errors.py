@@ -20,12 +20,13 @@ class TestExpectedTokenErrors:
 
         parser.parse()
 
-        # Should have one syntax error
+        # Should have syntax errors
         assert parser.has_errors() is True
-        assert len(parser.errors) == 1
+        # We get 2 errors: expected identifier error, then "no parse function" for 42
+        assert len(parser.errors) == 2
         assert isinstance(parser.errors[0], MDSyntaxError)
 
-        # Error should mention expected identifier
+        # First error should mention expected identifier
         error_msg = str(parser.errors[0])
         assert "misc_ident" in error_msg.lower() or "identifier" in error_msg.lower()
 
@@ -96,8 +97,9 @@ Set to "hello"
 
         parser.parse()
 
-        assert len(parser.errors) == 1
-        error = parser.errors[0]
+        # We get 2 errors: expected identifier error, then "no parse function" for 42
+        assert len(parser.errors) == 2
+        error = parser.errors[0]  # Check the first error
 
         # Check that error has location information
         assert hasattr(error, "_line")

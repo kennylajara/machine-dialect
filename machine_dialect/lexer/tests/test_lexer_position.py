@@ -79,7 +79,7 @@ Set y = 2"""
             Token(TokenType.OP_ASSIGN, "=", line=1, position=6),
             Token(TokenType.LIT_INT, "1", line=1, position=8),
             Token(TokenType.KW_SET, "Set", line=3, position=0),
-            Token(TokenType.MISC_STOPWORD, "y", line=3, position=4),
+            Token(TokenType.MISC_IDENT, "y", line=3, position=4),
             Token(TokenType.OP_ASSIGN, "=", line=3, position=6),
             Token(TokenType.LIT_INT, "2", line=3, position=8),
         ]

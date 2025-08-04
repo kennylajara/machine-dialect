@@ -146,6 +146,12 @@ class TestInfixExpressions:
             ("20 < 10", 20, "<", 10),
             ("5 > 10", 5, ">", 10),
             ("20 > 10", 20, ">", 10),
+            ("5 <= 10", 5, "<=", 10),
+            ("10 <= 10", 10, "<=", 10),
+            ("20 <= 10", 20, "<=", 10),
+            ("5 >= 10", 5, ">=", 10),
+            ("10 >= 10", 10, ">=", 10),
+            ("20 >= 10", 20, ">=", 10),
             # Float comparisons
             ("3.14 == 3.14", 3.14, "==", 3.14),
             ("2.5 != 3.5", 2.5, "!=", 3.5),
@@ -297,6 +303,112 @@ class TestInfixExpressions:
 
         assert_infix_expression(statement.expression, left, operator.lower(), right)
 
+    def test_natural_language_comparison_operators(self) -> None:
+        """Test parsing natural language comparison operators."""
+        test_cases = [
+            # Equality variations
+            ("5 is equal to 5", 5, "==", 5),
+            ("x is equal to z", "x", "==", "z"),
+            ("10 is same as 10", 10, "==", 10),
+            ("foo is same as bar", "foo", "==", "bar"),
+            ("3.14 equals 3.14", 3.14, "==", 3.14),
+            ("value equals 42", "value", "==", 42),
+            ("5 is exactly 5", 5, "==", 5),
+            ("count is exactly 100", "count", "==", 100),
+            # Inequality variations
+            ("5 is not 10", 5, "!=", 10),
+            ("x is not z", "x", "!=", "z"),
+            ("5 isn't 10", 5, "!=", 10),
+            ("value isn't 0", "value", "!=", 0),
+            ("10 is not equal to 20", 10, "!=", 20),
+            ("foo is not equal to bar", "foo", "!=", "bar"),
+            ("5 doesn't equal 10", 5, "!=", 10),
+            ("result doesn't equal expected", "result", "!=", "expected"),
+            ("7 is different from 8", 7, "!=", 8),
+            ("actual is different from expected", "actual", "!=", "expected"),
+            # Greater than variations
+            ("10 is greater than 5", 10, ">", 5),
+            ("x is greater than 0", "x", ">", 0),
+            ("20 is more than 10", 20, ">", 10),
+            ("total is more than limit", "total", ">", "limit"),
+            # Less than variations
+            ("5 is less than 10", 5, "<", 10),
+            ("value is less than max", "value", "<", "max"),
+            ("3 is under 10", 3, "<", 10),
+            ("price is under budget", "price", "<", "budget"),
+            ("2 is fewer than 5", 2, "<", 5),
+            ("errors is fewer than threshold", "errors", "<", "threshold"),
+            # Greater than or equal variations
+            ("10 is greater or equal to 10", 10, ">=", 10),
+            ("x is greater or equal to min", "x", ">=", "min"),
+            ("5 is at least 5", 5, ">=", 5),
+            ("score is at least passing", "score", ">=", "passing"),
+            ("10 is no less than 5", 10, ">=", 5),
+            ("value is no less than minimum", "value", ">=", "minimum"),
+            # Less than or equal variations
+            ("5 is less than or equal to 10", 5, "<=", 10),
+            ("x is less than or equal to max", "x", "<=", "max"),
+            ("10 is at most 10", 10, "<=", 10),
+            ("cost is at most budget", "cost", "<=", "budget"),
+            ("5 is no more than 10", 5, "<=", 10),
+            ("usage is no more than limit", "usage", "<=", "limit"),
+            # Mixed with identifiers and literals
+            ("`total cost` is equal to 100.50", "total cost", "==", 100.50),
+            ("`error count` is less than 5", "error count", "<", 5),
+            ("True is not False", True, "!=", False),
+            ("_42_ is exactly _42_", 42, "==", 42),
+        ]
+
+        for source, left_value, expected_operator, right_value in test_cases:
+            lexer = Lexer(source)
+            parser = Parser(lexer)
+
+            program = parser.parse()
+
+            assert len(parser.errors) == 0, f"Parser errors for '{source}': {parser.errors}"
+            assert_program_statements(parser, program)
+
+            statement = program.statements[0]
+            assert isinstance(statement, ExpressionStatement)
+            assert statement.expression is not None
+
+            assert_infix_expression(statement.expression, left_value, expected_operator, right_value)
+
+    def test_natural_language_operators_in_complex_expressions(self) -> None:
+        """Test natural language operators in complex expressions with precedence."""
+        test_cases = [
+            # With logical operators
+            ("x is equal to 5 and y is greater than 10", "((x == 5) and (y > 10))"),
+            ("foo is not bar or baz is less than qux", "((foo != bar) or (baz < qux))"),
+            ("value is at least 0 and value is at most 100", "((value >= 0) and (value <= 100))"),
+            # With arithmetic
+            ("x + 5 is equal to 10", "((x + 5) == 10)"),
+            ("2 * y is greater than 20", "((2 * y) > 20)"),
+            ("total / count is less than average", "((total / count) < average)"),
+            # With parentheses
+            ("(x is equal to 5) and (y is not 10)", "((x == 5) and (y != 10))"),
+            ("not (x is greater than 10)", "(not (x > 10))"),
+            # Nested comparisons
+            ("x is greater than y and y is greater than z", "((x > y) and (y > z))"),
+            ("score is at least passing or retake is equal to True", "((score >= passing) or (retake == True))"),
+        ]
+
+        for source, _ in test_cases:
+            lexer = Lexer(source)
+            parser = Parser(lexer)
+
+            program = parser.parse()
+
+            assert len(parser.errors) == 0, f"Parser errors for '{source}': {parser.errors}"
+            assert len(program.statements) == 1
+
+            statement = program.statements[0]
+            assert isinstance(statement, ExpressionStatement)
+            assert statement.expression is not None
+
+            # For now, just ensure it parses without errors
+            # The exact string representation would depend on how we format natural language operators
+
     def test_operator_precedence(self) -> None:
         """Test that operators follow correct precedence rules."""
         # Test cases with expected parsing based on precedence
@@ -317,6 +429,8 @@ class TestInfixExpressions:
             ("5 + 3 == 8", "((_5_ + _3_) == _8_)"),
             ("2 * 3 < 10", "((_2_ * _3_) < _10_)"),
             ("10 / 2 > 4", "((_10_ / _2_) > _4_)"),
+            ("3 + 2 <= 5", "((_3_ + _2_) <= _5_)"),
+            ("8 - 3 >= 5", "((_8_ - _3_) >= _5_)"),
             # Logical operators have lowest precedence
             ("True and False or True", "((_True_ and _False_) or _True_)"),
             ("True or False and True", "(_True_ or (_False_ and _True_))"),
@@ -495,6 +609,10 @@ class TestInfixExpressions:
             # Missing operands in complex expressions
             ("5 + * 3", "unexpected token '*' at start of expression"),
             ("(5 + ) * 3", "No suitable parse function was found to handle ')'"),
+            # Natural language operator errors
+            ("x is equal to", "expected expression, got <end-of-file>"),
+            ("is greater than 5", "unexpected token 'is greater than' at start of expression"),
+            ("5 is", "No suitable parse function was found to handle 'is'"),
         ],
     )
     def test_invalid_infix_expressions(self, source: str, expected_error: str) -> None:

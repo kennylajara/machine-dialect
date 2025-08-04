@@ -197,6 +197,27 @@ keywords_mapping: dict[str, TokenType] = {
     "Integers": TokenType.KW_INTS,
     # equal comparator: if `x` is 0
     "is": TokenType.KW_IS,
+    # Natural language comparison operators
+    "is equal to": TokenType.OP_EQ,
+    "is same as": TokenType.OP_EQ,
+    "equals": TokenType.OP_EQ,
+    "is exactly": TokenType.OP_EQ,
+    "is not": TokenType.OP_NOT_EQ,
+    "isn't": TokenType.OP_NOT_EQ,
+    "is not equal to": TokenType.OP_NOT_EQ,
+    "doesn't equal": TokenType.OP_NOT_EQ,
+    "is different from": TokenType.OP_NOT_EQ,
+    "is greater than": TokenType.OP_GT,
+    "is more than": TokenType.OP_GT,
+    "is less than": TokenType.OP_LT,
+    "is under": TokenType.OP_LT,
+    "is fewer than": TokenType.OP_LT,
+    "is greater or equal to": TokenType.OP_GTE,
+    "is at least": TokenType.OP_GTE,
+    "is no less than": TokenType.OP_GTE,
+    "is less than or equal to": TokenType.OP_LTE,
+    "is at most": TokenType.OP_LTE,
+    "is no more than": TokenType.OP_LTE,
     # logic not: not true
     "not": TokenType.KW_NEGATION,
     # null value

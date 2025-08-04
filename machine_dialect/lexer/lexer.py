@@ -61,6 +61,14 @@ class Lexer:
         start_column = self.column
         while self.current_char and (self.current_char.isalnum() or self.current_char == "_"):
             self.advance()
+
+        # Check for contractions like 't or 's
+        peek_char = self.peek()
+        if self.current_char == "'" and peek_char and peek_char.isalpha():
+            self.advance()  # Skip apostrophe
+            while self.current_char and self.current_char.isalpha():
+                self.advance()
+
         return self.source[start_pos : self.position], start_line, start_column
 
     def check_multi_word_keyword(self, first_word: str, line: int, pos: int) -> tuple[str | None, int]:
@@ -80,34 +88,62 @@ class Lexer:
         saved_column = self.column
         saved_char = self.current_char
 
-        # Skip whitespace after first word
-        start_whitespace = self.position
-        while self.current_char and self.current_char.isspace() and self.current_char != "\n":
-            self.advance()
+        words = [first_word]
+        longest_match = None
+        longest_match_position = self.position
+        longest_match_line = self.line
+        longest_match_column = self.column
+        longest_match_char = self.current_char
 
-        # If we hit newline or no whitespace, not a multi-word keyword
-        if self.position == start_whitespace or not self.current_char or not self.current_char.isalpha():
-            # Restore state
-            self.position = saved_position
-            self.line = saved_line
-            self.column = saved_column
-            self.current_char = saved_char
-            return None, self.position
+        # Try to build progressively longer multi-word sequences
+        while True:
+            # Skip whitespace
+            start_whitespace = self.position
+            while self.current_char and self.current_char.isspace() and self.current_char != "\n":
+                self.advance()
 
-        # Read the next word
-        next_word_start = self.position
-        while self.current_char and (self.current_char.isalnum() or self.current_char == "_"):
-            self.advance()
+            # If we hit newline or no whitespace, stop looking
+            if self.position == start_whitespace or not self.current_char:
+                break
 
-        second_word = self.source[next_word_start : self.position]
-        two_words = f"{first_word} {second_word}"
+            # Check if next character could start a word
+            if not (self.current_char.isalpha() or self.current_char == "'"):
+                break
 
-        # Check if it's a multi-word keyword
-        token_type, _ = lookup_token_type(two_words)
-        if token_type != TokenType.MISC_IDENT:
-            return two_words, self.position
+            # Read the next word
+            next_word_start = self.position
+            if self.current_char == "'":
+                # Handle contractions like "isn't", "doesn't"
+                self.advance()  # Skip apostrophe
+                while self.current_char and self.current_char.isalpha():
+                    self.advance()
+            else:
+                while self.current_char and (self.current_char.isalnum() or self.current_char == "_"):
+                    self.advance()
 
-        # Not a multi-word keyword, restore state
+            next_word = self.source[next_word_start : self.position]
+            words.append(next_word)
+
+            # Check if this multi-word sequence is a keyword
+            multi_word = " ".join(words)
+            token_type, _ = lookup_token_type(multi_word)
+            # Only accept real keywords/operators, not identifiers, illegals, or stopwords
+            if token_type not in (TokenType.MISC_IDENT, TokenType.MISC_ILLEGAL, TokenType.MISC_STOPWORD):
+                longest_match = multi_word
+                longest_match_position = self.position
+                longest_match_line = self.line
+                longest_match_column = self.column
+                longest_match_char = self.current_char
+
+        # If we found a match, restore position to end of the match
+        if longest_match:
+            self.position = longest_match_position
+            self.line = longest_match_line
+            self.column = longest_match_column
+            self.current_char = longest_match_char
+            return longest_match, longest_match_position
+
+        # No match found, restore state
         self.position = saved_position
         self.line = saved_line
         self.column = saved_column
@@ -480,11 +516,13 @@ class Lexer:
 
                 # Check for multi-word keywords first
                 literal, ident_line, ident_pos = self.read_identifier()
-                multi_word, _ = self.check_multi_word_keyword(literal, ident_line, ident_pos)
+                multi_word, new_position = self.check_multi_word_keyword(literal, ident_line, ident_pos)
 
                 if multi_word:
                     token_type, canonical_literal = lookup_token_type(multi_word)
                     tokens.append(Token(token_type, canonical_literal, ident_line, ident_pos))
+                    # IMPORTANT: check_multi_word_keyword has already updated the lexer position
+                    # so we just continue from where it left off
                 else:
                     # Regular identifier, keyword, or boolean literal
                     token_type, canonical_literal = lookup_token_type(literal)
@@ -562,6 +600,20 @@ class Lexer:
             if self.current_char == "!" and self.peek() == "=":
                 line, pos = self.line, self.column
                 tokens.append(Token(TokenType.OP_NOT_EQ, "!=", line, pos))
+                self.advance()
+                self.advance()
+                continue
+
+            if self.current_char == "<" and self.peek() == "=":
+                line, pos = self.line, self.column
+                tokens.append(Token(TokenType.OP_LTE, "<=", line, pos))
+                self.advance()
+                self.advance()
+                continue
+
+            if self.current_char == ">" and self.peek() == "=":
+                line, pos = self.line, self.column
+                tokens.append(Token(TokenType.OP_GTE, ">=", line, pos))
                 self.advance()
                 self.advance()
                 continue
@@ -656,9 +708,50 @@ class Lexer:
             )
             self.advance()
 
+        # Convert stopwords to identifiers in appropriate contexts
+        tokens = self._convert_contextual_stopwords(tokens)
+
         # Apply post-processing to merge identifiers
         merged_tokens = self._merge_identifiers(tokens)
         return errors, merged_tokens
+
+    def _convert_contextual_stopwords(self, tokens: list[Token]) -> list[Token]:
+        """Convert stopwords to identifiers after Set keyword in specific contexts."""
+        if not tokens:
+            return tokens
+
+        result: list[Token] = []
+        for i, token in enumerate(tokens):
+            if token.type == TokenType.MISC_STOPWORD and i > 0 and tokens[i - 1].type == TokenType.KW_SET:
+                # Check if this stopword should be converted
+                # Only convert if there are no identifiers between this stopword and "to"/period/EOF
+                should_convert = True
+                j = i + 1
+                while j < len(tokens):
+                    if tokens[j].type == TokenType.KW_TO or tokens[j].type == TokenType.PUNCT_PERIOD:
+                        # Found "to" or period, stop looking
+                        break
+                    elif tokens[j].type == TokenType.MISC_IDENT:
+                        # Found an identifier before "to"/period, don't convert
+                        should_convert = False
+                        break
+                    elif tokens[j].type == TokenType.MISC_STOPWORD:
+                        # Another stopword, keep looking
+                        j += 1
+                    else:
+                        # Some other token type, don't convert
+                        should_convert = False
+                        break
+
+                if should_convert:
+                    # Convert stopword to identifier
+                    result.append(Token(TokenType.MISC_IDENT, token.literal, token.line, token.position))
+                else:
+                    result.append(token)
+            else:
+                result.append(token)
+
+        return result
 
     def _merge_identifiers(self, tokens: list[Token]) -> list[Token]:
         """Merge consecutive identifiers with stopwords in between.

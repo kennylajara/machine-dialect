@@ -440,12 +440,29 @@ class Parser:
         """
         assert self._current_token is not None
 
+        # Map token type to operator string
+        operator_map = {
+            TokenType.OP_PLUS: "+",
+            TokenType.OP_MINUS: "-",
+            TokenType.OP_STAR: "*",
+            TokenType.OP_DIVISION: "/",
+            TokenType.OP_EQ: "==",
+            TokenType.OP_NOT_EQ: "!=",
+            TokenType.OP_LT: "<",
+            TokenType.OP_GT: ">",
+            TokenType.OP_LTE: "<=",
+            TokenType.OP_GTE: ">=",
+            TokenType.KW_AND: "and",
+            TokenType.KW_OR: "or",
+        }
+
+        # Get the operator string
+        operator = operator_map.get(self._current_token.type, self._current_token.literal)
+
         # Create the infix expression with the operator and left operand
         expression = InfixExpression(
             token=self._current_token,
-            operator=self._current_token.literal.lower()
-            if self._current_token.type in [TokenType.KW_AND, TokenType.KW_OR]
-            else self._current_token.literal,
+            operator=operator,
             left=left,
         )
 

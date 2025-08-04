@@ -79,7 +79,7 @@ class TestBacktickIdentifiers:
         assert tokens[1].literal == "x"
         assert tokens[2].type == TokenType.KW_TO
         assert tokens[2].literal == "to"
-        assert tokens[3].type == TokenType.MISC_STOPWORD  # 'y' is a stopword
+        assert tokens[3].type == TokenType.MISC_IDENT
         assert tokens[3].literal == "y"
 
     def test_unclosed_backtick(self) -> None:

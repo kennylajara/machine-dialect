@@ -213,7 +213,6 @@ ENGLISH_STOPWORDS = {
     "would",
     "wouldn",
     "wouldn't",
-    "y",
     "you",
     "you'd",
     "you'll",

@@ -6,37 +6,30 @@ executable: true
 
 ## Traits
 
-**Define** `alarm is on` **as** a **status**.
+**Define** `alarm is on` **as** a **status**.\
 _Whether the store's alarm is turned on_ (**default**: _Yes_).
 
-**Define** `door is open` **as** a **status**.
+**Define** `door is open` **as** a **status**.\
 _Whether the store's door is currently open_ (**default**: _No_).
 
-**Define** `people inside` **as** a **whole number**.
+**Define** `people inside` **as** a **whole number**.\
 _How many people are in the store_ (**default**: _0_).
 
 ## Actions
 
-### **Define interaction called**  `toggle alarm status`
+### **Define interaction** `turn alarm off`
 
-Turns on the alarm when it is off and turn it off if it is on.
-
-### Instructions
+_Turns off the alarm when it is on_.
 
 > **if** `alarm is on` **then**:
 >
-> > **Set** `alarm is on` **to** _No_.
-> > **Print** _"Alarm has been turned off"_
->
-> **otherwise:**
->
-> > **Set** `alarm is on` **to** _Yes_.
-> > **Print** _"Alarm has been turned on"_
+> > **Set** `alarm is on` **to** _No_.\
+> > **Show message** _"Alarm has been turned off"_
 
-### **Define behaviour `make noise`**
+### **Define behaviour called `make noise`**
 
-> Set `noise` to _"WEE-OO WEE-OO WEE-OO"_.
-> **Print** `noise`.
+> Set `noise` to _"WEE-OO WEE-OO WEE-OO"_.\
+> **Show message** `noise`.
 
 ## Rule
 

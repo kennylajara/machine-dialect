@@ -472,6 +472,27 @@ class TestInfixExpressions:
             # Complex grouped expressions
             ("(2 + 3) * (4 + 5)", "((_2_ + _3_) * (_4_ + _5_))"),
             ("((1 + 2) * 3) / (4 - 2)", "(((_1_ + _2_) * _3_) / (_4_ - _2_))"),
+            # Logical operators with parentheses
+            ("(True or False) and True", "((_True_ or _False_) and _True_)"),
+            ("True and (False or True)", "(_True_ and (_False_ or _True_))"),
+            ("(False and True) or False", "((_False_ and _True_) or _False_)"),
+            ("False or (True and False)", "(_False_ or (_True_ and _False_))"),
+            # Complex logical expressions with parentheses
+            ("(x or z) and (p or q)", "((`x` or `z`) and (`p` or `q`))"),
+            ("(foo and bar) or (baz and qux)", "((`foo` and `bar`) or (`baz` and `qux`))"),
+            ("not (x and z)", "(not (`x` and `z`))"),
+            ("not (x or z)", "(not (`x` or `z`))"),
+            # Mixed logical and comparison with parentheses
+            ("(x > 5) and (y < 10)", "((`x` > _5_) and (`y` < _10_))"),
+            ("(foo == bar) or (baz != qux)", "((`foo` == `bar`) or (`baz` != `qux`))"),
+            ("(5 > 3) and (10 < 20 or 15 == 15)", "((_5_ > _3_) and ((_10_ < _20_) or (_15_ == _15_)))"),
+            # Deeply nested logical expressions
+            ("((x or z) and p) or q", "(((`x` or `z`) and `p`) or `q`)"),
+            ("x or (z and (p or q))", "(`x` or (`z` and (`p` or `q`)))"),
+            (
+                "((True or False) and (False or True)) or False",
+                "(((_True_ or _False_) and (_False_ or _True_)) or _False_)",
+            ),
         ]
 
         for source, expected in test_cases:

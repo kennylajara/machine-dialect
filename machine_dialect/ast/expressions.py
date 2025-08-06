@@ -129,6 +129,40 @@ class InfixExpression(Expression):
         return f"({self.left} {self.operator} {self.right})"
 
 
+class ConditionalExpression(Expression):
+    """A conditional (ternary) expression.
+
+    Conditional expressions evaluate to one of two values based on a condition.
+    In Machine Dialect, they follow the pattern:
+    "value_if_true if/when condition, else/otherwise value_if_false"
+
+    Attributes:
+        condition: The boolean expression to evaluate.
+        consequence: The expression to return if condition is true.
+        alternative: The expression to return if condition is false.
+    """
+
+    def __init__(self, token: Token, consequence: Expression) -> None:
+        """Initialize a ConditionalExpression node.
+
+        Args:
+            token: The token where the expression begins.
+            consequence: The expression to return if condition is true.
+        """
+        super().__init__(token)
+        self.consequence = consequence
+        self.condition: Expression | None = None
+        self.alternative: Expression | None = None
+
+    def __str__(self) -> str:
+        """Return the string representation of the conditional expression.
+
+        Returns:
+            The expression in the format "(consequence if condition else alternative)".
+        """
+        return f"({self.consequence} if {self.condition} else {self.alternative})"
+
+
 class ErrorExpression(Expression):
     """An expression that failed to parse correctly.
 

@@ -1,6 +1,13 @@
 # isort: skip_file
 from .ast_node import ASTNode
-from .expressions import Expression, Identifier, InfixExpression, PrefixExpression, ErrorExpression
+from .expressions import (
+    Expression,
+    Identifier,
+    InfixExpression,
+    PrefixExpression,
+    ErrorExpression,
+    ConditionalExpression,
+)
 from .statements import ExpressionStatement, ReturnStatement, SetStatement, Statement, ErrorStatement
 from .program import Program
 from .literals import IntegerLiteral, FloatLiteral, StringLiteral, BooleanLiteral
@@ -9,6 +16,7 @@ from .literals import IntegerLiteral, FloatLiteral, StringLiteral, BooleanLitera
 __all__ = [
     "ASTNode",
     "BooleanLiteral",
+    "ConditionalExpression",
     "ErrorExpression",
     "ErrorStatement",
     "Expression",

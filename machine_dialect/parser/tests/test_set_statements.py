@@ -1,3 +1,5 @@
+import pytest
+
 from machine_dialect.ast import Identifier, Program, SetStatement
 from machine_dialect.lexer import Lexer, TokenType
 from machine_dialect.parser import Parser
@@ -116,3 +118,41 @@ class TestSetStatements:
         # Test the string representation
         program_str = str(program)
         assert program_str is not None  # Should have some string representation
+
+    @pytest.mark.parametrize(
+        "source",
+        [
+            "Set `foo` to 1 if `certain_condition`, else 0",
+            "Set `foo` to 1 if `certain_condition`, otherwise 0",
+            "Set `foo` to 1 when `certain_condition`, else 0",
+            "Set `foo` to 1 when `certain_condition`, otherwise 0",
+            "Set `foo` to 1 whenever `certain_condition`, else 0",
+            "Set `foo` to 1 whenever `certain_condition`, otherwise 0",
+            "Set `foo` to 1 if `certain_condition`; else 0",
+            "Set `foo` to 1 if `certain_condition`; otherwise 0",
+            "Set `foo` to 1 when `certain_condition`; else 0",
+            "Set `foo` to 1 when `certain_condition`; otherwise 0",
+            "Set `foo` to 1 whenever `certain_condition`; else 0",
+            "Set `foo` to 1 whenever `certain_condition`; otherwise 0",
+        ],
+    )
+    def test_parse_ternary_expressions(self, source: str) -> None:
+        lexer: Lexer = Lexer(source)
+        parser: Parser = Parser(lexer)
+
+        program: Program = parser.parse()
+
+        assert program is not None
+        assert len(program.statements) == 1
+
+        statement = program.statements[0]
+        assert isinstance(statement, SetStatement)
+        assert statement.token.literal == "Set"
+
+        assert statement.name is not None
+        assert isinstance(statement.name, Identifier)
+        assert statement.name.value == "foo"
+        assert statement.name.token.literal == "foo"
+
+        # The value should be a ternary/conditional expression
+        assert statement.value is not None

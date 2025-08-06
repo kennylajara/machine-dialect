@@ -1,5 +1,6 @@
 from machine_dialect.ast import (
     BooleanLiteral,
+    ConditionalExpression,
     ErrorExpression,
     ErrorStatement,
     Expression,
@@ -34,7 +35,9 @@ from machine_dialect.parser.protocols import (
 )
 
 PRECEDENCES: dict[TokenType, Precedence] = {
-    # Logical operators (lowest precedence)
+    # Ternary conditional
+    TokenType.KW_IF: Precedence.TERNARY,
+    # Logical operators
     TokenType.KW_OR: Precedence.LOGICAL_OR,
     TokenType.KW_AND: Precedence.LOGICAL_AND,
     # Comparison operators
@@ -516,6 +519,54 @@ class Parser:
 
         return expression
 
+    def _parse_conditional_expression(self, consequence: Expression) -> ConditionalExpression:
+        """Parse a conditional (ternary) expression.
+
+        Formats supported:
+        - consequence if condition, else alternative
+        - consequence if condition, otherwise alternative
+        - consequence when condition, else alternative
+        - consequence when condition, otherwise alternative
+        - consequence if condition; else alternative
+        - consequence if condition; otherwise alternative
+        - consequence when condition; else alternative
+        - consequence when condition; otherwise alternative
+
+        Args:
+            consequence: The expression to return if condition is true.
+
+        Returns:
+            A ConditionalExpression node.
+        """
+        assert self._current_token is not None
+        # Create the conditional expression with the consequence
+        expression = ConditionalExpression(token=self._current_token, consequence=consequence)
+
+        # Move past 'if' or 'when'
+        self._advance_tokens()
+
+        # Parse the condition
+        expression.condition = self._parse_expression(Precedence.LOWEST)
+
+        # After parsing expression, we need to advance to the next token
+        self._advance_tokens()
+
+        # Check for comma or semicolon before 'else'/'otherwise'
+        if self._current_token and self._current_token.type in (TokenType.PUNCT_COMMA, TokenType.PUNCT_SEMICOLON):
+            self._advance_tokens()  # Move past comma/semicolon
+
+        # Expect 'else' or 'otherwise' (both map to KW_ELSE)
+        if not self._current_token or self._current_token.type != TokenType.KW_ELSE:
+            return expression  # Return incomplete expression if no else clause
+
+        # Move past 'else' or 'otherwise'
+        self._advance_tokens()
+
+        # Parse the alternative expression
+        expression.alternative = self._parse_expression(Precedence.LOWEST)
+
+        return expression
+
     def _parse_let_statement(self) -> SetStatement | ErrorStatement:
         """Parse a Set statement.
 
@@ -656,6 +707,8 @@ class Parser:
             # Logical operators
             TokenType.KW_AND: self._parse_infix_expression,
             TokenType.KW_OR: self._parse_infix_expression,
+            # Conditional/ternary expressions
+            TokenType.KW_IF: self._parse_conditional_expression,
         }
 
     def _register_prefix_funcs(self) -> PrefixParseFuncs:

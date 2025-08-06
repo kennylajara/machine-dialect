@@ -192,6 +192,8 @@ keywords_mapping: dict[str, TokenType] = {
     "from": TokenType.KW_FROM,
     # if condition: if true
     "if": TokenType.KW_IF,
+    "when": TokenType.KW_IF,
+    "whenever": TokenType.KW_IF,
     # integer typing: set `a` to integer 3
     "Integer": TokenType.KW_INT,
     "Integers": TokenType.KW_INTS,

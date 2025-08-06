@@ -246,7 +246,7 @@ class Parser:
 
         return skipped_tokens
 
-    def _parse_expression(self, precedence: Precedence = Precedence.LOWEST) -> Expression | None:
+    def _parse_expression(self, precedence: Precedence = Precedence.LOWEST) -> Expression:
         """Parse an expression with a given precedence level.
 
         Args:
@@ -296,10 +296,6 @@ class Parser:
 
         left_expression = prefix_parse_fn()
 
-        # If prefix parsing failed, return None
-        if left_expression is None:
-            return None
-
         # Handle infix operators
         assert self._peek_token is not None
         while self._peek_token.type != TokenType.PUNCT_PERIOD and precedence < self._peek_precedence():
@@ -310,13 +306,7 @@ class Parser:
 
             assert self._current_token is not None
             infix_parse_fn = self._infix_parse_funcs[self._current_token.type]
-            new_left = infix_parse_fn(left_expression)
-
-            # If infix parsing failed, return what we have so far
-            if new_left is None:
-                return left_expression
-
-            left_expression = new_left
+            left_expression = infix_parse_fn(left_expression)
 
             assert self._peek_token is not None
 
@@ -339,7 +329,7 @@ class Parser:
 
         return expression_statement
 
-    def _parse_float_literal(self) -> FloatLiteral | None:
+    def _parse_float_literal(self) -> FloatLiteral | ErrorExpression:
         assert self._current_token is not None
 
         # The lexer has already validated and cleaned the literal
@@ -355,7 +345,7 @@ class Parser:
                 column=self._current_token.position,
             )
             self.errors.append(error)
-            return None
+            return ErrorExpression(token=self._current_token, message=error_message)
 
         return FloatLiteral(
             token=self._current_token,
@@ -370,7 +360,7 @@ class Parser:
             value=self._current_token.literal,
         )
 
-    def _parse_integer_literal(self) -> IntegerLiteral | None:
+    def _parse_integer_literal(self) -> IntegerLiteral | ErrorExpression:
         assert self._current_token is not None
 
         # The lexer has already validated and cleaned the literal
@@ -386,7 +376,7 @@ class Parser:
                 column=self._current_token.position,
             )
             self.errors.append(error)
-            return None
+            return ErrorExpression(token=self._current_token, message=error_message)
 
         return IntegerLiteral(
             token=self._current_token,
@@ -426,7 +416,7 @@ class Parser:
             value=self._current_token.literal,
         )
 
-    def _parse_prefix_expression(self) -> PrefixExpression | None:
+    def _parse_prefix_expression(self) -> PrefixExpression:
         """Parse a prefix expression.
 
         Prefix expressions consist of a prefix operator followed by an expression.
@@ -503,7 +493,7 @@ class Parser:
 
         return expression
 
-    def _parse_grouped_expression(self) -> Expression | None:
+    def _parse_grouped_expression(self) -> Expression:
         """Parse a grouped expression (expression in parentheses).
 
         Grouped expressions are expressions wrapped in parentheses, which
@@ -520,7 +510,9 @@ class Parser:
 
         # Expect closing parenthesis
         if not self._expected_token(TokenType.DELIM_RPAREN):
-            return None
+            # Return error expression for unclosed parenthesis
+            assert self._current_token is not None
+            return ErrorExpression(token=self._current_token, message="Expected closing parenthesis")
 
         return expression
 

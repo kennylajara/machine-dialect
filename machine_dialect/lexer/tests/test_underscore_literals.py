@@ -10,9 +10,8 @@ class TestUnderscoreLiterals:
         """Test underscore-wrapped integer literals."""
         source = "_42_"
         lexer = Lexer(source)
-        errors, tokens = lexer.tokenize()
+        tokens = lexer.tokenize()
 
-        assert len(errors) == 0
         assert len(tokens) == 1
         assert tokens[0].type == TokenType.LIT_INT
         assert tokens[0].literal == "42"
@@ -22,9 +21,8 @@ class TestUnderscoreLiterals:
         """Test underscore-wrapped float literals."""
         source = "_3.14_"
         lexer = Lexer(source)
-        errors, tokens = lexer.tokenize()
+        tokens = lexer.tokenize()
 
-        assert len(errors) == 0
         assert len(tokens) == 1
         assert tokens[0].type == TokenType.LIT_FLOAT
         assert tokens[0].literal == "3.14"
@@ -34,9 +32,8 @@ class TestUnderscoreLiterals:
         """Test underscore-wrapped string literals."""
         source = '_"Hello, World!"_'
         lexer = Lexer(source)
-        errors, tokens = lexer.tokenize()
+        tokens = lexer.tokenize()
 
-        assert len(errors) == 0
         assert len(tokens) == 1
         assert tokens[0].type == TokenType.LIT_TEXT
         assert tokens[0].literal == '"Hello, World!"'
@@ -46,9 +43,8 @@ class TestUnderscoreLiterals:
         """Test unwrapped integer literals (backward compatibility)."""
         source = "42"
         lexer = Lexer(source)
-        errors, tokens = lexer.tokenize()
+        tokens = lexer.tokenize()
 
-        assert len(errors) == 0
         assert len(tokens) == 1
         assert tokens[0].type == TokenType.LIT_INT
         assert tokens[0].literal == "42"
@@ -58,9 +54,8 @@ class TestUnderscoreLiterals:
         """Test unwrapped float literals (backward compatibility)."""
         source = "3.14"
         lexer = Lexer(source)
-        errors, tokens = lexer.tokenize()
+        tokens = lexer.tokenize()
 
-        assert len(errors) == 0
         assert len(tokens) == 1
         assert tokens[0].type == TokenType.LIT_FLOAT
         assert tokens[0].literal == "3.14"
@@ -70,9 +65,8 @@ class TestUnderscoreLiterals:
         """Test unwrapped string literals (backward compatibility)."""
         source = '"Hello, World!"'
         lexer = Lexer(source)
-        errors, tokens = lexer.tokenize()
+        tokens = lexer.tokenize()
 
-        assert len(errors) == 0
         assert len(tokens) == 1
         assert tokens[0].type == TokenType.LIT_TEXT
         assert tokens[0].literal == '"Hello, World!"'
@@ -82,9 +76,7 @@ class TestUnderscoreLiterals:
         """Test both wrapped and unwrapped literals in same expression."""
         source = "Set `x` to _42_ and `y` to 3.14"
         lexer = Lexer(source)
-        errors, tokens = lexer.tokenize()
-
-        assert len(errors) == 0
+        tokens = lexer.tokenize()
 
         # Find the numeric literal tokens (excluding backtick literals)
         numeric_literals = [t for t in tokens if t.type in (TokenType.LIT_INT, TokenType.LIT_FLOAT)]
@@ -102,9 +94,8 @@ class TestUnderscoreLiterals:
         """Test that underscores in identifiers don't interfere with literal syntax."""
         source = "_var_name_"
         lexer = Lexer(source)
-        errors, tokens = lexer.tokenize()
+        tokens = lexer.tokenize()
 
-        assert len(errors) == 0
         assert len(tokens) == 1
         assert tokens[0].type == TokenType.MISC_IDENT
         assert tokens[0].literal == "_var_name_"
@@ -114,10 +105,9 @@ class TestUnderscoreLiterals:
         """Test incomplete wrapped literal with invalid pattern is marked as illegal."""
         source = "_42"  # Missing closing underscore and starts with _ followed by digits
         lexer = Lexer(source)
-        errors, tokens = lexer.tokenize()
+        tokens = lexer.tokenize()
 
-        # This should now produce an error because _42 is an invalid identifier pattern
-        assert len(errors) == 1
+        # Lexer no longer reports errors (parser will handle them)
         assert len(tokens) == 1
         assert tokens[0].type == TokenType.MISC_ILLEGAL
         assert tokens[0].literal == "_42"

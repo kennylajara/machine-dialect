@@ -10,9 +10,7 @@ class TestBooleanLiterals:
         """Test underscore-wrapped True literal."""
         source = "_True_"
         lexer = Lexer(source)
-        errors, tokens = lexer.tokenize()
-
-        assert len(errors) == 0
+        tokens = lexer.tokenize()
         assert len(tokens) == 1
         assert tokens[0].type == TokenType.LIT_TRUE
         assert tokens[0].literal == "True"
@@ -22,9 +20,7 @@ class TestBooleanLiterals:
         """Test underscore-wrapped False literal."""
         source = "_False_"
         lexer = Lexer(source)
-        errors, tokens = lexer.tokenize()
-
-        assert len(errors) == 0
+        tokens = lexer.tokenize()
         assert len(tokens) == 1
         assert tokens[0].type == TokenType.LIT_FALSE
         assert tokens[0].literal == "False"
@@ -34,9 +30,7 @@ class TestBooleanLiterals:
         """Test unwrapped True literal (backward compatibility)."""
         source = "True"
         lexer = Lexer(source)
-        errors, tokens = lexer.tokenize()
-
-        assert len(errors) == 0
+        tokens = lexer.tokenize()
         assert len(tokens) == 1
         assert tokens[0].type == TokenType.LIT_TRUE
         assert tokens[0].literal == "True"
@@ -46,9 +40,7 @@ class TestBooleanLiterals:
         """Test unwrapped False literal (backward compatibility)."""
         source = "False"
         lexer = Lexer(source)
-        errors, tokens = lexer.tokenize()
-
-        assert len(errors) == 0
+        tokens = lexer.tokenize()
         assert len(tokens) == 1
         assert tokens[0].type == TokenType.LIT_FALSE
         assert tokens[0].literal == "False"
@@ -58,9 +50,7 @@ class TestBooleanLiterals:
         """Test boolean literals in expressions."""
         source = "if x > 0 then give back _True_ else give back False"
         lexer = Lexer(source)
-        errors, tokens = lexer.tokenize()
-
-        assert len(errors) == 0
+        tokens = lexer.tokenize()
 
         # Find the boolean tokens
         boolean_tokens = [t for t in tokens if t.type in (TokenType.LIT_TRUE, TokenType.LIT_FALSE)]
@@ -78,9 +68,7 @@ class TestBooleanLiterals:
         """Test that lowercase true/false are now recognized as boolean literals."""
         source = "true false"
         lexer = Lexer(source)
-        errors, tokens = lexer.tokenize()
-
-        assert len(errors) == 0
+        tokens = lexer.tokenize()
         # Now lowercase booleans are recognized as boolean literals
         assert len(tokens) == 2
         assert tokens[0].type == TokenType.LIT_TRUE
@@ -92,9 +80,7 @@ class TestBooleanLiterals:
         """Test incomplete wrapped boolean falls back to identifier."""
         source = "_True"  # Missing closing underscore
         lexer = Lexer(source)
-        errors, tokens = lexer.tokenize()
-
-        assert len(errors) == 0
+        tokens = lexer.tokenize()
         assert len(tokens) == 1
         assert tokens[0].type == TokenType.MISC_IDENT
         assert tokens[0].literal == "_True"

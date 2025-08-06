@@ -73,15 +73,7 @@ class REPL:
         """
         try:
             lexer = Lexer(input_text)
-            errors, tokens = lexer.tokenize()
-
-            # Display any errors first
-            if errors:
-                print(f"\nErrors ({len(errors)}):")
-                print("-" * 50)
-                for error in errors:
-                    print(f"  {error}")
-                print("-" * 50)
+            tokens = lexer.tokenize()
 
             print(f"\nTokens ({len(tokens)}):")
             print("-" * 50)

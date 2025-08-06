@@ -127,3 +127,35 @@ class InfixExpression(Expression):
             The expression in the format "(left operator right)", e.g., "(5 + 3)".
         """
         return f"({self.left} {self.operator} {self.right})"
+
+
+class ErrorExpression(Expression):
+    """An expression that failed to parse correctly.
+
+    ErrorExpressions preserve the AST structure even when parsing fails,
+    allowing the parser to continue and collect multiple errors. They
+    contain information about what went wrong during parsing.
+
+    Attributes:
+        message: Human-readable error message describing what went wrong.
+    """
+
+    def __init__(self, token: Token, message: str = "") -> None:
+        """Initialize an ErrorExpression node.
+
+        Args:
+            token: The token where the error began.
+            message: Error message describing the parsing failure.
+        """
+        super().__init__(token)
+        self.message = message
+
+    def __str__(self) -> str:
+        """Return the string representation of the error expression.
+
+        Returns:
+            A string like "<error: message>".
+        """
+        if self.message:
+            return f"<error: {self.message}>"
+        return "<error>"

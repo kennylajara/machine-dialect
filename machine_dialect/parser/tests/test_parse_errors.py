@@ -49,14 +49,14 @@ class TestParseErrors:
 
         # The program should still be created
         assert program is not None
-        # Parser continues after errors, so we'll have statements (but with None expressions)
-        # Check that the first statement has no valid expression
+        # Parser continues after errors, so we'll have statements with ErrorExpression
+        # Check that the first statement has an error expression
         if program.statements:
-            from machine_dialect.ast import ExpressionStatement
+            from machine_dialect.ast import ErrorExpression, ExpressionStatement
 
             stmt = program.statements[0]
             assert isinstance(stmt, ExpressionStatement)
-            assert stmt.expression is None
+            assert isinstance(stmt.expression, ErrorExpression)
 
     def test_multiple_parse_errors(self) -> None:
         """Test that multiple parse errors are collected."""

@@ -7,9 +7,7 @@ class TestLexerPosition:
         """Test that tokens on a single line have correct positions."""
         source = "Set x = 42"
         lexer = Lexer(source)
-        errors, tokens = lexer.tokenize()
-
-        assert len(errors) == 0, f"Unexpected errors: {errors}"
+        tokens = lexer.tokenize()
 
         expected = [
             Token(TokenType.KW_SET, "Set", line=1, position=0),
@@ -28,9 +26,7 @@ else
     gives back 0"""
 
         lexer = Lexer(source)
-        errors, tokens = lexer.tokenize()
-
-        assert len(errors) == 0, f"Unexpected errors: {errors}"
+        tokens = lexer.tokenize()
 
         expected = [
             Token(TokenType.KW_IF, "if", line=1, position=0),
@@ -49,9 +45,7 @@ else
         """Test that string literals maintain correct position."""
         source = 'Set msg = "hello world"'
         lexer = Lexer(source)
-        errors, tokens = lexer.tokenize()
-
-        assert len(errors) == 0, f"Unexpected errors: {errors}"
+        tokens = lexer.tokenize()
 
         expected = [
             Token(TokenType.KW_SET, "Set", line=1, position=0),
@@ -69,9 +63,7 @@ else
 Set y = 2"""
 
         lexer = Lexer(source)
-        errors, tokens = lexer.tokenize()
-
-        assert len(errors) == 0, f"Unexpected errors: {errors}"
+        tokens = lexer.tokenize()
 
         expected = [
             Token(TokenType.KW_SET, "Set", line=1, position=0),
@@ -90,9 +82,7 @@ Set y = 2"""
         """Test position tracking with tabs."""
         source = "Set\tx\t=\t42"
         lexer = Lexer(source)
-        errors, tokens = lexer.tokenize()
-
-        assert len(errors) == 0, f"Unexpected errors: {errors}"
+        tokens = lexer.tokenize()
 
         # Tabs count as single characters for position
         expected = [
@@ -108,11 +98,9 @@ Set y = 2"""
         """Test that illegal characters have correct position."""
         source = "Set x = @"
         lexer = Lexer(source)
-        errors, tokens = lexer.tokenize()
+        tokens = lexer.tokenize()
 
-        # We expect one error for the illegal character
-        assert len(errors) == 1, f"Expected 1 error, got {len(errors)}: {errors}"
-        assert "@" in str(errors[0])
+        # Lexer no longer reports errors (parser will handle them)
 
         expected = [
             Token(TokenType.KW_SET, "Set", line=1, position=0),

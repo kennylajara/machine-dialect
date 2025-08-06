@@ -203,13 +203,7 @@ class TestLexer:
         from machine_dialect.lexer.lexer import Lexer
 
         lexer = Lexer(input_text)
-        errors, tokens = lexer.tokenize()
-
-        # Count expected illegal tokens
-        illegal_count = sum(1 for token in expected_tokens if token.type == TokenType.MISC_ILLEGAL)
-
-        # For tests with illegal tokens, we expect errors
-        assert len(errors) == illegal_count, f"Expected {illegal_count} errors, got {len(errors)}: {errors}"
+        tokens = lexer.tokenize()
 
         assert len(tokens) == len(expected_tokens), f"Expected {len(expected_tokens)} tokens, got {len(tokens)}"
 

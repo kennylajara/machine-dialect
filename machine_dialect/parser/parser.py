@@ -1,5 +1,7 @@
 from machine_dialect.ast import (
     BooleanLiteral,
+    ErrorExpression,
+    ErrorStatement,
     Expression,
     ExpressionStatement,
     FloatLiteral,
@@ -11,12 +13,14 @@ from machine_dialect.ast import (
     ReturnStatement,
     SetStatement,
     Statement,
+    StringLiteral,
 )
-from machine_dialect.errors.exceptions import MDBaseException, MDSyntaxError
+from machine_dialect.errors.exceptions import MDBaseException, MDNameError, MDSyntaxError
 from machine_dialect.errors.messages import (
     EXPECTED_EXPRESSION,
     INVALID_FLOAT_LITERAL,
     INVALID_INTEGER_LITERAL,
+    NAME_UNDEFINED,
     NO_PARSE_FUNCTION,
     UNEXPECTED_TOKEN,
     UNEXPECTED_TOKEN_AT_START,
@@ -68,10 +72,11 @@ class Parser:
         self._current_token: Token | None = None
         self._peek_token: Token | None = None
 
-        # Get tokens and errors from the lexer
-        lexer_errors, self._tokens = lexer.tokenize()
-        self._errors: list[MDBaseException] = list(lexer_errors)
+        # Get tokens from the lexer
+        self._tokens = lexer.tokenize()
+        self._errors: list[MDBaseException] = []
         self._token_index = 0
+        self._panic_count = 0  # Track panic-mode recoveries
 
         self._prefix_parse_funcs: PrefixParseFuncs = self._register_prefix_funcs()
         self._infix_parse_funcs: InfixParseFuncs = self._register_infix_funcs()
@@ -89,20 +94,19 @@ class Parser:
         Note:
             Any errors encountered during parsing are added to the
             errors attribute. The parser attempts to continue parsing
-            even after encountering errors.
+            even after encountering errors using panic-mode recovery.
         """
         program: Program = Program(statements=[])
 
         assert self._current_token is not None
-        while self._current_token.type != TokenType.MISC_EOF:
+        while self._current_token.type != TokenType.MISC_EOF and self._panic_count < 20:
             # Skip standalone periods
             if self._current_token.type == TokenType.PUNCT_PERIOD:
                 self._advance_tokens()
                 continue
 
             statement = self._parse_statement()
-            if statement is not None:
-                program.statements.append(statement)
+            program.statements.append(statement)
             self._advance_tokens()
 
         return program
@@ -169,23 +173,35 @@ class Parser:
     def _expected_token_error(self, token_type: TokenType) -> None:
         """Record an error for an unexpected token.
 
-        Creates and adds a syntax error to the errors list when the parser
-        encounters a token different from what was expected.
+        Creates and adds an error to the errors list when the parser
+        encounters a token different from what was expected. If we expected
+        an identifier and got MISC_ILLEGAL, it's a name error. Otherwise,
+        it's a syntax error.
 
         Args:
             token_type: The token type that was expected but not found.
         """
         assert self._peek_token is not None
-        error_message = UNEXPECTED_TOKEN.substitute(
-            token_literal=self._peek_token.literal,
-            expected_token_type=token_type,
-            received_token_type=self._peek_token.type,
-        )
-        error = MDSyntaxError(
-            message=error_message,
-            line=self._peek_token.line,
-            column=self._peek_token.position,
-        )
+
+        # If we expected an identifier and got an illegal token, it's a name error
+        error: MDBaseException
+        if token_type == TokenType.MISC_IDENT and self._peek_token.type == TokenType.MISC_ILLEGAL:
+            error = MDNameError(
+                message=NAME_UNDEFINED.substitute(name=self._peek_token.literal),
+                line=self._peek_token.line,
+                column=self._peek_token.position,
+            )
+        else:
+            error_message = UNEXPECTED_TOKEN.substitute(
+                token_literal=self._peek_token.literal,
+                expected_token_type=token_type,
+                received_token_type=self._peek_token.type,
+            )
+            error = MDSyntaxError(
+                message=error_message,
+                line=self._peek_token.line,
+                column=self._peek_token.position,
+            )
         self.errors.append(error)
 
     def _current_precedence(self) -> Precedence:
@@ -206,6 +222,30 @@ class Parser:
         assert self._peek_token is not None
         return PRECEDENCES.get(self._peek_token.type, Precedence.LOWEST)
 
+    def _panic_mode_recovery(self) -> list[Token]:
+        """Enter panic mode: skip tokens until finding a period.
+
+        This allows the parser to recover from errors and continue
+        parsing the rest of the input to find more errors. Collects
+        all skipped tokens to preserve them in the error statement.
+
+        Returns:
+            List of tokens that were skipped during panic recovery.
+        """
+        self._panic_count += 1
+        skipped_tokens = []
+
+        # Skip tokens until the next token is a period or EOF
+        while self._peek_token is not None and self._peek_token.type not in (
+            TokenType.PUNCT_PERIOD,
+            TokenType.MISC_EOF,
+        ):
+            self._advance_tokens()
+            if self._current_token is not None:
+                skipped_tokens.append(self._current_token)
+
+        return skipped_tokens
+
     def _parse_expression(self, precedence: Precedence = Precedence.LOWEST) -> Expression | None:
         """Parse an expression with a given precedence level.
 
@@ -213,25 +253,44 @@ class Parser:
             precedence: The minimum precedence level to parse. Defaults to LOWEST.
 
         Returns:
-            An Expression AST node if successful, None if no valid expression found.
+            An Expression AST node if successful, ErrorExpression if parsing fails, None if no expression.
         """
         assert self._current_token is not None
 
+        # Handle illegal tokens
+        if self._current_token.type == TokenType.MISC_ILLEGAL:
+            error_token = self._current_token
+            name_error = MDNameError(
+                message=NAME_UNDEFINED.substitute(name=self._current_token.literal),
+                line=self._current_token.line,
+                column=self._current_token.position,
+            )
+            self.errors.append(name_error)
+            # Advance past the illegal token so we can continue parsing
+            self._advance_tokens()
+            # Return an ErrorExpression to preserve AST structure
+            return ErrorExpression(token=error_token, message=f"Name '{error_token.literal}' is not defined")
+
         if self._current_token.type not in self._prefix_parse_funcs:
             # Check if it's an infix operator at the start
+            error_token = self._current_token
             if self._current_token.type in self._infix_parse_funcs:
                 error_message = UNEXPECTED_TOKEN_AT_START.substitute(token=self._current_token.literal)
             elif self._current_token.type == TokenType.MISC_EOF:
                 error_message = EXPECTED_EXPRESSION.substitute(got="<end-of-file>")
             else:
                 error_message = NO_PARSE_FUNCTION.substitute(literal=self._current_token.literal)
-            error = MDSyntaxError(
+            syntax_error = MDSyntaxError(
                 message=error_message,
                 line=self._current_token.line,
                 column=self._current_token.position,
             )
-            self.errors.append(error)
-            return None
+            self.errors.append(syntax_error)
+            # Advance past the problematic token so we can continue parsing
+            if self._current_token.type != TokenType.MISC_EOF:
+                self._advance_tokens()
+            # Return an ErrorExpression to preserve AST structure
+            return ErrorExpression(token=error_token, message=error_message)
 
         prefix_parse_fn = self._prefix_parse_funcs[self._current_token.type]
 
@@ -263,7 +322,7 @@ class Parser:
 
         return left_expression
 
-    def _parse_expression_statement(self) -> ExpressionStatement | None:
+    def _parse_expression_statement(self) -> ExpressionStatement:
         assert self._current_token is not None
 
         expression = self._parse_expression()
@@ -273,9 +332,10 @@ class Parser:
             expression=expression,
         )
 
+        # Require trailing period if not at EOF
         assert self._peek_token is not None
-        if self._peek_token.type == TokenType.PUNCT_PERIOD:
-            self._advance_tokens()
+        if self._peek_token.type != TokenType.MISC_EOF:
+            self._expected_token(TokenType.PUNCT_PERIOD)
 
         return expression_statement
 
@@ -351,6 +411,19 @@ class Parser:
         return BooleanLiteral(
             token=self._current_token,
             value=value,
+        )
+
+    def _parse_string_literal(self) -> StringLiteral:
+        """Parse a string literal.
+
+        Returns:
+            A StringLiteral AST node.
+        """
+        assert self._current_token is not None
+
+        return StringLiteral(
+            token=self._current_token,
+            value=self._current_token.literal,
         )
 
     def _parse_prefix_expression(self) -> PrefixExpression | None:
@@ -451,68 +524,95 @@ class Parser:
 
         return expression
 
-    def _parse_let_statement(self) -> SetStatement | None:
+    def _parse_let_statement(self) -> SetStatement | ErrorStatement:
         """Parse a Set statement.
 
         Expects: Set `identifier` to expression
 
         Returns:
-            A SetStatement AST node if successful, None if parsing fails.
+            A SetStatement AST node if successful, ErrorStatement if parsing fails.
         """
         assert self._current_token is not None
-        let_statement = SetStatement(token=self._current_token)
+        statement_token = self._current_token  # Save the 'Set' token
+        let_statement = SetStatement(token=statement_token)
 
         # Expect identifier (which may have come from backticks)
         if not self._expected_token(TokenType.MISC_IDENT):
-            return None
+            skipped = self._panic_mode_recovery()
+            return ErrorStatement(
+                token=statement_token, skipped_tokens=skipped, message="Expected identifier after 'Set'"
+            )
 
         # Use the identifier value directly (backticks already stripped by lexer)
         let_statement.name = self._parse_identifier()
 
         # Expect "to" keyword
         if not self._expected_token(TokenType.KW_TO):
-            return None
+            skipped = self._panic_mode_recovery()
+            return ErrorStatement(token=statement_token, skipped_tokens=skipped, message="Expected 'to' keyword")
 
-        # TODO: Finish when we know how to parse expressions
-        # For now, consume tokens until EOF or next Set statement
-        while (
-            self._current_token is not None
-            and self._current_token.type != TokenType.MISC_EOF
-            and self._peek_token is not None
-            and self._peek_token.type != TokenType.PUNCT_PERIOD
-        ):
-            self._advance_tokens()
+        # Advance to the expression
+        self._advance_tokens()
+
+        # Parse the value expression
+        let_statement.value = self._parse_expression()
+
+        # If the expression failed, skip to synchronization point
+        if isinstance(let_statement.value, ErrorExpression):
+            # Skip remaining tokens until we're at a period or EOF
+            while self._current_token is not None and self._current_token.type not in (
+                TokenType.PUNCT_PERIOD,
+                TokenType.MISC_EOF,
+            ):
+                self._advance_tokens()
+
+        # Require trailing period if not at EOF
+        # But if we're already at a period (after error recovery), don't expect another
+        assert self._peek_token is not None
+        if self._current_token and self._current_token.type == TokenType.PUNCT_PERIOD:
+            # Already at period, no need to expect one
+            pass
+        elif self._peek_token.type != TokenType.MISC_EOF:
+            self._expected_token(TokenType.PUNCT_PERIOD)
 
         return let_statement
 
-    def _parse_return_statement(self) -> ReturnStatement | None:
+    def _parse_return_statement(self) -> ReturnStatement:
         """Parse a return statement.
 
         Expects: give back expression or gives back expression
 
         Returns:
-            A ReturnStatement AST node if successful, None if parsing fails.
+            A ReturnStatement AST node.
         """
         assert self._current_token is not None
         return_statement = ReturnStatement(token=self._current_token)
 
-        # TODO: Finish when we know how to parse expressions
-        # For now, consume tokens until EOF or next statement keyword
-        assert self._current_token is not None
-        while self._current_token.type not in [TokenType.MISC_EOF, TokenType.PUNCT_PERIOD]:
-            self._advance_tokens()
-            assert self._current_token is not None
+        # Advance past "give back" or "gives back"
+        self._advance_tokens()
+
+        # Parse the return value expression
+        return_statement.return_value = self._parse_expression()
+
+        # Require trailing period if not at EOF
+        # But if we're already at a period (after error recovery), don't expect another
+        assert self._peek_token is not None
+        if self._current_token and self._current_token.type == TokenType.PUNCT_PERIOD:
+            # Already at period, no need to expect one
+            pass
+        elif self._peek_token.type != TokenType.MISC_EOF:
+            self._expected_token(TokenType.PUNCT_PERIOD)
 
         return return_statement
 
-    def _parse_statement(self) -> Statement | None:
+    def _parse_statement(self) -> Statement:
         """Parse a single statement.
 
         Determines the statement type based on the current token and
         delegates to the appropriate parsing method.
 
         Returns:
-            A Statement AST node if successful, None if no valid statement found.
+            A Statement AST node (may be an ErrorStatement if parsing fails).
         """
         assert self._current_token is not None
 
@@ -587,7 +687,7 @@ class Parser:
             return {
                 TokenType.LIT_IDENTIFIER: self._parse_identifier,
                 TokenType.LIT_NUMBER: self._parse_number_literal,
-                TokenType.LIT_STRING: self._parse_string_literal,
+                TokenType.LIT_TEXT: self._parse_string_literal,
                 TokenType.OP_MINUS: self._parse_prefix_expression,
                 TokenType.KW_NOT: self._parse_prefix_expression,
                 TokenType.DELIM_LPAREN: self._parse_grouped_expression,
@@ -597,6 +697,7 @@ class Parser:
             TokenType.MISC_IDENT: self._parse_identifier,
             TokenType.LIT_INT: self._parse_integer_literal,
             TokenType.LIT_FLOAT: self._parse_float_literal,
+            TokenType.LIT_TEXT: self._parse_string_literal,
             TokenType.LIT_TRUE: self._parse_boolean_literal,
             TokenType.LIT_FALSE: self._parse_boolean_literal,
             TokenType.OP_MINUS: self._parse_prefix_expression,

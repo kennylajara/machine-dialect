@@ -8,6 +8,7 @@ Statements include:
 - ExpressionStatement: Wraps an expression as a statement
 - ReturnStatement: Returns a value from a function or procedure
 - SetStatement: Assigns a value to a variable
+- ErrorStatement: Represents a statement that failed to parse
 """
 
 from machine_dialect.ast import ASTNode, Expression, Identifier
@@ -128,3 +129,38 @@ class SetStatement(Statement):
         if self.value:
             out += str(self.value)
         return out
+
+
+class ErrorStatement(Statement):
+    """A statement that failed to parse correctly.
+
+    ErrorStatements preserve the AST structure even when parsing fails,
+    allowing the parser to continue and collect multiple errors. They
+    contain the tokens that were skipped during panic-mode recovery.
+
+    Attributes:
+        skipped_tokens: List of tokens that were skipped during panic recovery.
+        message: Human-readable error message describing what went wrong.
+    """
+
+    def __init__(self, token: Token, skipped_tokens: list[Token] | None = None, message: str = "") -> None:
+        """Initialize an ErrorStatement node.
+
+        Args:
+            token: The token where the error began.
+            skipped_tokens: Tokens that were skipped during panic recovery.
+            message: Error message describing the parsing failure.
+        """
+        super().__init__(token)
+        self.skipped_tokens = skipped_tokens or []
+        self.message = message
+
+    def __str__(self) -> str:
+        """Return the string representation of the error statement.
+
+        Returns:
+            A string like "<error: message>".
+        """
+        if self.message:
+            return f"<error: {self.message}>"
+        return "<error>"

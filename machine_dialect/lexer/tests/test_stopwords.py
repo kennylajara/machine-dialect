@@ -49,13 +49,13 @@ class TestStopwords:
     )
     def test_stopword_detection(self, input_text: str, expected_tokens: list[Token]) -> None:
         lexer = Lexer(input_text)
-        _, tokens = lexer.tokenize()
+        tokens = lexer.tokenize()
         assert tokens == expected_tokens
 
     def test_stopwords_mixed_with_code(self) -> None:
         input_text = "Set the value to 5"
         lexer = Lexer(input_text)
-        _, tokens = lexer.tokenize()
+        tokens = lexer.tokenize()
 
         # Expected tokens: "Set" (keyword), "the" (stopword), "value" (ident), "to" (keyword), "5" (int)
         expected_tokens = [

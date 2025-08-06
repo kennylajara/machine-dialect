@@ -76,7 +76,14 @@ class StatementTerminationRule(Rule):
 
             # If we found content but no period, it's likely missing termination
             # This is a heuristic and may have false positives
-            if found_content and not found_period:
+            # Exception: statements at EOF don't require periods
+            is_last_line = token.line == len(context.source_lines)
+            is_last_statement_on_line = not any(
+                line[i:].strip() for i in range(token.position + len(remaining_line.rstrip()), len(line))
+            )
+            is_at_eof = is_last_line and is_last_statement_on_line
+
+            if found_content and not found_period and not is_at_eof:
                 violations.append(
                     Violation(
                         rule_id=self.rule_id,

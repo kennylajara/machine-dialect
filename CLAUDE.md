@@ -37,6 +37,24 @@ committing:
 1. **Fix MyPy errors immediately** - do not postpone or work around them
 1. Type safety prevents runtime errors and improves code maintainability
 
+## Pre-commit Hooks and Code Quality
+
+**ABSOLUTELY CRITICAL - NO EXCEPTIONS**: All pre-commit hooks MUST pass before ANY code changes:
+
+1. **NEVER SKIP PRE-COMMIT HOOKS** - This is an absolute requirement, no matter what
+1. **MyPy MUST ALWAYS PASS** - No type errors are acceptable under any circumstances
+1. **ALL pre-commit checks are MANDATORY** - Including but not limited to:
+   - MyPy type checking
+   - Ruff formatting and linting
+   - Test execution
+   - Any other configured hooks
+1. **DO NOT BYPASS OR DISABLE** any pre-commit hooks, even temporarily
+1. **FIX ALL ISSUES IMMEDIATELY** - If pre-commit fails, fix the issues before proceeding
+1. **NO COMMITS WITH FAILING CHECKS** - The codebase must always be in a clean state
+
+Remember: Pre-commit hooks exist to maintain code quality. Skipping them defeats their purpose and
+compromises the integrity of the codebase.
+
 ## Documentation Standards
 
 **MANDATORY**: All Python code in this project MUST include comprehensive docstrings following

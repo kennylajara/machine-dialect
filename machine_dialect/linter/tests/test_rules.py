@@ -32,16 +32,21 @@ class TestStatementTerminationRule:
         assert len(violations) == 0
 
     def test_missing_period(self) -> None:
-        """Test that statements without periods are flagged."""
+        """Test that statements without periods at EOF are valid."""
         rule = StatementTerminationRule()
 
         # Create a mock expression statement
         token = Token(TokenType.LIT_INT, "42", line=1, position=0)
         node = ExpressionStatement(token=token, expression=IntegerLiteral(token=token, value=42))
 
-        # Create context with source that lacks a period
+        # Create context with source that lacks a period (at EOF - valid)
         context = Context("test.md", "42")
 
+        violations = rule.check(node, context)
+        assert len(violations) == 0  # No period needed at EOF
+
+        # Test with statement not at EOF (should have violation)
+        context = Context("test.md", "42\n100.")
         violations = rule.check(node, context)
         assert len(violations) == 1
         assert violations[0].rule_id == "MD101"
@@ -69,11 +74,11 @@ class TestStatementTerminationRule:
         token = Token(TokenType.LIT_INT, "42", line=1, position=0)
         node = ExpressionStatement(token=token, expression=IntegerLiteral(token=token, value=42))
 
-        # Test with trailing whitespace but no period
+        # Test with trailing whitespace but no period (at EOF - valid)
         context = Context("test.md", "42   ")
 
         violations = rule.check(node, context)
-        assert len(violations) == 1
+        assert len(violations) == 0  # No period needed at EOF
 
     def test_non_statement_nodes(self) -> None:
         """Test that non-statement nodes are ignored."""

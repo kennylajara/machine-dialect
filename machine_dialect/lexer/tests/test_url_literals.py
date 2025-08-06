@@ -14,8 +14,7 @@ class TestURLLiterals:
             The list of tokens.
         """
         lexer = Lexer(source)
-        errors, tokens = lexer.tokenize()
-        assert len(errors) == 0, f"Unexpected errors: {errors}"
+        tokens = lexer.tokenize()
         return tokens
 
     def test_http_url_detection(self) -> None:

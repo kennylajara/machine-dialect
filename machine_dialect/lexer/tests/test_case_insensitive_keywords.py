@@ -35,9 +35,7 @@ class TestCaseInsensitiveKeywords:
                     continue
 
                 lexer = Lexer(variant)
-                errors, tokens = lexer.tokenize()
-
-                assert len(errors) == 0, f"Unexpected errors for '{variant}': {errors}"
+                tokens = lexer.tokenize()
                 assert len(tokens) == 1, f"Expected 1 token for '{variant}', got {len(tokens)}"
                 assert tokens[0].type == token_type, f"Expected {token_type} for '{variant}', got {tokens[0].type}"
                 assert (
@@ -62,9 +60,7 @@ class TestCaseInsensitiveKeywords:
 
             for source in test_cases:
                 lexer = Lexer(source)
-                errors, tokens = lexer.tokenize()
-
-                assert len(errors) == 0
+                tokens = lexer.tokenize()
                 assert len(tokens) == 1
                 assert tokens[0].type == token_type
                 assert tokens[0].literal == keyword
@@ -87,9 +83,7 @@ class TestCaseInsensitiveKeywords:
 
             for source in test_cases:
                 lexer = Lexer(source)
-                errors, tokens = lexer.tokenize()
-
-                assert len(errors) == 0
+                tokens = lexer.tokenize()
                 assert len(tokens) == 1
                 assert tokens[0].type == token_type
                 assert tokens[0].literal == keyword
@@ -110,9 +104,7 @@ class TestCaseInsensitiveKeywords:
 
             for source in test_cases:
                 lexer = Lexer(source)
-                errors, tokens = lexer.tokenize()
-
-                assert len(errors) == 0
+                tokens = lexer.tokenize()
                 assert len(tokens) == 1
                 assert tokens[0].type == token_type
                 assert tokens[0].literal == canonical_form
@@ -131,9 +123,7 @@ class TestCaseInsensitiveKeywords:
 
         for source, expected_literal in test_cases:
             lexer = Lexer(source)
-            errors, tokens = lexer.tokenize()
-
-            assert len(errors) == 0
+            tokens = lexer.tokenize()
             assert len(tokens) == 1
             assert tokens[0].type == TokenType.MISC_IDENT
             assert tokens[0].literal == expected_literal
@@ -150,9 +140,7 @@ class TestCaseInsensitiveKeywords:
 
         for source, expected_literals in test_cases:
             lexer = Lexer(source)
-            errors, tokens = lexer.tokenize()
-
-            assert len(errors) == 0
+            tokens = lexer.tokenize()
             assert len(tokens) == len(expected_literals)
 
             for token, expected_literal in zip(tokens, expected_literals, strict=False):
@@ -177,9 +165,7 @@ class TestCaseInsensitiveKeywords:
 
             for variant in test_cases:
                 lexer = Lexer(variant)
-                errors, tokens = lexer.tokenize()
-
-                assert len(errors) == 0
+                tokens = lexer.tokenize()
                 assert len(tokens) == 1
                 assert tokens[0].type == token_type
                 assert tokens[0].literal == canonical_form

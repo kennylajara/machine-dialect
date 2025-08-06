@@ -13,13 +13,16 @@ class TestParserErrors:
     """Test cases for parser error handling."""
 
     def test_parser_collects_lexer_errors(self) -> None:
-        """Test that parser collects errors from the lexer."""
+        """Test that parser reports errors for illegal tokens during parsing."""
         # Source with illegal character
-        source = "Set `X` to @"
+        source = "Set `X` to @."
         lexer = Lexer(source)
         parser = Parser(lexer)
 
-        # Parser should have collected the error
+        # Errors are reported during parsing, not before
+        parser.parse()
+
+        # Parser should have reported the error
         assert len(parser.errors) == 1
         assert isinstance(parser.errors[0], MDNameError)
         assert "@" in str(parser.errors[0])
@@ -27,27 +30,30 @@ class TestParserErrors:
     def test_parser_has_errors_method(self) -> None:
         """Test the has_errors() method."""
         # Valid source - no errors
-        source = "Set `X` to 42"
+        source = "Set `X` to 42."
         lexer = Lexer(source)
         parser = Parser(lexer)
+        parser.parse()
 
         assert parser.has_errors() is False
         assert len(parser.errors) == 0
 
         # Invalid source - with illegal character
-        source_with_error = "Set `Y` to §"  # § is not a valid token
+        source_with_error = "Set `Y` to §."  # § is not a valid token
         lexer_with_error = Lexer(source_with_error)
         parser_with_error = Parser(lexer_with_error)
+        parser_with_error.parse()
 
         assert parser_with_error.has_errors() is True
         assert len(parser_with_error.errors) == 1
 
     def test_parser_collects_multiple_errors(self) -> None:
-        """Test that parser collects multiple errors from the lexer."""
-        # Source with multiple illegal characters
-        source = "Set `A` to @ Set `B` to $ Set `C` to %"
+        """Test that parser reports multiple errors through panic recovery."""
+        # Source with multiple illegal characters - periods are mandatory
+        source = "Set `A` to @. Set `B` to $. Set `C` to %."
         lexer = Lexer(source)
         parser = Parser(lexer)
+        parser.parse()
 
         # Should have 3 errors for illegal characters
         assert len(parser.errors) == 3
@@ -99,9 +105,10 @@ class TestParserErrors:
 
     def test_parser_error_details(self) -> None:
         """Test that parser errors contain correct location information."""
-        source = "Set `X` to &"
+        source = "Set `X` to &."
         lexer = Lexer(source)
         parser = Parser(lexer)
+        parser.parse()
 
         assert len(parser.errors) == 1
         error = parser.errors[0]

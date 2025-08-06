@@ -20,13 +20,13 @@ class TestExpectedTokenErrors:
 
         parser.parse()
 
-        # Should have syntax errors
+        # Should have syntax error
         assert parser.has_errors() is True
-        # We get 2 errors: expected identifier error, then "no parse function" for 42
-        assert len(parser.errors) == 2
+        # With panic recovery, we get 1 error and skip to EOF (no period)
+        assert len(parser.errors) == 1
         assert isinstance(parser.errors[0], MDSyntaxError)
 
-        # First error should mention expected identifier
+        # Error should mention expected identifier
         error_msg = str(parser.errors[0])
         assert "misc_ident" in error_msg.lower() or "identifier" in error_msg.lower()
 
@@ -49,9 +49,10 @@ class TestExpectedTokenErrors:
 
     def test_multiple_expected_token_errors(self) -> None:
         """Test multiple expected token errors in one parse."""
-        source = """Set 42 to X
-Set price 3.14
-Set to "hello"
+        # Add periods so panic recovery stops at statement boundaries
+        source = """Set 42 to X.
+Set price 3.14.
+Set to "hello".
 """
         lexer = Lexer(source)
         parser = Parser(lexer)
@@ -60,7 +61,8 @@ Set to "hello"
 
         # Should have multiple syntax errors
         assert parser.has_errors() is True
-        assert len(parser.errors) >= 3  # At least 3 errors
+        # With periods, panic recovery allows finding all 3 errors
+        assert len(parser.errors) == 3
 
         # All errors should be syntax errors
         for error in parser.errors:
@@ -97,15 +99,15 @@ Set to "hello"
 
         parser.parse()
 
-        # We get 2 errors: expected identifier error, then "no parse function" for 42
-        assert len(parser.errors) == 2
-        error = parser.errors[0]  # Check the first error
+        # With panic recovery, we get 1 error
+        assert len(parser.errors) == 1
+        error = parser.errors[0]
 
         # Check that error has location information
         assert hasattr(error, "_line")
         assert hasattr(error, "_column")
         assert error._line == 1
-        assert error._column > 0  # Should point to where backtick was expected
+        assert error._column == 4  # Points to '42'
 
     def test_error_message_content(self) -> None:
         """Test that error messages contain helpful information."""

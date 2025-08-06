@@ -10,7 +10,7 @@ class TestIdentifierMerging:
         """Test merging of consecutive identifier tokens."""
         source = "hello world"
         lexer = Lexer(source)
-        errors, tokens = lexer.tokenize()
+        tokens = lexer.tokenize()
 
         # Should produce one merged identifier
         assert len(tokens) == 1
@@ -21,7 +21,7 @@ class TestIdentifierMerging:
         """Test merging of multiple consecutive identifiers."""
         source = "first middle last name"
         lexer = Lexer(source)
-        errors, tokens = lexer.tokenize()
+        tokens = lexer.tokenize()
 
         # Should produce one merged identifier
         assert len(tokens) == 1
@@ -32,7 +32,7 @@ class TestIdentifierMerging:
         """Test merging identifiers with stopwords in between."""
         source = "info collected by the system"
         lexer = Lexer(source)
-        errors, tokens = lexer.tokenize()
+        tokens = lexer.tokenize()
 
         # Should produce one merged identifier (with stopwords included)
         assert len(tokens) == 1
@@ -43,7 +43,7 @@ class TestIdentifierMerging:
         """Test that illegal tokens are NOT merged into identifiers."""
         source = "user@email"
         lexer = Lexer(source)
-        errors, tokens = lexer.tokenize()
+        tokens = lexer.tokenize()
 
         # Should NOT merge - illegal token stays separate
         assert len(tokens) == 3
@@ -54,14 +54,13 @@ class TestIdentifierMerging:
         assert tokens[2].type == TokenType.MISC_IDENT
         assert tokens[2].literal == "email"
 
-        # Should have error for illegal character
-        assert len(errors) == 1
+        # Lexer no longer reports errors (parser will handle them)
 
     def test_no_merge_with_operators(self) -> None:
         """Test that operators prevent merging."""
         source = "x + y"
         lexer = Lexer(source)
-        errors, tokens = lexer.tokenize()
+        tokens = lexer.tokenize()
 
         # Should produce separate tokens (y might be stopword)
         assert len(tokens) >= 3
@@ -73,7 +72,7 @@ class TestIdentifierMerging:
         """Test that punctuation prevents merging."""
         source = "name, age"
         lexer = Lexer(source)
-        errors, tokens = lexer.tokenize()
+        tokens = lexer.tokenize()
 
         # Should produce separate tokens
         assert len(tokens) == 3
@@ -87,7 +86,7 @@ class TestIdentifierMerging:
         """Test that leading stopwords are not merged."""
         source = "the username"
         lexer = Lexer(source)
-        errors, tokens = lexer.tokenize()
+        tokens = lexer.tokenize()
 
         # Should not merge - stopword at start stays separate
         assert len(tokens) == 2
@@ -100,7 +99,7 @@ class TestIdentifierMerging:
         """Test that trailing stopwords are not merged."""
         source = "username are"
         lexer = Lexer(source)
-        errors, tokens = lexer.tokenize()
+        tokens = lexer.tokenize()
 
         # Should not merge - stopword at end stays separate
         assert len(tokens) == 2
@@ -113,7 +112,7 @@ class TestIdentifierMerging:
         """Test that leading illegal tokens are not merged."""
         source = "@illegal"
         lexer = Lexer(source)
-        errors, tokens = lexer.tokenize()
+        tokens = lexer.tokenize()
 
         # Should not merge - illegal token stays separate
         assert len(tokens) == 2
@@ -126,7 +125,7 @@ class TestIdentifierMerging:
         """Test that position information is preserved correctly."""
         source = "hello world"
         lexer = Lexer(source)
-        errors, tokens = lexer.tokenize()
+        tokens = lexer.tokenize()
 
         # Merged token should have position of first token
         assert tokens[0].line == 1
@@ -136,7 +135,7 @@ class TestIdentifierMerging:
         """Test complex scenario with multiple merging cases."""
         source = "The username with email address are with the user info collected by the system"
         lexer = Lexer(source)
-        errors, tokens = lexer.tokenize()
+        tokens = lexer.tokenize()
 
         # Expected tokens based on the rules
         expected_literals = [
@@ -157,7 +156,7 @@ class TestIdentifierMerging:
         """Test that arithmetic expressions are not affected by merging."""
         source = "payment_period_days - days_since_last_payment"
         lexer = Lexer(source)
-        errors, tokens = lexer.tokenize()
+        tokens = lexer.tokenize()
 
         # Should keep minus operator separate
         assert any(t.type == TokenType.OP_MINUS for t in tokens)

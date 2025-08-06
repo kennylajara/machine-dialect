@@ -1,5 +1,3 @@
-from machine_dialect.errors.exceptions import MDNameError
-from machine_dialect.errors.messages import NAME_UNDEFINED
 from machine_dialect.helpers.validators import is_valid_url
 from machine_dialect.lexer.tokens import Token, TokenMetaType, TokenType, lookup_token_type
 
@@ -380,8 +378,7 @@ class Lexer:
         self.current_char = self.source[self.position] if self.position < len(self.source) else None
         return None
 
-    def tokenize(self) -> tuple[list[MDNameError], list[Token]]:
-        errors: list[MDNameError] = []
+    def tokenize(self) -> list[Token]:
         tokens: list[Token] = []
 
         while self.current_char is not None:
@@ -426,13 +423,6 @@ class Lexer:
                     illegal_literal = self.source[start_pos : self.position]
                     token = Token(TokenType.MISC_ILLEGAL, illegal_literal, line, pos)
                     tokens.append(token)
-                    errors.append(
-                        MDNameError(
-                            message=NAME_UNDEFINED.substitute(name=illegal_literal),
-                            line=line,
-                            column=pos,
-                        )
-                    )
                     continue
                 # If not a literal, fall through to identifier handling
 
@@ -451,13 +441,6 @@ class Lexer:
                     # Replace the valid number token with an illegal token
                     illegal_token = Token(TokenType.MISC_ILLEGAL, illegal_literal, line, pos)
                     tokens.append(illegal_token)
-                    errors.append(
-                        MDNameError(
-                            message=NAME_UNDEFINED.substitute(name=illegal_literal),
-                            line=line,
-                            column=pos,
-                        )
-                    )
                 else:
                     tokens.append(token)
                 continue
@@ -505,13 +488,6 @@ class Lexer:
                             illegal_literal = self.source[start_pos : self.position]
                             token = Token(TokenType.MISC_ILLEGAL, illegal_literal, line, pos)
                             tokens.append(token)
-                            errors.append(
-                                MDNameError(
-                                    message=NAME_UNDEFINED.substitute(name=illegal_literal),
-                                    line=line,
-                                    column=pos,
-                                )
-                            )
                             continue
 
                 # Check for multi-word keywords first
@@ -528,14 +504,8 @@ class Lexer:
                     token_type, canonical_literal = lookup_token_type(literal)
                     tokens.append(Token(token_type, canonical_literal, ident_line, ident_pos))
                     if token_type == TokenType.MISC_ILLEGAL:
-                        # Add error for illegal identifier pattern
-                        errors.append(
-                            MDNameError(
-                                message=NAME_UNDEFINED.substitute(name=canonical_literal),
-                                line=ident_line,
-                                column=ident_pos,
-                            )
-                        )
+                        # Illegal identifier pattern - error will be reported by parser
+                        pass
                 continue
 
             # Strings
@@ -655,13 +625,6 @@ class Lexer:
                     # Replace the valid number token with an illegal token
                     illegal_token = Token(TokenType.MISC_ILLEGAL, illegal_literal, line, pos)
                     tokens.append(illegal_token)
-                    errors.append(
-                        MDNameError(
-                            message=NAME_UNDEFINED.substitute(name=illegal_literal),
-                            line=line,
-                            column=pos,
-                        )
-                    )
                 else:
                     tokens.append(token)
                 continue
@@ -699,13 +662,6 @@ class Lexer:
             assert self.current_char is not None  # Loop invariant
             token = Token(TokenType.MISC_ILLEGAL, self.current_char, line, pos)
             tokens.append(token)
-            errors.append(
-                MDNameError(
-                    message=NAME_UNDEFINED.substitute(name=self.current_char),
-                    line=line,
-                    column=pos,
-                )
-            )
             self.advance()
 
         # Convert stopwords to identifiers in appropriate contexts
@@ -713,7 +669,7 @@ class Lexer:
 
         # Apply post-processing to merge identifiers
         merged_tokens = self._merge_identifiers(tokens)
-        return errors, merged_tokens
+        return merged_tokens
 
     def _convert_contextual_stopwords(self, tokens: list[Token]) -> list[Token]:
         """Convert stopwords to identifiers after Set keyword in specific contexts."""

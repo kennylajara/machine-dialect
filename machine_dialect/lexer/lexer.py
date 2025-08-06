@@ -545,6 +545,10 @@ class Lexer:
                         # Valid identifier - consume closing backtick and check token type
                         self.advance()
                         token_type, canonical_literal = lookup_token_type(identifier)
+                        # For stopwords inside backticks, treat as identifiers
+                        if token_type == TokenType.MISC_STOPWORD:
+                            token_type = TokenType.MISC_IDENT
+                            canonical_literal = identifier
                         # Only accept if it's not illegal
                         if token_type != TokenType.MISC_ILLEGAL:
                             tokens.append(Token(token_type, canonical_literal, start_line, start_column))

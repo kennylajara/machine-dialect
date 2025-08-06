@@ -545,15 +545,20 @@ class Parser:
         # Move past 'if' or 'when'
         self._advance_tokens()
 
-        # Parse the condition
-        expression.condition = self._parse_expression(Precedence.LOWEST)
+        # Parse the condition with TERNARY precedence to stop at comma
+        expression.condition = self._parse_expression(Precedence.TERNARY)
 
-        # After parsing expression, we need to advance to the next token
+        # After parsing the condition, we need to advance to the next token
+        # _parse_expression leaves us at the last token of the parsed expression
         self._advance_tokens()
+
+        # DEBUG: Print current state
+        # print(f"After parsing condition and advancing: current={self._current_token}, peek={self._peek_token}")
 
         # Check for comma or semicolon before 'else'/'otherwise'
         if self._current_token and self._current_token.type in (TokenType.PUNCT_COMMA, TokenType.PUNCT_SEMICOLON):
             self._advance_tokens()  # Move past comma/semicolon
+            # print(f"After advancing past comma/semicolon: current={self._current_token}, peek={self._peek_token}")
 
         # Expect 'else' or 'otherwise' (both map to KW_ELSE)
         if not self._current_token or self._current_token.type != TokenType.KW_ELSE:

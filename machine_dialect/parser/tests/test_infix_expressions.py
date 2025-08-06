@@ -10,7 +10,10 @@ This module tests the parser's ability to handle infix expressions including:
 import pytest
 
 from machine_dialect.ast import (
+    BooleanLiteral,
     ExpressionStatement,
+    InfixExpression,
+    IntegerLiteral,
 )
 from machine_dialect.lexer import Lexer
 from machine_dialect.parser import Parser
@@ -268,7 +271,6 @@ class TestInfixExpressions:
             # Mixed with literals
             ("x and True", "x", "and", True),
             ("False or z", False, "or", "z"),
-            ("5 > 3 and True", True, "and", True),  # This would need precedence handling
             # With underscores
             ("_True_ and _False_", True, "and", False),
             ("_x_ or _y_", "_x_", "or", "_y_"),
@@ -283,12 +285,6 @@ class TestInfixExpressions:
             operator: Expected logical operator ('and' or 'or').
             right: Expected right operand value.
         """
-        # Special handling for complex precedence cases
-        if source == "5 > 3 and True":
-            # This would be parsed as ((5 > 3) and True)
-            # For now, we'll skip this complex case
-            pytest.skip("Complex precedence case - needs special handling")
-
         lexer = Lexer(source)
         parser = Parser(lexer)
 
@@ -510,6 +506,49 @@ class TestInfixExpressions:
             assert (
                 str(statement.expression) == expected
             ), f"For '{source}': expected {expected}, got {statement.expression!s}"
+
+    def test_complex_logical_with_comparison(self) -> None:
+        """Test parsing complex expressions with comparison and logical operators."""
+        source = "5 > 3 and True"
+        lexer = Lexer(source)
+        parser = Parser(lexer)
+
+        program = parser.parse()
+
+        assert len(parser.errors) == 0, f"Parser errors: {parser.errors}"
+        assert len(program.statements) == 1
+
+        statement = program.statements[0]
+        assert isinstance(statement, ExpressionStatement)
+        assert statement.expression is not None
+
+        # The expression should be an InfixExpression with 'and' operator
+        expr = statement.expression
+        assert isinstance(expr, InfixExpression)
+        assert expr.operator == "and"
+
+        # The left side should be the comparison (5 > 3)
+        assert expr.left is not None
+        assert isinstance(expr.left, InfixExpression)
+        left_expr = expr.left
+        assert left_expr.operator == ">"
+
+        # Check the comparison operands
+        assert left_expr.left is not None
+        assert isinstance(left_expr.left, IntegerLiteral)
+        assert left_expr.left.value == 5
+
+        assert left_expr.right is not None
+        assert isinstance(left_expr.right, IntegerLiteral)
+        assert left_expr.right.value == 3
+
+        # The right side should be True
+        assert expr.right is not None
+        assert isinstance(expr.right, BooleanLiteral)
+        assert expr.right.value is True
+
+        # Check the string representation
+        assert str(expr) == "((_5_ > _3_) and _True_)"
 
     def test_mixed_prefix_and_infix_expressions(self) -> None:
         """Test parsing expressions that combine prefix and infix operators."""

@@ -6,7 +6,6 @@ the parser to recover from errors and continue parsing to find more errors.
 
 
 from machine_dialect.errors.exceptions import MDNameError, MDSyntaxError
-from machine_dialect.lexer import Lexer
 from machine_dialect.parser import Parser
 
 
@@ -16,10 +15,9 @@ class TestPanicModeRecovery:
     def test_recovery_at_period_boundary(self) -> None:
         """Test that panic mode stops at period boundaries."""
         source = "Set @ to 42. Set x to 5."
-        lexer = Lexer(source)
-        parser = Parser(lexer)
+        parser = Parser()
 
-        program = parser.parse()
+        program = parser.parse(source)
 
         # Should have one error for the illegal @ character
         assert len(parser.errors) == 1
@@ -36,10 +34,9 @@ class TestPanicModeRecovery:
     def test_recovery_at_eof_boundary(self) -> None:
         """Test that panic mode stops at EOF."""
         source = "Set @ to 42"  # No period at end
-        lexer = Lexer(source)
-        parser = Parser(lexer)
+        parser = Parser()
 
-        program = parser.parse()
+        program = parser.parse(source)
 
         # Should have one error for the illegal @ character
         assert len(parser.errors) == 1
@@ -51,10 +48,9 @@ class TestPanicModeRecovery:
     def test_multiple_errors_with_recovery(self) -> None:
         """Test that multiple errors are collected with recovery between them."""
         source = "Set @ to 42. Set # to 10. Set x to 5."
-        lexer = Lexer(source)
-        parser = Parser(lexer)
+        parser = Parser()
 
-        program = parser.parse()
+        program = parser.parse(source)
 
         # Should have two errors for the illegal characters
         assert len(parser.errors) == 2
@@ -67,10 +63,9 @@ class TestPanicModeRecovery:
     def test_recovery_in_expression_context(self) -> None:
         """Test panic recovery when error occurs in expression parsing."""
         source = "Set x to @ + 5. Set y to 10."
-        lexer = Lexer(source)
-        parser = Parser(lexer)
+        parser = Parser()
 
-        program = parser.parse()
+        program = parser.parse(source)
 
         # Should have one error for the illegal @ in expression
         assert len(parser.errors) == 1
@@ -82,10 +77,9 @@ class TestPanicModeRecovery:
     def test_recovery_with_missing_keyword(self) -> None:
         """Test panic recovery when 'to' keyword is missing."""
         source = "Set x 42. Set y to 10."
-        lexer = Lexer(source)
-        parser = Parser(lexer)
+        parser = Parser()
 
-        program = parser.parse()
+        program = parser.parse(source)
 
         # Should have one error for missing 'to'
         assert len(parser.errors) == 1
@@ -97,10 +91,9 @@ class TestPanicModeRecovery:
     def test_recovery_with_consecutive_errors(self) -> None:
         """Test panic recovery with errors in consecutive statements."""
         source = "Set @ to 42. Set # to 10."
-        lexer = Lexer(source)
-        parser = Parser(lexer)
+        parser = Parser()
 
-        program = parser.parse()
+        program = parser.parse(source)
 
         # Should have two errors
         assert len(parser.errors) == 2
@@ -114,10 +107,9 @@ class TestPanicModeRecovery:
         statements = [f"Set @{i} to {i}." for i in range(25)]
         source = " ".join(statements)
 
-        lexer = Lexer(source)
-        parser = Parser(lexer)
+        parser = Parser()
 
-        program = parser.parse()
+        program = parser.parse(source)
 
         # Parser should stop after 20 panic recoveries
         # We might have fewer errors if parser stops early
@@ -127,10 +119,9 @@ class TestPanicModeRecovery:
     def test_recovery_preserves_valid_parts(self) -> None:
         """Test that valid parts of statements are preserved during recovery."""
         source = "give back @. give back 42."
-        lexer = Lexer(source)
-        parser = Parser(lexer)
+        parser = Parser()
 
-        program = parser.parse()
+        program = parser.parse(source)
 
         # Should have one error for illegal @
         assert len(parser.errors) == 1
@@ -147,10 +138,9 @@ class TestPanicModeRecovery:
     def test_no_recovery_for_valid_code(self) -> None:
         """Test that valid code doesn't trigger panic recovery."""
         source = "Set x to 42. Set y to 10. give back x."
-        lexer = Lexer(source)
-        parser = Parser(lexer)
+        parser = Parser()
 
-        program = parser.parse()
+        program = parser.parse(source)
 
         # Should have no errors
         assert len(parser.errors) == 0
@@ -161,10 +151,9 @@ class TestPanicModeRecovery:
     def test_recovery_with_mixed_statement_types(self) -> None:
         """Test panic recovery across different statement types."""
         source = "Set @ to 42. give back #. Set x to 5."
-        lexer = Lexer(source)
-        parser = Parser(lexer)
+        parser = Parser()
 
-        program = parser.parse()
+        program = parser.parse(source)
 
         # Should have two errors
         assert len(parser.errors) == 2

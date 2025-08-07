@@ -7,7 +7,6 @@ including True and False in both regular and underscore-wrapped forms.
 import pytest
 
 from machine_dialect.ast import ExpressionStatement
-from machine_dialect.lexer import Lexer
 from machine_dialect.parser import Parser
 from machine_dialect.parser.tests.helper_functions import (
     assert_literal_expression,
@@ -36,10 +35,9 @@ class TestBooleanLiteralExpressions:
             source: The source code containing a boolean literal.
             expected_value: The expected boolean value.
         """
-        lexer = Lexer(source)
-        parser = Parser(lexer)
+        parser = Parser()
 
-        program = parser.parse()
+        program = parser.parse(source)
 
         assert len(parser.errors) == 0
         assert_program_statements(parser, program)
@@ -53,10 +51,9 @@ class TestBooleanLiteralExpressions:
     def test_boolean_with_period(self) -> None:
         """Test parsing boolean literal with explicit statement terminator."""
         source = "True."
-        lexer = Lexer(source)
-        parser = Parser(lexer)
+        parser = Parser()
 
-        program = parser.parse()
+        program = parser.parse(source)
 
         assert len(parser.errors) == 0
         assert_program_statements(parser, program)
@@ -70,10 +67,9 @@ class TestBooleanLiteralExpressions:
     def test_multiple_boolean_statements(self) -> None:
         """Test parsing multiple boolean literal statements."""
         source = "True. False. True. False."
-        lexer = Lexer(source)
-        parser = Parser(lexer)
+        parser = Parser()
 
-        program = parser.parse()
+        program = parser.parse(source)
 
         assert len(parser.errors) == 0
         assert len(program.statements) == 4
@@ -89,10 +85,9 @@ class TestBooleanLiteralExpressions:
     def test_mixed_literals_with_booleans(self) -> None:
         """Test parsing mixed literal types including booleans."""
         source = "True. 42. False. 3.14. _True_."
-        lexer = Lexer(source)
-        parser = Parser(lexer)
+        parser = Parser()
 
-        program = parser.parse()
+        program = parser.parse(source)
 
         assert len(parser.errors) == 0
         assert len(program.statements) == 5
@@ -143,10 +138,9 @@ class TestBooleanLiteralExpressions:
             source: The source code with various case boolean literals.
             expected_value: The expected boolean value.
         """
-        lexer = Lexer(source)
-        parser = Parser(lexer)
+        parser = Parser()
 
-        program = parser.parse()
+        program = parser.parse(source)
 
         assert len(parser.errors) == 0
         assert_program_statements(parser, program)

@@ -3,7 +3,6 @@
 import pytest
 
 from machine_dialect.ast import ExpressionStatement
-from machine_dialect.lexer import Lexer
 from machine_dialect.parser import Parser
 from machine_dialect.parser.tests.helper_functions import (
     assert_literal_expression,
@@ -51,10 +50,9 @@ class TestIntegerLiteralExpressions:
             source: The source code to parse.
             expected_value: The expected integer value.
         """
-        lexer = Lexer(source)
-        parser = Parser(lexer)
+        parser = Parser()
 
-        program = parser.parse()
+        program = parser.parse(source)
 
         assert_program_statements(parser, program)
 
@@ -67,10 +65,9 @@ class TestIntegerLiteralExpressions:
     def test_integer_with_period(self) -> None:
         """Test parsing integer literal followed by period."""
         source = "42."
-        lexer = Lexer(source)
-        parser = Parser(lexer)
+        parser = Parser()
 
-        program = parser.parse()
+        program = parser.parse(source)
 
         assert_program_statements(parser, program)
 
@@ -83,10 +80,9 @@ class TestIntegerLiteralExpressions:
     def test_multiple_integer_statements(self) -> None:
         """Test parsing multiple integer literal statements."""
         source = "1. 2. 3."
-        lexer = Lexer(source)
-        parser = Parser(lexer)
+        parser = Parser()
 
-        program = parser.parse()
+        program = parser.parse(source)
 
         assert len(parser.errors) == 0
         assert len(program.statements) == 3
@@ -125,11 +121,11 @@ class TestIntegerLiteralExpressions:
             source: The source code with invalid underscore format.
             error_substring: Expected substring in the error message.
         """
-        lexer = Lexer(source)
-        parser = Parser(lexer)
+        # Lexer instantiation moved to Parser.parse()
+        parser = Parser()
 
         # Parse the program (parser collects lexer errors)
-        _ = parser.parse()
+        _ = parser.parse(source)
 
         # Should have at least one error
         assert len(parser.errors) >= 1, f"Expected error for invalid format: {source}"

@@ -3,7 +3,6 @@
 import pytest
 
 from machine_dialect.ast import ExpressionStatement
-from machine_dialect.lexer import Lexer
 from machine_dialect.parser import Parser
 from machine_dialect.parser.tests.helper_functions import (
     assert_literal_expression,
@@ -45,10 +44,9 @@ class TestIdentifierExpressions:
             source: The source code to parse.
             expected_value: The expected identifier value.
         """
-        lexer = Lexer(source)
-        parser = Parser(lexer)
+        parser = Parser()
 
-        program = parser.parse()
+        program = parser.parse(source)
 
         assert_program_statements(parser, program)
 

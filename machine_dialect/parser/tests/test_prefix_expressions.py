@@ -8,7 +8,6 @@ This module tests the parser's ability to handle prefix expressions including:
 import pytest
 
 from machine_dialect.ast import ExpressionStatement, Identifier, PrefixExpression
-from machine_dialect.lexer import Lexer
 from machine_dialect.parser import Parser
 from machine_dialect.parser.tests.helper_functions import (
     assert_literal_expression,
@@ -46,10 +45,9 @@ class TestPrefixExpressions:
             operator: The expected operator (should be "-").
             value: The expected positive integer value.
         """
-        lexer = Lexer(source)
-        parser = Parser(lexer)
+        parser = Parser()
 
-        program = parser.parse()
+        program = parser.parse(source)
 
         assert len(parser.errors) == 0
         assert_program_statements(parser, program)
@@ -97,10 +95,9 @@ class TestPrefixExpressions:
             operator: The expected operator (should be "-").
             value: The expected positive float value.
         """
-        lexer = Lexer(source)
-        parser = Parser(lexer)
+        parser = Parser()
 
-        program = parser.parse()
+        program = parser.parse(source)
 
         assert len(parser.errors) == 0
         assert_program_statements(parser, program)
@@ -154,10 +151,9 @@ class TestPrefixExpressions:
             operator: The expected operator (should be "not").
             value: The expected boolean value being negated.
         """
-        lexer = Lexer(source)
-        parser = Parser(lexer)
+        parser = Parser()
 
-        program = parser.parse()
+        program = parser.parse(source)
 
         assert len(parser.errors) == 0
         assert_program_statements(parser, program)
@@ -180,10 +176,9 @@ class TestPrefixExpressions:
     def test_multiple_prefix_expressions(self) -> None:
         """Test parsing multiple prefix expressions in sequence."""
         source = "-42. not True. -3.14. not False."
-        lexer = Lexer(source)
-        parser = Parser(lexer)
+        parser = Parser()
 
-        program = parser.parse()
+        program = parser.parse(source)
 
         assert len(parser.errors) == 0
         assert len(program.statements) == 4
@@ -227,10 +222,9 @@ class TestPrefixExpressions:
     def test_prefix_expression_with_identifier(self) -> None:
         """Test prefix expressions with identifiers."""
         source = "-x. not `is valid`."
-        lexer = Lexer(source)
-        parser = Parser(lexer)
+        parser = Parser()
 
-        program = parser.parse()
+        program = parser.parse(source)
 
         assert len(parser.errors) == 0
         assert len(program.statements) == 2
@@ -256,10 +250,9 @@ class TestPrefixExpressions:
     def test_double_negation(self) -> None:
         """Test parsing double negation expressions."""
         source = "--42. not not True."
-        lexer = Lexer(source)
-        parser = Parser(lexer)
+        parser = Parser()
 
-        program = parser.parse()
+        program = parser.parse(source)
 
         assert len(parser.errors) == 0
         assert len(program.statements) == 2
@@ -303,10 +296,9 @@ class TestPrefixExpressions:
         ]
 
         for source, expected_operator, expected_identifier in test_cases:
-            lexer = Lexer(source)
-            parser = Parser(lexer)
+            parser = Parser()
 
-            program = parser.parse()
+            program = parser.parse(source)
 
             assert len(parser.errors) == 0, f"Parser errors for '{source}': {parser.errors}"
             assert_program_statements(parser, program)
@@ -346,10 +338,9 @@ class TestPrefixExpressions:
         ]
 
         for source, expected_operator, expected_value in test_cases:
-            lexer = Lexer(source)
-            parser = Parser(lexer)
+            parser = Parser()
 
-            program = parser.parse()
+            program = parser.parse(source)
 
             # These should parse successfully - type errors would be caught in semantic analysis
             assert len(parser.errors) == 0, f"Parser errors for '{source}': {parser.errors}"
@@ -371,10 +362,9 @@ class TestPrefixExpressions:
     def test_boolean_negation_with_nested_prefix(self) -> None:
         """Test that 'not -5' creates nested prefix expressions."""
         source = "not -5"
-        lexer = Lexer(source)
-        parser = Parser(lexer)
+        parser = Parser()
 
-        program = parser.parse()
+        program = parser.parse(source)
 
         assert len(parser.errors) == 0, f"Parser errors: {parser.errors}"
         assert_program_statements(parser, program)
@@ -411,9 +401,8 @@ class TestPrefixExpressions:
         ]
 
         for source, expected in test_cases:
-            lexer = Lexer(source)
-            parser = Parser(lexer)
-            program = parser.parse()
+            parser = Parser()
+            program = parser.parse(source)
 
             assert len(parser.errors) == 0
             assert len(program.statements) == 1

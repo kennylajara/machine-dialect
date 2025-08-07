@@ -14,7 +14,6 @@ from machine_dialect.ast import (
     ReturnStatement,
     SetStatement,
 )
-from machine_dialect.lexer import Lexer
 from machine_dialect.linter.rules import Rule
 from machine_dialect.linter.rules.base import Context
 from machine_dialect.linter.violations import Violation, ViolationSeverity
@@ -66,9 +65,8 @@ class Linter:
             A list of violations found in the code.
         """
         # Parse the source code
-        lexer = Lexer(source_code)
-        parser = Parser(lexer)
-        program = parser.parse()
+        parser = Parser()
+        program = parser.parse(source_code)
 
         # Include parse errors as violations
         violations: list[Violation] = []

@@ -5,7 +5,6 @@ from the lexer, including lexical errors like illegal characters.
 """
 
 from machine_dialect.errors.exceptions import MDNameError
-from machine_dialect.lexer import Lexer
 from machine_dialect.parser import Parser
 
 
@@ -16,11 +15,11 @@ class TestParserErrors:
         """Test that parser reports errors for illegal tokens during parsing."""
         # Source with illegal character
         source = "Set `X` to @."
-        lexer = Lexer(source)
-        parser = Parser(lexer)
+        # Lexer instantiation moved to Parser.parse()
+        parser = Parser()
 
         # Errors are reported during parsing, not before
-        parser.parse()
+        parser.parse(source)
 
         # Parser should have reported the error
         assert len(parser.errors) == 1
@@ -31,18 +30,16 @@ class TestParserErrors:
         """Test the has_errors() method."""
         # Valid source - no errors
         source = "Set `X` to 42."
-        lexer = Lexer(source)
-        parser = Parser(lexer)
-        parser.parse()
+        parser = Parser()
+        parser.parse(source)
 
         assert parser.has_errors() is False
         assert len(parser.errors) == 0
 
         # Invalid source - with illegal character
         source_with_error = "Set `Y` to §."  # § is not a valid token
-        lexer_with_error = Lexer(source_with_error)
-        parser_with_error = Parser(lexer_with_error)
-        parser_with_error.parse()
+        parser_with_error = Parser()
+        parser_with_error.parse(source_with_error)
 
         assert parser_with_error.has_errors() is True
         assert len(parser_with_error.errors) == 1
@@ -51,9 +48,8 @@ class TestParserErrors:
         """Test that parser reports multiple errors through panic recovery."""
         # Source with multiple illegal characters - periods are mandatory
         source = "Set `A` to @. Set `B` to $. Set `C` to %."
-        lexer = Lexer(source)
-        parser = Parser(lexer)
-        parser.parse()
+        parser = Parser()
+        parser.parse(source)
 
         # Should have 3 errors for illegal characters
         assert len(parser.errors) == 3
@@ -69,11 +65,11 @@ class TestParserErrors:
         """Test that parser continues parsing despite lexer errors."""
         # Source with an error but valid structure
         source = "Set `X` to @. Set `result` to 123."
-        lexer = Lexer(source)
-        parser = Parser(lexer)
+        # Lexer instantiation moved to Parser.parse()
+        parser = Parser()
 
         # Parse the program
-        program = parser.parse()
+        program = parser.parse(source)
 
         # Should have one error for illegal character
         assert parser.has_errors() is True
@@ -94,10 +90,9 @@ class TestParserErrors:
     def test_empty_source_no_errors(self) -> None:
         """Test that empty source produces no errors."""
         source = ""
-        lexer = Lexer(source)
-        parser = Parser(lexer)
+        parser = Parser()
 
-        program = parser.parse()
+        program = parser.parse(source)
 
         assert parser.has_errors() is False
         assert len(parser.errors) == 0
@@ -106,9 +101,8 @@ class TestParserErrors:
     def test_parser_error_details(self) -> None:
         """Test that parser errors contain correct location information."""
         source = "Set `X` to &."
-        lexer = Lexer(source)
-        parser = Parser(lexer)
-        parser.parse()
+        parser = Parser()
+        parser.parse(source)
 
         assert len(parser.errors) == 1
         error = parser.errors[0]

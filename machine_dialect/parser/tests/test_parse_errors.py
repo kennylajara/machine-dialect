@@ -7,7 +7,6 @@ when encountering invalid syntax or missing parse functions.
 import pytest
 
 from machine_dialect.errors.exceptions import MDSyntaxError
-from machine_dialect.lexer import Lexer
 from machine_dialect.parser import Parser
 
 
@@ -34,10 +33,9 @@ class TestParseErrors:
             expected_literal: The literal that should appear in the error message.
             expected_message: The expected error message.
         """
-        lexer = Lexer(source)
-        parser = Parser(lexer)
+        parser = Parser()
 
-        program = parser.parse()
+        program = parser.parse(source)
 
         # Should have exactly one error
         assert len(parser.errors) == 1
@@ -61,10 +59,9 @@ class TestParseErrors:
     def test_multiple_parse_errors(self) -> None:
         """Test that multiple parse errors are collected."""
         source = "* 42. + 5. / 10."
-        lexer = Lexer(source)
-        parser = Parser(lexer)
+        parser = Parser()
 
-        parser.parse()
+        parser.parse(source)
 
         # Should have three errors (one for each invalid prefix)
         assert len(parser.errors) == 3
@@ -78,10 +75,9 @@ class TestParseErrors:
     def test_error_location_tracking(self) -> None:
         """Test that errors track correct line and column positions."""
         source = "   * 42"  # 3 spaces before *
-        lexer = Lexer(source)
-        parser = Parser(lexer)
+        parser = Parser()
 
-        _ = parser.parse()
+        _ = parser.parse(source)
 
         assert len(parser.errors) == 1
         error = parser.errors[0]
@@ -104,10 +100,9 @@ class TestParseErrors:
         ]
 
         for source in valid_sources:
-            lexer = Lexer(source)
-            parser = Parser(lexer)
+            parser = Parser()
 
-            program = parser.parse()
+            program = parser.parse(source)
 
             # Should have no errors
             assert len(parser.errors) == 0, f"Unexpected error for source: {source}"

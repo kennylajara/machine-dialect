@@ -73,9 +73,8 @@ class TestStopwords:
 
         # Test that parser skips stopwords correctly
         input_text = "Set the `x` to 5"
-        lexer = Lexer(input_text)
-        parser = Parser(lexer)
-        program = parser.parse()
+        parser = Parser()
+        program = parser.parse(input_text)
 
         # The parser should skip "the" stopword and parse correctly
         assert len(program.statements) == 1

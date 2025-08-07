@@ -16,7 +16,6 @@ from machine_dialect.ast import (
     PrefixExpression,
     StringLiteral,
 )
-from machine_dialect.lexer import Lexer
 from machine_dialect.parser import Parser
 
 
@@ -46,9 +45,8 @@ class TestConditionalExpressions:
         self, source: str, expected_consequence: str, expected_condition: str, expected_alternative: str
     ) -> None:
         """Test parsing of basic conditional expressions with literals."""
-        lexer = Lexer(source)
-        parser = Parser(lexer)
-        program = parser.parse()
+        parser = Parser()
+        program = parser.parse(source)
 
         assert program is not None
         assert len(program.statements) == 1
@@ -86,9 +84,8 @@ class TestConditionalExpressions:
     def test_conditional_with_identifiers(self) -> None:
         """Test conditional expressions using identifiers."""
         source = "`result` if `condition`, else `default`"
-        lexer = Lexer(source)
-        parser = Parser(lexer)
-        program = parser.parse()
+        parser = Parser()
+        program = parser.parse(source)
 
         assert program is not None
         assert len(program.statements) == 1
@@ -113,9 +110,8 @@ class TestConditionalExpressions:
     def test_conditional_with_string_literals(self) -> None:
         """Test conditional expressions with string literals."""
         source = '"yes" if `flag`, else "no"'
-        lexer = Lexer(source)
-        parser = Parser(lexer)
-        program = parser.parse()
+        parser = Parser()
+        program = parser.parse(source)
 
         assert program is not None
         assert len(program.statements) == 1
@@ -140,9 +136,8 @@ class TestConditionalExpressions:
     def test_conditional_with_complex_condition(self) -> None:
         """Test conditional with complex boolean condition."""
         source = "1 if `x` > 0, else -1"
-        lexer = Lexer(source)
-        parser = Parser(lexer)
-        program = parser.parse()
+        parser = Parser()
+        program = parser.parse(source)
 
         assert program is not None
         assert len(program.statements) == 1
@@ -174,9 +169,8 @@ class TestConditionalExpressions:
     def test_nested_conditional_expressions(self) -> None:
         """Test nested conditional expressions."""
         source = "1 if `a`, else 2 if `b`, else 3"
-        lexer = Lexer(source)
-        parser = Parser(lexer)
-        program = parser.parse()
+        parser = Parser()
+        program = parser.parse(source)
 
         assert program is not None
         assert len(program.statements) == 1
@@ -209,9 +203,8 @@ class TestConditionalExpressions:
     def test_conditional_with_arithmetic_expressions(self) -> None:
         """Test conditional with arithmetic expressions."""
         source = "`x` + 1 if `flag`, else `x` - 1"
-        lexer = Lexer(source)
-        parser = Parser(lexer)
-        program = parser.parse()
+        parser = Parser()
+        program = parser.parse(source)
 
         assert program is not None
         assert len(program.statements) == 1
@@ -244,9 +237,8 @@ class TestConditionalExpressions:
     def test_conditional_string_representation(self) -> None:
         """Test the string representation of conditional expressions."""
         source = "1 if True, else 0"
-        lexer = Lexer(source)
-        parser = Parser(lexer)
-        program = parser.parse()
+        parser = Parser()
+        program = parser.parse(source)
 
         assert program is not None
         statement = program.statements[0]
@@ -259,9 +251,8 @@ class TestConditionalExpressions:
     def test_conditional_with_logical_operators(self) -> None:
         """Test conditional with logical operators in condition."""
         source = "1 if `a` and `b`, else 0"
-        lexer = Lexer(source)
-        parser = Parser(lexer)
-        program = parser.parse()
+        parser = Parser()
+        program = parser.parse(source)
 
         assert program is not None
         assert len(program.statements) == 1
@@ -282,9 +273,8 @@ class TestConditionalExpressions:
     def test_conditional_without_else_clause(self) -> None:
         """Test that conditional without else clause is handled gracefully."""
         source = "1 if True"
-        lexer = Lexer(source)
-        parser = Parser(lexer)
-        program = parser.parse()
+        parser = Parser()
+        program = parser.parse(source)
 
         assert program is not None
         assert len(program.statements) == 1
@@ -306,9 +296,8 @@ class TestConditionalExpressions:
     def test_all_condition_keywords(self, keyword: str) -> None:
         """Test that all condition keywords work correctly."""
         source = f"1 {keyword} True, else 0"
-        lexer = Lexer(source)
-        parser = Parser(lexer)
-        program = parser.parse()
+        parser = Parser()
+        program = parser.parse(source)
 
         assert program is not None
         assert len(program.statements) == 1
@@ -332,9 +321,8 @@ class TestConditionalExpressions:
     def test_all_else_keywords(self, else_keyword: str) -> None:
         """Test that all else keywords work correctly."""
         source = f"1 if True, {else_keyword} 0"
-        lexer = Lexer(source)
-        parser = Parser(lexer)
-        program = parser.parse()
+        parser = Parser()
+        program = parser.parse(source)
 
         assert program is not None
         assert len(program.statements) == 1

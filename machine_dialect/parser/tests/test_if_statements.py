@@ -15,7 +15,6 @@ from machine_dialect.ast import (
     IntegerLiteral,
     SetStatement,
 )
-from machine_dialect.lexer import Lexer
 from machine_dialect.parser import Parser
 
 
@@ -28,9 +27,8 @@ class TestIfStatements:
         if True then:
         > Set x to 1.
         """
-        lexer = Lexer(source)
-        parser = Parser(lexer)
-        program = parser.parse()
+        parser = Parser()
+        program = parser.parse(source)
 
         assert len(program.statements) == 1
         assert isinstance(program.statements[0], IfStatement)
@@ -62,9 +60,8 @@ class TestIfStatements:
         > Set x to 3.
         > Set y to 4.
         """
-        lexer = Lexer(source)
-        parser = Parser(lexer)
-        program = parser.parse()
+        parser = Parser()
+        program = parser.parse(source)
 
         assert len(program.statements) == 1
         assert isinstance(program.statements[0], IfStatement)
@@ -98,9 +95,8 @@ class TestIfStatements:
         >
         > Set bax to 4.
         """
-        lexer = Lexer(source)
-        parser = Parser(lexer)
-        program = parser.parse()
+        parser = Parser()
+        program = parser.parse(source)
 
         assert len(program.statements) == 1
         outer_if = program.statements[0]
@@ -142,9 +138,8 @@ class TestIfStatements:
         {else_keyword}:
         > Set x to 2.
         """
-        lexer = Lexer(source)
-        parser = Parser(lexer)
-        program = parser.parse()
+        parser = Parser()
+        program = parser.parse(source)
 
         assert len(program.statements) == 1
         assert isinstance(program.statements[0], IfStatement)
@@ -166,9 +161,8 @@ class TestIfStatements:
         if x > 5 and y < 10 then:
         > Set result to True.
         """
-        lexer = Lexer(source)
-        parser = Parser(lexer)
-        program = parser.parse()
+        parser = Parser()
+        program = parser.parse(source)
 
         assert len(program.statements) == 1
         assert isinstance(program.statements[0], IfStatement)
@@ -188,9 +182,8 @@ class TestIfStatements:
         else:
         >
         """
-        lexer = Lexer(source)
-        parser = Parser(lexer)
-        program = parser.parse()
+        parser = Parser()
+        program = parser.parse(source)
 
         assert len(program.statements) == 1
         assert isinstance(program.statements[0], IfStatement)
@@ -209,9 +202,8 @@ class TestIfStatements:
         if True:
         > Set x to 1.
         """
-        lexer = Lexer(source)
-        parser = Parser(lexer)
-        program = parser.parse()
+        parser = Parser()
+        program = parser.parse(source)
 
         assert len(program.statements) == 1
         assert isinstance(program.statements[0], IfStatement)
@@ -228,9 +220,8 @@ class TestIfStatements:
         > Set x to 1.
         > > Set y to 2.
         """
-        lexer = Lexer(source)
-        parser = Parser(lexer)
-        parser.parse()
+        parser = Parser()
+        parser.parse(source)
 
         # This should produce an error - depth suddenly increases
         assert len(parser.errors) > 0
@@ -244,9 +235,8 @@ class TestIfStatements:
 
         x
         """
-        lexer = Lexer(source)
-        parser = Parser(lexer)
-        parser.parse()
+        parser = Parser()
+        parser.parse(source)
 
         # Should have errors about missing period
         assert len(parser.errors) > 0
@@ -263,9 +253,8 @@ class TestIfStatements:
         else:
         > Set y to 3.
         """
-        lexer = Lexer(source)
-        parser = Parser(lexer)
-        program = parser.parse()
+        parser = Parser()
+        program = parser.parse(source)
 
         assert len(program.statements) == 2
         assert all(isinstance(stmt, IfStatement) for stmt in program.statements)

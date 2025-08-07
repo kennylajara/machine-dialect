@@ -1,7 +1,6 @@
 """Tests for return statement parsing."""
 
 from machine_dialect.ast import ReturnStatement
-from machine_dialect.lexer import Lexer
 from machine_dialect.parser import Parser
 
 
@@ -11,10 +10,9 @@ class TestReturnStatements:
     def test_give_back_statement(self) -> None:
         """Test parsing 'give back' return statement."""
         source = "give back 42"
-        lexer = Lexer(source)
-        parser = Parser(lexer)
+        parser = Parser()
 
-        program = parser.parse()
+        program = parser.parse(source)
 
         assert len(parser.errors) == 0, f"Parser had errors: {parser.errors}"
         assert len(program.statements) == 1
@@ -26,10 +24,9 @@ class TestReturnStatements:
     def test_gives_back_statement(self) -> None:
         """Test parsing 'gives back' return statement."""
         source = "gives back true"
-        lexer = Lexer(source)
-        parser = Parser(lexer)
+        parser = Parser()
 
-        program = parser.parse()
+        program = parser.parse(source)
 
         assert len(parser.errors) == 0, f"Parser had errors: {parser.errors}"
         assert len(program.statements) == 1
@@ -44,10 +41,9 @@ class TestReturnStatements:
             give back 1.
             gives back 2.
         """
-        lexer = Lexer(source)
-        parser = Parser(lexer)
+        parser = Parser()
 
-        program = parser.parse()
+        program = parser.parse(source)
 
         assert len(parser.errors) == 0, f"Parser had errors: {parser.errors}"
         assert len(program.statements) == 2
@@ -68,10 +64,9 @@ class TestReturnStatements:
             give back 42.
             Set `x` to 10
         """
-        lexer = Lexer(source)
-        parser = Parser(lexer)
+        parser = Parser()
 
-        program = parser.parse()
+        program = parser.parse(source)
 
         assert len(parser.errors) == 0, f"Parser had errors: {parser.errors}"
         assert len(program.statements) == 2

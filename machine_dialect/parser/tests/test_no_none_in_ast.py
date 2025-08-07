@@ -7,7 +7,6 @@ ErrorStatement nodes to preserve the AST structure, never None.
 import pytest
 
 from machine_dialect.ast import ErrorStatement, ExpressionStatement
-from machine_dialect.lexer import Lexer
 from machine_dialect.parser import Parser
 
 
@@ -28,9 +27,8 @@ class TestNoNoneInAST:
     )
     def test_errors_produce_error_nodes_not_none(self, source: str) -> None:
         """Test that parsing errors result in Error nodes, not None."""
-        lexer = Lexer(source)
-        parser = Parser(lexer)
-        program = parser.parse()
+        parser = Parser()
+        program = parser.parse(source)
 
         # Should have at least one error
         assert parser.has_errors()
@@ -68,9 +66,8 @@ class TestNoNoneInAST:
     def test_nested_errors_still_create_nodes(self) -> None:
         """Test that nested parsing errors still create AST nodes."""
         source = "Set x to (42 + (5 * @))."
-        lexer = Lexer(source)
-        parser = Parser(lexer)
-        program = parser.parse()
+        parser = Parser()
+        program = parser.parse(source)
 
         # Should have errors
         assert parser.has_errors()
@@ -83,9 +80,8 @@ class TestNoNoneInAST:
     def test_multiple_grouped_expression_errors(self) -> None:
         """Test multiple grouped expression errors."""
         source = "(42 + (5 * 3"  # Missing two closing parens
-        lexer = Lexer(source)
-        parser = Parser(lexer)
-        program = parser.parse()
+        parser = Parser()
+        program = parser.parse(source)
 
         # Should have error(s)
         assert parser.has_errors()

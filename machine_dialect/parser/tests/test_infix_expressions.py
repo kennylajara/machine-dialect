@@ -15,7 +15,6 @@ from machine_dialect.ast import (
     InfixExpression,
     IntegerLiteral,
 )
-from machine_dialect.lexer import Lexer
 from machine_dialect.parser import Parser
 from machine_dialect.parser.tests.helper_functions import (
     assert_infix_expression,
@@ -72,10 +71,9 @@ class TestInfixExpressions:
             operator: Expected operator string.
             right: Expected right operand value.
         """
-        lexer = Lexer(source)
-        parser = Parser(lexer)
+        parser = Parser()
 
-        program = parser.parse()
+        program = parser.parse(source)
 
         assert len(parser.errors) == 0, f"Parser errors: {parser.errors}"
         assert_program_statements(parser, program)
@@ -123,10 +121,9 @@ class TestInfixExpressions:
             operator: Expected operator string.
             right: Expected right operand value.
         """
-        lexer = Lexer(source)
-        parser = Parser(lexer)
+        parser = Parser()
 
-        program = parser.parse()
+        program = parser.parse(source)
 
         assert len(parser.errors) == 0, f"Parser errors: {parser.errors}"
         assert_program_statements(parser, program)
@@ -183,10 +180,9 @@ class TestInfixExpressions:
             operator: Expected comparison operator.
             right: Expected right operand value.
         """
-        lexer = Lexer(source)
-        parser = Parser(lexer)
+        parser = Parser()
 
-        program = parser.parse()
+        program = parser.parse(source)
 
         assert len(parser.errors) == 0, f"Parser errors: {parser.errors}"
         assert_program_statements(parser, program)
@@ -232,10 +228,9 @@ class TestInfixExpressions:
             operator: Expected operator string.
             right: Expected right operand value.
         """
-        lexer = Lexer(source)
-        parser = Parser(lexer)
+        parser = Parser()
 
-        program = parser.parse()
+        program = parser.parse(source)
 
         assert len(parser.errors) == 0, f"Parser errors: {parser.errors}"
         assert_program_statements(parser, program)
@@ -285,10 +280,9 @@ class TestInfixExpressions:
             operator: Expected logical operator ('and' or 'or').
             right: Expected right operand value.
         """
-        lexer = Lexer(source)
-        parser = Parser(lexer)
+        parser = Parser()
 
-        program = parser.parse()
+        program = parser.parse(source)
 
         assert len(parser.errors) == 0, f"Parser errors: {parser.errors}"
         assert_program_statements(parser, program)
@@ -356,10 +350,9 @@ class TestInfixExpressions:
         ]
 
         for source, left_value, expected_operator, right_value in test_cases:
-            lexer = Lexer(source)
-            parser = Parser(lexer)
+            parser = Parser()
 
-            program = parser.parse()
+            program = parser.parse(source)
 
             assert len(parser.errors) == 0, f"Parser errors for '{source}': {parser.errors}"
             assert_program_statements(parser, program)
@@ -390,10 +383,9 @@ class TestInfixExpressions:
         ]
 
         for source, _ in test_cases:
-            lexer = Lexer(source)
-            parser = Parser(lexer)
+            parser = Parser()
 
-            program = parser.parse()
+            program = parser.parse(source)
 
             assert len(parser.errors) == 0, f"Parser errors for '{source}': {parser.errors}"
             assert len(program.statements) == 1
@@ -438,9 +430,8 @@ class TestInfixExpressions:
         ]
 
         for source, expected in test_cases:
-            lexer = Lexer(source)
-            parser = Parser(lexer)
-            program = parser.parse()
+            parser = Parser()
+            program = parser.parse(source)
 
             assert len(parser.errors) == 0, f"Parser errors for '{source}': {parser.errors}"
             assert len(program.statements) == 1
@@ -492,9 +483,8 @@ class TestInfixExpressions:
         ]
 
         for source, expected in test_cases:
-            lexer = Lexer(source)
-            parser = Parser(lexer)
-            program = parser.parse()
+            parser = Parser()
+            program = parser.parse(source)
 
             assert len(parser.errors) == 0, f"Parser errors for '{source}': {parser.errors}"
             assert len(program.statements) == 1
@@ -510,10 +500,9 @@ class TestInfixExpressions:
     def test_complex_logical_with_comparison(self) -> None:
         """Test parsing complex expressions with comparison and logical operators."""
         source = "5 > 3 and True"
-        lexer = Lexer(source)
-        parser = Parser(lexer)
+        parser = Parser()
 
-        program = parser.parse()
+        program = parser.parse(source)
 
         assert len(parser.errors) == 0, f"Parser errors: {parser.errors}"
         assert len(program.statements) == 1
@@ -568,9 +557,8 @@ class TestInfixExpressions:
         ]
 
         for source, expected in test_cases:
-            lexer = Lexer(source)
-            parser = Parser(lexer)
-            program = parser.parse()
+            parser = Parser()
+            program = parser.parse(source)
 
             assert len(parser.errors) == 0, f"Parser errors for '{source}': {parser.errors}"
             assert len(program.statements) == 1
@@ -586,10 +574,9 @@ class TestInfixExpressions:
     def test_multiple_infix_expressions(self) -> None:
         """Test parsing multiple infix expressions in sequence."""
         source = "5 + 5. 10 - 2. 3 * 4. 8 / 2."
-        lexer = Lexer(source)
-        parser = Parser(lexer)
+        parser = Parser()
 
-        program = parser.parse()
+        program = parser.parse(source)
 
         assert len(parser.errors) == 0
         assert len(program.statements) == 4
@@ -640,9 +627,8 @@ class TestInfixExpressions:
         ]
 
         for source, expected in test_cases:
-            lexer = Lexer(source)
-            parser = Parser(lexer)
-            program = parser.parse()
+            parser = Parser()
+            program = parser.parse(source)
 
             assert len(parser.errors) == 0
             assert len(program.statements) == 1
@@ -682,10 +668,9 @@ class TestInfixExpressions:
             source: The invalid source code.
             expected_error: Expected error message substring.
         """
-        lexer = Lexer(source)
-        parser = Parser(lexer)
+        parser = Parser()
 
-        parser.parse()
+        parser.parse(source)
 
         # Should have at least one error
         assert len(parser.errors) > 0, f"Expected errors for '{source}', but got none"

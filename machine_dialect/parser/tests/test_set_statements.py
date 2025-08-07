@@ -1,17 +1,16 @@
 import pytest
 
 from machine_dialect.ast import Identifier, Program, SetStatement
-from machine_dialect.lexer import Lexer, TokenType
+from machine_dialect.lexer import TokenType
 from machine_dialect.parser import Parser
 
 
 class TestSetStatements:
     def test_parse_set_integer(self) -> None:
         source: str = "Set `X` to 1"
-        lexer: Lexer = Lexer(source)
-        parser: Parser = Parser(lexer)
+        parser: Parser = Parser()
 
-        program: Program = parser.parse()
+        program: Program = parser.parse(source)
 
         assert program is not None
         assert len(program.statements) == 1
@@ -27,10 +26,9 @@ class TestSetStatements:
 
     def test_parse_set_float(self) -> None:
         source: str = "Set `price` to 3.14"
-        lexer: Lexer = Lexer(source)
-        parser: Parser = Parser(lexer)
+        parser: Parser = Parser()
 
-        program: Program = parser.parse()
+        program: Program = parser.parse(source)
 
         assert program is not None
         assert len(program.statements) == 1
@@ -46,10 +44,9 @@ class TestSetStatements:
 
     def test_parse_set_string(self) -> None:
         source: str = 'Set `Z` to "Hello, World!"'
-        lexer: Lexer = Lexer(source)
-        parser: Parser = Parser(lexer)
+        parser: Parser = Parser()
 
-        program: Program = parser.parse()
+        program: Program = parser.parse(source)
 
         assert program is not None
         assert len(program.statements) == 1
@@ -72,10 +69,9 @@ class TestSetStatements:
             ]
         )
 
-        lexer: Lexer = Lexer(source)
-        parser: Parser = Parser(lexer)
+        parser: Parser = Parser()
 
-        program: Program = parser.parse()
+        program: Program = parser.parse(source)
 
         assert program is not None
         assert len(program.statements) == 3
@@ -106,10 +102,9 @@ class TestSetStatements:
 
     def test_set_statement_string_representation(self) -> None:
         source: str = "Set `X` to 1"
-        lexer: Lexer = Lexer(source)
-        parser: Parser = Parser(lexer)
+        parser: Parser = Parser()
 
-        program: Program = parser.parse()
+        program: Program = parser.parse(source)
 
         assert program is not None
         statement = program.statements[0]
@@ -137,10 +132,9 @@ class TestSetStatements:
         ],
     )
     def test_parse_ternary_expressions(self, source: str) -> None:
-        lexer: Lexer = Lexer(source)
-        parser: Parser = Parser(lexer)
+        parser: Parser = Parser()
 
-        program: Program = parser.parse()
+        program: Program = parser.parse(source)
 
         assert program is not None
         assert len(program.statements) == 1

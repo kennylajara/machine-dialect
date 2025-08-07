@@ -5,7 +5,6 @@ when expected tokens are not found during parsing.
 """
 
 from machine_dialect.errors.exceptions import MDSyntaxError
-from machine_dialect.lexer import Lexer
 from machine_dialect.parser import Parser
 
 
@@ -15,10 +14,9 @@ class TestExpectedTokenErrors:
     def test_missing_identifier_after_set(self) -> None:
         """Test error when Set statement is missing the identifier."""
         source = "Set 42 to X"  # 42 is not a valid identifier
-        lexer = Lexer(source)
-        parser = Parser(lexer)
+        parser = Parser()
 
-        parser.parse()
+        parser.parse(source)
 
         # Should have syntax error
         assert parser.has_errors() is True
@@ -33,10 +31,9 @@ class TestExpectedTokenErrors:
     def test_missing_to_keyword(self) -> None:
         """Test error when Set statement is missing the 'to' keyword."""
         source = "Set `X` 42"  # Missing 'to' keyword
-        lexer = Lexer(source)
-        parser = Parser(lexer)
+        parser = Parser()
 
-        parser.parse()
+        parser.parse(source)
 
         # Should have one syntax error
         assert parser.has_errors() is True
@@ -54,10 +51,9 @@ class TestExpectedTokenErrors:
 Set price 3.14.
 Set to "hello".
 """
-        lexer = Lexer(source)
-        parser = Parser(lexer)
+        parser = Parser()
 
-        parser.parse()
+        parser.parse(source)
 
         # Should have multiple syntax errors
         assert parser.has_errors() is True
@@ -71,10 +67,9 @@ Set to "hello".
     def test_empty_identifier(self) -> None:
         """Test error with empty backtick identifier."""
         source = "Set `` to 42"  # Empty backticks produce illegal tokens
-        lexer = Lexer(source)
-        parser = Parser(lexer)
+        parser = Parser()
 
-        parser.parse()
+        parser.parse(source)
 
         # Should have errors (from lexer producing illegal tokens)
         # Empty backticks produce two illegal backtick characters
@@ -83,10 +78,9 @@ Set to "hello".
     def test_unclosed_backtick(self) -> None:
         """Test error with unclosed backtick identifier."""
         source = "Set `X to 42"  # Missing closing backtick
-        lexer = Lexer(source)
-        parser = Parser(lexer)
+        parser = Parser()
 
-        parser.parse()
+        parser.parse(source)
 
         # Should have an error (either from lexer or parser)
         assert parser.has_errors() is True
@@ -94,10 +88,9 @@ Set to "hello".
     def test_error_location_info(self) -> None:
         """Test that expected token errors have correct location information."""
         source = "Set 42 to X"  # Error at position of 42
-        lexer = Lexer(source)
-        parser = Parser(lexer)
+        parser = Parser()
 
-        parser.parse()
+        parser.parse(source)
 
         # With panic recovery, we get 1 error
         assert len(parser.errors) == 1
@@ -112,10 +105,9 @@ Set to "hello".
     def test_error_message_content(self) -> None:
         """Test that error messages contain helpful information."""
         source = "Set `X` something"  # 'to' keyword missing
-        lexer = Lexer(source)
-        parser = Parser(lexer)
+        parser = Parser()
 
-        parser.parse()
+        parser.parse(source)
 
         assert len(parser.errors) == 1
         error = parser.errors[0]
@@ -133,10 +125,9 @@ Set to "hello".
 Set `price` to 3.14.
 Set `Z` 99.
 """
-        lexer = Lexer(source)
-        parser = Parser(lexer)
+        parser = Parser()
 
-        program = parser.parse()
+        program = parser.parse(source)
 
         # Should have errors for first and third statements
         assert parser.has_errors() is True
@@ -159,10 +150,9 @@ Set `Z` 99.
     def test_consecutive_errors(self) -> None:
         """Test handling of consecutive expected token errors."""
         source = "Set Set Set"  # Multiple Set keywords without proper syntax
-        lexer = Lexer(source)
-        parser = Parser(lexer)
+        parser = Parser()
 
-        parser.parse()
+        parser.parse(source)
 
         # Should have multiple errors
         assert parser.has_errors() is True
@@ -171,10 +161,9 @@ Set `Z` 99.
     def test_eof_during_parsing(self) -> None:
         """Test error when EOF is encountered while expecting a token."""
         source = "Set `X`"  # Missing 'to' and value
-        lexer = Lexer(source)
-        parser = Parser(lexer)
+        parser = Parser()
 
-        parser.parse()
+        parser.parse(source)
 
         # Should have an error for missing 'to'
         assert parser.has_errors() is True

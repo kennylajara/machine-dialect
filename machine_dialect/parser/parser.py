@@ -28,7 +28,8 @@ from machine_dialect.errors.messages import (
     UNEXPECTED_TOKEN,
     UNEXPECTED_TOKEN_AT_START,
 )
-from machine_dialect.lexer import Lexer, Token, TokenType
+from machine_dialect.lexer import Lexer
+from machine_dialect.lexer.tokens import Token, TokenType
 from machine_dialect.parser import Precedence
 from machine_dialect.parser.protocols import (
     InfixParseFuncs,
@@ -60,7 +61,8 @@ PRECEDENCES: dict[TokenType, Precedence] = {
 class Parser:
     """Parser for Machine Dialect language.
 
-    Transforms a sequence of tokens from the lexer into an Abstract Syntax Tree (AST).
+    Transforms source code into an Abstract Syntax Tree (AST) by first
+    tokenizing it with the lexer and then parsing the tokens.
     Also collects any lexical errors from the tokenizer.
 
     Attributes:
@@ -68,17 +70,11 @@ class Parser:
             including lexical errors from the tokenizer.
     """
 
-    def __init__(self, lexer: Lexer) -> None:
-        """Initialize the parser with a lexer.
-
-        Args:
-            lexer: The lexer instance to get tokens from.
-        """
+    def __init__(self) -> None:
+        """Initialize the parser."""
         self._current_token: Token | None = None
         self._peek_token: Token | None = None
-
-        # Get tokens from the lexer
-        self._tokens = lexer.tokenize()
+        self._tokens: list[Token] = []
         self._errors: list[MDBaseException] = []
         self._token_index = 0
         self._panic_count = 0  # Track panic-mode recoveries
@@ -88,11 +84,11 @@ class Parser:
         self._infix_parse_funcs: InfixParseFuncs = self._register_infix_funcs()
         self._postfix_parse_funcs: PostfixParseFuncs = self._register_postfix_funcs()
 
-        self._advance_tokens()
-        self._advance_tokens()
+    def parse(self, source: str) -> Program:
+        """Parse the source code into an AST.
 
-    def parse(self) -> Program:
-        """Parse the tokens into an AST.
+        Args:
+            source: The source code to parse.
 
         Returns:
             The root Program node of the AST.
@@ -102,6 +98,18 @@ class Parser:
             errors attribute. The parser attempts to continue parsing
             even after encountering errors using panic-mode recovery.
         """
+        # Reset parser state for new parse
+        self._reset_state()
+
+        # Create lexer and tokenize
+        lexer = Lexer(source)
+        self._tokens = lexer.tokenize()
+
+        # Initialize token pointers
+        self._advance_tokens()
+        self._advance_tokens()
+
+        # Parse the program
         program: Program = Program(statements=[])
 
         assert self._current_token is not None
@@ -116,6 +124,16 @@ class Parser:
             self._advance_tokens()
 
         return program
+
+    def _reset_state(self) -> None:
+        """Reset the parser state for a new parse."""
+        self._current_token = None
+        self._peek_token = None
+        self._tokens = []
+        self._errors = []
+        self._token_index = 0
+        self._panic_count = 0
+        self._block_depth = 0
 
     def has_errors(self) -> bool:
         """Check if any errors were encountered during parsing.

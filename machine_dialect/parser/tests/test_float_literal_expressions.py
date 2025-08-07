@@ -3,7 +3,6 @@
 import pytest
 
 from machine_dialect.ast import ExpressionStatement
-from machine_dialect.lexer import Lexer
 from machine_dialect.parser import Parser
 from machine_dialect.parser.tests.helper_functions import (
     assert_literal_expression,
@@ -57,10 +56,9 @@ class TestFloatLiteralExpressions:
             source: The source code to parse.
             expected_value: The expected float value.
         """
-        lexer = Lexer(source)
-        parser = Parser(lexer)
+        parser = Parser()
 
-        program = parser.parse()
+        program = parser.parse(source)
 
         assert_program_statements(parser, program)
 
@@ -73,10 +71,9 @@ class TestFloatLiteralExpressions:
     def test_float_with_period(self) -> None:
         """Test parsing float literal followed by period."""
         source = "3.14."
-        lexer = Lexer(source)
-        parser = Parser(lexer)
+        parser = Parser()
 
-        program = parser.parse()
+        program = parser.parse(source)
 
         assert_program_statements(parser, program)
 
@@ -89,10 +86,9 @@ class TestFloatLiteralExpressions:
     def test_multiple_float_statements(self) -> None:
         """Test parsing multiple float literal statements."""
         source = "1.1. 2.2. 3.3."
-        lexer = Lexer(source)
-        parser = Parser(lexer)
+        parser = Parser()
 
-        program = parser.parse()
+        program = parser.parse(source)
 
         assert len(parser.errors) == 0
         assert len(program.statements) == 3
@@ -133,11 +129,11 @@ class TestFloatLiteralExpressions:
             source: The source code with invalid underscore format.
             error_substring: Expected substring in the error message.
         """
-        lexer = Lexer(source)
-        parser = Parser(lexer)
+        # Lexer instantiation moved to Parser.parse()
+        parser = Parser()
 
         # Parse the program (parser collects lexer errors)
-        _ = parser.parse()
+        _ = parser.parse(source)
 
         # Should have at least one error
         assert len(parser.errors) >= 1, f"Expected error for invalid format: {source}"
@@ -151,10 +147,9 @@ class TestFloatLiteralExpressions:
     def test_mixed_integer_and_float_statements(self) -> None:
         """Test parsing mixed integer and float literal statements."""
         source = "42. 3.14. 100. 0.5."
-        lexer = Lexer(source)
-        parser = Parser(lexer)
+        parser = Parser()
 
-        program = parser.parse()
+        program = parser.parse(source)
 
         assert len(parser.errors) == 0
         assert len(program.statements) == 4

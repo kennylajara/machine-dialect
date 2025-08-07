@@ -699,9 +699,18 @@ class Parser:
             if_statement.alternative = self._parse_block_statement()
         elif self._block_depth == 0:
             # No else clause and we're at top level (not inside a block)
-            # We're positioned at the start of the next statement
-            # Back up one token so the main parse loop's advance will position us correctly
-            if self._current_token and self._current_token.type != TokenType.MISC_EOF:
+            # Check if we're at a '>' token that was part of the block we just parsed
+            # If so, don't rewind as it would re-parse block content
+            if (
+                self._current_token
+                and self._current_token.type == TokenType.OP_GT
+                and if_statement.consequence
+                and if_statement.consequence.depth > 0
+            ):
+                # We're at a '>' that was part of the block, don't rewind
+                pass
+            elif self._current_token and self._current_token.type != TokenType.MISC_EOF:
+                # Normal case: back up one token so main parse loop positions correctly
                 self._token_index -= 1
                 self._peek_token = self._current_token
                 if self._token_index > 0:
@@ -740,6 +749,9 @@ class Parser:
 
             # Count the depth at the start of the current line
             current_depth = 0
+            original_line = self._current_token.line if self._current_token else 0
+
+            # Check if we're at '>' tokens
             if self._current_token.type == TokenType.OP_GT:
                 # Count '>' tokens only on the current line
                 current_line = self._current_token.line
@@ -764,10 +776,20 @@ class Parser:
                     # No '>' means we've exited the block
                     break
                 elif current_depth < block.depth:
-                    # We've exited the block, restore position
-                    self._token_index = start_pos
-                    self._advance_tokens()
-                    break
+                    # We've exited the block due to lower depth
+                    # We've already consumed the '>' tokens while counting depth
+                    # The parent block needs to handle this line's content
+                    # But first check if this is an empty line (only '>')
+                    if self._current_token and self._current_token.line != original_line:
+                        # Empty line - we consumed all tokens on the line
+                        # Just break and let parent continue from next line
+                        break
+                    else:
+                        # Not empty - there's content after the '>'
+                        # Back up so parent can reprocess this line
+                        self._token_index = start_pos
+                        self._advance_tokens()
+                        break
                 elif current_depth > block.depth:
                     # Nested block or error - for now treat as error
                     self._errors.append(
@@ -787,8 +809,9 @@ class Parser:
                     continue
 
             # After depth check, check if this was an empty line (just '>' with no content)
-            if self._current_token and self._current_token.type == TokenType.OP_GT:
-                # Still more '>' on a new line, this is an empty line, skip it
+            # Empty line is when we counted '>' but are no longer on the same line
+            if current_depth > 0 and self._current_token and self._current_token.line != original_line:
+                # The line only had '>' markers, skip to next line
                 continue
 
             # Check for tokens that would indicate we've left the block

@@ -78,6 +78,8 @@ class TokenType(Enum):
     KW_DETAILS = auto()
     KW_ELSE = auto()
     KW_EMPTY = auto()
+    KW_ENTRYPOINT = auto()
+    KW_FILTER = auto()
     KW_FLOAT = auto()
     KW_FROM = auto()
     KW_IF = auto()
@@ -89,12 +91,14 @@ class TokenType(Enum):
     KW_NOTHING = auto()
     KW_NUMBER = auto()
     KW_OR = auto()
+    KW_PROMPT = auto()
     KW_RETURN = auto()
     KW_RULE = auto()
     KW_SET = auto()
     KW_SUMMARY = auto()
     KW_TAKE = auto()
     KW_TELL = auto()
+    KW_TEMPLATE = auto()
     KW_TEXT = auto()
     KW_THEN = auto()
     KW_TIME = auto()
@@ -183,8 +187,12 @@ keywords_mapping: dict[str, TokenType] = {
     "else": TokenType.KW_ELSE,
     # empty collections (lists, dicts)
     "empty": TokenType.KW_EMPTY,
+    # entrypoint for execution
+    "entrypoint": TokenType.KW_ENTRYPOINT,
     # boolean primitive: false
     "False": TokenType.LIT_FALSE,
+    # filter mini-programs that act as proxy to decide on AI code execution
+    "filter": TokenType.KW_FILTER,
     # float typing: set `a` as float | set `a` to float 3.14
     "Float": TokenType.KW_FLOAT,
     # range indicator: from 1 to 10
@@ -232,6 +240,8 @@ keywords_mapping: dict[str, TokenType] = {
     "or": TokenType.KW_OR,
     # else statement
     "otherwise": TokenType.KW_ELSE,
+    # prompt for user input or AI
+    "prompt": TokenType.KW_PROMPT,
     # return value.
     "give back": TokenType.KW_RETURN,
     "gives back": TokenType.KW_RETURN,
@@ -246,6 +256,8 @@ keywords_mapping: dict[str, TokenType] = {
     "take": TokenType.KW_TAKE,
     # Call actions
     "Tell": TokenType.KW_TELL,
+    # template (equivalent to class in other languages)
+    "template": TokenType.KW_TEMPLATE,
     # text typing (string)
     "text": TokenType.KW_TEXT,
     # separates if statement from block of code: `if true then return x`.

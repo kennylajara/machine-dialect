@@ -8,13 +8,22 @@ from .expressions import (
     ErrorExpression,
     ConditionalExpression,
 )
-from .statements import ExpressionStatement, ReturnStatement, SetStatement, Statement, ErrorStatement
+from .statements import (
+    BlockStatement,
+    ErrorStatement,
+    ExpressionStatement,
+    IfStatement,
+    ReturnStatement,
+    SetStatement,
+    Statement,
+)
 from .program import Program
 from .literals import IntegerLiteral, FloatLiteral, StringLiteral, BooleanLiteral
 
 
 __all__ = [
     "ASTNode",
+    "BlockStatement",
     "BooleanLiteral",
     "ConditionalExpression",
     "ErrorExpression",
@@ -23,6 +32,7 @@ __all__ = [
     "ExpressionStatement",
     "FloatLiteral",
     "Identifier",
+    "IfStatement",
     "InfixExpression",
     "IntegerLiteral",
     "PrefixExpression",

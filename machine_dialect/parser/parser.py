@@ -1,4 +1,5 @@
 from machine_dialect.ast import (
+    BlockStatement,
     BooleanLiteral,
     ConditionalExpression,
     ErrorExpression,
@@ -7,6 +8,7 @@ from machine_dialect.ast import (
     ExpressionStatement,
     FloatLiteral,
     Identifier,
+    IfStatement,
     InfixExpression,
     IntegerLiteral,
     PrefixExpression,
@@ -653,6 +655,135 @@ class Parser:
 
         return return_statement
 
+    def _parse_if_statement(self) -> IfStatement:
+        """Parse an if statement with block statements.
+
+        Expects: if/when/whenever <condition> [then]: <block> [else/otherwise: <block>]
+
+        Returns:
+            An IfStatement AST node.
+        """
+        assert self._current_token is not None
+        if_statement = IfStatement(token=self._current_token)
+
+        # Advance past 'if', 'when', or 'whenever'
+        self._advance_tokens()
+
+        # Parse the condition expression
+        if_statement.condition = self._parse_expression(Precedence.LOWEST)
+
+        # Check for optional 'then' keyword
+        if self._peek_token and self._peek_token.type == TokenType.KW_THEN:
+            self._advance_tokens()  # Move to 'then'
+
+        # Expect colon
+        if not self._expected_token(TokenType.PUNCT_COLON):
+            # Create error statement if no colon
+            return IfStatement(token=if_statement.token, condition=if_statement.condition)
+
+        # Parse the consequence block
+        if_statement.consequence = self._parse_block_statement()
+
+        # Check for else/otherwise clause
+        if self._current_token and self._current_token.type == TokenType.KW_ELSE:
+            # Check if next token is colon
+            if self._peek_token and self._peek_token.type == TokenType.PUNCT_COLON:
+                self._advance_tokens()  # Move past else to colon
+                self._advance_tokens()  # Move past colon
+            else:
+                # No colon after else, return without alternative
+                return if_statement
+
+            # Parse the alternative block
+            if_statement.alternative = self._parse_block_statement()
+
+        return if_statement
+
+    def _parse_block_statement(self) -> BlockStatement:
+        """Parse a block of statements marked by '>' symbols.
+
+        A block contains statements that start with one or more '>' symbols.
+        The number of '>' symbols determines the depth of the block.
+        The block ends when we encounter a statement with fewer '>' symbols
+        or a statement without '>' symbols.
+
+        Returns:
+            A BlockStatement AST node.
+        """
+        assert self._current_token is not None
+        block_token = self._current_token
+        block = BlockStatement(token=block_token)
+
+        # If we're at a colon, it's the start of a block - advance past it
+        if self._current_token.type == TokenType.PUNCT_COLON:
+            self._advance_tokens()
+
+        # Count the depth (number of consecutive '>' symbols)
+        depth = 0
+        while self._current_token and self._current_token.type == TokenType.OP_GT:
+            depth += 1
+            self._advance_tokens()
+
+        block.depth = depth
+
+        # If depth is 0, this is an empty block
+        if depth == 0:
+            return block
+
+        # Parse statements in the block
+        # We've already consumed the first line's '>' symbols, so parse the first statement
+        first_statement = True
+        while self._current_token and self._current_token.type != TokenType.MISC_EOF:
+            if not first_statement:
+                # Check if we're still in the block by counting '>' symbols at line start
+                current_depth = 0
+                start_pos = self._token_index - 1
+
+                # Check for '>' at the start of a new statement
+                if self._current_token.type == TokenType.OP_GT:  # type: ignore[comparison-overlap]
+                    while self._current_token and self._current_token.type == TokenType.OP_GT:
+                        current_depth += 1
+                        self._advance_tokens()
+
+                    # Check depth consistency
+                    if current_depth < block.depth:
+                        # We've exited the block, restore position
+                        self._token_index = start_pos
+                        self._advance_tokens()
+                        break
+                    elif current_depth > block.depth:
+                        # Nested block or error - for now treat as error
+                        self._errors.append(
+                            MDSyntaxError(
+                                line=self._current_token.line if self._current_token else 0,
+                                column=self._current_token.position if self._current_token else 0,
+                                message=f"Unexpected block depth: expected {block.depth} '>' but got {current_depth}",
+                            )
+                        )
+                        # Skip to next line
+                        while self._current_token and self._current_token.type not in (
+                            TokenType.PUNCT_PERIOD,
+                            TokenType.MISC_EOF,
+                            TokenType.OP_GT,
+                        ):
+                            self._advance_tokens()
+                        continue
+                else:
+                    # No '>' means we've exited the block
+                    break
+
+            first_statement = False
+
+            # Parse the statement
+            statement = self._parse_statement()
+            block.statements.append(statement)
+
+            # Skip the period if present
+            if self._current_token and self._current_token.type == TokenType.PUNCT_PERIOD:
+                self._advance_tokens()
+
+        return block
+
     def _parse_statement(self) -> Statement:
         """Parse a single statement.
 
@@ -668,6 +799,8 @@ class Parser:
             return self._parse_let_statement()
         elif self._current_token.type == TokenType.KW_RETURN:
             return self._parse_return_statement()
+        elif self._current_token.type == TokenType.KW_IF:
+            return self._parse_if_statement()
         else:
             return self._parse_expression_statement()
 

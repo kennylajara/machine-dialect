@@ -8,6 +8,8 @@ Statements include:
 - ExpressionStatement: Wraps an expression as a statement
 - ReturnStatement: Returns a value from a function or procedure
 - SetStatement: Assigns a value to a variable
+- BlockStatement: Contains a list of statements with a specific depth
+- IfStatement: Conditional statement with consequence and optional alternative
 - ErrorStatement: Represents a statement that failed to parse
 """
 
@@ -128,6 +130,79 @@ class SetStatement(Statement):
         out += "to "
         if self.value:
             out += str(self.value)
+        return out
+
+
+class BlockStatement(Statement):
+    """A block of statements with a specific depth.
+
+    Block statements contain a list of statements that are executed together.
+    The depth is indicated by the number of '>' symbols at the beginning of
+    each line in the block.
+
+    Attributes:
+        depth: The depth level of this block (number of '>' symbols).
+        statements: List of statements contained in this block.
+    """
+
+    def __init__(self, token: Token, depth: int = 1) -> None:
+        """Initialize a BlockStatement node.
+
+        Args:
+            token: The token that begins the block (usually ':' or first '>').
+            depth: The depth level of this block.
+        """
+        super().__init__(token)
+        self.depth = depth
+        self.statements: list[Statement] = []
+
+    def __str__(self) -> str:
+        """Return the string representation of the block statement.
+
+        Returns:
+            A string showing the block with proper indentation.
+        """
+        indent = ">" * self.depth + " "
+        statements_str = "\n".join(indent + str(stmt) for stmt in self.statements)
+        return f":\n{statements_str}"
+
+
+class IfStatement(Statement):
+    """A conditional statement with if-then-else structure.
+
+    If statements evaluate a condition and execute different blocks of code
+    based on whether the condition is true or false. Supports various keywords:
+    if/when/whenever for the condition, else/otherwise for the alternative.
+
+    Attributes:
+        condition: The boolean expression to evaluate.
+        consequence: The block of statements to execute if condition is true.
+        alternative: Optional block of statements to execute if condition is false.
+    """
+
+    def __init__(self, token: Token, condition: Expression | None = None) -> None:
+        """Initialize an IfStatement node.
+
+        Args:
+            token: The 'if', 'when', or 'whenever' token.
+            condition: The boolean expression to evaluate.
+        """
+        super().__init__(token)
+        self.condition = condition
+        self.consequence: BlockStatement | None = None
+        self.alternative: BlockStatement | None = None
+
+    def __str__(self) -> str:
+        """Return the string representation of the if statement.
+
+        Returns:
+            A string like "if <condition> then: <consequence> [else: <alternative>]".
+        """
+        out = f"{self.token.literal} {self.condition}"
+        if self.consequence:
+            out += f" then{self.consequence}"
+        if self.alternative:
+            out += f"\nelse{self.alternative}"
         return out
 
 

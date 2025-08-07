@@ -82,6 +82,7 @@ class Parser:
         self._errors: list[MDBaseException] = []
         self._token_index = 0
         self._panic_count = 0  # Track panic-mode recoveries
+        self._block_depth = 0  # Track if we're inside block statements
 
         self._prefix_parse_funcs: PrefixParseFuncs = self._register_prefix_funcs()
         self._infix_parse_funcs: InfixParseFuncs = self._register_infix_funcs()
@@ -696,6 +697,15 @@ class Parser:
 
             # Parse the alternative block
             if_statement.alternative = self._parse_block_statement()
+        elif self._block_depth == 0:
+            # No else clause and we're at top level (not inside a block)
+            # We're positioned at the start of the next statement
+            # Back up one token so the main parse loop's advance will position us correctly
+            if self._current_token and self._current_token.type != TokenType.MISC_EOF:
+                self._token_index -= 1
+                self._peek_token = self._current_token
+                if self._token_index > 0:
+                    self._current_token = self._tokens[self._token_index - 1]
 
         return if_statement
 
@@ -714,71 +724,75 @@ class Parser:
         block_token = self._current_token
         block = BlockStatement(token=block_token)
 
+        # Track that we're entering a block
+        self._block_depth += 1
+
         # If we're at a colon, it's the start of a block - advance past it
         if self._current_token.type == TokenType.PUNCT_COLON:
             self._advance_tokens()
 
-        # Count the depth (number of consecutive '>' symbols)
-        depth = 0
-        while self._current_token and self._current_token.type == TokenType.OP_GT:
-            depth += 1
-            self._advance_tokens()
-
-        block.depth = depth
-
-        # If depth is 0, this is an empty block
-        if depth == 0:
-            return block
-
         # Parse statements in the block
-        # We've already consumed the first line's '>' symbols, so parse the first statement
         first_statement = True
         while self._current_token and self._current_token.type != TokenType.MISC_EOF:
             if not first_statement:
-                # Check if we're still in the block by counting '>' symbols at line start
-                current_depth = 0
+                # For non-first statements, save position in case we need to restore
                 start_pos = self._token_index - 1
 
-                # Check for '>' at the start of a new statement
-                if self._current_token.type == TokenType.OP_GT:  # type: ignore[comparison-overlap]
-                    while self._current_token and self._current_token.type == TokenType.OP_GT:
-                        current_depth += 1
-                        self._advance_tokens()
+            # Count the depth at the start of the current line
+            current_depth = 0
+            if self._current_token.type == TokenType.OP_GT:
+                # Count '>' tokens only on the current line
+                current_line = self._current_token.line
+                while (
+                    self._current_token
+                    and self._current_token.type == TokenType.OP_GT
+                    and self._current_token.line == current_line
+                ):
+                    current_depth += 1
+                    self._advance_tokens()
 
-                    # Check depth consistency
-                    if current_depth < block.depth:
-                        # We've exited the block, restore position
-                        self._token_index = start_pos
-                        self._advance_tokens()
-                        break
-                    elif current_depth > block.depth:
-                        # Nested block or error - for now treat as error
-                        self._errors.append(
-                            MDSyntaxError(
-                                line=self._current_token.line if self._current_token else 0,
-                                column=self._current_token.position if self._current_token else 0,
-                                message=f"Unexpected block depth: expected {block.depth} '>' but got {current_depth}",
-                            )
-                        )
-                        # Skip to next line
-                        while self._current_token and self._current_token.type not in (
-                            TokenType.PUNCT_PERIOD,
-                            TokenType.MISC_EOF,
-                            TokenType.OP_GT,
-                        ):
-                            self._advance_tokens()
-                        continue
-                else:
+            # For the first statement, set the block depth
+            if first_statement:
+                block.depth = current_depth
+                first_statement = False
+                # If the first line has no '>' at all, it's an empty block
+                if current_depth == 0:
+                    break
+            else:
+                # Check depth consistency for non-first statements
+                if current_depth == 0:
                     # No '>' means we've exited the block
                     break
+                elif current_depth < block.depth:
+                    # We've exited the block, restore position
+                    self._token_index = start_pos
+                    self._advance_tokens()
+                    break
+                elif current_depth > block.depth:
+                    # Nested block or error - for now treat as error
+                    self._errors.append(
+                        MDSyntaxError(
+                            line=self._current_token.line if self._current_token else 0,
+                            column=self._current_token.position if self._current_token else 0,
+                            message=f"Unexpected block depth: expected {block.depth} '>' but got {current_depth}",
+                        )
+                    )
+                    # Skip to next line
+                    while self._current_token and self._current_token.type not in (
+                        TokenType.PUNCT_PERIOD,
+                        TokenType.MISC_EOF,
+                        TokenType.OP_GT,
+                    ):
+                        self._advance_tokens()
+                    continue
 
-            first_statement = False
+            # After depth check, check if this was an empty line (just '>' with no content)
+            if self._current_token and self._current_token.type == TokenType.OP_GT:
+                # Still more '>' on a new line, this is an empty line, skip it
+                continue
 
-            # Check if this is an empty line (just '>' markers with nothing else)
-            # Also check for tokens that would indicate we've left the block
-            if self._current_token and self._current_token.type == TokenType.OP_GT:  # type: ignore[comparison-overlap]
-                continue  # Empty line with just '>', skip it
-            elif self._current_token and self._current_token.type in (
+            # Check for tokens that would indicate we've left the block
+            if self._current_token and self._current_token.type in (
                 TokenType.MISC_EOF,
                 TokenType.KW_ELSE,  # 'else' would be outside the block
             ):
@@ -792,6 +806,8 @@ class Parser:
             if self._current_token and self._current_token.type == TokenType.PUNCT_PERIOD:
                 self._advance_tokens()
 
+        # Track that we're exiting a block
+        self._block_depth -= 1
         return block
 
     def _parse_statement(self) -> Statement:

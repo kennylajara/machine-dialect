@@ -89,14 +89,14 @@ class TestIfStatements:
         source = """
         if True then:
         >
-        > Set x to 1.
+        > Set foo to 1.
         >
         > if False then:
         > >
-        > > Set y to 2.
-        > > Set z to 3.
+        > > Set bar to 2.
+        > > Set baz to 3.
         >
-        > Set a to 4.
+        > Set bax to 4.
         """
         lexer = Lexer(source)
         parser = Parser(lexer)
@@ -241,6 +241,8 @@ class TestIfStatements:
         source = """
         if True then:
         > Set x to 1
+
+        x
         """
         lexer = Lexer(source)
         parser = Parser(lexer)

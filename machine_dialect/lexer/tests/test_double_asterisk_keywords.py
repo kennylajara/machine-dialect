@@ -83,7 +83,7 @@ class TestDoubleAsteriskKeywords:
         assert tokens[2].type == TokenType.KW_RULE
         assert tokens[2].literal == "rule"
         assert tokens[3].type == TokenType.MISC_STOPWORD  # "that"
-        assert tokens[4].type == TokenType.KW_TAKES
+        assert tokens[4].type == TokenType.KW_TAKE
         assert tokens[4].literal == "takes"
 
     def test_operator_usage(self) -> None:

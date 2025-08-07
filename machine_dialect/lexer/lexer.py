@@ -1,4 +1,5 @@
 from machine_dialect.helpers.validators import is_valid_url
+from machine_dialect.lexer.constants import CHAR_TO_TOKEN_MAP
 from machine_dialect.lexer.tokens import Token, TokenMetaType, TokenType, lookup_token_type
 
 
@@ -633,29 +634,8 @@ class Lexer:
                     tokens.append(token)
                 continue
 
-            # Single-character tokens
-            char_to_token = {
-                "+": TokenType.OP_PLUS,
-                "-": TokenType.OP_MINUS,
-                "*": TokenType.OP_STAR,
-                "/": TokenType.OP_DIVISION,
-                "=": TokenType.OP_ASSIGN,
-                "<": TokenType.OP_LT,
-                ">": TokenType.OP_GT,
-                "!": TokenType.OP_NEGATION,
-                "(": TokenType.DELIM_LPAREN,
-                ")": TokenType.DELIM_RPAREN,
-                "{": TokenType.DELIM_LBRACE,
-                "}": TokenType.DELIM_RBRACE,
-                ";": TokenType.PUNCT_SEMICOLON,
-                ",": TokenType.PUNCT_COMMA,
-                ".": TokenType.PUNCT_PERIOD,
-                ":": TokenType.PUNCT_COLON,
-                "#": TokenType.PUNCT_HASH,
-            }
-
-            if self.current_char in char_to_token:
-                token_type = char_to_token[self.current_char]
+            if self.current_char in CHAR_TO_TOKEN_MAP:
+                token_type = CHAR_TO_TOKEN_MAP[self.current_char]
                 line, pos = self.line, self.column
                 tokens.append(Token(token_type, self.current_char, line, pos))
                 self.advance()

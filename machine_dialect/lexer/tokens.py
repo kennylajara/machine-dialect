@@ -66,47 +66,42 @@ class TokenType(Enum):
 
     # Keywords
     KW_ACTION = auto()
-    KW_ACTIONS = auto()
     KW_AND = auto()
     KW_AS = auto()
+    KW_BEHAVIOR = auto()
     KW_BOOL = auto()
     KW_CALL = auto()
+    KW_DATATYPE = auto()
+    KW_DATE = auto()
+    KW_DATETIME = auto()
     KW_DEFINE = auto()
+    KW_DETAILS = auto()
     KW_ELSE = auto()
+    KW_EMPTY = auto()
     KW_FLOAT = auto()
-    KW_FLOATS = auto()
     KW_FROM = auto()
     KW_IF = auto()
     KW_INT = auto()
-    KW_INTS = auto()
+    KW_INTERACTION = auto()
     KW_IS = auto()
+    KW_LIST = auto()
     KW_NEGATION = auto()
     KW_NOTHING = auto()
-    KW_NUMBER = (auto(),)
-    KW_NUMBERS = (auto(),)
+    KW_NUMBER = auto()
     KW_OR = auto()
     KW_RETURN = auto()
     KW_RULE = auto()
     KW_SET = auto()
+    KW_SUMMARY = auto()
     KW_TAKE = auto()
-    KW_TAKES = auto()
     KW_TELL = auto()
     KW_TEXT = auto()
-    KW_TEXTS = auto()
     KW_THEN = auto()
+    KW_TIME = auto()
     KW_TO = auto()
     KW_TRAIT = auto()
-    KW_TRAITS = auto()
-    KW_WITH = auto()
     KW_URL = auto()
-    KW_URLS = auto()
-    KW_DATE = auto()
-    KW_DATES = auto()
-    KW_DATETIME = auto()
-    KW_DATETIMES = auto()
-    KW_TIME = auto()
-    KW_TIMES = auto()
-    KW_DATATYPE = auto()
+    KW_WITH = auto()
 
     @property
     def meta_type(self) -> TokenMetaType:
@@ -168,7 +163,6 @@ keywords_mapping: dict[str, TokenType] = {
     # classes methods
     # Define a **blueprint** called `Person` with action (`walk`)
     "action": TokenType.KW_ACTION,
-    "actions": TokenType.KW_ACTIONS,
     # logic and: true and false
     "and": TokenType.KW_AND,
     # call function:
@@ -177,17 +171,22 @@ keywords_mapping: dict[str, TokenType] = {
     "apply": TokenType.KW_CALL,
     # type indicator: set `a` as integer
     "as": TokenType.KW_AS,
+    # behavior for objects
+    "behavior": TokenType.KW_BEHAVIOR,
     # boolean:
     "Boolean": TokenType.KW_BOOL,
     # declare function: define a `sum` as function
     "define": TokenType.KW_DEFINE,
+    # details section for documentation
+    "details": TokenType.KW_DETAILS,
     # else statement
     "else": TokenType.KW_ELSE,
+    # empty collections (lists, dicts)
+    "empty": TokenType.KW_EMPTY,
     # boolean primitive: false
     "False": TokenType.LIT_FALSE,
     # float typing: set `a` as float | set `a` to float 3.14
     "Float": TokenType.KW_FLOAT,
-    "Floats": TokenType.KW_FLOATS,
     # range indicator: from 1 to 10
     "from": TokenType.KW_FROM,
     # if condition: if true
@@ -196,7 +195,8 @@ keywords_mapping: dict[str, TokenType] = {
     "whenever": TokenType.KW_IF,
     # integer typing: set `a` to integer 3
     "Integer": TokenType.KW_INT,
-    "Integers": TokenType.KW_INTS,
+    # interaction for objects
+    "interaction": TokenType.KW_INTERACTION,
     # equal comparator: if `x` is 0
     "is": TokenType.KW_IS,
     # Natural language comparison operators
@@ -220,13 +220,14 @@ keywords_mapping: dict[str, TokenType] = {
     "is less than or equal to": TokenType.OP_LTE,
     "is at most": TokenType.OP_LTE,
     "is no more than": TokenType.OP_LTE,
+    # list data type
+    "List": TokenType.KW_LIST,
     # logic not: not true
     "not": TokenType.KW_NEGATION,
     # null value
     "Nothing": TokenType.KW_NOTHING,
     # numbers
     "Number": TokenType.KW_NUMBER,
-    "Numbers": TokenType.KW_NUMBERS,
     # logic or: true or false
     "or": TokenType.KW_OR,
     # else statement
@@ -238,15 +239,15 @@ keywords_mapping: dict[str, TokenType] = {
     "rule": TokenType.KW_RULE,
     # declare variable: set `a` as integer.
     "Set": TokenType.KW_SET,
+    # summary section for documentation
+    "summary": TokenType.KW_SUMMARY,
     # classes' properties:
     # Define a blueprint called Person with these traits
     "take": TokenType.KW_TAKE,
-    "takes": TokenType.KW_TAKES,
     # Call actions
     "Tell": TokenType.KW_TELL,
     # text typing (string)
     "text": TokenType.KW_TEXT,
-    "texts": TokenType.KW_TEXTS,
     # separates if statement from block of code: `if true then return x`.
     "then": TokenType.KW_THEN,
     # range indicator: from 1 to 10
@@ -254,7 +255,6 @@ keywords_mapping: dict[str, TokenType] = {
     # classes properties:
     # Define a blueprint called Person with these traits
     "trait": TokenType.KW_TRAIT,
-    "traits": TokenType.KW_TRAITS,
     # boolean primitive: true
     "True": TokenType.LIT_TRUE,
     # parameters:
@@ -263,14 +263,22 @@ keywords_mapping: dict[str, TokenType] = {
     "with": TokenType.KW_WITH,
     # type indicators
     "URL": TokenType.KW_URL,
-    "URLs": TokenType.KW_URLS,
     "Date": TokenType.KW_DATE,
-    "Dates": TokenType.KW_DATES,
     "DateTime": TokenType.KW_DATETIME,
-    "DateTimes": TokenType.KW_DATETIMES,
     "Time": TokenType.KW_TIME,
-    "Times": TokenType.KW_TIMES,
     "DataType": TokenType.KW_DATATYPE,
+    # Plural forms map to singular token types
+    "actions": TokenType.KW_ACTION,
+    "Floats": TokenType.KW_FLOAT,
+    "Integers": TokenType.KW_INT,
+    "Numbers": TokenType.KW_NUMBER,
+    "takes": TokenType.KW_TAKE,
+    "texts": TokenType.KW_TEXT,
+    "traits": TokenType.KW_TRAIT,
+    "URLs": TokenType.KW_URL,
+    "Dates": TokenType.KW_DATE,
+    "DateTimes": TokenType.KW_DATETIME,
+    "Times": TokenType.KW_TIME,
 }
 
 

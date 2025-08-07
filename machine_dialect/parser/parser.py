@@ -774,6 +774,16 @@ class Parser:
 
             first_statement = False
 
+            # Check if this is an empty line (just '>' markers with nothing else)
+            # Also check for tokens that would indicate we've left the block
+            if self._current_token and self._current_token.type == TokenType.OP_GT:  # type: ignore[comparison-overlap]
+                continue  # Empty line with just '>', skip it
+            elif self._current_token and self._current_token.type in (
+                TokenType.MISC_EOF,
+                TokenType.KW_ELSE,  # 'else' would be outside the block
+            ):
+                break  # We've exited the block
+
             # Parse the statement
             statement = self._parse_statement()
             block.statements.append(statement)

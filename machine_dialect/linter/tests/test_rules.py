@@ -22,7 +22,7 @@ class TestStatementTerminationRule:
         rule = StatementTerminationRule()
 
         # Create a mock expression statement
-        token = Token(TokenType.LIT_INT, "42", line=1, position=0)
+        token = Token(TokenType.LIT_INT, "42", line=1, position=1)
         node = ExpressionStatement(token=token, expression=IntegerLiteral(token=token, value=42))
 
         # Create context with source that has a period
@@ -36,7 +36,7 @@ class TestStatementTerminationRule:
         rule = StatementTerminationRule()
 
         # Create a mock expression statement
-        token = Token(TokenType.LIT_INT, "42", line=1, position=0)
+        token = Token(TokenType.LIT_INT, "42", line=1, position=1)
         node = ExpressionStatement(token=token, expression=IntegerLiteral(token=token, value=42))
 
         # Create context with source that lacks a period (at EOF - valid)
@@ -58,7 +58,7 @@ class TestStatementTerminationRule:
         rule = StatementTerminationRule()
 
         # First statement in "42. 100"
-        token = Token(TokenType.LIT_INT, "42", line=1, position=0)
+        token = Token(TokenType.LIT_INT, "42", line=1, position=1)
         node = ExpressionStatement(token=token, expression=IntegerLiteral(token=token, value=42))
 
         context = Context("test.md", "42. 100")
@@ -71,7 +71,7 @@ class TestStatementTerminationRule:
         """Test statements with trailing whitespace."""
         rule = StatementTerminationRule()
 
-        token = Token(TokenType.LIT_INT, "42", line=1, position=0)
+        token = Token(TokenType.LIT_INT, "42", line=1, position=1)
         node = ExpressionStatement(token=token, expression=IntegerLiteral(token=token, value=42))
 
         # Test with trailing whitespace but no period (at EOF - valid)
@@ -85,7 +85,7 @@ class TestStatementTerminationRule:
         rule = StatementTerminationRule()
 
         # Test with a literal node (not a statement)
-        token = Token(TokenType.LIT_INT, "42", line=1, position=0)
+        token = Token(TokenType.LIT_INT, "42", line=1, position=1)
         node = IntegerLiteral(token=token, value=42)
 
         context = Context("test.md", "42")

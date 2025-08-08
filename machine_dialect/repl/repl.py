@@ -72,8 +72,17 @@ class REPL:
             displaying any lexical errors before showing the tokens.
         """
         try:
+            from machine_dialect.lexer.tokens import TokenType
+
             lexer = Lexer(input_text)
-            tokens = lexer.tokenize()
+
+            # Stream tokens
+            tokens = []
+            while True:
+                token = lexer.next_token()
+                tokens.append(token)
+                if token.type == TokenType.MISC_EOF:
+                    break
 
             print(f"\nTokens ({len(tokens)}):")
             print("-" * 50)

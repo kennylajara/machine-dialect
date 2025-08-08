@@ -82,8 +82,8 @@ class TestParseErrors:
         assert len(parser.errors) == 1
         error = parser.errors[0]
 
-        # The * should be at column 3 (0-indexed)
-        assert "column 3" in str(error)
+        # The * should be at column 4 (1-indexed)
+        assert "column 4" in str(error)
         assert "line 1" in str(error)
 
     def test_valid_expression_no_errors(self) -> None:

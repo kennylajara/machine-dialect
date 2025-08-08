@@ -1,4 +1,5 @@
 from machine_dialect.lexer.lexer import Lexer
+from machine_dialect.lexer.tests.helpers import collect_all_tokens
 from machine_dialect.lexer.tokens import Token, TokenType
 
 
@@ -7,13 +8,13 @@ class TestLexerPosition:
         """Test that tokens on a single line have correct positions."""
         source = "Set x = 42"
         lexer = Lexer(source)
-        tokens = lexer.tokenize()
+        tokens = collect_all_tokens(lexer)
 
         expected = [
-            Token(TokenType.KW_SET, "Set", line=1, position=0),
-            Token(TokenType.MISC_IDENT, "x", line=1, position=4),
-            Token(TokenType.OP_ASSIGN, "=", line=1, position=6),
-            Token(TokenType.LIT_INT, "42", line=1, position=8),
+            Token(TokenType.KW_SET, "Set", line=1, position=1),
+            Token(TokenType.MISC_IDENT, "x", line=1, position=5),
+            Token(TokenType.OP_ASSIGN, "=", line=1, position=7),
+            Token(TokenType.LIT_INT, "42", line=1, position=9),
         ]
 
         assert tokens == expected
@@ -26,17 +27,17 @@ else
     gives back 0"""
 
         lexer = Lexer(source)
-        tokens = lexer.tokenize()
+        tokens = collect_all_tokens(lexer)
 
         expected = [
-            Token(TokenType.KW_IF, "if", line=1, position=0),
-            Token(TokenType.LIT_TRUE, "True", line=1, position=3),
-            Token(TokenType.KW_THEN, "then", line=1, position=8),
-            Token(TokenType.KW_RETURN, "give back", line=2, position=4),
-            Token(TokenType.LIT_INT, "42", line=2, position=14),
-            Token(TokenType.KW_ELSE, "else", line=3, position=0),
-            Token(TokenType.KW_RETURN, "gives back", line=4, position=4),
-            Token(TokenType.LIT_INT, "0", line=4, position=15),
+            Token(TokenType.KW_IF, "if", line=1, position=1),
+            Token(TokenType.LIT_TRUE, "True", line=1, position=4),
+            Token(TokenType.KW_THEN, "then", line=1, position=9),
+            Token(TokenType.KW_RETURN, "give back", line=2, position=5),
+            Token(TokenType.LIT_INT, "42", line=2, position=15),
+            Token(TokenType.KW_ELSE, "else", line=3, position=1),
+            Token(TokenType.KW_RETURN, "gives back", line=4, position=5),
+            Token(TokenType.LIT_INT, "0", line=4, position=16),
         ]
 
         assert tokens == expected
@@ -45,13 +46,13 @@ else
         """Test that string literals maintain correct position."""
         source = 'Set msg = "hello world"'
         lexer = Lexer(source)
-        tokens = lexer.tokenize()
+        tokens = collect_all_tokens(lexer)
 
         expected = [
-            Token(TokenType.KW_SET, "Set", line=1, position=0),
-            Token(TokenType.MISC_IDENT, "msg", line=1, position=4),
-            Token(TokenType.OP_ASSIGN, "=", line=1, position=8),
-            Token(TokenType.LIT_TEXT, '"hello world"', line=1, position=10),
+            Token(TokenType.KW_SET, "Set", line=1, position=1),
+            Token(TokenType.MISC_IDENT, "msg", line=1, position=5),
+            Token(TokenType.OP_ASSIGN, "=", line=1, position=9),
+            Token(TokenType.LIT_TEXT, '"hello world"', line=1, position=11),
         ]
 
         assert tokens == expected
@@ -63,17 +64,17 @@ else
 Set y = 2"""
 
         lexer = Lexer(source)
-        tokens = lexer.tokenize()
+        tokens = collect_all_tokens(lexer)
 
         expected = [
-            Token(TokenType.KW_SET, "Set", line=1, position=0),
-            Token(TokenType.MISC_IDENT, "x", line=1, position=4),
-            Token(TokenType.OP_ASSIGN, "=", line=1, position=6),
-            Token(TokenType.LIT_INT, "1", line=1, position=8),
-            Token(TokenType.KW_SET, "Set", line=3, position=0),
-            Token(TokenType.MISC_IDENT, "y", line=3, position=4),
-            Token(TokenType.OP_ASSIGN, "=", line=3, position=6),
-            Token(TokenType.LIT_INT, "2", line=3, position=8),
+            Token(TokenType.KW_SET, "Set", line=1, position=1),
+            Token(TokenType.MISC_IDENT, "x", line=1, position=5),
+            Token(TokenType.OP_ASSIGN, "=", line=1, position=7),
+            Token(TokenType.LIT_INT, "1", line=1, position=9),
+            Token(TokenType.KW_SET, "Set", line=3, position=1),
+            Token(TokenType.MISC_IDENT, "y", line=3, position=5),
+            Token(TokenType.OP_ASSIGN, "=", line=3, position=7),
+            Token(TokenType.LIT_INT, "2", line=3, position=9),
         ]
 
         assert tokens == expected
@@ -82,14 +83,14 @@ Set y = 2"""
         """Test position tracking with tabs."""
         source = "Set\tx\t=\t42"
         lexer = Lexer(source)
-        tokens = lexer.tokenize()
+        tokens = collect_all_tokens(lexer)
 
         # Tabs count as single characters for position
         expected = [
-            Token(TokenType.KW_SET, "Set", line=1, position=0),
-            Token(TokenType.MISC_IDENT, "x", line=1, position=4),
-            Token(TokenType.OP_ASSIGN, "=", line=1, position=6),
-            Token(TokenType.LIT_INT, "42", line=1, position=8),
+            Token(TokenType.KW_SET, "Set", line=1, position=1),
+            Token(TokenType.MISC_IDENT, "x", line=1, position=5),
+            Token(TokenType.OP_ASSIGN, "=", line=1, position=7),
+            Token(TokenType.LIT_INT, "42", line=1, position=9),
         ]
 
         assert tokens == expected
@@ -98,15 +99,15 @@ Set y = 2"""
         """Test that illegal characters have correct position."""
         source = "Set x = @"
         lexer = Lexer(source)
-        tokens = lexer.tokenize()
+        tokens = collect_all_tokens(lexer)
 
         # Lexer no longer reports errors (parser will handle them)
 
         expected = [
-            Token(TokenType.KW_SET, "Set", line=1, position=0),
-            Token(TokenType.MISC_IDENT, "x", line=1, position=4),
-            Token(TokenType.OP_ASSIGN, "=", line=1, position=6),
-            Token(TokenType.MISC_ILLEGAL, "@", line=1, position=8),
+            Token(TokenType.KW_SET, "Set", line=1, position=1),
+            Token(TokenType.MISC_IDENT, "x", line=1, position=5),
+            Token(TokenType.OP_ASSIGN, "=", line=1, position=7),
+            Token(TokenType.MISC_ILLEGAL, "@", line=1, position=9),
         ]
 
         assert tokens == expected

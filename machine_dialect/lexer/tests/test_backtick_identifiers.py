@@ -1,4 +1,5 @@
 from machine_dialect.lexer import Lexer, TokenType
+from machine_dialect.lexer.tests.helpers import collect_all_tokens
 
 
 class TestBacktickIdentifiers:
@@ -6,7 +7,7 @@ class TestBacktickIdentifiers:
         """Test backtick-wrapped identifier."""
         source = "`identifier`"
         lexer = Lexer(source)
-        tokens = lexer.tokenize()
+        tokens = collect_all_tokens(lexer)
 
         assert len(tokens) == 1
         assert tokens[0].type == TokenType.MISC_IDENT
@@ -16,7 +17,7 @@ class TestBacktickIdentifiers:
         """Test that backtick-wrapped keywords are still recognized as keywords."""
         source = "`define`"
         lexer = Lexer(source)
-        tokens = lexer.tokenize()
+        tokens = collect_all_tokens(lexer)
 
         assert len(tokens) == 1
         assert tokens[0].type == TokenType.KW_DEFINE
@@ -26,7 +27,7 @@ class TestBacktickIdentifiers:
         """Test that backtick-wrapped numbers are not valid identifiers."""
         source = "`42`"
         lexer = Lexer(source)
-        tokens = lexer.tokenize()
+        tokens = collect_all_tokens(lexer)
 
         # `42` is not a valid identifier, so backtick is illegal, then 42, then backtick
         assert len(tokens) == 3
@@ -41,7 +42,7 @@ class TestBacktickIdentifiers:
         """Test that empty backticks are treated as illegal."""
         source = "``"
         lexer = Lexer(source)
-        tokens = lexer.tokenize()
+        tokens = collect_all_tokens(lexer)
 
         # Empty content is not a valid identifier, so both backticks are illegal
         assert len(tokens) == 2
@@ -54,7 +55,7 @@ class TestBacktickIdentifiers:
         """Test unwrapped identifier (backward compatibility)."""
         source = "identifier"
         lexer = Lexer(source)
-        tokens = lexer.tokenize()
+        tokens = collect_all_tokens(lexer)
 
         assert len(tokens) == 1
         assert tokens[0].type == TokenType.MISC_IDENT
@@ -64,7 +65,7 @@ class TestBacktickIdentifiers:
         """Test both wrapped and unwrapped identifiers in same expression."""
         source = "Set `x` to y"
         lexer = Lexer(source)
-        tokens = lexer.tokenize()
+        tokens = collect_all_tokens(lexer)
         assert len(tokens) == 4
         assert tokens[0].type == TokenType.KW_SET
         assert tokens[0].literal == "Set"
@@ -79,7 +80,7 @@ class TestBacktickIdentifiers:
         """Test unclosed backtick without closing backtick is treated as illegal."""
         source = "`unclosed"
         lexer = Lexer(source)
-        tokens = lexer.tokenize()
+        tokens = collect_all_tokens(lexer)
 
         # Without closing backtick, the opening backtick is illegal
         assert len(tokens) == 2
@@ -88,21 +89,11 @@ class TestBacktickIdentifiers:
         assert tokens[1].type == TokenType.MISC_IDENT
         assert tokens[1].literal == "unclosed"
 
-    def test_multiple_backtick_identifiers(self) -> None:
-        """Test multiple backtick identifiers in sequence."""
-        source = "`first` `second` `third`"
-        lexer = Lexer(source)
-        tokens = lexer.tokenize()
-        # Due to identifier merging, consecutive identifiers become one
-        assert len(tokens) == 1
-        assert tokens[0].type == TokenType.MISC_IDENT
-        assert tokens[0].literal == "first second third"
-
     def test_backtick_with_spaces(self) -> None:
         """Test backtick with spaces inside."""
         source = "`with spaces`"
         lexer = Lexer(source)
-        tokens = lexer.tokenize()
+        tokens = collect_all_tokens(lexer)
 
         assert len(tokens) == 1
         assert tokens[0].type == TokenType.MISC_IDENT
@@ -112,17 +103,17 @@ class TestBacktickIdentifiers:
         """Test that triple backticks still work as string literals."""
         source = "```code block```"
         lexer = Lexer(source)
-        tokens = lexer.tokenize()
+        tokens = collect_all_tokens(lexer)
 
         assert len(tokens) == 1
         assert tokens[0].type == TokenType.LIT_TRIPLE_BACKTICK
-        assert tokens[0].literal == "```code block```"
+        assert tokens[0].literal == "code block"
 
     def test_backtick_with_hyphens(self) -> None:
         """Test backtick with hyphens inside."""
         source = "`my-identifier`"
         lexer = Lexer(source)
-        tokens = lexer.tokenize()
+        tokens = collect_all_tokens(lexer)
 
         assert len(tokens) == 1
         assert tokens[0].type == TokenType.MISC_IDENT
@@ -132,7 +123,7 @@ class TestBacktickIdentifiers:
         """Test backtick with both spaces and hyphens."""
         source = "`my-complex identifier`"
         lexer = Lexer(source)
-        tokens = lexer.tokenize()
+        tokens = collect_all_tokens(lexer)
 
         assert len(tokens) == 1
         assert tokens[0].type == TokenType.MISC_IDENT

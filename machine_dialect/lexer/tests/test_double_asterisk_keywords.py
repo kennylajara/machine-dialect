@@ -1,4 +1,5 @@
 from machine_dialect.lexer import Lexer, TokenType
+from machine_dialect.lexer.tests.helpers import collect_all_tokens
 
 
 class TestDoubleAsteriskKeywords:
@@ -6,7 +7,7 @@ class TestDoubleAsteriskKeywords:
         """Test double-asterisk-wrapped keyword 'define'."""
         source = "**define**"
         lexer = Lexer(source)
-        tokens = lexer.tokenize()
+        tokens = collect_all_tokens(lexer)
         assert len(tokens) == 1
         assert tokens[0].type == TokenType.KW_DEFINE
         assert tokens[0].literal == "define"
@@ -15,7 +16,7 @@ class TestDoubleAsteriskKeywords:
         """Test double-asterisk-wrapped keyword 'rule'."""
         source = "**rule**"
         lexer = Lexer(source)
-        tokens = lexer.tokenize()
+        tokens = collect_all_tokens(lexer)
         assert len(tokens) == 1
         assert tokens[0].type == TokenType.KW_RULE
         assert tokens[0].literal == "rule"
@@ -24,7 +25,7 @@ class TestDoubleAsteriskKeywords:
         """Test double-asterisk-wrapped keyword 'Set'."""
         source = "**Set**"
         lexer = Lexer(source)
-        tokens = lexer.tokenize()
+        tokens = collect_all_tokens(lexer)
         assert len(tokens) == 1
         assert tokens[0].type == TokenType.KW_SET
         assert tokens[0].literal == "Set"
@@ -33,7 +34,7 @@ class TestDoubleAsteriskKeywords:
         """Test double-asterisk-wrapped multi-word keyword."""
         source = "**give back**"
         lexer = Lexer(source)
-        tokens = lexer.tokenize()
+        tokens = collect_all_tokens(lexer)
         assert len(tokens) == 1
         assert tokens[0].type == TokenType.KW_RETURN
         assert tokens[0].literal == "give back"
@@ -42,7 +43,7 @@ class TestDoubleAsteriskKeywords:
         """Test unwrapped keyword (backward compatibility)."""
         source = "define"
         lexer = Lexer(source)
-        tokens = lexer.tokenize()
+        tokens = collect_all_tokens(lexer)
         assert len(tokens) == 1
         assert tokens[0].type == TokenType.KW_DEFINE
         assert tokens[0].literal == "define"
@@ -51,7 +52,7 @@ class TestDoubleAsteriskKeywords:
         """Test incomplete wrapped keyword (missing closing asterisks)."""
         source = "**define"
         lexer = Lexer(source)
-        tokens = lexer.tokenize()
+        tokens = collect_all_tokens(lexer)
         assert len(tokens) == 2
         assert tokens[0].type == TokenType.OP_TWO_STARS
         assert tokens[0].literal == "**"
@@ -62,7 +63,7 @@ class TestDoubleAsteriskKeywords:
         """Test non-keyword wrapped in double asterisks."""
         source = "**notakeyword**"
         lexer = Lexer(source)
-        tokens = lexer.tokenize()
+        tokens = collect_all_tokens(lexer)
         assert len(tokens) == 3
         assert tokens[0].type == TokenType.OP_TWO_STARS
         assert tokens[0].literal == "**"
@@ -75,7 +76,7 @@ class TestDoubleAsteriskKeywords:
         """Test both wrapped and unwrapped keywords in same expression."""
         source = "**define** a rule that takes"
         lexer = Lexer(source)
-        tokens = lexer.tokenize()
+        tokens = collect_all_tokens(lexer)
         assert len(tokens) == 5
         assert tokens[0].type == TokenType.KW_DEFINE
         assert tokens[0].literal == "define"
@@ -90,7 +91,7 @@ class TestDoubleAsteriskKeywords:
         """Test that ** operator still works correctly."""
         source = "2 ** 3"
         lexer = Lexer(source)
-        tokens = lexer.tokenize()
+        tokens = collect_all_tokens(lexer)
         assert len(tokens) == 3
         assert tokens[0].type == TokenType.LIT_INT
         assert tokens[0].literal == "2"
@@ -103,7 +104,7 @@ class TestDoubleAsteriskKeywords:
         """Test stopword wrapped in double asterisks (should not be recognized as keyword)."""
         source = "**the**"
         lexer = Lexer(source)
-        tokens = lexer.tokenize()
+        tokens = collect_all_tokens(lexer)
         assert len(tokens) == 3
         assert tokens[0].type == TokenType.OP_TWO_STARS
         assert tokens[0].literal == "**"
@@ -116,7 +117,7 @@ class TestDoubleAsteriskKeywords:
         """Test boolean literals wrapped in double asterisks (should not be recognized as keyword)."""
         source = "**True**"
         lexer = Lexer(source)
-        tokens = lexer.tokenize()
+        tokens = collect_all_tokens(lexer)
         assert len(tokens) == 3
         assert tokens[0].type == TokenType.OP_TWO_STARS
         assert tokens[0].literal == "**"

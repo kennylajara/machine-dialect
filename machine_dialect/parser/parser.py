@@ -1,3 +1,5 @@
+from collections.abc import Callable
+
 from machine_dialect.ast import (
     BlockStatement,
     BooleanLiteral,
@@ -36,6 +38,7 @@ from machine_dialect.parser.protocols import (
     PostfixParseFuncs,
     PrefixParseFuncs,
 )
+from machine_dialect.parser.token_buffer import TokenBuffer
 
 PRECEDENCES: dict[TokenType, Precedence] = {
     # Ternary conditional
@@ -74,9 +77,8 @@ class Parser:
         """Initialize the parser."""
         self._current_token: Token | None = None
         self._peek_token: Token | None = None
-        self._tokens: list[Token] = []
+        self._token_buffer: TokenBuffer | None = None
         self._errors: list[MDBaseException] = []
-        self._token_index = 0
         self._panic_count = 0  # Track panic-mode recoveries
         self._block_depth = 0  # Track if we're inside block statements
 
@@ -101,9 +103,9 @@ class Parser:
         # Reset parser state for new parse
         self._reset_state()
 
-        # Create lexer and tokenize
+        # Create lexer and token buffer for streaming
         lexer = Lexer(source)
-        self._tokens = lexer.tokenize()
+        self._token_buffer = TokenBuffer(lexer)
 
         # Initialize token pointers
         self._advance_tokens()
@@ -121,7 +123,15 @@ class Parser:
 
             statement = self._parse_statement()
             program.statements.append(statement)
-            self._advance_tokens()
+
+            # Check if we need to advance
+            # If statements with blocks leave the cursor at the next statement
+            # Other statements leave the cursor at or after their terminator (period)
+            # We should only advance if we're not already at a statement start
+            stmt_token_types = list(self._register_statement_functions())
+            stmt_token_types.append(TokenType.MISC_EOF)
+            if self._current_token and self._current_token.type not in stmt_token_types:
+                self._advance_tokens()
 
         return program
 
@@ -129,9 +139,8 @@ class Parser:
         """Reset the parser state for a new parse."""
         self._current_token = None
         self._peek_token = None
-        self._tokens = []
+        self._token_buffer = None
         self._errors = []
-        self._token_index = 0
         self._panic_count = 0
         self._block_depth = 0
 
@@ -160,22 +169,26 @@ class Parser:
         """Advance to the next token in the stream.
 
         Moves the peek token to current token and reads the next token
-        into peek token. If no more tokens are available, sets peek token
-        to EOF. Automatically skips MISC_STOPWORD tokens.
+        into peek token from the buffer. Automatically skips MISC_STOPWORD tokens.
         """
         self._current_token = self._peek_token
 
         # Skip any stopword tokens
-        while self._token_index < len(self._tokens):
-            self._peek_token = self._tokens[self._token_index]
-            self._token_index += 1
+        if self._token_buffer:
+            while True:
+                self._peek_token = self._token_buffer.current()
+                if self._peek_token is None:
+                    self._peek_token = Token(TokenType.MISC_EOF, "", line=1, position=1)
+                    break
 
-            # If it's not a stopword, we're done
-            if self._peek_token.type != TokenType.MISC_STOPWORD:
-                break
+                self._token_buffer.advance()
+
+                # If it's not a stopword, we're done
+                if self._peek_token.type != TokenType.MISC_STOPWORD:
+                    break
         else:
-            # No more tokens available
-            self._peek_token = Token(TokenType.MISC_EOF, "", line=1, position=0)
+            # No buffer available
+            self._peek_token = Token(TokenType.MISC_EOF, "", line=1, position=1)
 
     def _expected_token(self, token_type: TokenType) -> bool:
         """Check if the next token matches the expected type and consume it.
@@ -728,11 +741,9 @@ class Parser:
                 # We're at a '>' that was part of the block, don't rewind
                 pass
             elif self._current_token and self._current_token.type != TokenType.MISC_EOF:
-                # Normal case: back up one token so main parse loop positions correctly
-                self._token_index -= 1
-                self._peek_token = self._current_token
-                if self._token_index > 0:
-                    self._current_token = self._tokens[self._token_index - 1]
+                # With streaming, we can't back up tokens
+                # The block parsing should have left us in the right position
+                pass
 
         return if_statement
 
@@ -754,6 +765,10 @@ class Parser:
         # Track that we're entering a block
         self._block_depth += 1
 
+        # Tell the token buffer we're in a block
+        if self._token_buffer:
+            self._token_buffer.set_block_context(True)
+
         # If we're at a colon, it's the start of a block - advance past it
         if self._current_token.type == TokenType.PUNCT_COLON:
             self._advance_tokens()
@@ -761,9 +776,7 @@ class Parser:
         # Parse statements in the block
         first_statement = True
         while self._current_token and self._current_token.type != TokenType.MISC_EOF:
-            if not first_statement:
-                # For non-first statements, save position in case we need to restore
-                start_pos = self._token_index - 1
+            # Note: With streaming tokens, we can't save/restore positions
 
             # Count the depth at the start of the current line
             current_depth = 0
@@ -804,9 +817,8 @@ class Parser:
                         break
                     else:
                         # Not empty - there's content after the '>'
-                        # Back up so parent can reprocess this line
-                        self._token_index = start_pos
-                        self._advance_tokens()
+                        # With streaming, we can't back up - the tokens are already consumed
+                        # This means nested blocks need special handling
                         break
                 elif current_depth > block.depth:
                     # Nested block or error - for now treat as error
@@ -849,6 +861,11 @@ class Parser:
 
         # Track that we're exiting a block
         self._block_depth -= 1
+
+        # Tell the token buffer we're no longer in a block
+        if self._token_buffer:
+            self._token_buffer.set_block_context(self._block_depth > 0)
+
         return block
 
     def _parse_statement(self) -> Statement:
@@ -862,12 +879,9 @@ class Parser:
         """
         assert self._current_token is not None
 
-        if self._current_token.type == TokenType.KW_SET:
-            return self._parse_let_statement()
-        elif self._current_token.type == TokenType.KW_RETURN:
-            return self._parse_return_statement()
-        elif self._current_token.type == TokenType.KW_IF:
-            return self._parse_if_statement()
+        stmt_funcs = self._register_statement_functions()
+        if self._current_token.type in stmt_funcs:
+            return stmt_funcs[self._current_token.type]()
         else:
             return self._parse_expression_statement()
 
@@ -984,3 +998,11 @@ class Parser:
             }
         """
         return {}
+
+    def _register_statement_functions(self) -> dict[TokenType, Callable[[], Statement]]:
+        """Register statement parsing functions for each token type."""
+        return {
+            TokenType.KW_SET: self._parse_let_statement,
+            TokenType.KW_RETURN: self._parse_return_statement,
+            TokenType.KW_IF: self._parse_if_statement,
+        }

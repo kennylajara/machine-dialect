@@ -21,7 +21,14 @@ for input_text in test_inputs:
     print("-" * 60)
 
     lexer = Lexer(input_text)
-    tokens = lexer.tokenize()
+
+    # Stream tokens and collect them
+    tokens = []
+    while True:
+        token = lexer.next_token()
+        tokens.append(token)
+        if token.type.name == "MISC_EOF":
+            break
 
     print(f"Tokens ({len(tokens)}):")
     for token in tokens:

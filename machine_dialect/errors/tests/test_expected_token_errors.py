@@ -100,7 +100,7 @@ Set to "hello".
         assert hasattr(error, "_line")
         assert hasattr(error, "_column")
         assert error._line == 1
-        assert error._column == 4  # Points to '42'
+        assert error._column == 5  # Points to '42'
 
     def test_error_message_content(self) -> None:
         """Test that error messages contain helpful information."""

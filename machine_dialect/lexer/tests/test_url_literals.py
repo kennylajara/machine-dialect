@@ -1,4 +1,5 @@
 from machine_dialect.lexer import Lexer, Token, TokenType
+from machine_dialect.lexer.tests.helpers import collect_all_tokens
 
 
 class TestURLLiterals:
@@ -14,7 +15,7 @@ class TestURLLiterals:
             The list of tokens.
         """
         lexer = Lexer(source)
-        tokens = lexer.tokenize()
+        tokens = collect_all_tokens(lexer)
         return tokens
 
     def test_http_url_detection(self) -> None:

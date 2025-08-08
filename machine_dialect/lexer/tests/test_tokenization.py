@@ -60,12 +60,10 @@ class TestLexer:
             ("if", [Token(TokenType.KW_IF, "if", line=1, position=1)]),
             ("else", [Token(TokenType.KW_ELSE, "else", line=1, position=1)]),
             ("define", [Token(TokenType.KW_DEFINE, "define", line=1, position=1)]),
-            ("details", [Token(TokenType.KW_DETAILS, "details", line=1, position=1)]),
             ("empty", [Token(TokenType.KW_EMPTY, "empty", line=1, position=1)]),
             ("entrypoint", [Token(TokenType.KW_ENTRYPOINT, "entrypoint", line=1, position=1)]),
             ("filter", [Token(TokenType.KW_FILTER, "filter", line=1, position=1)]),
             ("prompt", [Token(TokenType.KW_PROMPT, "prompt", line=1, position=1)]),
-            ("summary", [Token(TokenType.KW_SUMMARY, "summary", line=1, position=1)]),
             ("template", [Token(TokenType.KW_TEMPLATE, "template", line=1, position=1)]),
             ("give back", [Token(TokenType.KW_RETURN, "give back", line=1, position=1)]),
             ("gives back", [Token(TokenType.KW_RETURN, "gives back", line=1, position=1)]),
@@ -212,5 +210,60 @@ class TestLexer:
         ],
     )
     def test_lexer_tokenization(self, input_text: str, expected_tokens: list[Token]) -> None:
+        lexer = Lexer(input_text)
+        stream_and_assert_tokens(lexer, expected_tokens)
+
+    @pytest.mark.parametrize(
+        "input_text, expected_tokens",
+        [
+            # Basic tag tokens
+            ("<summary>", [Token(TokenType.TAG_SUMMARY_START, "<summary>", line=1, position=1)]),
+            ("</summary>", [Token(TokenType.TAG_SUMMARY_END, "</summary>", line=1, position=1)]),
+            ("<details>", [Token(TokenType.TAG_DETAILS_START, "<details>", line=1, position=1)]),
+            ("</details>", [Token(TokenType.TAG_DETAILS_END, "</details>", line=1, position=1)]),
+            # Case insensitive
+            ("<SUMMARY>", [Token(TokenType.TAG_SUMMARY_START, "<summary>", line=1, position=1)]),
+            ("</Summary>", [Token(TokenType.TAG_SUMMARY_END, "</summary>", line=1, position=1)]),
+            ("<DETAILS>", [Token(TokenType.TAG_DETAILS_START, "<details>", line=1, position=1)]),
+            ("</Details>", [Token(TokenType.TAG_DETAILS_END, "</details>", line=1, position=1)]),
+            # Mixed case
+            ("<SuMmArY>", [Token(TokenType.TAG_SUMMARY_START, "<summary>", line=1, position=1)]),
+            ("</DeTaIlS>", [Token(TokenType.TAG_DETAILS_END, "</details>", line=1, position=1)]),
+            # Tags with content
+            (
+                "<summary>This is a summary</summary>",
+                [
+                    Token(TokenType.TAG_SUMMARY_START, "<summary>", line=1, position=1),
+                    Token(TokenType.MISC_STOPWORD, "This", line=1, position=10),
+                    Token(TokenType.KW_IS, "is", line=1, position=15),
+                    Token(TokenType.MISC_STOPWORD, "a", line=1, position=18),
+                    Token(TokenType.MISC_IDENT, "summary", line=1, position=20),
+                    Token(TokenType.TAG_SUMMARY_END, "</summary>", line=1, position=27),
+                ],
+            ),
+            # Now "summary" and "details" as words should be identifiers
+            ("summary", [Token(TokenType.MISC_IDENT, "summary", line=1, position=1)]),
+            ("details", [Token(TokenType.MISC_IDENT, "details", line=1, position=1)]),
+            # Invalid tags should not be recognized as tags
+            (
+                "<invalid>",
+                [
+                    Token(TokenType.OP_LT, "<", line=1, position=1),
+                    Token(TokenType.MISC_IDENT, "invalid", line=1, position=2),
+                    Token(TokenType.OP_GT, ">", line=1, position=9),
+                ],
+            ),
+            # Less than operator should still work
+            (
+                "x < 5",
+                [
+                    Token(TokenType.MISC_IDENT, "x", line=1, position=1),
+                    Token(TokenType.OP_LT, "<", line=1, position=3),
+                    Token(TokenType.LIT_INT, "5", line=1, position=5),
+                ],
+            ),
+        ],
+    )
+    def test_tag_tokens(self, input_text: str, expected_tokens: list[Token]) -> None:
         lexer = Lexer(input_text)
         stream_and_assert_tokens(lexer, expected_tokens)

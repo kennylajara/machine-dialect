@@ -17,6 +17,7 @@ class TokenMetaType(Enum):
     LIT = "literal"
     MISC = "misc"
     KW = "keyword"
+    TAG = "tag"
 
 
 @unique
@@ -75,7 +76,6 @@ class TokenType(Enum):
     KW_DATE = auto()
     KW_DATETIME = auto()
     KW_DEFINE = auto()
-    KW_DETAILS = auto()
     KW_ELSE = auto()
     KW_EMPTY = auto()
     KW_ENTRYPOINT = auto()
@@ -95,7 +95,6 @@ class TokenType(Enum):
     KW_RETURN = auto()
     KW_RULE = auto()
     KW_SET = auto()
-    KW_SUMMARY = auto()
     KW_TAKE = auto()
     KW_TELL = auto()
     KW_TEMPLATE = auto()
@@ -106,6 +105,12 @@ class TokenType(Enum):
     KW_TRAIT = auto()
     KW_URL = auto()
     KW_WITH = auto()
+
+    # Tags
+    TAG_SUMMARY_START = auto()
+    TAG_SUMMARY_END = auto()
+    TAG_DETAILS_START = auto()
+    TAG_DETAILS_END = auto()
 
     @property
     def meta_type(self) -> TokenMetaType:
@@ -120,6 +125,8 @@ class TokenType(Enum):
             return TokenMetaType.LIT
         if name_str.startswith("OP_"):
             return TokenMetaType.OP
+        if name_str.startswith("TAG_"):
+            return TokenMetaType.TAG
 
         return TokenMetaType.MISC
 
@@ -181,8 +188,6 @@ keywords_mapping: dict[str, TokenType] = {
     "Boolean": TokenType.KW_BOOL,
     # declare function: define a `sum` as function
     "define": TokenType.KW_DEFINE,
-    # details section for documentation
-    "details": TokenType.KW_DETAILS,
     # else statement
     "else": TokenType.KW_ELSE,
     # empty collections (lists, dicts)
@@ -249,8 +254,6 @@ keywords_mapping: dict[str, TokenType] = {
     "rule": TokenType.KW_RULE,
     # declare variable: set `a` as integer.
     "Set": TokenType.KW_SET,
-    # summary section for documentation
-    "summary": TokenType.KW_SUMMARY,
     # classes' properties:
     # Define a blueprint called Person with these traits
     "take": TokenType.KW_TAKE,
@@ -295,6 +298,34 @@ keywords_mapping: dict[str, TokenType] = {
 
 
 lowercase_keywords_mapping: dict[str, str] = {key.lower(): key for key in keywords_mapping}
+
+
+# Tag tokens mapping (case-insensitive)
+TAG_TOKENS: dict[str, TokenType] = {
+    "<summary>": TokenType.TAG_SUMMARY_START,
+    "</summary>": TokenType.TAG_SUMMARY_END,
+    "<details>": TokenType.TAG_DETAILS_START,
+    "</details>": TokenType.TAG_DETAILS_END,
+}
+
+
+def lookup_tag_token(literal: str) -> tuple[TokenType | None, str]:
+    """Lookup a tag token from the literal.
+
+    Args:
+        literal: The tag literal to lookup (e.g., '<summary>', '</details>')
+
+    Returns:
+        Tuple of (TokenType, canonical_literal) if found, (None, literal) otherwise.
+        Canonical form is always lowercase.
+    """
+    # Convert to lowercase for case-insensitive comparison
+    lowercase_literal = literal.lower()
+
+    if lowercase_literal in TAG_TOKENS:
+        return TAG_TOKENS[lowercase_literal], lowercase_literal
+
+    return None, literal
 
 
 def lookup_token_type(literal: str) -> tuple[TokenType, str]:

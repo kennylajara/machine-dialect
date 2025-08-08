@@ -6,7 +6,7 @@ instead of all at once, enabling memory-efficient parsing of large files.
 
 from machine_dialect.helpers.validators import is_valid_url
 from machine_dialect.lexer.constants import CHAR_TO_TOKEN_MAP
-from machine_dialect.lexer.tokens import Token, TokenType, lookup_token_type
+from machine_dialect.lexer.tokens import Token, TokenType, lookup_tag_token, lookup_token_type
 
 
 class Lexer:
@@ -342,6 +342,64 @@ class Lexer:
         self.current_char = self.source[self.position] if self.position < len(self.source) else None
         return None
 
+    def read_tag_token(self) -> tuple[str, TokenType, int, int] | None:
+        """Read a tag token like <summary>, </summary>, <details>, </details>.
+
+        Returns:
+            Tuple of (literal, token_type, line, column) or None if not a valid tag.
+        """
+        start_pos = self.position
+        start_line = self.line
+        start_column = self.column
+
+        # Must start with '<'
+        if self.current_char != "<":
+            return None
+
+        self.advance()  # Skip '<'
+
+        # Check for closing tag
+        is_closing = False
+        if self.current_char == "/":
+            is_closing = True
+            self.advance()  # Skip '/'
+
+        # Read the tag name
+        tag_name_start = self.position
+        while self.current_char and self.current_char.isalpha():
+            self.advance()
+
+        tag_name = self.source[tag_name_start : self.position]
+
+        # Must end with '>'
+        if self.current_char != ">":
+            # Not a valid tag, restore position
+            self.position = start_pos
+            self.line = start_line
+            self.column = start_column
+            self.current_char = self.source[self.position] if self.position < len(self.source) else None
+            return None
+
+        self.advance()  # Skip '>'
+
+        # Construct the full tag literal
+        if is_closing:
+            tag_literal = f"</{tag_name}>"
+        else:
+            tag_literal = f"<{tag_name}>"
+
+        # Check if it's a valid tag token
+        token_type, canonical_literal = lookup_tag_token(tag_literal)
+        if token_type:
+            return canonical_literal, token_type, start_line, start_column
+
+        # Not a recognized tag, restore position
+        self.position = start_pos
+        self.line = start_line
+        self.column = start_column
+        self.current_char = self.source[self.position] if self.position < len(self.source) else None
+        return None
+
     def read_underscore_literal(self) -> tuple[str, TokenType, int, int] | None:
         """Read an underscore-wrapped literal.
 
@@ -458,6 +516,13 @@ class Lexer:
         # Save position for token
         token_line = self.line
         token_column = self.column
+
+        # Check for tag tokens (<summary>, </summary>, <details>, </details>)
+        if self.current_char == "<":
+            tag_result = self.read_tag_token()
+            if tag_result:
+                literal, token_type, line, pos = tag_result
+                return Token(token_type, literal, line, pos)
 
         # Check for underscore-wrapped literals
         if self.current_char == "_":

@@ -234,10 +234,7 @@ class TestLexer:
                 "<summary>This is a summary</summary>",
                 [
                     Token(TokenType.TAG_SUMMARY_START, "<summary>", line=1, position=1),
-                    Token(TokenType.MISC_STOPWORD, "This", line=1, position=10),
-                    Token(TokenType.KW_IS, "is", line=1, position=15),
-                    Token(TokenType.MISC_STOPWORD, "a", line=1, position=18),
-                    Token(TokenType.MISC_IDENT, "summary", line=1, position=20),
+                    Token(TokenType.MISC_COMMENT, "This is a summary", line=1, position=10),
                     Token(TokenType.TAG_SUMMARY_END, "</summary>", line=1, position=27),
                 ],
             ),

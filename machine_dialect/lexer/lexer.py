@@ -26,6 +26,7 @@ class Lexer:
         self.line = 1
         self.column = 1
         self.current_char: str | None = self.source[0] if source else None
+        self.in_summary_comment = False
 
     def advance(self) -> None:
         """Move to the next character in the source."""
@@ -400,6 +401,57 @@ class Lexer:
         self.current_char = self.source[self.position] if self.position < len(self.source) else None
         return None
 
+    def read_comment_content(self) -> tuple[str, int, int]:
+        """Read comment content until </summary> tag is found.
+
+        Returns:
+            Tuple of (comment_content, line, column).
+        """
+        start_line = self.line
+        start_column = self.column
+        content_start = self.position
+
+        while self.current_char:
+            # Look for potential closing tag
+            if self.current_char == "<":
+                # Save position before checking
+                saved_pos = self.position
+                saved_line = self.line
+                saved_column = self.column
+                saved_char = self.current_char
+
+                # Check if it's </summary>
+                self.advance()  # Skip '<'
+                if self.current_char == "/":
+                    self.advance()  # Skip '/'
+                    # Check for "summary"
+                    tag_start = self.position
+                    while self.current_char and self.current_char.isalpha():
+                        self.advance()
+                    tag_name = self.source[tag_start : self.position]
+
+                    if tag_name.lower() == "summary" and self.current_char == ">":
+                        # Found closing tag, restore to before the tag
+                        self.position = saved_pos
+                        self.line = saved_line
+                        self.column = saved_column
+                        self.current_char = saved_char
+                        # Return the content before the closing tag
+                        content = self.source[content_start:saved_pos]
+                        return content, start_line, start_column
+
+                # Not a closing summary tag, restore and continue
+                self.position = saved_pos
+                self.line = saved_line
+                self.column = saved_column
+                self.current_char = saved_char
+
+            self.advance()
+
+        # No closing tag found, return content up to EOF
+        content = self.source[content_start : self.position]
+        return content, start_line, start_column
+
     def read_underscore_literal(self) -> tuple[str, TokenType, int, int] | None:
         """Read an underscore-wrapped literal.
 
@@ -506,6 +558,16 @@ class Lexer:
         Returns:
             The next token, or an EOF token if no more tokens are available.
         """
+        # If we're in a summary comment, read the comment content
+        if self.in_summary_comment:
+            self.in_summary_comment = False
+            # Don't skip whitespace - it's part of the comment
+            # If we're at EOF, don't create a comment
+            if self.current_char is None:
+                return Token(TokenType.MISC_EOF, "", self.line, self.column)
+            content, line, pos = self.read_comment_content()
+            return Token(TokenType.MISC_COMMENT, content, line, pos)
+
         # Skip whitespace
         self.skip_whitespace()
 
@@ -522,6 +584,9 @@ class Lexer:
             tag_result = self.read_tag_token()
             if tag_result:
                 literal, token_type, line, pos = tag_result
+                # If we just read a summary start tag, set flag for next token
+                if token_type == TokenType.TAG_SUMMARY_START:
+                    self.in_summary_comment = True
                 return Token(token_type, literal, line, pos)
 
         # Check for underscore-wrapped literals

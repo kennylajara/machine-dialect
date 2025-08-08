@@ -64,6 +64,7 @@ class TokenType(Enum):
     MISC_ILLEGAL = auto()
     MISC_IDENT = auto()
     MISC_STOPWORD = auto()
+    MISC_COMMENT = auto()
 
     # Keywords
     KW_ACTION = auto()

@@ -21,7 +21,7 @@ from .statements import (
     Statement,
 )
 from .program import Program
-from .literals import IntegerLiteral, FloatLiteral, StringLiteral, BooleanLiteral
+from .literals import IntegerLiteral, FloatLiteral, StringLiteral, BooleanLiteral, EmptyLiteral
 
 
 __all__ = [
@@ -30,6 +30,7 @@ __all__ = [
     "BlockStatement",
     "BooleanLiteral",
     "ConditionalExpression",
+    "EmptyLiteral",
     "ErrorExpression",
     "ErrorStatement",
     "Expression",

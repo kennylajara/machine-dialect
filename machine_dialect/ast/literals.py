@@ -51,3 +51,14 @@ class BooleanLiteral(Expression):
     def __str__(self) -> str:
         # Display with underscores for the new syntax
         return f"_{self.value}_"
+
+
+class EmptyLiteral(Expression):
+    """Represents an empty/null literal expression."""
+
+    def __init__(self, token: Token) -> None:
+        super().__init__(token)
+        self.value = None
+
+    def __str__(self) -> str:
+        return "empty"

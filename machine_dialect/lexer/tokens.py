@@ -93,7 +93,6 @@ class TokenType(Enum):
     KW_IS = auto()
     KW_LIST = auto()
     KW_NEGATION = auto()
-    KW_NOTHING = auto()
     KW_NUMBER = auto()
     KW_OR = auto()
     KW_PROMPT = auto()
@@ -257,8 +256,6 @@ keywords_mapping: dict[str, TokenType] = {
     "List": TokenType.KW_LIST,
     # logic not: not true
     "not": TokenType.KW_NEGATION,
-    # null value
-    "Nothing": TokenType.KW_NOTHING,
     # numbers
     "Number": TokenType.KW_NUMBER,
     # logic or: true or false

@@ -5,6 +5,7 @@ from machine_dialect.ast import (
     BlockStatement,
     BooleanLiteral,
     ConditionalExpression,
+    EmptyLiteral,
     ErrorExpression,
     ErrorStatement,
     Expression,
@@ -464,6 +465,18 @@ class Parser:
         return BooleanLiteral(
             token=self._current_token,
             value=value,
+        )
+
+    def _parse_empty_literal(self) -> EmptyLiteral:
+        """Parse an empty literal.
+
+        Returns:
+            An EmptyLiteral AST node.
+        """
+        assert self._current_token is not None
+
+        return EmptyLiteral(
+            token=self._current_token,
         )
 
     def _parse_string_literal(self) -> StringLiteral:
@@ -1147,6 +1160,7 @@ class Parser:
             TokenType.LIT_TEXT: self._parse_string_literal,
             TokenType.LIT_TRUE: self._parse_boolean_literal,
             TokenType.LIT_FALSE: self._parse_boolean_literal,
+            TokenType.KW_EMPTY: self._parse_empty_literal,
             TokenType.OP_MINUS: self._parse_prefix_expression,
             TokenType.KW_NEGATION: self._parse_prefix_expression,
             TokenType.DELIM_LPAREN: self._parse_grouped_expression,

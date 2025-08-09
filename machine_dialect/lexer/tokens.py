@@ -53,6 +53,7 @@ class TokenType(Enum):
     PUNCT_HASH = auto()
     PUNCT_HASH_DOUBLE = auto()
     PUNCT_HASH_TRIPLE = auto()
+    PUNCT_HASH_QUAD = auto()
 
     # Literals
     LIT_FALSE = auto()
@@ -80,6 +81,7 @@ class TokenType(Enum):
     KW_DATATYPE = auto()
     KW_DATE = auto()
     KW_DATETIME = auto()
+    KW_DEFAULT = auto()
     KW_DEFINE = auto()
     KW_ELSE = auto()
     KW_EMPTY = auto()
@@ -88,18 +90,23 @@ class TokenType(Enum):
     KW_FLOAT = auto()
     KW_FROM = auto()
     KW_IF = auto()
+    KW_INPUTS = auto()
     KW_INT = auto()
     KW_INTERACTION = auto()
     KW_IS = auto()
     KW_LIST = auto()
     KW_NEGATION = auto()
     KW_NUMBER = auto()
+    KW_OPTIONAL = auto()
     KW_OR = auto()
+    KW_OUTPUTS = auto()
     KW_PROMPT = auto()
+    KW_REQUIRED = auto()
     KW_RETURN = auto()
     KW_RULE = auto()
     KW_SAY = auto()
     KW_SET = auto()
+    KW_STATUS = auto()
     KW_TAKE = auto()
     KW_TELL = auto()
     KW_TEMPLATE = auto()
@@ -109,6 +116,7 @@ class TokenType(Enum):
     KW_TO = auto()
     KW_TRAIT = auto()
     KW_URL = auto()
+    KW_WHOLE_NUMBER = auto()
     KW_WITH = auto()
 
     # Tags
@@ -194,6 +202,8 @@ keywords_mapping: dict[str, TokenType] = {
     "behaviours": TokenType.KW_BEHAVIOR,
     # boolean:
     "Boolean": TokenType.KW_BOOL,
+    # default value indicator
+    "default": TokenType.KW_DEFAULT,
     # declare function: define a `sum` as function
     "define": TokenType.KW_DEFINE,
     # else statement
@@ -216,6 +226,8 @@ keywords_mapping: dict[str, TokenType] = {
     "whenever": TokenType.KW_IF,
     # integer typing: set `a` to integer 3
     "Integer": TokenType.KW_INT,
+    # inputs section for parameters
+    "Inputs": TokenType.KW_INPUTS,
     # interaction for objects
     "interaction": TokenType.KW_INTERACTION,
     "interactions": TokenType.KW_INTERACTION,
@@ -258,12 +270,18 @@ keywords_mapping: dict[str, TokenType] = {
     "not": TokenType.KW_NEGATION,
     # numbers
     "Number": TokenType.KW_NUMBER,
+    # optional parameter modifier
+    "optional": TokenType.KW_OPTIONAL,
     # logic or: true or false
     "or": TokenType.KW_OR,
     # else statement
     "otherwise": TokenType.KW_ELSE,
+    # outputs section for parameters
+    "Outputs": TokenType.KW_OUTPUTS,
     # prompt for user input or AI
     "prompt": TokenType.KW_PROMPT,
+    # required parameter modifier
+    "required": TokenType.KW_REQUIRED,
     # return value.
     "give back": TokenType.KW_RETURN,
     "gives back": TokenType.KW_RETURN,
@@ -273,6 +291,8 @@ keywords_mapping: dict[str, TokenType] = {
     "Say": TokenType.KW_SAY,
     # declare variable: set `a` as integer.
     "Set": TokenType.KW_SET,
+    # status type
+    "Status": TokenType.KW_STATUS,
     # classes' properties:
     # Define a blueprint called Person with these traits
     "take": TokenType.KW_TAKE,
@@ -301,6 +321,7 @@ keywords_mapping: dict[str, TokenType] = {
     "DateTime": TokenType.KW_DATETIME,
     "Time": TokenType.KW_TIME,
     "DataType": TokenType.KW_DATATYPE,
+    "Whole Number": TokenType.KW_WHOLE_NUMBER,
     # Plural forms map to singular token types
     "actions": TokenType.KW_ACTION,
     "Floats": TokenType.KW_FLOAT,

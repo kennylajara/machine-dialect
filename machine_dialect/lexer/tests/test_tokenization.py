@@ -91,7 +91,6 @@ class TestLexer:
             ("interactions", [Token(TokenType.KW_INTERACTION, "interactions", line=1, position=1)]),
             ("List", [Token(TokenType.KW_LIST, "List", line=1, position=1)]),
             ("not", [Token(TokenType.KW_NEGATION, "not", line=1, position=1)]),
-            ("Nothing", [Token(TokenType.KW_NOTHING, "Nothing", line=1, position=1)]),
             ("Number", [Token(TokenType.KW_NUMBER, "Number", line=1, position=1)]),
             ("Numbers", [Token(TokenType.KW_NUMBER, "Numbers", line=1, position=1)]),
             ("otherwise", [Token(TokenType.KW_ELSE, "otherwise", line=1, position=1)]),

@@ -768,11 +768,14 @@ class Lexer:
                 self.advance()
                 return Token(TokenType.OP_GTE, ">=", token_line, token_column)
             elif char == "#":
-                # Check for ## or ###
+                # Check for ##, ###, or ####
                 if self.current_char == "#":
                     self.advance()
                     if self.current_char == "#":
                         self.advance()
+                        if self.current_char == "#":
+                            self.advance()
+                            return Token(TokenType.PUNCT_HASH_QUAD, "####", token_line, token_column)
                         return Token(TokenType.PUNCT_HASH_TRIPLE, "###", token_line, token_column)
                     return Token(TokenType.PUNCT_HASH_DOUBLE, "##", token_line, token_column)
 

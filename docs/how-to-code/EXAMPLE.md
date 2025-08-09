@@ -27,6 +27,15 @@ _How many people are in the store_ (**default**: _0_).
 
 </details>
 
+#### Inputs
+
+- `sound` **as** Text (required)
+- `volume` **as** Whole Number (optional, default: 60)
+
+#### Outputs
+
+- `success` **as** Status
+
 ### **Interaction**: `turn alarm off`
 
 <details>

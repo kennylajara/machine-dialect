@@ -11,6 +11,7 @@ Statements include:
 - BlockStatement: Contains a list of statements with a specific depth
 - IfStatement: Conditional statement with consequence and optional alternative
 - ErrorStatement: Represents a statement that failed to parse
+- Parameter: Represents a parameter with type and optional default value
 """
 
 from machine_dialect.ast import ASTNode, Expression, Identifier
@@ -241,6 +242,59 @@ class ErrorStatement(Statement):
         return "<error>"
 
 
+class Parameter(ASTNode):
+    """Represents a parameter with type and optional default value.
+
+    Parameters are used in Actions and Interactions to define inputs and outputs.
+    They follow the syntax: `name` **as** Type (required|optional, default: value)
+
+    Attributes:
+        name: The identifier naming the parameter.
+        type_name: The type of the parameter (e.g., "Text", "Whole Number", "Status").
+        is_required: Whether the parameter is required or optional.
+        default_value: The default value for optional parameters.
+    """
+
+    def __init__(
+        self,
+        token: Token,
+        name: Identifier,
+        type_name: str = "",
+        is_required: bool = True,
+        default_value: Expression | None = None,
+    ) -> None:
+        """Initialize a Parameter node.
+
+        Args:
+            token: The token that begins this parameter.
+            name: The identifier naming the parameter.
+            type_name: The type of the parameter.
+            is_required: Whether the parameter is required.
+            default_value: The default value for optional parameters.
+        """
+        self.token = token
+        self.name = name
+        self.type_name = type_name
+        self.is_required = is_required
+        self.default_value = default_value
+
+    def __str__(self) -> str:
+        """Return string representation of the parameter.
+
+        Returns:
+            A string representation of the parameter.
+        """
+        result = f"{self.name} as {self.type_name}"
+        if not self.is_required:
+            result += " (optional"
+            if self.default_value:
+                result += f", default: {self.default_value}"
+            result += ")"
+        else:
+            result += " (required)"
+        return result
+
+
 class ActionStatement(Statement):
     """Represents an Action statement (private method) in Machine Dialect.
 
@@ -250,7 +304,8 @@ class ActionStatement(Statement):
 
     Attributes:
         name: The identifier naming the action.
-        parameters: List of parameter identifiers (empty for now).
+        inputs: List of input parameters.
+        outputs: List of output parameters.
         body: The block of statements that make up the action body.
         description: Optional description from the summary tag.
     """
@@ -259,7 +314,8 @@ class ActionStatement(Statement):
         self,
         token: Token,
         name: Identifier,
-        parameters: list[Identifier] | None = None,
+        inputs: list[Parameter] | None = None,
+        outputs: list[Parameter] | None = None,
         body: BlockStatement | None = None,
         description: str = "",
     ) -> None:
@@ -268,13 +324,15 @@ class ActionStatement(Statement):
         Args:
             token: The token that begins this statement (KW_ACTION).
             name: The identifier naming the action.
-            parameters: List of parameter identifiers (defaults to empty list).
+            inputs: List of input parameters (defaults to empty list).
+            outputs: List of output parameters (defaults to empty list).
             body: The block of statements in the action body.
             description: Optional description from summary tag.
         """
         super().__init__(token)
         self.name = name
-        self.parameters = parameters if parameters is not None else []
+        self.inputs = inputs if inputs is not None else []
+        self.outputs = outputs if outputs is not None else []
         self.body = body if body is not None else BlockStatement(token)
         self.description = description
 
@@ -292,8 +350,15 @@ class ActionStatement(Statement):
         Returns:
             A string representation of the action with its name and body.
         """
-        params = ", ".join(str(p) for p in self.parameters)
-        return f"action {self.name}({params}) {{\n{self.body}\n}}"
+        inputs_str = ", ".join(str(p) for p in self.inputs)
+        outputs_str = ", ".join(str(p) for p in self.outputs)
+        result = f"action {self.name}"
+        if inputs_str:
+            result += f"(inputs: {inputs_str})"
+        if outputs_str:
+            result += f" -> {outputs_str}"
+        result += f" {{\n{self.body}\n}}"
+        return result
 
 
 class SayStatement(Statement):
@@ -342,7 +407,8 @@ class InteractionStatement(Statement):
 
     Attributes:
         name: The identifier naming the interaction.
-        parameters: List of parameter identifiers (empty for now).
+        inputs: List of input parameters.
+        outputs: List of output parameters.
         body: The block of statements that make up the interaction body.
         description: Optional description from the summary tag.
     """
@@ -351,7 +417,8 @@ class InteractionStatement(Statement):
         self,
         token: Token,
         name: Identifier,
-        parameters: list[Identifier] | None = None,
+        inputs: list[Parameter] | None = None,
+        outputs: list[Parameter] | None = None,
         body: BlockStatement | None = None,
         description: str = "",
     ) -> None:
@@ -360,13 +427,15 @@ class InteractionStatement(Statement):
         Args:
             token: The token that begins this statement (KW_INTERACTION).
             name: The identifier naming the interaction.
-            parameters: List of parameter identifiers (defaults to empty list).
+            inputs: List of input parameters (defaults to empty list).
+            outputs: List of output parameters (defaults to empty list).
             body: The block of statements in the interaction body.
             description: Optional description from summary tag.
         """
         super().__init__(token)
         self.name = name
-        self.parameters = parameters if parameters is not None else []
+        self.inputs = inputs if inputs is not None else []
+        self.outputs = outputs if outputs is not None else []
         self.body = body if body is not None else BlockStatement(token)
         self.description = description
 
@@ -384,5 +453,12 @@ class InteractionStatement(Statement):
         Returns:
             A string representation of the interaction with its name and body.
         """
-        params = ", ".join(str(p) for p in self.parameters)
-        return f"interaction {self.name}({params}) {{\n{self.body}\n}}"
+        inputs_str = ", ".join(str(p) for p in self.inputs)
+        outputs_str = ", ".join(str(p) for p in self.outputs)
+        result = f"interaction {self.name}"
+        if inputs_str:
+            result += f"(inputs: {inputs_str})"
+        if outputs_str:
+            result += f" -> {outputs_str}"
+        result += f" {{\n{self.body}\n}}"
+        return result

@@ -35,7 +35,8 @@ class TestInteractionStatements:
         interaction_stmt = program.statements[0]
         assert isinstance(interaction_stmt, InteractionStatement)
         assert interaction_stmt.name.value == "turn alarm off"
-        assert len(interaction_stmt.parameters) == 0
+        assert len(interaction_stmt.inputs) == 0
+        assert len(interaction_stmt.outputs) == 0
         assert isinstance(interaction_stmt.body, BlockStatement)
 
         # The body should contain an if statement
@@ -164,6 +165,56 @@ class TestInteractionStatements:
         second_interaction = program.statements[1]
         assert isinstance(second_interaction, InteractionStatement)
         assert second_interaction.name.value == "stop process"
+
+    def test_interaction_with_parameters(self) -> None:
+        """Test parsing an interaction with input and output parameters."""
+        source = """### **Interaction**: `get user info`
+
+<details>
+<summary>Gets user information.</summary>
+
+> Set `user` to _"John Doe"_.
+> Set `age` to _25_.
+> Give back `user`.
+
+</details>
+
+#### Inputs:
+- `userId` **as** Text (required)
+
+#### Outputs:
+- `user` **as** Text (required)
+- `age` **as** Number (required)"""
+
+        parser = Parser()
+        program = parser.parse(source)
+
+        assert len(parser.errors) == 0, f"Parser errors: {parser.errors}"
+        assert len(program.statements) == 1
+
+        interaction_stmt = program.statements[0]
+        assert isinstance(interaction_stmt, InteractionStatement)
+        assert interaction_stmt.name.value == "get user info"
+
+        # Check inputs
+        assert len(interaction_stmt.inputs) == 1
+        input_param = interaction_stmt.inputs[0]
+        assert input_param.name.value == "userId"
+        assert input_param.type_name == "Text"
+        assert input_param.is_required is True
+
+        # Check outputs
+        assert len(interaction_stmt.outputs) == 2
+
+        user_param = interaction_stmt.outputs[0]
+        assert user_param.name.value == "user"
+        assert user_param.type_name == "Text"
+        assert user_param.is_required is True
+
+        age_param = interaction_stmt.outputs[1]
+        assert age_param.name.value == "age"
+        assert age_param.type_name == "Number"
+        assert age_param.is_required is True
 
     def test_mixed_actions_and_interactions(self) -> None:
         """Test parsing both actions and interactions in same program."""

@@ -98,12 +98,12 @@ class TestStrictEqualityExpressions:
         """Test that strict equality has the same precedence as regular equality."""
         test_cases = [
             # Arithmetic has higher precedence than strict equality
-            ("5 + 3 is strictly equal to 8", "((5 + 3) is strictly equal to 8)"),
-            ("2 * 3 is exactly equal to 6", "((2 * 3) is strictly equal to 6)"),
+            ("5 + 3 is strictly equal to 8", "((_5_ + _3_) is strictly equal to _8_)"),
+            ("2 * 3 is exactly equal to 6", "((_2_ * _3_) is strictly equal to _6_)"),
             # Logical operators have lower precedence
             (
                 "x is strictly equal to 5 and y is strictly equal to 10",
-                "((x is strictly equal to 5) and (y is strictly equal to 10))",
+                "((`x` is strictly equal to _5_) and (`y` is strictly equal to _10_))",
             ),
             (
                 "`a` is identical to `b` or `c` is not identical to `d`",
@@ -112,34 +112,124 @@ class TestStrictEqualityExpressions:
             # Mixed with regular equality
             (
                 "x equals y and z is strictly equal to w",
-                "((x equals y) and (z is strictly equal to w))",
+                "((`x` equals `y`) and (`z` is strictly equal to `w`))",
+            ),
+            # Strict inequality with precedence
+            (
+                "5 + 3 is not strictly equal to 10",
+                "((_5_ + _3_) is not strictly equal to _10_)",
+            ),
+            (
+                "x * 2 is not exactly equal to y",
+                "((`x` * _2_) is not strictly equal to `y`)",
             ),
         ]
 
-        for source, _ in test_cases:  # expected_structure will be used in future
+        for source, expected_structure in test_cases:
             parser = Parser()
             program = parser.parse(source)
 
             assert len(parser.errors) == 0, f"Parser errors for '{source}': {parser.errors}"
             assert len(program.statements) == 1
 
-            # For now, just ensure it parses without errors
-            # The actual string representation would need updates to properly display
+            statement = program.statements[0]
+            assert isinstance(statement, ExpressionStatement)
+            assert statement.expression is not None
+
+            # Check string representation matches expected precedence
+            actual = str(statement.expression)
+            assert actual == expected_structure, f"For '{source}': expected {expected_structure}, got {actual}"
 
     def test_strict_equality_in_conditionals(self) -> None:
         """Test strict equality in if statements."""
-        source = """
-        if x is strictly equal to 5 then:
-        > give back _true_.
-        """
-        parser = Parser()
-        program = parser.parse(source)
+        from machine_dialect.ast import BlockStatement, IfStatement
 
-        assert len(parser.errors) == 0, f"Parser errors: {parser.errors}"
-        assert len(program.statements) == 1
+        test_cases = [
+            # Basic if with strict equality
+            (
+                """
+                if x is strictly equal to 5 then:
+                > give back _true_.
+                """,
+                "x",
+                "is strictly equal to",
+                5,
+            ),
+            # If with strict inequality
+            (
+                """
+                if value is not strictly equal to empty then:
+                > set result to value.
+                """,
+                "value",
+                "is not strictly equal to",
+                "empty",
+            ),
+            # If-else with strict equality
+            (
+                """
+                if `a` is exactly equal to `b` then:
+                > give back _Same_.
+                else:
+                > give back _Different_.
+                """,
+                "a",
+                "is strictly equal to",
+                "b",
+            ),
+            # Complex condition with strict equality
+            (
+                """
+                if x is identical to 0 or y is not identical to 0 then:
+                > set flag to _true_.
+                """,
+                None,  # Complex condition, skip simple checks
+                None,
+                None,
+            ),
+        ]
 
-        # The if statement should contain a strict equality expression
-        # Just ensure it parses correctly for now
+        for test_input in test_cases:
+            source = test_input[0]
+            expected_left = test_input[1]
+            expected_op = test_input[2]
+            expected_right = test_input[3]
+
+            parser = Parser()
+            program = parser.parse(source)
+
+            assert len(parser.errors) == 0, f"Parser errors: {parser.errors}"
+            assert len(program.statements) == 1
+
+            # Check it's an if statement
+            if_stmt = program.statements[0]
+            assert isinstance(if_stmt, IfStatement)
+
+            # Check the condition is parsed correctly
+            if expected_left is not None:  # Simple condition check
+                condition = if_stmt.condition
+                assert isinstance(condition, InfixExpression)
+                assert condition.operator == expected_op
+
+                # Check left operand
+                if isinstance(expected_left, str):
+                    assert str(condition.left) == f"`{expected_left}`"
+                else:
+                    assert str(condition.left) == f"_{expected_left}_"
+
+                # Check right operand
+                if isinstance(expected_right, str):
+                    # Special keywords like empty are parsed differently
+                    if expected_right == "empty":
+                        assert str(condition.right) == "empty"
+                    else:
+                        assert str(condition.right) == f"`{expected_right}`"
+                else:
+                    assert str(condition.right) == f"_{expected_right}_"
+
+            # Check consequence block exists
+            assert isinstance(if_stmt.consequence, BlockStatement)
+            assert len(if_stmt.consequence.statements) > 0
 
     def test_complex_expressions_with_strict_equality(self) -> None:
         """Test complex expressions involving strict equality."""
@@ -147,7 +237,7 @@ class TestStrictEqualityExpressions:
             "not x is strictly equal to y",
             "(x + 5) is exactly equal to (y - 3)",
             "first is identical to second",
-            "result is not strictly equal to _Nothing_",
+            "result is not strictly equal to empty",
         ]
 
         for source in test_cases:

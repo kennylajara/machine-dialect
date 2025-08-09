@@ -1,150 +1,206 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this
-repository.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Project Status
+## Project Overview
 
-Machine Dialect is a natural language programming project that allows writing code using more
-natural,
-English-like syntax. The project includes a lexer implementation in Python and a Markdown linter
-in Rust.
+Machine Dialect is a natural language programming language that allows writing code using
+English-like syntax in Markdown files (`.md`). It's designed to be AI-first,
+human-supervisable, and uses natural document structure instead of traditional programming
+syntax.
 
-## Development Notes
+## Critical Development Requirements
 
-- The project uses Python for the main language implementation
-- Test-Driven Development (TDD) is strictly followed
-- A Rust-based Markdown linter is included for documentation quality
+### 1. Test-Driven Development (TDD) - MANDATORY
 
-## Test-Driven Development (TDD)
+**ALWAYS follow TDD strictly**:
 
-**IMPORTANT**: This project follows Test-Driven Development (TDD) practices. When working on any
-implementation:
-
-1. **ALWAYS check for existing tests first** before implementing any feature
-1. Tests define the expected behavior - implementation must satisfy the tests
+1. Check for existing tests BEFORE implementing any feature
+1. Tests define expected behavior - implementation must satisfy tests
 1. Never implement features without corresponding tests
-1. If tests fail, fix the implementation to make them pass
-1. The test-first approach ensures code quality and correct behavior
+1. If tests fail, fix the implementation (not the tests)
 
-## Type Safety and MyPy
+### 2. Type Safety - NO EXCEPTIONS
 
-**CRITICAL**: This project maintains strict type safety. MyPy errors MUST be fixed before
-committing:
+**ALL code MUST be strictly typed**:
 
-1. **NEVER disable MyPy checks** - strict typing is enforced for code quality
-1. **ALL functions must have type annotations** - no exceptions
-1. **Fix MyPy errors immediately** - do not postpone or work around them
-1. Type safety prevents runtime errors and improves code maintainability
+1. NEVER disable MyPy checks
+1. ALL functions require type annotations
+1. Fix MyPy errors immediately - no workarounds
+1. MyPy runs with `--strict` mode
 
-## Pre-commit Hooks and Code Quality
+### 3. Pre-commit Hooks - ABSOLUTELY CRITICAL
 
-**ABSOLUTELY CRITICAL - NO EXCEPTIONS**: All pre-commit hooks MUST pass before ANY code changes:
+**NEVER skip or bypass pre-commit hooks**:
 
-1. **NEVER SKIP PRE-COMMIT HOOKS** - This is an absolute requirement, no matter what
-1. **MyPy MUST ALWAYS PASS** - No type errors are acceptable under any circumstances
-1. **ALL pre-commit checks are MANDATORY** - Including but not limited to:
-   - MyPy type checking
-   - Ruff formatting and linting
-   - Test execution
-   - Any other configured hooks
-1. **DO NOT BYPASS OR DISABLE** any pre-commit hooks, even temporarily
-1. **FIX ALL ISSUES IMMEDIATELY** - If pre-commit fails, fix the issues before proceeding
-1. **NO COMMITS WITH FAILING CHECKS** - The codebase must always be in a clean state
+1. ALL hooks must pass before ANY commit
+1. Includes: MyPy, Ruff, pyupgrade, markdownlint, mdformat, conventional commits
+1. Fix all issues immediately - no exceptions
+1. The codebase must always be in a clean state
 
-Remember: Pre-commit hooks exist to maintain code quality. Skipping them defeats their purpose and
-compromises the integrity of the codebase.
+### 4. Documentation Standards
 
-## Documentation Standards
+**Google-style docstrings are MANDATORY**:
 
-**MANDATORY**: All Python code in this project MUST include comprehensive docstrings following
-Google style:
+1. Add docstrings to ALL modules, classes, methods, and functions
+1. Follow guide at `docs/meta/docstrings_guide.md`
+1. Include: Args, Returns, Raises, Examples sections
+1. Don't repeat type information (already in annotations)
 
-1. **ALWAYS add docstrings** to all modules, classes, methods, and functions
-1. **Follow Google style docstrings** as documented in `docs/meta/google_docstrings_guide.md`
-1. **Include all relevant sections**: Args, Returns, Raises, Examples, etc.
-1. **With type annotations**, don't repeat type information in docstrings
-1. **Document all public APIs** - no exceptions
+## Development Commands
 
-See the complete guide at `docs/meta/google_docstrings_guide.md` for detailed examples and
-formatting requirements.
-
-## Project Structure
-
-```text
-machine_dialect/
-├── machine_dialect/          # Main Python package
-│   ├── lexer/               # Lexer implementation
-│   │   ├── __init__.py
-│   │   ├── lexer.py         # Main lexer class
-│   │   └── tokens.py        # TokenType enum and Token class
-│   ├── repl/                # REPL implementation
-│   │   ├── tests/           # REPL tests
-│   │   │   ├── __init__.py
-│   │   │   └── test_repl.py
-│   │   ├── __init__.py
-│   │   └── repl.py          # Interactive REPL for tokenization
-│   └── __main__.py          # Entry point for python -m machine_dialect
-├── md_linter/               # Rust-based Markdown linter
-│   ├── src/
-│   │   ├── main.rs
-│   │   ├── config.rs
-│   │   └── rules/          # Linting rules
-│   │       ├── mod.rs
-│   │       └── md013.rs
-│   ├── Cargo.toml
-│   └── Cargo.lock
-├── pyproject.toml           # Python project configuration
-├── uv.lock                  # UV package manager lock file
-├── CLAUDE.md               # This file - AI assistant guidance
-└── README.md               # Project documentation
-```
-
-## Getting Started
-
-When working on this project:
-
-1. **Python Development**: The main language implementation is in the `machine_dialect` package
-1. **Testing**: Always check for existing tests before implementing features (TDD)
-1. **Dependencies**: Use UV package manager for Python dependencies
-1. **Linting**: The `md_linter` tool ensures documentation quality
-
-## Development Environment
-
-**IMPORTANT**: Always activate the virtual environment before running any Python commands:
+### Setup Environment
 
 ```bash
-source .venv/bin/activate  # On Linux/Mac
+# Always activate virtual environment first
+source .venv/bin/activate  # Linux/Mac
 # or
-.venv\Scripts\activate     # On Windows
-```
+.venv\Scripts\activate     # Windows
 
-This is crucial for:
-
-- Running tests
-- Using development tools (pytest, ruff, mypy)
-- Installing dependencies
-- Running the application
-
-After activating the virtual environment, install the package in editable mode:
-
-```bash
+# Install package in editable mode
 uv pip install -e .
 ```
-
-This ensures that `machine_dialect` can be imported in tests and scripts.
-
-## Common Tasks
 
 ### Running Tests
 
 ```bash
-source .venv/bin/activate
+# Run all tests
+python -m pytest
+
+# Run specific test file
 python -m pytest machine_dialect/lexer/tests/test_lexer.py -v
+
+# Run parser tests
+python -m pytest machine_dialect/parser/tests/test_parser.py -v
 ```
 
-### Working with the Lexer
+### Code Quality Checks
 
-- Token types are defined in `machine_dialect/tokens/tokens.py`
-- The lexer implementation is in `machine_dialect/lexer/lexer.py`
-- All token types use prefixes: `KW_` for keywords, `OP_` for operators, `DELIM_` for delimiters, etc.
+```bash
+# Run MyPy type checking
+mypy machine_dialect --strict
+
+# Run Ruff linting and formatting
+ruff check machine_dialect
+ruff format machine_dialect
+
+# Run all pre-commit hooks
+pre-commit run --all-files
+```
+
+### Running the REPL
+
+```bash
+# Start interactive tokenization REPL
+python -m machine_dialect
+```
+
+## Architecture & Key Components
+
+### Core Language Implementation
+
+1. **Lexer** (`machine_dialect/lexer/`)
+
+   - `tokens.py`: TokenType enum with prefixed naming (`KW_`, `OP_`, `DELIM_`)
+   - `lexer.py`: Streaming lexer that generates tokens one at a time
+   - Handles natural language keywords (e.g., "is greater than" → OP_GT)
+   - Case-insensitive keyword recognition
+
+1. **Parser** (`machine_dialect/parser/`)
+
+   - `parser.py`: Recursive descent parser with Pratt parsing for expressions
+   - `token_buffer.py`: Efficient token buffering
+   - Supports if statements, blocks (marked with '>'), expressions
+   - Panic mode error recovery
+
+1. **AST** (`machine_dialect/ast/`)
+
+   - `ast_node.py`: Base ASTNode abstract class
+   - `expressions.py`: Expression nodes (literals, identifiers, operators)
+   - `statements.py`: Statement nodes (set, give back, if, action, say)
+   - All nodes implement string representation for debugging
+
+1. **Error Handling** (`machine_dialect/errors/`)
+
+   - Custom exception hierarchy with structured error messages
+   - Parser supports panic mode recovery
+
+### Language Syntax Features
+
+- **Markdown-based**: Source files are `.md` with YAML frontmatter
+- **Variables**: Bold text (`**variable**`)
+- **Literals**: Italic text (`_value_`)
+- **Blocks**: Indented with '>' markers for if/else bodies
+- **Math**: LaTeX syntax in `$$...$$` blocks
+- **Operators**: Symbolic (+, -, \*, /, \<, >, \<=, >=) and natural language forms
+  - Value equality: `equals`, `is equal to`, `is the same as`
+  - Value inequality: `is not equal to`, `does not equal`, `is different from`
+  - Strict equality: `is strictly equal to`, `is exactly equal to`, `is identical to`
+  - Strict inequality: `is not strictly equal to`, `is not exactly equal to`, `is not identical to`
+
+### Testing Structure
+
+Tests are organized by component in `tests/` subdirectories:
+
+- **Lexer tests**: Token recognition, keywords, operators, literals
+- **Parser tests**: Statement parsing, expression parsing, error recovery
+- **AST tests**: Node representations, string formatting
+- **Integration tests**: End-to-end functionality
+
+## Important Implementation Notes
+
+1. **Token Prefixes**: All TokenType values use consistent prefixes:
+
+   - `KW_` for keywords (if, then, else, set, to, give back/gives back)
+   - `OP_` for operators (+, -, \*, /, \<, >, \<=, >=, and equality/inequality)
+   - `DELIM_` for delimiters (period, comma, colon)
+   - `LIT_` for literals (number, string, boolean)
+
+1. **Parser State**: Parser maintains:
+
+   - Current/peek tokens via TokenBuffer
+   - Error recovery with panic mode
+   - Position tracking for error messages
+
+1. **Stopwords**: Common English words (a, an, the, is, are) are recognized but typically
+   ignored in parsing
+
+1. **Case Sensitivity**: Keywords are case-insensitive, identifiers preserve case
+
+## Package Management
+
+- **UV**: Primary package manager (`uv sync`, `uv pip install`)
+- **Python 3.12+** required
+- **Dependencies**: rfc3986 (URL validation)
+- **Dev tools**: pytest, mypy, ruff, pre-commit, pyupgrade
+
+## Auxiliary Tools
+
+### Rust Markdown Linter (`md_linter/`)
+
+Separate Rust tool for Markdown quality checks (MD013 line length rule).
+
+```bash
+cd md_linter
+cargo build --release
+./target/release/md_linter ../docs/
+```
+
+### Python Linter (`machine_dialect/linter/`)
+
+Rule-based linter for Machine Dialect code validation.
+
+## Current Development Focus
+
+Based on recent commits and current changes:
+
+- Parser implementation for if statements with block support
+- Handling empty lines with '>' markers in blocks
+- Improving expression parsing (ternary, logical operators)
+
+When implementing new features, always:
+
+1. Find or write tests first
+1. Ensure MyPy passes with --strict
+1. Add comprehensive docstrings
+1. Run pre-commit hooks before any commit

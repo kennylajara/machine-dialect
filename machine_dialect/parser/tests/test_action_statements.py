@@ -29,7 +29,8 @@ class TestActionStatements:
         action_stmt = program.statements[0]
         assert isinstance(action_stmt, ActionStatement)
         assert action_stmt.name.value == "make noise"
-        assert len(action_stmt.parameters) == 0
+        assert len(action_stmt.inputs) == 0
+        assert len(action_stmt.outputs) == 0
         assert isinstance(action_stmt.body, BlockStatement)
         assert len(action_stmt.body.statements) == 2
 
@@ -160,3 +161,159 @@ class TestActionStatements:
         second_action = program.statements[1]
         assert isinstance(second_action, ActionStatement)
         assert second_action.name.value == "second action"
+
+    def test_action_with_input_parameters(self) -> None:
+        """Test parsing an action with input parameters."""
+        source = """### **Action**: `make noise`
+
+<details>
+<summary>Emits the sound of the alarm.</summary>
+
+> Set `noise` to `sound`.
+> Say `noise`.
+
+</details>
+
+#### Inputs:
+- `sound` **as** Text (required)
+- `volume` **as** Whole Number (optional, default: _60_)"""
+
+        parser = Parser()
+        program = parser.parse(source)
+
+        assert len(parser.errors) == 0, f"Parser errors: {parser.errors}"
+        assert len(program.statements) == 1
+
+        action_stmt = program.statements[0]
+        assert isinstance(action_stmt, ActionStatement)
+        assert action_stmt.name.value == "make noise"
+
+        # Check inputs
+        assert len(action_stmt.inputs) == 2
+
+        # First input: sound (required)
+        sound_param = action_stmt.inputs[0]
+        assert sound_param.name.value == "sound"
+        assert sound_param.type_name == "Text"
+        assert sound_param.is_required is True
+        assert sound_param.default_value is None
+
+        # Second input: volume (optional with default)
+        volume_param = action_stmt.inputs[1]
+        assert volume_param.name.value == "volume"
+        assert volume_param.type_name == "Whole Number"
+        assert volume_param.is_required is False
+        assert volume_param.default_value is not None
+        from machine_dialect.ast import IntegerLiteral
+
+        assert isinstance(volume_param.default_value, IntegerLiteral)
+        assert volume_param.default_value.value == 60
+
+        # No outputs
+        assert len(action_stmt.outputs) == 0
+
+    def test_action_with_output_parameters(self) -> None:
+        """Test parsing an action with output parameters."""
+        source = """### **Action**: `calculate`
+
+<details>
+<summary>Performs a calculation.</summary>
+
+> Set `result` to _42_.
+> Give back `result`.
+
+</details>
+
+#### Outputs:
+- `result` **as** Number (required)
+- `success` **as** Status (required)"""
+
+        parser = Parser()
+        program = parser.parse(source)
+
+        assert len(parser.errors) == 0, f"Parser errors: {parser.errors}"
+        assert len(program.statements) == 1
+
+        action_stmt = program.statements[0]
+        assert isinstance(action_stmt, ActionStatement)
+        assert action_stmt.name.value == "calculate"
+
+        # No inputs
+        assert len(action_stmt.inputs) == 0
+
+        # Check outputs
+        assert len(action_stmt.outputs) == 2
+
+        # First output: result
+        result_param = action_stmt.outputs[0]
+        assert result_param.name.value == "result"
+        assert result_param.type_name == "Number"
+        assert result_param.is_required is True
+
+        # Second output: success
+        success_param = action_stmt.outputs[1]
+        assert success_param.name.value == "success"
+        assert success_param.type_name == "Status"
+        assert success_param.is_required is True
+
+    def test_action_with_both_inputs_and_outputs(self) -> None:
+        """Test parsing an action with both input and output parameters."""
+        source = """### **Action**: `process data`
+
+<details>
+<summary>Processes input data.</summary>
+
+> Set `result` to `input`.
+> Give back `result`.
+
+</details>
+
+#### Inputs:
+- `input` **as** Text (required)
+- `format` **as** Text (optional, default: _"json"_)
+
+#### Outputs:
+- `result` **as** Text (required)
+- `error` **as** Text (optional)"""
+
+        parser = Parser()
+        program = parser.parse(source)
+
+        assert len(parser.errors) == 0, f"Parser errors: {parser.errors}"
+        assert len(program.statements) == 1
+
+        action_stmt = program.statements[0]
+        assert isinstance(action_stmt, ActionStatement)
+        assert action_stmt.name.value == "process data"
+
+        # Check inputs
+        assert len(action_stmt.inputs) == 2
+
+        input_param = action_stmt.inputs[0]
+        assert input_param.name.value == "input"
+        assert input_param.type_name == "Text"
+        assert input_param.is_required is True
+
+        format_param = action_stmt.inputs[1]
+        assert format_param.name.value == "format"
+        assert format_param.type_name == "Text"
+        assert format_param.is_required is False
+        assert format_param.default_value is not None
+        from machine_dialect.ast import StringLiteral
+
+        assert isinstance(format_param.default_value, StringLiteral)
+        assert format_param.default_value.value == '"json"'
+
+        # Check outputs
+        assert len(action_stmt.outputs) == 2
+
+        result_param = action_stmt.outputs[0]
+        assert result_param.name.value == "result"
+        assert result_param.type_name == "Text"
+        assert result_param.is_required is True
+
+        error_param = action_stmt.outputs[1]
+        assert error_param.name.value == "error"
+        assert error_param.type_name == "Text"
+        assert error_param.is_required is False
+        assert error_param.default_value is None

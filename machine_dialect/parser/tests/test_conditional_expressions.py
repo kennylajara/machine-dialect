@@ -83,7 +83,7 @@ class TestConditionalExpressions:
 
     def test_conditional_with_identifiers(self) -> None:
         """Test conditional expressions using identifiers."""
-        source = "`result` if `condition`, else `default`"
+        source = "`result` if `some condition`, else `some value`"
         parser = Parser()
         program = parser.parse(source)
 
@@ -101,11 +101,11 @@ class TestConditionalExpressions:
 
         # Check condition is an identifier
         assert isinstance(conditional.condition, Identifier)
-        assert conditional.condition.value == "condition"
+        assert conditional.condition.value == "some condition"
 
         # Check alternative is an identifier
         assert isinstance(conditional.alternative, Identifier)
-        assert conditional.alternative.value == "default"
+        assert conditional.alternative.value == "some value"
 
     def test_conditional_with_string_literals(self) -> None:
         """Test conditional expressions with string literals."""

@@ -16,6 +16,7 @@ from machine_dialect.ast import (
     InfixExpression,
     IntegerLiteral,
     InteractionStatement,
+    Parameter,
     PrefixExpression,
     Program,
     ReturnStatement,
@@ -938,11 +939,24 @@ class Parser:
                     )
                 )
 
+        # Check for parameter sections (#### Inputs: and #### Outputs:)
+        inputs: list[Parameter] = []
+        outputs: list[Parameter] = []
+
+        # Check if we have #### for parameter sections
+        if self._current_token and self._current_token.type == TokenType.PUNCT_HASH_QUAD:
+            # Parse parameter sections
+            inputs, outputs = self._parse_parameter_sections()
+
         # Create and return the appropriate statement
         if is_action:
-            return ActionStatement(keyword_token, name, parameters=[], body=body, description=description)
+            return ActionStatement(
+                keyword_token, name, inputs=inputs, outputs=outputs, body=body, description=description
+            )
         else:
-            return InteractionStatement(keyword_token, name, parameters=[], body=body, description=description)
+            return InteractionStatement(
+                keyword_token, name, inputs=inputs, outputs=outputs, body=body, description=description
+            )
 
     def _parse_block_statement(self, expected_depth: int = 1) -> BlockStatement:
         """Parse a block of statements marked by '>' symbols.
@@ -1205,3 +1219,199 @@ class Parser:
             TokenType.KW_SAY: self._parse_say_statement,
             TokenType.PUNCT_HASH_TRIPLE: self._parse_action_or_interaction,
         }
+
+    def _parse_parameter_sections(self) -> tuple[list[Parameter], list[Parameter]]:
+        """Parse parameter sections (#### Inputs: and #### Outputs:).
+
+        Returns:
+            A tuple of (inputs, outputs) lists of parameters.
+        """
+        inputs: list[Parameter] = []
+        outputs: list[Parameter] = []
+
+        while self._current_token and self._current_token.type == TokenType.PUNCT_HASH_QUAD:
+            # Move past ####
+            self._advance_tokens()
+
+            # Check if it's Inputs or Outputs
+            current = self._current_token
+            if current:
+                if current.type == TokenType.KW_INPUTS:
+                    # Move past "Inputs"
+                    self._advance_tokens()
+
+                    # Expect colon
+                    colon_token = self._current_token
+                    if colon_token and colon_token.type == TokenType.PUNCT_COLON:
+                        self._advance_tokens()
+
+                        # Parse input parameters (lines starting with -)
+                        inputs = self._parse_parameter_list()
+
+                elif current.type == TokenType.KW_OUTPUTS:
+                    # Move past "Outputs"
+                    self._advance_tokens()
+
+                    # Expect colon
+                    colon_token2 = self._current_token
+                    if colon_token2 and colon_token2.type == TokenType.PUNCT_COLON:
+                        self._advance_tokens()
+
+                        # Parse output parameters
+                        outputs = self._parse_parameter_list()
+
+                else:
+                    # Not a parameter section, break
+                    break
+
+        return inputs, outputs
+
+    def _parse_parameter_list(self) -> list[Parameter]:
+        """Parse a list of parameters (lines starting with -).
+
+        Expected format:
+        - `name` **as** Type (required)
+        - `name` **as** Type (optional, default: value)
+
+        Returns:
+            List of Parameter objects.
+        """
+        parameters: list[Parameter] = []
+
+        while self._current_token and self._current_token.type == TokenType.OP_MINUS:
+            # Move past -
+            self._advance_tokens()
+
+            # Parse single parameter
+            param = self._parse_parameter()
+            if param:
+                parameters.append(param)
+
+        return parameters
+
+    def _parse_parameter(self) -> Parameter | None:
+        """Parse a single parameter.
+
+        Expected format:
+        `name` **as** Type (required)
+        `name` **as** Type (optional, default: value)
+
+        Returns:
+            A Parameter object or None if parsing fails.
+        """
+        if not self._current_token:
+            return None
+
+        # Save starting token for error reporting
+        start_token = self._current_token
+
+        # Expect identifier in backticks
+        if self._current_token.type != TokenType.MISC_IDENT:
+            return None
+
+        name = Identifier(self._current_token, self._current_token.literal)
+        self._advance_tokens()
+
+        # Expect "as" keyword
+        current = self._current_token
+        if not current or current.type != TokenType.KW_AS:
+            return None
+        self._advance_tokens()
+
+        # Parse type name (could be multi-word like "Whole Number")
+        type_name = self._parse_type_name()
+        if not type_name:
+            return None
+
+        # Default values
+        is_required = True
+        default_value: Expression | None = None
+
+        # Check for (required) or (optional, default: value)
+        paren_token = self._current_token
+        if paren_token and paren_token.type == TokenType.DELIM_LPAREN:
+            self._advance_tokens()
+
+            status_token = self._current_token
+            if status_token:
+                if status_token.type == TokenType.KW_OPTIONAL:
+                    is_required = False
+                    self._advance_tokens()
+
+                    # Check for default value
+                    comma_token = self._current_token
+                    if comma_token and comma_token.type == TokenType.PUNCT_COMMA:
+                        self._advance_tokens()
+
+                        # Expect "default"
+                        default_token = self._current_token
+                        if default_token and default_token.type == TokenType.KW_DEFAULT:
+                            self._advance_tokens()
+
+                            # Expect colon
+                            colon_check = self._current_token
+                            if colon_check and colon_check.type == TokenType.PUNCT_COLON:
+                                self._advance_tokens()
+
+                                # Parse the default value expression
+                                default_value = self._parse_expression(Precedence.LOWEST)
+
+                                # After parsing expression, advance past it
+                                self._advance_tokens()
+
+                else:
+                    is_required = True
+                    self._advance_tokens()
+
+            # Expect closing paren
+            rparen_token = self._current_token
+            if rparen_token and rparen_token.type == TokenType.DELIM_RPAREN:
+                self._advance_tokens()
+
+        return Parameter(
+            token=start_token,
+            name=name,
+            type_name=type_name,
+            is_required=is_required,
+            default_value=default_value,
+        )
+
+    def _parse_type_name(self) -> str | None:
+        """Parse a type name which could be single or multi-word.
+
+        Examples: "Text", "Number", "Whole Number", "Status"
+
+        Returns:
+            The type name as a string or None if not found.
+        """
+        if not self._current_token:
+            return None
+
+        # Check for known type keywords
+        type_keywords = {
+            TokenType.KW_TEXT: "Text",
+            TokenType.KW_NUMBER: "Number",
+            TokenType.KW_WHOLE_NUMBER: "Whole Number",
+            TokenType.KW_STATUS: "Status",
+            TokenType.KW_BOOL: "Boolean",
+            TokenType.KW_INT: "Integer",
+            TokenType.KW_FLOAT: "Float",
+            TokenType.KW_URL: "URL",
+            TokenType.KW_DATE: "Date",
+            TokenType.KW_DATETIME: "DateTime",
+            TokenType.KW_TIME: "Time",
+            TokenType.KW_LIST: "List",
+        }
+
+        if self._current_token.type in type_keywords:
+            type_name = type_keywords[self._current_token.type]
+            self._advance_tokens()
+            return type_name
+
+        # If it's an identifier, use it as the type name
+        if self._current_token.type == TokenType.MISC_IDENT:
+            type_name = self._current_token.literal
+            self._advance_tokens()
+            return type_name
+
+        return None

@@ -1,0 +1,204 @@
+"""Tests for Interaction statements (public methods) in Machine Dialect."""
+
+
+from machine_dialect.ast import (
+    BlockStatement,
+    IfStatement,
+    InteractionStatement,
+)
+from machine_dialect.parser import Parser
+
+
+class TestInteractionStatements:
+    """Test parsing of Interaction statements (public methods)."""
+
+    def test_simple_interaction_without_parameters(self) -> None:
+        """Test parsing a simple interaction without parameters."""
+        source = """### **Interaction**: `turn alarm off`
+
+<details>
+<summary>Turns off the alarm when it is on.</summary>
+
+> **if** `alarm is on` **then**:
+>
+> > **Set** `alarm is on` **to** _No_.
+> > Say _"Alarm has been turned off"_.
+
+</details>"""
+
+        parser = Parser()
+        program = parser.parse(source)
+
+        assert len(parser.errors) == 0, f"Parser errors: {parser.errors}"
+        assert len(program.statements) == 1
+
+        interaction_stmt = program.statements[0]
+        assert isinstance(interaction_stmt, InteractionStatement)
+        assert interaction_stmt.name.value == "turn alarm off"
+        assert len(interaction_stmt.parameters) == 0
+        assert isinstance(interaction_stmt.body, BlockStatement)
+
+        # The body should contain an if statement
+        assert len(interaction_stmt.body.statements) == 1
+        if_stmt = interaction_stmt.body.statements[0]
+        assert isinstance(if_stmt, IfStatement)
+
+        # The if statement should have a consequence block with 2 statements
+        assert isinstance(if_stmt.consequence, BlockStatement)
+        assert len(if_stmt.consequence.statements) == 2
+
+    def test_interaction_with_heading_level(self) -> None:
+        """Test that interaction heading level (###) is parsed correctly."""
+        source = """### **Interaction**: `get status`
+
+<details>
+<summary>Returns the current status.</summary>
+
+> Say _"Status: OK"_.
+
+</details>"""
+
+        parser = Parser()
+        program = parser.parse(source)
+
+        assert len(parser.errors) == 0
+        assert len(program.statements) == 1
+
+        interaction_stmt = program.statements[0]
+        assert isinstance(interaction_stmt, InteractionStatement)
+        assert interaction_stmt.name.value == "get status"
+
+    def test_interaction_with_multi_word_name(self) -> None:
+        """Test interaction with multi-word name in backticks."""
+        source = """### **Interaction**: `check system health`
+
+<details>
+<summary>Checks if the system is healthy.</summary>
+
+> Set `health` to _"Good"_.
+> Say `health`.
+
+</details>"""
+
+        parser = Parser()
+        program = parser.parse(source)
+
+        assert len(parser.errors) == 0
+        assert len(program.statements) == 1
+
+        interaction_stmt = program.statements[0]
+        assert isinstance(interaction_stmt, InteractionStatement)
+        assert interaction_stmt.name.value == "check system health"
+
+    def test_interaction_plural_form(self) -> None:
+        """Test that 'Interactions' keyword also works."""
+        source = """### **Interactions**: `say hello`
+
+<details>
+<summary>Greets the user.</summary>
+
+> Say _"Hello!"_.
+
+</details>"""
+
+        parser = Parser()
+        program = parser.parse(source)
+
+        assert len(parser.errors) == 0
+        assert len(program.statements) == 1
+
+        interaction_stmt = program.statements[0]
+        assert isinstance(interaction_stmt, InteractionStatement)
+        assert interaction_stmt.name.value == "say hello"
+
+    def test_interaction_with_empty_body(self) -> None:
+        """Test interaction with no statements in body."""
+        source = """### **Interaction**: `noop`
+
+<details>
+<summary>No operation.</summary>
+
+</details>"""
+
+        parser = Parser()
+        program = parser.parse(source)
+
+        assert len(parser.errors) == 0
+        assert len(program.statements) == 1
+
+        interaction_stmt = program.statements[0]
+        assert isinstance(interaction_stmt, InteractionStatement)
+        assert interaction_stmt.name.value == "noop"
+        assert len(interaction_stmt.body.statements) == 0
+
+    def test_multiple_interactions(self) -> None:
+        """Test parsing multiple interactions in one program."""
+        source = """### **Interaction**: `start process`
+
+<details>
+<summary>Starts the process.</summary>
+
+> Set `running` to _Yes_.
+
+</details>
+
+### **Interaction**: `stop process`
+
+<details>
+<summary>Stops the process.</summary>
+
+> Set `running` to _No_.
+
+</details>"""
+
+        parser = Parser()
+        program = parser.parse(source)
+
+        assert len(parser.errors) == 0
+        assert len(program.statements) == 2
+
+        first_interaction = program.statements[0]
+        assert isinstance(first_interaction, InteractionStatement)
+        assert first_interaction.name.value == "start process"
+
+        second_interaction = program.statements[1]
+        assert isinstance(second_interaction, InteractionStatement)
+        assert second_interaction.name.value == "stop process"
+
+    def test_mixed_actions_and_interactions(self) -> None:
+        """Test parsing both actions and interactions in same program."""
+        source = """### **Action**: `internal process`
+
+<details>
+<summary>Internal processing.</summary>
+
+> Set `data` to _"processed"_.
+
+</details>
+
+### **Interaction**: `get data`
+
+<details>
+<summary>Returns processed data.</summary>
+
+> Say `data`.
+
+</details>"""
+
+        parser = Parser()
+        program = parser.parse(source)
+
+        assert len(parser.errors) == 0
+        assert len(program.statements) == 2
+
+        # First should be an Action
+        from machine_dialect.ast import ActionStatement
+
+        action = program.statements[0]
+        assert isinstance(action, ActionStatement)
+        assert action.name.value == "internal process"
+
+        # Second should be an Interaction
+        interaction = program.statements[1]
+        assert isinstance(interaction, InteractionStatement)
+        assert interaction.name.value == "get data"

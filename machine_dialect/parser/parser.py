@@ -1,6 +1,7 @@
 from collections.abc import Callable
 
 from machine_dialect.ast import (
+    ActionStatement,
     BlockStatement,
     BooleanLiteral,
     ConditionalExpression,
@@ -13,9 +14,11 @@ from machine_dialect.ast import (
     IfStatement,
     InfixExpression,
     IntegerLiteral,
+    InteractionStatement,
     PrefixExpression,
     Program,
     ReturnStatement,
+    SayStatement,
     SetStatement,
     Statement,
     StringLiteral,
@@ -687,6 +690,37 @@ class Parser:
 
         return return_statement
 
+    def _parse_say_statement(self) -> SayStatement:
+        """Parse a Say statement.
+
+        Syntax: Say <expression>.
+
+        Returns:
+            A SayStatement AST node.
+        """
+        assert self._current_token is not None
+        assert self._current_token.type == TokenType.KW_SAY
+
+        statement_token = self._current_token
+
+        # Move past 'Say'
+        self._advance_tokens()
+
+        # Parse the expression to output
+        expression = self._parse_expression(Precedence.LOWEST)
+
+        # Create the Say statement
+        say_statement = SayStatement(statement_token, expression)
+
+        # Expect a period at the end
+        if self._peek_token and self._peek_token.type == TokenType.PUNCT_PERIOD:
+            self._advance_tokens()
+        # But if we're already at a period (after error recovery), don't expect another
+        elif self._current_token and self._current_token.type != TokenType.PUNCT_PERIOD:  # type: ignore[comparison-overlap]
+            self._expected_token(TokenType.PUNCT_PERIOD)
+
+        return say_statement
+
     def _parse_if_statement(self) -> IfStatement:
         """Parse an if statement with block statements.
 
@@ -746,6 +780,108 @@ class Parser:
                 pass
 
         return if_statement
+
+    def _parse_action_or_interaction(self) -> ActionStatement | InteractionStatement | ErrorStatement:
+        """Parse an Action or Interaction statement.
+
+        Expected format:
+        ### **Action**: `name`
+        or
+        ### **Interaction**: `name`
+
+        <details>
+        <summary>Description</summary>
+        > statements
+        </details>
+
+        Returns:
+            ActionStatement or InteractionStatement node, or ErrorStatement if parsing fails.
+        """
+        assert self._current_token is not None
+        assert self._current_token.type == TokenType.PUNCT_HASH_TRIPLE
+
+        # Save the ### token for the statement
+        hash_token = self._current_token
+
+        # Move past ###
+        self._advance_tokens()
+
+        # Expect **Action** or **Interaction** (wrapped keyword)
+        if not self._current_token or self._current_token.type not in (TokenType.KW_ACTION, TokenType.KW_INTERACTION):
+            skipped = self._panic_mode_recovery()
+            return ErrorStatement(
+                token=hash_token, skipped_tokens=skipped, message="Expected **Action** or **Interaction** after ###"
+            )
+
+        is_action = self._current_token.type == TokenType.KW_ACTION  # type: ignore[comparison-overlap]
+        keyword_token = self._current_token
+
+        # Move past Action/Interaction keyword
+        self._advance_tokens()
+
+        # Expect colon - should be at current position
+        if not self._current_token or self._current_token.type != TokenType.PUNCT_COLON:  # type: ignore[comparison-overlap]
+            skipped = self._panic_mode_recovery()
+            return ErrorStatement(
+                token=keyword_token, skipped_tokens=skipped, message="Expected ':' after Action/Interaction"
+            )
+
+        # Move past colon
+        self._advance_tokens()
+
+        # Expect backtick-wrapped name
+        if not self._current_token or self._current_token.type != TokenType.MISC_IDENT:
+            skipped = self._panic_mode_recovery()
+            return ErrorStatement(
+                token=keyword_token, skipped_tokens=skipped, message="Expected identifier in backticks for name"
+            )
+
+        name = Identifier(self._current_token, self._current_token.literal)
+        self._advance_tokens()
+
+        # Now expect <details> tag - should be at current position
+        if not self._current_token or self._current_token.type != TokenType.TAG_DETAILS_START:
+            skipped = self._panic_mode_recovery()
+            return ErrorStatement(token=keyword_token, skipped_tokens=skipped, message="Expected <details> tag")
+
+        # Move past <details>
+        self._advance_tokens()
+
+        # Check for <summary> tag and extract description
+        description = ""
+        if self._current_token and self._current_token.type == TokenType.TAG_SUMMARY_START:
+            self._advance_tokens()
+            # The next token should be a comment with the description
+            if self._current_token and self._current_token.type == TokenType.MISC_COMMENT:
+                description = self._current_token.literal
+                self._advance_tokens()
+            # Expect </summary>
+            if self._current_token and self._current_token.type == TokenType.TAG_SUMMARY_END:
+                self._advance_tokens()
+
+        # Parse the body (block of statements with > prefix)
+        body = self._parse_block_statement()
+
+        # Expect </details> tag - should be at current position after block parsing
+        if self._current_token and self._current_token.type == TokenType.TAG_DETAILS_END:
+            self._advance_tokens()
+        else:
+            # If we're not at </details>, something went wrong with block parsing
+            # Create an error but don't panic recover
+            if self._current_token:
+                self._errors.append(
+                    MDSyntaxError(
+                        line=self._current_token.line,
+                        column=self._current_token.position,
+                        message=f"Expected </details> tag after action body, got {self._current_token.type.name}",
+                    )
+                )
+
+        # Create and return the appropriate statement
+        if is_action:
+            return ActionStatement(keyword_token, name, parameters=[], body=body, description=description)
+        else:
+            return InteractionStatement(keyword_token, name, parameters=[], body=body, description=description)
 
     def _parse_block_statement(self) -> BlockStatement:
         """Parse a block of statements marked by '>' symbols.
@@ -1005,4 +1141,6 @@ class Parser:
             TokenType.KW_SET: self._parse_let_statement,
             TokenType.KW_RETURN: self._parse_return_statement,
             TokenType.KW_IF: self._parse_if_statement,
+            TokenType.KW_SAY: self._parse_say_statement,
+            TokenType.PUNCT_HASH_TRIPLE: self._parse_action_or_interaction,
         }

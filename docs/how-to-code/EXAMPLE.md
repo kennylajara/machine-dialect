@@ -15,27 +15,27 @@ _Whether the store's door is currently open_ (**default**: _No_).
 **Define** `people inside` **as** a **whole number**.\
 _How many people are in the store_ (**default**: _0_).
 
-## Actions
+## Behaviors
 
-### **Define interaction** `turn alarm off`
+### **Action**: `make noise`
+
+<details>
+<summary>Emits the sound of the alarm.</summary>
+
+> Set `noise` to _"WEE-OO WEE-OO WEE-OO"_.\
+> **Say** `noise`.
+
+</details>
+
+### **Interaction**: `turn alarm off`
 
 <details>
 <summary>Turns off the alarm when it is on.</summary>
 
 > **if** `alarm is on` **then**:
 >
-> > **Set** `alarm is on` **to** _No_.\
-> > **Show message** _"Alarm has been turned off"_
-
-</details>
-
-### **Define behaviour called `make noise`**
-
-<details>
-<summary>Emits the sound of the alarm.</summary>
-
-> Set `noise` to _"WEE-OO WEE-OO WEE-OO"_.\
-> **Show message** `noise`.
+> > **Set** `alarm is on` **to** _No_.
+> > **Say** _"Alarm has been turned off"_
 
 </details>
 

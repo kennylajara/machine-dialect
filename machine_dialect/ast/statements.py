@@ -239,3 +239,150 @@ class ErrorStatement(Statement):
         if self.message:
             return f"<error: {self.message}>"
         return "<error>"
+
+
+class ActionStatement(Statement):
+    """Represents an Action statement (private method) in Machine Dialect.
+
+    Actions are private methods that can only be called within the same scope.
+    They are defined using the markdown-style syntax:
+    ### **Action**: `name`
+
+    Attributes:
+        name: The identifier naming the action.
+        parameters: List of parameter identifiers (empty for now).
+        body: The block of statements that make up the action body.
+        description: Optional description from the summary tag.
+    """
+
+    def __init__(
+        self,
+        token: Token,
+        name: Identifier,
+        parameters: list[Identifier] | None = None,
+        body: BlockStatement | None = None,
+        description: str = "",
+    ) -> None:
+        """Initialize an ActionStatement node.
+
+        Args:
+            token: The token that begins this statement (KW_ACTION).
+            name: The identifier naming the action.
+            parameters: List of parameter identifiers (defaults to empty list).
+            body: The block of statements in the action body.
+            description: Optional description from summary tag.
+        """
+        super().__init__(token)
+        self.name = name
+        self.parameters = parameters if parameters is not None else []
+        self.body = body if body is not None else BlockStatement(token)
+        self.description = description
+
+    def token_literal(self) -> str:
+        """Return the literal value of the action token.
+
+        Returns:
+            The literal value of the action keyword token.
+        """
+        return self.token.literal
+
+    def __str__(self) -> str:
+        """Return string representation of the action statement.
+
+        Returns:
+            A string representation of the action with its name and body.
+        """
+        params = ", ".join(str(p) for p in self.parameters)
+        return f"action {self.name}({params}) {{\n{self.body}\n}}"
+
+
+class SayStatement(Statement):
+    """Represents a Say statement (output/display) in Machine Dialect.
+
+    Say statements output or display expressions to the user.
+    They are similar to print statements in other languages.
+
+    Attributes:
+        expression: The expression to output.
+    """
+
+    def __init__(self, token: Token, expression: Expression | None = None) -> None:
+        """Initialize a SayStatement node.
+
+        Args:
+            token: The token that begins this statement (KW_SAY).
+            expression: The expression to output.
+        """
+        super().__init__(token)
+        self.expression = expression
+
+    def token_literal(self) -> str:
+        """Return the literal value of the say token.
+
+        Returns:
+            The literal value of the say keyword token.
+        """
+        return self.token.literal
+
+    def __str__(self) -> str:
+        """Return string representation of the say statement.
+
+        Returns:
+            A string representation like "Say expression".
+        """
+        return f"Say {self.expression}" if self.expression else "Say"
+
+
+class InteractionStatement(Statement):
+    """Represents an Interaction statement (public method) in Machine Dialect.
+
+    Interactions are public methods that can be called from outside the scope.
+    They are defined using the markdown-style syntax:
+    ### **Interaction**: `name`
+
+    Attributes:
+        name: The identifier naming the interaction.
+        parameters: List of parameter identifiers (empty for now).
+        body: The block of statements that make up the interaction body.
+        description: Optional description from the summary tag.
+    """
+
+    def __init__(
+        self,
+        token: Token,
+        name: Identifier,
+        parameters: list[Identifier] | None = None,
+        body: BlockStatement | None = None,
+        description: str = "",
+    ) -> None:
+        """Initialize an InteractionStatement node.
+
+        Args:
+            token: The token that begins this statement (KW_INTERACTION).
+            name: The identifier naming the interaction.
+            parameters: List of parameter identifiers (defaults to empty list).
+            body: The block of statements in the interaction body.
+            description: Optional description from summary tag.
+        """
+        super().__init__(token)
+        self.name = name
+        self.parameters = parameters if parameters is not None else []
+        self.body = body if body is not None else BlockStatement(token)
+        self.description = description
+
+    def token_literal(self) -> str:
+        """Return the literal value of the interaction token.
+
+        Returns:
+            The literal value of the interaction keyword token.
+        """
+        return self.token.literal
+
+    def __str__(self) -> str:
+        """Return string representation of the interaction statement.
+
+        Returns:
+            A string representation of the interaction with its name and body.
+        """
+        params = ", ".join(str(p) for p in self.parameters)
+        return f"interaction {self.name}({params}) {{\n{self.body}\n}}"

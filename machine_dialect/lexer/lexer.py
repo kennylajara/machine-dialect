@@ -773,6 +773,14 @@ class Lexer:
             elif char == ">" and self.current_char == "=":
                 self.advance()
                 return Token(TokenType.OP_GTE, ">=", token_line, token_column)
+            elif char == "#":
+                # Check for ## or ###
+                if self.current_char == "#":
+                    self.advance()
+                    if self.current_char == "#":
+                        self.advance()
+                        return Token(TokenType.PUNCT_HASH_TRIPLE, "###", token_line, token_column)
+                    return Token(TokenType.PUNCT_HASH_DOUBLE, "##", token_line, token_column)
 
             # Single character token
             token_type = CHAR_TO_TOKEN_MAP[char]

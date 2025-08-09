@@ -49,6 +49,8 @@ class TokenType(Enum):
     PUNCT_PERIOD = auto()
     PUNCT_COLON = auto()
     PUNCT_HASH = auto()
+    PUNCT_HASH_DOUBLE = auto()
+    PUNCT_HASH_TRIPLE = auto()
 
     # Literals
     LIT_FALSE = auto()
@@ -95,6 +97,7 @@ class TokenType(Enum):
     KW_PROMPT = auto()
     KW_RETURN = auto()
     KW_RULE = auto()
+    KW_SAY = auto()
     KW_SET = auto()
     KW_TAKE = auto()
     KW_TELL = auto()
@@ -185,6 +188,9 @@ keywords_mapping: dict[str, TokenType] = {
     "as": TokenType.KW_AS,
     # behavior for objects
     "behavior": TokenType.KW_BEHAVIOR,
+    "behaviors": TokenType.KW_BEHAVIOR,
+    "behaviour": TokenType.KW_BEHAVIOR,
+    "behaviours": TokenType.KW_BEHAVIOR,
     # boolean:
     "Boolean": TokenType.KW_BOOL,
     # declare function: define a `sum` as function
@@ -211,6 +217,7 @@ keywords_mapping: dict[str, TokenType] = {
     "Integer": TokenType.KW_INT,
     # interaction for objects
     "interaction": TokenType.KW_INTERACTION,
+    "interactions": TokenType.KW_INTERACTION,
     # equal comparator: if `x` is 0
     "is": TokenType.KW_IS,
     # Natural language comparison operators
@@ -253,6 +260,8 @@ keywords_mapping: dict[str, TokenType] = {
     "gives back": TokenType.KW_RETURN,
     # The typical functions: Define a rule called `add` that takes two numbers and returns another number.
     "rule": TokenType.KW_RULE,
+    # output/display: Say `message`.
+    "Say": TokenType.KW_SAY,
     # declare variable: set `a` as integer.
     "Set": TokenType.KW_SET,
     # classes' properties:

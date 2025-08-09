@@ -9,11 +9,14 @@ from .expressions import (
     ConditionalExpression,
 )
 from .statements import (
+    ActionStatement,
     BlockStatement,
     ErrorStatement,
     ExpressionStatement,
     IfStatement,
+    InteractionStatement,
     ReturnStatement,
+    SayStatement,
     SetStatement,
     Statement,
 )
@@ -22,6 +25,7 @@ from .literals import IntegerLiteral, FloatLiteral, StringLiteral, BooleanLitera
 
 
 __all__ = [
+    "ActionStatement",
     "ASTNode",
     "BlockStatement",
     "BooleanLiteral",
@@ -35,9 +39,11 @@ __all__ = [
     "IfStatement",
     "InfixExpression",
     "IntegerLiteral",
+    "InteractionStatement",
     "PrefixExpression",
     "Program",
     "ReturnStatement",
+    "SayStatement",
     "SetStatement",
     "Statement",
     "StringLiteral",

@@ -138,10 +138,10 @@ class TestInfixExpressions:
         "source,left,operator,right",
         [
             # Integer comparisons
-            ("5 == 5", 5, "==", 5),
-            ("10 == 20", 10, "==", 20),
-            ("5 != 5", 5, "!=", 5),
-            ("10 != 20", 10, "!=", 20),
+            ("5 equals 5", 5, "equals", 5),
+            ("10 equals 20", 10, "equals", 20),
+            ("5 is not 5", 5, "is not", 5),
+            ("10 is not 20", 10, "is not", 20),
             ("5 < 10", 5, "<", 10),
             ("20 < 10", 20, "<", 10),
             ("5 > 10", 5, ">", 10),
@@ -153,18 +153,18 @@ class TestInfixExpressions:
             ("10 >= 10", 10, ">=", 10),
             ("20 >= 10", 20, ">=", 10),
             # Float comparisons
-            ("3.14 == 3.14", 3.14, "==", 3.14),
-            ("2.5 != 3.5", 2.5, "!=", 3.5),
+            ("3.14 equals 3.14", 3.14, "equals", 3.14),
+            ("2.5 is not 3.5", 2.5, "is not", 3.5),
             ("1.5 < 2.5", 1.5, "<", 2.5),
             ("3.5 > 2.5", 3.5, ">", 2.5),
             # Boolean comparisons
-            ("True == True", True, "==", True),
-            ("True == False", True, "==", False),
-            ("False != True", False, "!=", True),
-            ("False != False", False, "!=", False),
+            ("True equals True", True, "equals", True),
+            ("True equals False", True, "equals", False),
+            ("False is not True", False, "is not", True),
+            ("False is not False", False, "is not", False),
             # Mixed type comparisons (will be type-checked at runtime)
-            ("5 == 5.0", 5, "==", 5.0),
-            ("10 != 10.5", 10, "!=", 10.5),
+            ("5 equals 5.0", 5, "equals", 5.0),
+            ("10 is not 10.5", 10, "is not", 10.5),
             ("3 < 3.14", 3, "<", 3.14),
             ("5.0 > 4", 5.0, ">", 4),
         ],
@@ -202,8 +202,8 @@ class TestInfixExpressions:
             ("p * q", "p", "*", "q"),
             ("width / height", "width", "/", "height"),
             # Identifier comparisons
-            ("x == z", "x", "==", "z"),
-            ("foo != bar", "foo", "!=", "bar"),
+            ("x equals z", "x", "equals", "z"),
+            ("foo is not bar", "foo", "is not", "bar"),
             ("p < q", "p", "<", "q"),
             ("width > height", "width", ">", "height"),
             # Mixed identifier and literal
@@ -214,7 +214,7 @@ class TestInfixExpressions:
             # Backtick identifiers
             ("`first name` + `last name`", "first name", "+", "last name"),
             ("`total cost` * `tax rate`", "total cost", "*", "tax rate"),
-            ("`is valid` == True", "is valid", "==", True),
+            ("`is valid` equals True", "is valid", "equals", True),
         ],
     )
     def test_identifier_expressions(
@@ -297,25 +297,23 @@ class TestInfixExpressions:
         """Test parsing natural language comparison operators."""
         test_cases = [
             # Equality variations
-            ("5 is equal to 5", 5, "==", 5),
-            ("x is equal to z", "x", "==", "z"),
-            ("10 is same as 10", 10, "==", 10),
-            ("foo is same as bar", "foo", "==", "bar"),
-            ("3.14 equals 3.14", 3.14, "==", 3.14),
-            ("value equals 42", "value", "==", 42),
-            ("5 is exactly 5", 5, "==", 5),
-            ("count is exactly 100", "count", "==", 100),
+            ("5 is equal to 5", 5, "equals", 5),
+            ("x is equal to z", "x", "equals", "z"),
+            ("10 is the same as 10", 10, "equals", 10),
+            ("foo is the same as bar", "foo", "equals", "bar"),
+            ("3.14 equals 3.14", 3.14, "equals", 3.14),
+            ("value equals 42", "value", "equals", 42),
             # Inequality variations
-            ("5 is not 10", 5, "!=", 10),
-            ("x is not z", "x", "!=", "z"),
-            ("5 isn't 10", 5, "!=", 10),
-            ("value isn't 0", "value", "!=", 0),
-            ("10 is not equal to 20", 10, "!=", 20),
-            ("foo is not equal to bar", "foo", "!=", "bar"),
-            ("5 doesn't equal 10", 5, "!=", 10),
-            ("result doesn't equal expected", "result", "!=", "expected"),
-            ("7 is different from 8", 7, "!=", 8),
-            ("actual is different from expected", "actual", "!=", "expected"),
+            ("5 is not 10", 5, "is not", 10),
+            ("x is not z", "x", "is not", "z"),
+            ("5 isn't 10", 5, "is not", 10),
+            ("value isn't 0", "value", "is not", 0),
+            ("10 is not equal to 20", 10, "is not", 20),
+            ("foo is not equal to bar", "foo", "is not", "bar"),
+            ("5 doesn't equal 10", 5, "is not", 10),
+            ("result doesn't equal expected", "result", "is not", "expected"),
+            ("7 is different from 8", 7, "is not", 8),
+            ("actual is different from expected", "actual", "is not", "expected"),
             # Greater than variations
             ("10 is greater than 5", 10, ">", 5),
             ("x is greater than 0", "x", ">", 0),
@@ -343,10 +341,10 @@ class TestInfixExpressions:
             ("5 is no more than 10", 5, "<=", 10),
             ("usage is no more than limit", "usage", "<=", "limit"),
             # Mixed with identifiers and literals
-            ("`total cost` is equal to 100.50", "total cost", "==", 100.50),
+            ("`total cost` is equal to 100.50", "total cost", "equals", 100.50),
             ("`error count` is less than 5", "error count", "<", 5),
-            ("True is not False", True, "!=", False),
-            ("_42_ is exactly _42_", 42, "==", 42),
+            ("True is not False", True, "is not", False),
+            ("_42_ equals _42_", 42, "equals", 42),
         ]
 
         for source, left_value, expected_operator, right_value in test_cases:
@@ -367,19 +365,19 @@ class TestInfixExpressions:
         """Test natural language operators in complex expressions with precedence."""
         test_cases = [
             # With logical operators
-            ("x is equal to 5 and y is greater than 10", "((x == 5) and (y > 10))"),
-            ("foo is not bar or baz is less than qux", "((foo != bar) or (baz < qux))"),
+            ("x is equal to 5 and y is greater than 10", "((x equals 5) and (y > 10))"),
+            ("foo is not bar or baz is less than qux", "((foo is not bar) or (baz < qux))"),
             ("value is at least 0 and value is at most 100", "((value >= 0) and (value <= 100))"),
             # With arithmetic
-            ("x + 5 is equal to 10", "((x + 5) == 10)"),
+            ("x + 5 is equal to 10", "((x + 5) equals 10)"),
             ("2 * y is greater than 20", "((2 * y) > 20)"),
             ("total / count is less than average", "((total / count) < average)"),
             # With parentheses
-            ("(x is equal to 5) and (y is not 10)", "((x == 5) and (y != 10))"),
+            ("(x is equal to 5) and (y is not 10)", "((x equals 5) and (y is not 10))"),
             ("not (x is greater than 10)", "(not (x > 10))"),
             # Nested comparisons
             ("x is greater than y and y is greater than z", "((x > y) and (y > z))"),
-            ("score is at least passing or retake is equal to True", "((score >= passing) or (retake == True))"),
+            ("score is at least passing or retake is equal to True", "((score >= passing) or (retake equals True))"),
         ]
 
         for source, _ in test_cases:
@@ -414,7 +412,7 @@ class TestInfixExpressions:
             ("1 + 2 * 3 + 4", "((_1_ + (_2_ * _3_)) + _4_)"),
             ("5 + 6 * 7 - 8 / 2", "((_5_ + (_6_ * _7_)) - (_8_ / _2_))"),
             # Comparison operators have lower precedence than arithmetic
-            ("5 + 3 == 8", "((_5_ + _3_) == _8_)"),
+            ("5 + 3 equals 8", "((_5_ + _3_) equals _8_)"),
             ("2 * 3 < 10", "((_2_ * _3_) < _10_)"),
             ("10 / 2 > 4", "((_10_ / _2_) > _4_)"),
             ("3 + 2 <= 5", "((_3_ + _2_) <= _5_)"),
@@ -423,10 +421,10 @@ class TestInfixExpressions:
             ("True and False or True", "((_True_ and _False_) or _True_)"),
             ("True or False and True", "(_True_ or (_False_ and _True_))"),
             ("5 > 3 and 10 < 20", "((_5_ > _3_) and (_10_ < _20_))"),
-            ("x == z or p != q", "((`x` == `z`) or (`p` != `q`))"),
+            ("x equals z or p is not q", "((`x` equals `z`) or (`p` is not `q`))"),
             # Mixed precedence with logical operators
-            ("5 + 3 > 7 and 2 * 3 == 6", "(((_5_ + _3_) > _7_) and ((_2_ * _3_) == _6_))"),
-            ("not x == z and w > 0", "(((not `x`) == `z`) and (`w` > _0_))"),
+            ("5 + 3 > 7 and 2 * 3 equals 6", "(((_5_ + _3_) > _7_) and ((_2_ * _3_) equals _6_))"),
+            ("not x equals z and w > 0", "(((not `x`) equals `z`) and (`w` > _0_))"),
         ]
 
         for source, expected in test_cases:
@@ -471,8 +469,8 @@ class TestInfixExpressions:
             ("not (x or z)", "(not (`x` or `z`))"),
             # Mixed logical and comparison with parentheses
             ("(x > 5) and (y < 10)", "((`x` > _5_) and (`y` < _10_))"),
-            ("(foo == bar) or (baz != qux)", "((`foo` == `bar`) or (`baz` != `qux`))"),
-            ("(5 > 3) and (10 < 20 or 15 == 15)", "((_5_ > _3_) and ((_10_ < _20_) or (_15_ == _15_)))"),
+            ("(foo equals bar) or (baz is not qux)", "((`foo` equals `bar`) or (`baz` is not `qux`))"),
+            ("(5 > 3) and (10 < 20 or 15 equals 15)", "((_5_ > _3_) and ((_10_ < _20_) or (_15_ equals _15_)))"),
             # Deeply nested logical expressions
             ("((x or z) and p) or q", "(((`x` or `z`) and `p`) or `q`)"),
             ("x or (z and (p or q))", "(`x` or (`z` and (`p` or `q`)))"),
@@ -537,7 +535,7 @@ class TestInfixExpressions:
         assert expr.right.value is True
 
         # Check the string representation
-        assert str(expr) == "((_5_ > _3_) and _True_)"
+        assert str(statement.expression) == "((_5_ > _3_) and _True_)"
 
     def test_mixed_prefix_and_infix_expressions(self) -> None:
         """Test parsing expressions that combine prefix and infix operators."""
@@ -548,12 +546,12 @@ class TestInfixExpressions:
             ("-5 * -5", "((-_5_) * (-_5_))"),
             ("-10 / 2", "((-_10_) / _2_)"),
             # Boolean negation with comparisons
-            ("not x == z", "((not `x`) == `z`)"),
+            ("not x equals z", "((not `x`) equals `z`)"),
             ("not 5 < 10", "((not _5_) < _10_)"),
-            ("not True == False", "((not _True_) == _False_)"),
+            ("not True equals False", "((not _True_) equals _False_)"),
             # Complex mixed expressions
             ("-x + z * -w", "((-`x`) + (`z` * (-`w`)))"),
-            ("not p == q and r > v", "(((not `p`) == `q`) and (`r` > `v`))"),
+            ("not p equals q and r > v", "(((not `p`) equals `q`) and (`r` > `v`))"),
         ]
 
         for source, expected in test_cases:
@@ -614,13 +612,13 @@ class TestInfixExpressions:
             ("3 * 4", "(_3_ * _4_)"),
             ("10 / 2", "(_10_ / _2_)"),
             # Comparisons
-            ("5 == 5", "(_5_ == _5_)"),
-            ("10 != 5", "(_10_ != _5_)"),
+            ("5 equals 5", "(_5_ equals _5_)"),
+            ("10 is not 5", "(_10_ is not _5_)"),
             ("3 < 4", "(_3_ < _4_)"),
             ("10 > 2", "(_10_ > _2_)"),
             # With identifiers
             ("x + z", "(`x` + `z`)"),
-            ("foo == bar", "(`foo` == `bar`)"),
+            ("foo equals bar", "(`foo` equals `bar`)"),
             # Complex expressions
             ("5 + 2 * 3", "(_5_ + (_2_ * _3_))"),
             ("-5 + 10", "((-_5_) + _10_)"),

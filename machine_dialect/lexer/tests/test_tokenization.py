@@ -123,8 +123,6 @@ class TestLexer:
             (">", [Token(TokenType.OP_GT, ">", line=1, position=1)]),
             ("*", [Token(TokenType.OP_STAR, "*", line=1, position=1)]),
             # Multi-character operators
-            ("==", [Token(TokenType.OP_EQ, "==", line=1, position=1)]),
-            ("!=", [Token(TokenType.OP_NOT_EQ, "!=", line=1, position=1)]),
             ("**", [Token(TokenType.OP_TWO_STARS, "**", line=1, position=1)]),
             # Delimiters
             ("(", [Token(TokenType.DELIM_LPAREN, "(", line=1, position=1)]),

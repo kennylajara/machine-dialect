@@ -30,6 +30,8 @@ class TokenType(Enum):
     OP_ASSIGN = auto()
     OP_EQ = auto()
     OP_NOT_EQ = auto()
+    OP_STRICT_EQ = auto()
+    OP_STRICT_NOT_EQ = auto()
     OP_LT = auto()
     OP_LTE = auto()
     OP_GT = auto()
@@ -221,15 +223,25 @@ keywords_mapping: dict[str, TokenType] = {
     # equal comparator: if `x` is 0
     "is": TokenType.KW_IS,
     # Natural language comparison operators
+    # Value equality (==)
     "is equal to": TokenType.OP_EQ,
-    "is same as": TokenType.OP_EQ,
     "equals": TokenType.OP_EQ,
-    "is exactly": TokenType.OP_EQ,
-    "is not": TokenType.OP_NOT_EQ,
-    "isn't": TokenType.OP_NOT_EQ,
+    "is the same as": TokenType.OP_EQ,
+    # Value inequality (!=)
     "is not equal to": TokenType.OP_NOT_EQ,
+    "does not equal": TokenType.OP_NOT_EQ,
     "doesn't equal": TokenType.OP_NOT_EQ,
     "is different from": TokenType.OP_NOT_EQ,
+    "is not": TokenType.OP_NOT_EQ,
+    "isn't": TokenType.OP_NOT_EQ,
+    # Strict equality (===)
+    "is strictly equal to": TokenType.OP_STRICT_EQ,
+    "is exactly equal to": TokenType.OP_STRICT_EQ,
+    "is identical to": TokenType.OP_STRICT_EQ,
+    # Strict inequality (!==)
+    "is not strictly equal to": TokenType.OP_STRICT_NOT_EQ,
+    "is not exactly equal to": TokenType.OP_STRICT_NOT_EQ,
+    "is not identical to": TokenType.OP_STRICT_NOT_EQ,
     "is greater than": TokenType.OP_GT,
     "is more than": TokenType.OP_GT,
     "is less than": TokenType.OP_LT,

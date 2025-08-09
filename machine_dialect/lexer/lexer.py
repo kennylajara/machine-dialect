@@ -761,13 +761,7 @@ class Lexer:
             self.advance()
 
             # Check for multi-character operators
-            if char == "=" and self.current_char == "=":
-                self.advance()
-                return Token(TokenType.OP_EQ, "==", token_line, token_column)
-            elif char == "!" and self.current_char == "=":
-                self.advance()
-                return Token(TokenType.OP_NOT_EQ, "!=", token_line, token_column)
-            elif char == "<" and self.current_char == "=":
+            if char == "<" and self.current_char == "=":
                 self.advance()
                 return Token(TokenType.OP_LTE, "<=", token_line, token_column)
             elif char == ">" and self.current_char == "=":

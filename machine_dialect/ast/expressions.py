@@ -129,6 +129,43 @@ class InfixExpression(Expression):
         return f"({self.left} {self.operator} {self.right})"
 
 
+class Arguments(Expression):
+    """Represents arguments for a function call.
+
+    Arguments can be positional, named (keyword), or a mix of both.
+    Positional arguments must come before named arguments.
+
+    Attributes:
+        positional: List of positional argument expressions.
+        named: List of tuples (name, value) for named arguments.
+    """
+
+    def __init__(self, token: Token) -> None:
+        """Initialize an Arguments node.
+
+        Args:
+            token: The token that begins the arguments (usually 'with').
+        """
+        super().__init__(token)
+        self.positional: list[Expression] = []
+        self.named: list[tuple[Identifier, Expression]] = []
+
+    def __str__(self) -> str:
+        """Return the string representation of the arguments.
+
+        Returns:
+            A comma-separated list of arguments.
+        """
+        parts = []
+        # Add positional arguments
+        for arg in self.positional:
+            parts.append(str(arg))
+        # Add named arguments
+        for name, value in self.named:
+            parts.append(f"{name}: {value}")
+        return ", ".join(parts)
+
+
 class ConditionalExpression(Expression):
     """A conditional (ternary) expression.
 

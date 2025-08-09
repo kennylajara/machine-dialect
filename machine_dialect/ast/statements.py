@@ -134,6 +134,45 @@ class SetStatement(Statement):
         return out
 
 
+class CallStatement(Statement):
+    """A statement that calls/invokes a function or interaction.
+
+    Call statements follow the pattern: "call <function> [with <arguments>]".
+    They are used to invoke functions, actions, or interactions with optional arguments.
+
+    Attributes:
+        function_name: The expression that identifies the function to call (usually a StringLiteral or Identifier).
+        arguments: Optional Arguments node containing the function arguments.
+    """
+
+    def __init__(
+        self, token: Token, function_name: Expression | None = None, arguments: Expression | None = None
+    ) -> None:
+        """Initialize a CallStatement node.
+
+        Args:
+            token: The 'call' token that begins the statement.
+            function_name: The expression identifying the function to call.
+            arguments: Optional Arguments node containing the function arguments.
+        """
+        super().__init__(token)
+        self.function_name = function_name
+        self.arguments = arguments
+
+    def __str__(self) -> str:
+        """Return the string representation of the call statement.
+
+        Returns:
+            A string like "call <function> [with <arguments>]".
+        """
+        out = f"{self.token.literal} "
+        if self.function_name:
+            out += str(self.function_name)
+        if self.arguments:
+            out += f" with {self.arguments}"
+        return out
+
+
 class BlockStatement(Statement):
     """A block of statements with a specific depth.
 

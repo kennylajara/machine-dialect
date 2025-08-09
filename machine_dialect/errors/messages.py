@@ -30,3 +30,9 @@ EMPTY_IF_CONSEQUENCE = ErrorTemplate("If statement must have a non-empty consequ
 EMPTY_ELSE_BLOCK = ErrorTemplate("Else/otherwise block must not be empty. If no alternative is needed, omit it.")
 EXPECTED_DETAILS_CLOSE = ErrorTemplate("Expected </details> tag after action body, got $token_type")
 UNEXPECTED_BLOCK_DEPTH = ErrorTemplate("Unexpected block depth: expected $expected '>' but got $actual")
+
+# Call statement errors
+EXPECTED_FUNCTION_NAME = ErrorTemplate("Expected identifier for function name, got $token_type")
+EXPECTED_IDENTIFIER_FOR_NAMED_ARG = ErrorTemplate("Expected identifier for named argument, got $type_name")
+POSITIONAL_AFTER_NAMED = ErrorTemplate("Positional arguments cannot appear after named arguments")
+INVALID_ARGUMENT_VALUE = ErrorTemplate("Invalid argument value: '$literal'")

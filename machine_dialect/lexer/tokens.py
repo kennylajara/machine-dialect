@@ -192,7 +192,10 @@ keywords_mapping: dict[str, TokenType] = {
     # call function:
     #   apply rule `add` with **1** and **5**`.
     #   apply rule `add` with `left` = **1** and `right` = **5**`.
+    #   call `turn alarm off`.
+    #   call `make noise` with `sound`: _"WEE-OO"_, volume: _80_.
     "apply": TokenType.KW_CALL,
+    "call": TokenType.KW_CALL,
     # type indicator: set `a` as integer
     "as": TokenType.KW_AS,
     # behavior for objects

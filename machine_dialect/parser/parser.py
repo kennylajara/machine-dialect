@@ -2,8 +2,10 @@ from collections.abc import Callable
 
 from machine_dialect.ast import (
     ActionStatement,
+    Arguments,
     BlockStatement,
     BooleanLiteral,
+    CallStatement,
     ConditionalExpression,
     EmptyLiteral,
     ErrorExpression,
@@ -31,10 +33,14 @@ from machine_dialect.errors.messages import (
     EMPTY_IF_CONSEQUENCE,
     EXPECTED_DETAILS_CLOSE,
     EXPECTED_EXPRESSION,
+    EXPECTED_FUNCTION_NAME,
+    EXPECTED_IDENTIFIER_FOR_NAMED_ARG,
+    INVALID_ARGUMENT_VALUE,
     INVALID_FLOAT_LITERAL,
     INVALID_INTEGER_LITERAL,
     NAME_UNDEFINED,
     NO_PARSE_FUNCTION,
+    POSITIONAL_AFTER_NAMED,
     UNEXPECTED_BLOCK_DEPTH,
     UNEXPECTED_TOKEN,
     UNEXPECTED_TOKEN_AT_START,
@@ -760,6 +766,236 @@ class Parser:
 
         return say_statement
 
+    def _parse_call_statement(self) -> CallStatement:
+        """Parse a Call statement.
+
+        Syntax: call <function> [with <arguments>].
+
+        Returns:
+            A CallStatement AST node.
+        """
+        assert self._current_token is not None
+        assert self._current_token.type == TokenType.KW_CALL
+
+        statement_token = self._current_token
+
+        # Move past 'call'
+        self._advance_tokens()
+
+        # Parse the function name (must be an identifier in backticks)
+        if self._current_token and self._current_token.type == TokenType.MISC_IDENT:  # type: ignore[comparison-overlap]
+            function_name = Identifier(self._current_token, self._current_token.literal)
+            self._advance_tokens()
+        else:
+            # Record error for missing or invalid function name
+            error_token = self._current_token or Token(TokenType.MISC_EOF, "", 0, 0)
+            self.errors.append(
+                MDSyntaxError(
+                    message=EXPECTED_FUNCTION_NAME,
+                    token_type=str(error_token.type),
+                    line=error_token.line,
+                    column=error_token.position,
+                )
+            )
+            function_name = None
+
+        # Check for 'with' keyword for arguments
+        arguments: Arguments | None = None
+        if self._current_token and self._current_token.type == TokenType.KW_WITH:  # type: ignore[comparison-overlap]
+            # Save 'with' token for Arguments node
+            with_token = self._current_token
+            self._advance_tokens()  # Move past 'with'
+
+            # Parse arguments
+            arguments = self._parse_arguments_with_token(with_token)
+
+        # Create the Call statement
+        call_statement = CallStatement(statement_token, function_name, arguments)
+
+        # Expect a period at the end
+        if self._peek_token and self._peek_token.type == TokenType.PUNCT_PERIOD:
+            self._advance_tokens()
+        # But if we're already at a period (after error recovery), don't expect another
+        elif self._current_token and self._current_token.type != TokenType.PUNCT_PERIOD:  # type: ignore[comparison-overlap]
+            self._expected_token(TokenType.PUNCT_PERIOD)
+
+        return call_statement
+
+    def _parse_argument_value(self) -> Expression | None:
+        """Parse a single argument value (literal or identifier).
+
+        Returns:
+            The parsed expression or None if invalid.
+        """
+        if not self._current_token:
+            return None
+
+        token = self._current_token
+
+        # Parse based on token type
+        value: Expression | None = None
+        if token.type == TokenType.MISC_IDENT:
+            # Identifier
+            value = Identifier(token, token.literal)
+            self._advance_tokens()
+            return value
+        elif token.type == TokenType.LIT_INT:
+            # Integer literal
+            int_value = self._parse_integer_literal()
+            self._advance_tokens()
+            return int_value
+        elif token.type == TokenType.LIT_FLOAT:
+            # Float literal
+            float_value = self._parse_float_literal()
+            self._advance_tokens()
+            return float_value
+        elif token.type == TokenType.LIT_TEXT:
+            # String literal
+            str_value = self._parse_string_literal()
+            self._advance_tokens()
+            return str_value
+        elif token.type in (TokenType.LIT_TRUE, TokenType.LIT_FALSE):
+            # Boolean literal
+            bool_value = self._parse_boolean_literal()
+            self._advance_tokens()
+            return bool_value
+        elif token.type == TokenType.KW_EMPTY:
+            # Empty literal
+            empty_value = self._parse_empty_literal()
+            self._advance_tokens()
+            return empty_value
+        else:
+            # Unknown token type for argument
+            self.errors.append(
+                MDSyntaxError(
+                    message=INVALID_ARGUMENT_VALUE,
+                    literal=token.literal,
+                    line=token.line,
+                    column=token.position,
+                )
+            )
+            self._advance_tokens()  # Skip the invalid token
+            return None
+
+    def _parse_arguments_with_token(self, with_token: Token) -> Arguments:
+        """Parse function call arguments.
+
+        Arguments can be:
+        - Positional: _value1_, _value2_
+        - Named: `param1`: _value1_, `param2`: _value2_
+        - Mixed: _value1_, `param`: _value2_ (positional must come first)
+
+        Returns:
+            An Arguments AST node.
+        """
+        # Create Arguments node with the 'with' token
+        arguments = Arguments(with_token)
+        has_named = False  # Track if we've seen named arguments
+
+        while self._current_token and self._current_token.type not in (
+            TokenType.PUNCT_PERIOD,
+            TokenType.MISC_EOF,
+            TokenType.DELIM_RPAREN,
+        ):
+            # Check if this is a named argument (next token is colon after an identifier/string)
+            if self._peek_token and self._peek_token.type == TokenType.PUNCT_COLON:
+                # This is a named argument
+                has_named = True
+
+                # Parse the parameter name (should be an identifier in backticks)
+                if self._current_token and self._current_token.type == TokenType.MISC_IDENT:
+                    name_expr = Identifier(self._current_token, self._current_token.literal)
+                    self._advance_tokens()
+                else:
+                    name_expr = None
+
+                # Verify it's an identifier
+                if not isinstance(name_expr, Identifier):
+                    # Record error for invalid named argument
+                    error_token = self._current_token or Token(TokenType.MISC_EOF, "", 0, 0)
+                    self.errors.append(
+                        MDSyntaxError(
+                            message=EXPECTED_IDENTIFIER_FOR_NAMED_ARG,
+                            type_name=type(name_expr).__name__ if name_expr else "None",
+                            line=error_token.line,
+                            column=error_token.position,
+                        )
+                    )
+                    # Try to recover by skipping to next comma or period
+                    self._panic_mode_recovery()
+                    break
+
+                # Skip the colon
+                if self._current_token and self._current_token.type == TokenType.PUNCT_COLON:
+                    self._advance_tokens()
+
+                # Parse the value
+                value = self._parse_argument_value()
+
+                # Add to named arguments if both name and value are valid
+                if name_expr and value:
+                    arguments.named.append((name_expr, value))
+            else:
+                # This is a positional argument
+                if has_named:
+                    # Error: positional argument after named argument
+                    error_token = self._current_token or Token(TokenType.MISC_EOF, "", 0, 0)
+                    self.errors.append(
+                        MDSyntaxError(
+                            message=POSITIONAL_AFTER_NAMED,
+                            line=error_token.line,
+                            column=error_token.position,
+                        )
+                    )
+                    # Try to recover by skipping to next comma or period
+                    self._panic_mode_recovery()
+                    break
+
+                # Parse the value
+                value = self._parse_argument_value()
+
+                # Add to positional arguments if valid
+                if value:
+                    arguments.positional.append(value)
+
+            # Check for comma separator
+            if self._current_token and self._current_token.type == TokenType.PUNCT_COMMA:
+                self._advance_tokens()  # Skip comma
+            elif self._current_token and self._current_token.type not in (
+                TokenType.PUNCT_PERIOD,
+                TokenType.MISC_EOF,
+            ):
+                # No comma but not at the end either - missing comma error
+                error_token = self._current_token
+                self.errors.append(
+                    MDSyntaxError(
+                        message=UNEXPECTED_TOKEN,
+                        token_literal=error_token.literal,
+                        expected_token_type=TokenType.PUNCT_COMMA,
+                        received_token_type=error_token.type,
+                        line=error_token.line,
+                        column=error_token.position,
+                    )
+                )
+                # Try to recover by continuing to parse the next argument or ending
+                # Check if the next token looks like it could be an argument
+                if self._current_token.type in (
+                    TokenType.LIT_INT,
+                    TokenType.LIT_FLOAT,
+                    TokenType.LIT_TEXT,
+                    TokenType.LIT_TRUE,
+                    TokenType.LIT_FALSE,
+                    TokenType.MISC_IDENT,
+                    TokenType.KW_EMPTY,
+                ):
+                    # Looks like another argument, continue parsing
+                    continue
+                else:
+                    # Doesn't look like an argument, stop parsing arguments
+                    break
+
+        return arguments
+
     def _parse_if_statement(self) -> IfStatement:
         """Parse an if statement with block statements.
 
@@ -1217,6 +1453,7 @@ class Parser:
             TokenType.KW_RETURN: self._parse_return_statement,
             TokenType.KW_IF: self._parse_if_statement,
             TokenType.KW_SAY: self._parse_say_statement,
+            TokenType.KW_CALL: self._parse_call_statement,
             TokenType.PUNCT_HASH_TRIPLE: self._parse_action_or_interaction,
         }
 

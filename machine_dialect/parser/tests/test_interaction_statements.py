@@ -20,7 +20,7 @@ class TestInteractionStatements:
 <summary>Turns off the alarm when it is on.</summary>
 
 > **if** `alarm is on` **then**:
->
+> >
 > > **Set** `alarm is on` **to** _No_.
 > > Say _"Alarm has been turned off"_.
 

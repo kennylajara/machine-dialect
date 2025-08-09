@@ -7,6 +7,8 @@ for error handling throughout the system.
 
 from abc import ABC, abstractmethod
 
+from errors.messages import ErrorTemplate
+
 
 class MDBaseException(ABC):
     """Base Machine Dialect Exception.
@@ -25,7 +27,7 @@ class MDBaseException(ABC):
         These exceptions represent errors in Machine Dialect code, not Python code.
     """
 
-    def __init__(self, message: str, line: int, column: int, filename: str | None = None) -> None:
+    def __init__(self, message: ErrorTemplate, line: int, column: int, filename: str | None = None) -> None:
         """Initialize the Machine Dialect exception.
 
         Args:
@@ -34,7 +36,7 @@ class MDBaseException(ABC):
             column: The column number where the error occurred.
             filename: The filename where the error occurred.
         """
-        self._message = message
+        self._message = str(message)
         self._line = line
         self._column = column
         self._filename = filename or "<standard-input>"

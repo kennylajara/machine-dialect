@@ -748,7 +748,19 @@ class Parser:
             return IfStatement(token=if_statement.token, condition=if_statement.condition)
 
         # Parse the consequence block
-        if_statement.consequence = self._parse_block_statement()
+        # If we're inside a block, nested if statements should have deeper blocks
+        expected_depth = self._block_depth + 1
+        if_statement.consequence = self._parse_block_statement(expected_depth)
+
+        # Check if the consequence block is empty - this is an error
+        if not if_statement.consequence or len(if_statement.consequence.statements) == 0:
+            self._errors.append(
+                MDSyntaxError(
+                    line=if_statement.token.line,
+                    column=if_statement.token.position,
+                    message="If statement must have a non-empty consequence block",
+                )
+            )
 
         # Check for else/otherwise clause
         if self._current_token and self._current_token.type == TokenType.KW_ELSE:
@@ -761,7 +773,17 @@ class Parser:
                 return if_statement
 
             # Parse the alternative block
-            if_statement.alternative = self._parse_block_statement()
+            if_statement.alternative = self._parse_block_statement(expected_depth)
+
+            # Check if the alternative block is empty - this is also an error
+            if not if_statement.alternative or len(if_statement.alternative.statements) == 0:
+                self._errors.append(
+                    MDSyntaxError(
+                        line=self._current_token.line if self._current_token else if_statement.token.line,
+                        column=self._current_token.position if self._current_token else if_statement.token.position,
+                        message="Else/otherwise block must not be empty. If no alternative is needed, omit it.",
+                    )
+                )
         elif self._block_depth == 0:
             # No else clause and we're at top level (not inside a block)
             # Check if we're at a '>' token that was part of the block we just parsed
@@ -883,7 +905,7 @@ class Parser:
         else:
             return InteractionStatement(keyword_token, name, parameters=[], body=body, description=description)
 
-    def _parse_block_statement(self) -> BlockStatement:
+    def _parse_block_statement(self, expected_depth: int = 1) -> BlockStatement:
         """Parse a block of statements marked by '>' symbols.
 
         A block contains statements that start with one or more '>' symbols.
@@ -891,12 +913,16 @@ class Parser:
         The block ends when we encounter a statement with fewer '>' symbols
         or a statement without '>' symbols.
 
+        Args:
+            expected_depth: The expected depth for this block (number of '>' symbols).
+                           Defaults to 1 for top-level blocks.
+
         Returns:
             A BlockStatement AST node.
         """
         assert self._current_token is not None
         block_token = self._current_token
-        block = BlockStatement(token=block_token)
+        block = BlockStatement(token=block_token, depth=expected_depth)
 
         # Track that we're entering a block
         self._block_depth += 1
@@ -910,7 +936,6 @@ class Parser:
             self._advance_tokens()
 
         # Parse statements in the block
-        first_statement = True
         while self._current_token and self._current_token.type != TokenType.MISC_EOF:
             # Note: With streaming tokens, we can't save/restore positions
 
@@ -930,49 +955,41 @@ class Parser:
                     current_depth += 1
                     self._advance_tokens()
 
-            # For the first statement, set the block depth
-            if first_statement:
-                block.depth = current_depth
-                first_statement = False
-                # If the first line has no '>' at all, it's an empty block
-                if current_depth == 0:
+            # Check depth against expected depth
+            if current_depth == 0:
+                # No '>' means we've exited the block
+                break
+            elif current_depth < expected_depth:
+                # We've exited the block due to lower depth
+                # We've already consumed the '>' tokens while counting depth
+                # The parent block needs to handle this line's content
+                # But first check if this is an empty line (only '>')
+                if self._current_token and self._current_token.line != original_line:
+                    # Empty line - we consumed all tokens on the line
+                    # Just break and let parent continue from next line
                     break
-            else:
-                # Check depth consistency for non-first statements
-                if current_depth == 0:
-                    # No '>' means we've exited the block
+                else:
+                    # Not empty - there's content after the '>'
+                    # With streaming, we can't back up - the tokens are already consumed
+                    # This means nested blocks need special handling
                     break
-                elif current_depth < block.depth:
-                    # We've exited the block due to lower depth
-                    # We've already consumed the '>' tokens while counting depth
-                    # The parent block needs to handle this line's content
-                    # But first check if this is an empty line (only '>')
-                    if self._current_token and self._current_token.line != original_line:
-                        # Empty line - we consumed all tokens on the line
-                        # Just break and let parent continue from next line
-                        break
-                    else:
-                        # Not empty - there's content after the '>'
-                        # With streaming, we can't back up - the tokens are already consumed
-                        # This means nested blocks need special handling
-                        break
-                elif current_depth > block.depth:
-                    # Nested block or error - for now treat as error
-                    self._errors.append(
-                        MDSyntaxError(
-                            line=self._current_token.line if self._current_token else 0,
-                            column=self._current_token.position if self._current_token else 0,
-                            message=f"Unexpected block depth: expected {block.depth} '>' but got {current_depth}",
-                        )
+            elif current_depth > expected_depth:
+                # Nested block or error - for now treat as error
+                self._errors.append(
+                    MDSyntaxError(
+                        line=self._current_token.line if self._current_token else 0,
+                        column=self._current_token.position if self._current_token else 0,
+                        message=f"Unexpected block depth: expected {expected_depth} '>' but got {current_depth}",
                     )
-                    # Skip to next line
-                    while self._current_token and self._current_token.type not in (
-                        TokenType.PUNCT_PERIOD,
-                        TokenType.MISC_EOF,
-                        TokenType.OP_GT,
-                    ):
-                        self._advance_tokens()
-                    continue
+                )
+                # Skip to next line
+                while self._current_token and self._current_token.type not in (
+                    TokenType.PUNCT_PERIOD,
+                    TokenType.MISC_EOF,
+                    TokenType.OP_GT,
+                ):
+                    self._advance_tokens()
+                continue
 
             # After depth check, check if this was an empty line (just '>' with no content)
             # Empty line is when we counted '>' but are no longer on the same line

@@ -34,7 +34,7 @@ _How many people are in the store_ (**default**: _0_).
 
 > **if** `alarm is on` **then**:
 >
-> > **Set** `alarm is on` **to** _No_.
+> > **Set** `alarm is on` **to** _No_.\
 > > **Say** _"Alarm has been turned off"_
 
 </details>

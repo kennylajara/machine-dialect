@@ -91,8 +91,11 @@ pre-commit run --all-files
 ### Running the REPL
 
 ```bash
-# Start interactive tokenization REPL
+# Start interactive REPL in AST mode (default)
 python -m machine_dialect
+
+# Start REPL in token debug mode
+python -m machine_dialect --debug-tokens
 ```
 
 ## Architecture & Key Components
@@ -116,8 +119,9 @@ python -m machine_dialect
 1. **AST** (`machine_dialect/ast/`)
 
    - `ast_node.py`: Base ASTNode abstract class
-   - `expressions.py`: Expression nodes (literals, identifiers, operators)
-   - `statements.py`: Statement nodes (set, give back, if, action, say)
+   - `expressions.py`: Expression nodes (literals, identifiers, operators, arguments)
+   - `literals.py`: Literal nodes (integer, float, string, boolean, empty)
+   - `statements.py`: Statement nodes (set, give back, if, action, interaction, call)
    - All nodes implement string representation for debugging
 
 1. **Error Handling** (`machine_dialect/errors/`)
@@ -129,7 +133,7 @@ python -m machine_dialect
 
 - **Markdown-based**: Source files are `.md` with YAML frontmatter
 - **Variables**: Bold text (`**variable**`)
-- **Literals**: Italic text (`_value_`)
+- **Literals**: Italic text (`_value_`), including `empty` for null values
 - **Blocks**: Indented with '>' markers for if/else bodies
 - **Math**: LaTeX syntax in `$$...$$` blocks
 - **Operators**: Symbolic (+, -, \*, /, \<, >, \<=, >=) and natural language forms
@@ -137,6 +141,11 @@ python -m machine_dialect
   - Value inequality: `is not equal to`, `does not equal`, `is different from`
   - Strict equality: `is strictly equal to`, `is exactly equal to`, `is identical to`
   - Strict inequality: `is not strictly equal to`, `is not exactly equal to`, `is not identical to`
+- **Statements**:
+  - Set: `Set **variable** to _value_.`
+  - Return: `Give back _value_.` or `Gives back _value_.`
+  - Call: `Call \`function\` \[with arguments\].\`
+  - Actions/Interactions: Support parameters with types and default values
 
 ### Testing Structure
 
@@ -151,10 +160,13 @@ Tests are organized by component in `tests/` subdirectories:
 
 1. **Token Prefixes**: All TokenType values use consistent prefixes:
 
-   - `KW_` for keywords (if, then, else, set, to, give back/gives back)
-   - `OP_` for operators (+, -, \*, /, \<, >, \<=, >=, and equality/inequality)
-   - `DELIM_` for delimiters (period, comma, colon)
-   - `LIT_` for literals (number, string, boolean)
+   - `KW_` for keywords (if, then, else, set, to, give back/gives back, call, with, action,
+     interaction, empty)
+   - `OP_` for operators (+, -, \*, /, \<, >, \<=, >=, equality/inequality, strict equality/inequality)
+   - `DELIM_` for delimiters (parentheses, braces)
+   - `PUNCT_` for punctuation (period, comma, colon, semicolon, hash)
+   - `LIT_` for literals (int, float, text, boolean, url)
+   - `MISC_` for miscellaneous (eof, illegal, ident, stopword, comment)
 
 1. **Parser State**: Parser maintains:
 
@@ -190,13 +202,7 @@ cargo build --release
 
 Rule-based linter for Machine Dialect code validation.
 
-## Current Development Focus
-
-Based on recent commits and current changes:
-
-- Parser implementation for if statements with block support
-- Handling empty lines with '>' markers in blocks
-- Improving expression parsing (ternary, logical operators)
+## Development Focus
 
 When implementing new features, always:
 

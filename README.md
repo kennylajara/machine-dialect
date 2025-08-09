@@ -55,7 +55,7 @@ Machine Dialect is for a future where:
 | Element       | Syntax         | Example                                               |
 | ------------- | -------------- | ----------------------------------------------------- |
 | **Variables** | Bold text      | `**total**`, `**user_name**`                          |
-| **Literals**  | Italic text    | `_42_`, `_"hello"_`, `_true_`                         |
+| **Literals**  | Italic text    | `_42_`, `_"hello"_`, `_true_`, `empty`                |
 | **Keywords**  | Plain text     | `set`, `if`, `then`, `else`, `give back`/`gives back` |
 | **Blocks**    | `>` prefix     | `> Set **x** to _10_.`                                |
 | **Math**      | LaTeX blocks   | `$$\text{result} = x^2 + y$$`                         |
@@ -105,6 +105,7 @@ exec: true
 Set **total** to _0_.
 Set **name** to _"Alice"_.
 Set **is_active** to _true_.
+Set **result** to empty.
 ```
 
 ### Conditional Statements
@@ -218,17 +219,47 @@ Give back **sum** divided by **count**.
 
 ### Using the REPL
 
-Start the interactive REPL to experiment with tokenization:
+Start the interactive REPL to experiment with parsing and tokenization:
 
 ```bash
+# Default AST mode - shows parsed Abstract Syntax Tree
 python -m machine_dialect
+
+# Token debug mode - shows lexical tokens
+python -m machine_dialect --debug-tokens
 ```
 
-Example session:
+Example session (AST mode):
 
 ```text
-Welcome to Machine Dialect REPL!
-Type 'exit' or 'quit' to leave, 'clear' to clear screen
+Machine Dialect REPL v0.1.0
+Mode: AST Mode
+Type 'exit' to exit, 'help' for help
+--------------------------------------------------
+
+md> Set **x** to _42_.
+
+AST:
+--------------------------------------------------
+  Set `x` to _42_
+--------------------------------------------------
+
+md> if **user** equals _"admin"_ then give back _true_.
+
+AST:
+--------------------------------------------------
+  if `user` equals _"admin"_ then:
+> Give back _true_
+--------------------------------------------------
+```
+
+Example session (Token debug mode):
+
+```text
+Machine Dialect REPL v0.1.0
+Mode: Token Debug Mode
+Type 'exit' to exit, 'help' for help
+--------------------------------------------------
 
 md> Set **x** to _42_.
 
@@ -240,23 +271,6 @@ Tokens (6):
   MISC_IDENT           | 'x'
   KW_TO                | 'to'
   LIT_INT              | '42'
-  DELIM_PERIOD         | '.'
-  MISC_EOF             | ''
---------------------------------------------------
-
-md> if **user** equals _"admin"_ then give back _true_.
-
-Tokens (10):
---------------------------------------------------
-  Type                 | Literal
---------------------------------------------------
-  KW_IF                | 'if'
-  MISC_IDENT           | 'user'
-  OP_EQ                | 'equals'
-  LIT_STR              | '"admin"'
-  KW_THEN              | 'then'
-  KW_RETURN            | 'give back'
-  LIT_TRUE             | 'true'
   PUNCT_PERIOD         | '.'
   MISC_EOF             | ''
 --------------------------------------------------
@@ -340,10 +354,10 @@ machine_dialect/
 │   ├── __main__.py         # Entry point for python -m machine_dialect
 │   ├── ast/                # Abstract Syntax Tree implementation
 │   │   ├── ast_node.py     # Base AST node class
-│   │   ├── expressions.py  # Expression AST nodes
-│   │   ├── literals.py     # Literal value nodes
+│   │   ├── expressions.py  # Expression AST nodes (includes Arguments)
+│   │   ├── literals.py     # Literal value nodes (int, float, string, boolean, empty)
 │   │   ├── program.py      # Program AST node
-│   │   └── statements.py   # Statement AST nodes
+│   │   └── statements.py   # Statement AST nodes (includes Call, Action, Interaction)
 │   ├── errors/             # Error handling
 │   │   ├── exceptions.py   # Custom exception hierarchy
 │   │   └── messages.py     # Error message constants
@@ -370,6 +384,8 @@ machine_dialect/
 │   └── meta/               # Meta documentation
 │       └── docstrings_guide.md  # Google docstrings guide
 ├── tests/                  # Test files (organized by component)
+│   ├── lexer/              # Lexer tests
+│   └── parser/             # Parser tests
 ├── .pre-commit-config.yaml # Pre-commit hook configuration
 ├── pyproject.toml          # Python project configuration
 ├── uv.lock                 # UV package manager lock file
@@ -382,7 +398,7 @@ machine_dialect/
 - **Lexer**: Streaming tokenizer that converts source text into tokens
 - **Parser**: Recursive descent parser with Pratt parsing for expressions
 - **AST**: Abstract syntax tree representing program structure
-- **REPL**: Interactive environment for testing tokenization
+- **REPL**: Interactive environment with AST and token debug modes
 - **Error Handler**: Structured error reporting with panic mode recovery
 - **Type System**: Strict typing throughout with MyPy validation
 
@@ -417,36 +433,6 @@ We welcome contributions! Please follow these guidelines:
 
 > ⚠️ **Alpha Stage**: This project is under active development. The syntax and implementation
 > are evolving. Expect breaking changes.
-
-### Current Implementation
-
-✅ **Completed:**
-
-- Lexical analysis (tokenizer)
-- Basic parser with expression support
-- If/else statement parsing
-- AST representation
-- Interactive REPL
-- Comprehensive test suite
-
-🚧 **In Progress:**
-
-- Loop constructs (for/while)
-- Function definitions
-- Import system
-- Type inference
-
-📋 **Planned:**
-
-- Code generation/interpretation
-- Runtime implementation
-- Standard library
-- IDE support (LSP)
-- Rust-based performance implementation
-
-## License
-
-[MIT License](LICENSE) - See LICENSE file for details
 
 ## Acknowledgments
 

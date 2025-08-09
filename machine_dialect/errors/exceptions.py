@@ -6,8 +6,9 @@ for error handling throughout the system.
 """
 
 from abc import ABC, abstractmethod
+from typing import Any
 
-from errors.messages import ErrorTemplate
+from machine_dialect.errors.messages import ErrorTemplate
 
 
 class MDBaseException(ABC):
@@ -27,16 +28,21 @@ class MDBaseException(ABC):
         These exceptions represent errors in Machine Dialect code, not Python code.
     """
 
-    def __init__(self, message: ErrorTemplate, line: int, column: int, filename: str | None = None) -> None:
+    def __init__(
+        self, message: ErrorTemplate, line: int, column: int, filename: str | None = None, **kwargs: Any
+    ) -> None:
         """Initialize the Machine Dialect exception.
 
         Args:
-            message: The error message.
+            message: The error message template.
             line: The line number where the error occurred.
             column: The column number where the error occurred.
             filename: The filename where the error occurred.
+            **kwargs: Template substitution parameters.
         """
-        self._message = str(message)
+        # Format the message with any provided kwargs
+        # If no kwargs, call substitute with empty dict to get the template with no substitutions
+        self._message = message.format(**kwargs) if kwargs else message.substitute()
         self._line = line
         self._column = column
         self._filename = filename or "<standard-input>"

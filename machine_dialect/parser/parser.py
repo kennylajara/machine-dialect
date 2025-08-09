@@ -25,11 +25,15 @@ from machine_dialect.ast import (
 )
 from machine_dialect.errors.exceptions import MDBaseException, MDNameError, MDSyntaxError
 from machine_dialect.errors.messages import (
+    EMPTY_ELSE_BLOCK,
+    EMPTY_IF_CONSEQUENCE,
+    EXPECTED_DETAILS_CLOSE,
     EXPECTED_EXPRESSION,
     INVALID_FLOAT_LITERAL,
     INVALID_INTEGER_LITERAL,
     NAME_UNDEFINED,
     NO_PARSE_FUNCTION,
+    UNEXPECTED_BLOCK_DEPTH,
     UNEXPECTED_TOKEN,
     UNEXPECTED_TOKEN_AT_START,
 )
@@ -227,18 +231,17 @@ class Parser:
         error: MDBaseException
         if token_type == TokenType.MISC_IDENT and self._peek_token.type == TokenType.MISC_ILLEGAL:
             error = MDNameError(
-                message=NAME_UNDEFINED.substitute(name=self._peek_token.literal),
+                message=NAME_UNDEFINED,
+                name=self._peek_token.literal,
                 line=self._peek_token.line,
                 column=self._peek_token.position,
             )
         else:
-            error_message = UNEXPECTED_TOKEN.substitute(
+            error = MDSyntaxError(
+                message=UNEXPECTED_TOKEN,
                 token_literal=self._peek_token.literal,
                 expected_token_type=token_type,
                 received_token_type=self._peek_token.type,
-            )
-            error = MDSyntaxError(
-                message=error_message,
                 line=self._peek_token.line,
                 column=self._peek_token.position,
             )
@@ -301,7 +304,8 @@ class Parser:
         if self._current_token.type == TokenType.MISC_ILLEGAL:
             error_token = self._current_token
             name_error = MDNameError(
-                message=NAME_UNDEFINED.substitute(name=self._current_token.literal),
+                message=NAME_UNDEFINED,
+                name=self._current_token.literal,
                 line=self._current_token.line,
                 column=self._current_token.position,
             )
@@ -314,17 +318,32 @@ class Parser:
         if self._current_token.type not in self._prefix_parse_funcs:
             # Check if it's an infix operator at the start
             error_token = self._current_token
+            # Determine which error template to use and its parameters
             if self._current_token.type in self._infix_parse_funcs:
+                syntax_error = MDSyntaxError(
+                    message=UNEXPECTED_TOKEN_AT_START,
+                    token=self._current_token.literal,
+                    line=self._current_token.line,
+                    column=self._current_token.position,
+                )
                 error_message = UNEXPECTED_TOKEN_AT_START.substitute(token=self._current_token.literal)
             elif self._current_token.type == TokenType.MISC_EOF:
+                syntax_error = MDSyntaxError(
+                    message=EXPECTED_EXPRESSION,
+                    got="<end-of-file>",
+                    line=self._current_token.line,
+                    column=self._current_token.position,
+                )
                 error_message = EXPECTED_EXPRESSION.substitute(got="<end-of-file>")
             else:
+                syntax_error = MDSyntaxError(
+                    message=NO_PARSE_FUNCTION,
+                    literal=self._current_token.literal,
+                    line=self._current_token.line,
+                    column=self._current_token.position,
+                )
                 error_message = NO_PARSE_FUNCTION.substitute(literal=self._current_token.literal)
-            syntax_error = MDSyntaxError(
-                message=error_message,
-                line=self._current_token.line,
-                column=self._current_token.position,
-            )
+
             self.errors.append(syntax_error)
             # Advance past the problematic token so we can continue parsing
             if self._current_token.type != TokenType.MISC_EOF:
@@ -378,13 +397,14 @@ class Parser:
             value = float(self._current_token.literal)
         except ValueError:
             # This shouldn't happen if the lexer is working correctly
-            error_message = INVALID_FLOAT_LITERAL.substitute(literal=self._current_token.literal)
             error = MDSyntaxError(
-                message=error_message,
+                message=INVALID_FLOAT_LITERAL,
+                literal=self._current_token.literal,
                 line=self._current_token.line,
                 column=self._current_token.position,
             )
             self.errors.append(error)
+            error_message = INVALID_FLOAT_LITERAL.substitute(literal=self._current_token.literal)
             return ErrorExpression(token=self._current_token, message=error_message)
 
         return FloatLiteral(
@@ -409,13 +429,14 @@ class Parser:
             value = int(self._current_token.literal)
         except ValueError:
             # This shouldn't happen if the lexer is working correctly
-            error_message = INVALID_INTEGER_LITERAL.substitute(literal=self._current_token.literal)
             error = MDSyntaxError(
-                message=error_message,
+                message=INVALID_INTEGER_LITERAL,
+                literal=self._current_token.literal,
                 line=self._current_token.line,
                 column=self._current_token.position,
             )
             self.errors.append(error)
+            error_message = INVALID_INTEGER_LITERAL.substitute(literal=self._current_token.literal)
             return ErrorExpression(token=self._current_token, message=error_message)
 
         return IntegerLiteral(
@@ -758,7 +779,7 @@ class Parser:
                 MDSyntaxError(
                     line=if_statement.token.line,
                     column=if_statement.token.position,
-                    message="If statement must have a non-empty consequence block",
+                    message=EMPTY_IF_CONSEQUENCE,
                 )
             )
 
@@ -781,7 +802,7 @@ class Parser:
                     MDSyntaxError(
                         line=self._current_token.line if self._current_token else if_statement.token.line,
                         column=self._current_token.position if self._current_token else if_statement.token.position,
-                        message="Else/otherwise block must not be empty. If no alternative is needed, omit it.",
+                        message=EMPTY_ELSE_BLOCK,
                     )
                 )
         elif self._block_depth == 0:
@@ -895,7 +916,8 @@ class Parser:
                     MDSyntaxError(
                         line=self._current_token.line,
                         column=self._current_token.position,
-                        message=f"Expected </details> tag after action body, got {self._current_token.type.name}",
+                        message=EXPECTED_DETAILS_CLOSE,
+                        token_type=self._current_token.type.name,
                     )
                 )
 
@@ -979,7 +1001,9 @@ class Parser:
                     MDSyntaxError(
                         line=self._current_token.line if self._current_token else 0,
                         column=self._current_token.position if self._current_token else 0,
-                        message=f"Unexpected block depth: expected {expected_depth} '>' but got {current_depth}",
+                        message=UNEXPECTED_BLOCK_DEPTH,
+                        expected=expected_depth,
+                        actual=current_depth,
                     )
                 )
                 # Skip to next line

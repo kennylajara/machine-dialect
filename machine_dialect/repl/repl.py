@@ -61,7 +61,7 @@ class REPL:
         else:
             print("\nEnter Machine Dialect code to see its AST.")
             print("Source is accumulated across lines until an error occurs.")
-        print("\nExample: set **x** to _10_.")
+        print("\nExample: Set `x` to _10_.")
         print()
 
     def clear_screen(self) -> None:

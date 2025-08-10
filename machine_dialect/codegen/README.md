@@ -240,7 +240,7 @@ ______________________________________________________________________
 
 ```text
 Chunk:
-- magic: u32            ; "MDK1"
+- magic: u32            ; "¾¾Êþ" (BE BE CA FE)
 - flags: u16            ; version, endian, etc.
 - const_count: u16
 - code_size: u32

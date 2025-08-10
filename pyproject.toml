@@ -1,12 +1,38 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "machine-dialect"
 version = "0.1.0"
 description = "Machine Dialect - Natural language programming in Markdown"
 readme = "README.md"
 requires-python = ">=3.12"
+authors = [
+    {name = "Machine Dialect Contributors"},
+]
+keywords = ["programming-language", "natural-language", "markdown", "compiler", "vm"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Compilers",
+    "Topic :: Software Development :: Interpreters",
+]
 dependencies = [
     "rfc3986>=2.0.0",
+    "click>=8.1.0",
 ]
+
+[project.scripts]
+md = "machine_dialect.__main__:main"
+machine-dialect = "machine_dialect.__main__:main"
+
+[project.urls]
+"Homepage" = "https://github.com/kennylajara/machine-dialect"
+"Bug Tracker" = "https://github.com/kennylajara/machine-dialect/issues"
 
 [tool.setuptools.packages.find]
 include = ["machine_dialect*"]
@@ -37,13 +63,14 @@ explicit_package_bases = true
 
 # Ignore import errors for libraries without type stubs
 [[tool.mypy.overrides]]
-module = ["rfc3986", "rfc3986.*"]
+module = ["rfc3986", "rfc3986.*", "click", "click.*"]
 ignore_missing_imports = true
 
 # Ignore misc errors in test files (mostly for pytest decorators)
 [[tool.mypy.overrides]]
 module = [
-    "machine_dialect.*.tests.*"
+    "machine_dialect.*.tests.*",
+    "machine_dialect.__main__"
 ]
 disable_error_code = ["misc"]
 

@@ -255,3 +255,26 @@ def test_compile_comparison() -> None:
     # Check bytecode
     bytecode = module.main_chunk.bytecode
     assert bytecode[6] == Opcode.GT
+
+
+def test_module_name_parameter() -> None:
+    """Test that module name parameter works correctly."""
+    # Create a simple AST
+    expr = IntegerLiteral(Token(TokenType.LIT_INT, "42", 1, 0), 42)
+    stmt = ExpressionStatement(Token(TokenType.LIT_INT, "42", 1, 0), expr)
+    program = Program([stmt])
+
+    # Test default module name
+    gen = CodeGenerator()
+    module_default = gen.compile(program)
+    assert module_default.name == "main"
+
+    # Test custom module name
+    gen = CodeGenerator()
+    module_custom = gen.compile(program, module_name="MyModule")
+    assert module_custom.name == "MyModule"
+
+    # Test with filename-like name
+    gen = CodeGenerator()
+    module_file = gen.compile(program, module_name="calculator")
+    assert module_file.name == "calculator"

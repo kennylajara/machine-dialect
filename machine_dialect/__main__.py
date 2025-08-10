@@ -50,11 +50,18 @@ def cli() -> None:
     is_flag=True,
     help="Show detailed compilation information",
 )
+@click.option(
+    "-m",
+    "--module-name",
+    type=str,
+    help="Name for the compiled module (default: source file name)",
+)
 def compile(
     source_file: str,
     output: str | None,
     disassemble: bool,
     verbose: bool,
+    module_name: str | None,
 ) -> None:
     """Compile a Machine Dialect source file to bytecode."""
     source_path = Path(source_file)
@@ -90,10 +97,21 @@ def compile(
         click.echo("\nCompilation failed.", err=True)
         sys.exit(1)
 
+    # Determine module name
+    if module_name is None:
+        # Use source file name (without extension) as default
+        module_name = source_path.stem
+        # TODO: Option 2 - Extract module name from YAML frontmatter if present
+        # This would require updating the parser to handle frontmatter like:
+        # ---
+        # name: MyProgram
+        # version: 1.0.0
+        # ---
+
     # Generate bytecode
     try:
         codegen = CodeGenerator()
-        module = codegen.compile(ast)
+        module = codegen.compile(ast, module_name=module_name)
 
         if codegen.has_errors():
             click.echo("Code generation errors:", err=True)
@@ -109,6 +127,7 @@ def compile(
         click.echo(f"Successfully compiled to '{output_path}'")
 
         if verbose:
+            click.echo(f"  Module name: {module.name}")
             click.echo(f"  Main chunk: {module.main_chunk.size()} bytes")
             click.echo(f"  Constants: {module.main_chunk.constants.size()}")
 

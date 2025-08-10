@@ -29,7 +29,7 @@ from machine_dialect.ast import (
 )
 from machine_dialect.codegen.emitter import Emitter
 from machine_dialect.codegen.isa import Opcode
-from machine_dialect.codegen.objects import Chunk, Module
+from machine_dialect.codegen.objects import Chunk, ChunkType, Module, ModuleType
 from machine_dialect.codegen.symtab import SymbolTable, SymbolType
 
 
@@ -43,17 +43,21 @@ class CodeGenerator:
         self.emitter: Emitter | None = None
         self.errors: list[str] = []
 
-    def compile(self, program: Program) -> Module:
+    def compile(
+        self, program: Program, module_name: str = "main", module_type: ModuleType = ModuleType.PROCEDURAL
+    ) -> Module:
         """Compile a program AST to bytecode.
 
         Args:
             program: The program AST to compile.
+            module_name: Name for the compiled module (defaults to "main").
+            module_type: Type of module to create (defaults to PROCEDURAL).
 
         Returns:
             A compiled module.
         """
-        # Create main chunk
-        main_chunk = Chunk(name="main")
+        # Create main chunk with appropriate type
+        main_chunk = Chunk(name="main", chunk_type=ChunkType.MAIN)
         self.current_chunk = main_chunk
         self.emitter = Emitter(main_chunk)
 
@@ -64,8 +68,8 @@ class CodeGenerator:
         # Update chunk metadata
         main_chunk.num_locals = self.symbol_table.num_locals()
 
-        # Create and return module
-        module = Module(name="main", main_chunk=main_chunk)
+        # Create and return module with type
+        module = Module(name=module_name, main_chunk=main_chunk, module_type=module_type)
         return module
 
     def _compile_statement(self, stmt: Statement) -> None:

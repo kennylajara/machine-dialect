@@ -29,7 +29,8 @@ codegen/
 ├── isa.py                # Instruction set architecture definition
 ├── symtab.py             # Symbol table(s) and scope management
 ├── constpool.py          # Constant pool (deduplication)
-├── objects.py            # Compiled artifacts (Chunk, Function, Module)
+├── objects.py            # Compiled artifacts (Chunk, Module, with OOP support)
+├── serializer.py         # Binary serialization with magic number validation
 └── tests/                # Test suite
 ```
 
@@ -39,7 +40,8 @@ codegen/
 1. **Symbol Resolution**: `SymbolTable` handles locals, parameters, and globals.
 1. **Constants**: `ConstantPool` deduplicates numbers, strings, and other literals.
 1. **Emission**: `Emitter` turns nodes into opcodes and manages jump patching.
-1. **Packaging**: Produces a `Chunk` or `FunctionObject` with bytecode and metadata.
+1. **Packaging**: Produces a `Module` with chunks, bytecode and metadata.
+1. **Serialization**: Binary format with magic number (0xBEBECAFE) for `.mdc` files.
 
 ______________________________________________________________________
 
@@ -236,19 +238,37 @@ ______________________________________________________________________
 
 ## Compiled Artifact Format
 
-### Chunk / FunctionObject
+### Module Structure
+
+```text
+Module:
+- magic: u32            ; "¾¾Êþ" (BE BE CA FE) at offset 0
+- version: u16          ; format version (currently 0x0001)
+- flags: u16            ; endianness flags
+- module_type: u8       ; 0=PROCEDURAL, 1=CLASS
+- name: string          ; module name
+- main_chunk: Chunk     ; main execution chunk
+- functions: [Chunk]    ; function definitions
+- metadata: dict        ; additional metadata
+
+Future OOP fields (prepared but not yet used):
+- parent_class: string  ; for inheritance
+- interfaces: [string]  ; implemented interfaces
+- methods: [Chunk]      ; class methods
+- rules: [(Chunk,Chunk)] ; rule conditions and actions
+```
+
+### Chunk Structure
 
 ```text
 Chunk:
-- magic: u32            ; "¾¾Êþ" (BE BE CA FE)
-- flags: u16            ; version, endian, etc.
-- const_count: u16
-- code_size: u32
-- const_pool: [Const]   ; see below
-- code: [u8]            ; linear bytecode
-- lineinfo?: ...        ; optional PC → (line, col) mapping
-- locals?: u16          ; max slots
-- params?: u8           ; arity if function
+- chunk_type: u8        ; MAIN, FUNCTION, METHOD, CONSTRUCTOR, RULE_CONDITION, RULE_ACTION, STATIC
+- name: string          ; chunk name
+- const_pool: [Const]   ; constants
+- code: [u8]            ; bytecode
+- num_locals: u16       ; local variable count
+- num_params: u8        ; parameter count
+- lineinfo?: ...        ; optional source mapping
 ```
 
 **Const** types:
@@ -365,16 +385,21 @@ ______________________________________________________________________
 
 ```python
 from machine_dialect.codegen import CodeGenerator
+from machine_dialect.codegen.serializer import serialize_module
 from machine_dialect.ast import Program
 
-def compile(program: Program) -> "Chunk":
+def compile(program: Program, module_name: str = "main") -> "Module":
     gen = CodeGenerator()
-    return gen.compile(program)
+    return gen.compile(program, module_name=module_name)
+
+# Serialize to binary format
+with open("output.mdc", "wb") as f:
+    serialize_module(module, f)
 ```
 
-- `CodeGenerator.compile(program)` → `Chunk`
-- `Chunk.to_bytes()` → `bytes` (serialization)
-- `disassemble(bytes)` (optional) → human-readable
+- `CodeGenerator.compile(program, module_name)` → `Module`
+- `serialize_module(module, output)` → writes binary format with magic number
+- `deserialize_module(input)` → `Module` (reads and validates magic number)
 
 ______________________________________________________________________
 

@@ -292,6 +292,40 @@ Set **name** to _"World"_.
 Say **greeting** + _", "_ + **name** + _"!"_.
 ```
 
+### Compiling and Running Programs
+
+Machine Dialect provides a complete toolchain for compiling and executing programs:
+
+```bash
+# Compile a .md file to bytecode (.mdc)
+python -m machine_dialect compile hello.md -o hello.mdc
+
+# Compile with custom module name (default: filename)
+python -m machine_dialect compile hello.md -o hello.mdc --module-name MyProgram
+
+# Run a compiled bytecode file
+python -m machine_dialect run hello.mdc
+
+# Disassemble bytecode for debugging
+python -m machine_dialect disasm hello.mdc
+
+# Interactive shell (REPL)
+python -m machine_dialect shell
+```
+
+**Compilation options:**
+
+- `-o, --output`: Output file path (default: input filename with .mdc extension)
+- `-m, --module-name`: Custom module name (default: source filename without extension)
+- `-d, --disassemble`: Show disassembly after compilation
+- `-v, --verbose`: Show detailed compilation information
+
+**Binary format:**
+
+- Compiled files use `.mdc` extension (Machine Dialect Compiled)
+- Binary format includes magic number `0xBEBECAFE` for validation
+- Supports both procedural and class-based modules (future)
+
 ## Development
 
 ### Running Tests
@@ -358,6 +392,14 @@ machine_dialect/
 │   │   ├── literals.py     # Literal value nodes (int, float, string, boolean, empty)
 │   │   ├── program.py      # Program AST node
 │   │   └── statements.py   # Statement AST nodes (includes Call, Action, Interaction)
+│   ├── codegen/            # Code generation (AST → bytecode)
+│   │   ├── codegen.py      # Main code generator
+│   │   ├── constpool.py    # Constant pool management
+│   │   ├── emitter.py      # Bytecode emitter
+│   │   ├── isa.py          # Instruction set architecture
+│   │   ├── objects.py      # Module and chunk structures (with OOP support)
+│   │   ├── serializer.py   # Binary format with magic number (0xBEBECAFE)
+│   │   └── symtab.py       # Symbol table management
 │   ├── errors/             # Error handling
 │   │   ├── exceptions.py   # Custom exception hierarchy
 │   │   └── messages.py     # Error message constants
@@ -375,8 +417,15 @@ machine_dialect/
 │   │   ├── parser.py       # Recursive descent parser
 │   │   ├── protocols.py    # Type protocols
 │   │   └── token_buffer.py # Token buffering
-│   └── repl/               # Interactive REPL
-│       └── repl.py         # REPL implementation
+│   ├── repl/               # Interactive REPL
+│   │   └── repl.py         # REPL implementation
+│   └── vm/                 # Virtual Machine
+│       ├── vm.py           # Main VM execution engine
+│       ├── stack.py        # Stack implementation
+│       ├── frame.py        # Call frames and function contexts
+│       ├── objects.py      # Runtime object representations
+│       ├── natives.py      # Built-in native functions
+│       └── errors.py       # VM-specific exceptions
 ├── md_linter/              # Rust-based Markdown linter
 │   ├── src/                # Rust source code
 │   └── Cargo.toml          # Rust dependencies
@@ -398,6 +447,9 @@ machine_dialect/
 - **Lexer**: Streaming tokenizer that converts source text into tokens
 - **Parser**: Recursive descent parser with Pratt parsing for expressions
 - **AST**: Abstract syntax tree representing program structure
+- **Code Generator**: Compiles AST to bytecode with support for future OOP features
+- **Virtual Machine**: Stack-based bytecode interpreter with native function support
+- **Serializer**: Binary format with magic number (0xBEBECAFE) for compiled modules
 - **REPL**: Interactive environment with AST and token debug modes
 - **Error Handler**: Structured error reporting with panic mode recovery
 - **Type System**: Strict typing throughout with MyPy validation

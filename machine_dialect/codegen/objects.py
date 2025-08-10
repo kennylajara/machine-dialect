@@ -5,8 +5,29 @@ compiled Machine Dialect programs.
 """
 
 from dataclasses import dataclass, field
+from enum import Enum
+from typing import Any
 
 from machine_dialect.codegen.constpool import ConstantPool, ConstantValue
+
+
+class ModuleType(Enum):
+    """Type of module - procedural or class-based."""
+
+    PROCEDURAL = "procedural"  # Traditional procedural program
+    CLASS = "class"  # Class definition (future)
+
+
+class ChunkType(Enum):
+    """Type of chunk - determines its role in the module."""
+
+    MAIN = "main"  # Main program chunk
+    FUNCTION = "function"  # Regular function
+    METHOD = "method"  # Class method (future)
+    CONSTRUCTOR = "constructor"  # Class constructor (future)
+    RULE_CONDITION = "rule_condition"  # Rule condition chunk (future)
+    RULE_ACTION = "rule_action"  # Rule action chunk (future)
+    STATIC = "static"  # Static initialization (future)
 
 
 @dataclass
@@ -18,11 +39,17 @@ class Chunk:
     """
 
     name: str = "main"
+    chunk_type: ChunkType = ChunkType.MAIN  # Type of this chunk
     bytecode: bytearray = field(default_factory=bytearray)
     constants: ConstantPool = field(default_factory=ConstantPool)
     num_locals: int = 0
     num_params: int = 0
     source_map: dict[int, tuple[int, int]] = field(default_factory=dict)  # pc -> (line, col)
+
+    # Future OOP fields
+    visibility: str | None = None  # "public", "private", "protected"
+    is_static: bool = False
+    metadata: dict[str, Any] = field(default_factory=dict)  # Additional metadata
 
     def size(self) -> int:
         """Get the size of the bytecode in bytes.
@@ -179,13 +206,23 @@ class Module:
     """A compiled module containing multiple chunks.
 
     Represents a complete compiled program with its main chunk
-    and any function definitions.
+    and any function definitions. Can be either procedural or class-based.
     """
 
     name: str
     main_chunk: Chunk
+    module_type: ModuleType = ModuleType.PROCEDURAL  # Type of this module
     functions: dict[str, Chunk] = field(default_factory=dict)
     metadata: dict[str, str] = field(default_factory=dict)
+
+    # Future OOP fields (empty for procedural modules)
+    parent_class: str | None = None  # Parent class name for inheritance
+    interfaces: list[str] = field(default_factory=list)  # Implemented interfaces
+    fields: dict[str, Any] = field(default_factory=dict)  # Class fields/properties
+    methods: dict[str, Chunk] = field(default_factory=dict)  # Class methods
+    rules: dict[str, tuple[Chunk, Chunk]] = field(default_factory=dict)  # Rules (condition, action)
+    constructor_chunk: Chunk | None = None  # Constructor chunk
+    static_chunk: Chunk | None = None  # Static initialization chunk
 
     def add_function(self, name: str, chunk: Chunk) -> None:
         """Add a function chunk to the module.
@@ -218,6 +255,22 @@ class Module:
             size += chunk.size()
         return size
 
+    def is_procedural(self) -> bool:
+        """Check if this is a procedural module.
+
+        Returns:
+            True if module is procedural, False otherwise.
+        """
+        return self.module_type == ModuleType.PROCEDURAL
+
+    def is_class(self) -> bool:
+        """Check if this is a class module.
+
+        Returns:
+            True if module is a class, False otherwise.
+        """
+        return self.module_type == ModuleType.CLASS
+
     def __str__(self) -> str:
         """String representation of the module.
 
@@ -225,9 +278,19 @@ class Module:
             Human-readable module information.
         """
         lines = [
-            f"Module: {self.name}",
+            f"Module: {self.name} ({self.module_type.value})",
             f"  Main chunk: {self.main_chunk.size()} bytes",
             f"  Functions: {len(self.functions)}",
-            f"  Total size: {self.total_size()} bytes",
         ]
+
+        if self.is_class():
+            lines.extend(
+                [
+                    f"  Methods: {len(self.methods)}",
+                    f"  Fields: {len(self.fields)}",
+                    f"  Rules: {len(self.rules)}",
+                ]
+            )
+
+        lines.append(f"  Total size: {self.total_size()} bytes")
         return "\n".join(lines)

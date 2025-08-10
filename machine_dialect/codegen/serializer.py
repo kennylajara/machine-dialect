@@ -8,7 +8,7 @@ import struct
 from typing import BinaryIO
 
 from machine_dialect.codegen.constpool import ConstantValue
-from machine_dialect.codegen.objects import Chunk, Module
+from machine_dialect.codegen.objects import Chunk, ChunkType, Module, ModuleType
 
 # Magic number: "¾¾Êþ" (BE BE CA FE)
 MAGIC_NUMBER = 0xBEBECAFE
@@ -54,6 +54,9 @@ def serialize_module(module: Module, output: BinaryIO) -> None:
     output.write(struct.pack(">I", MAGIC_NUMBER))  # Magic number at offset 0 (big-endian)
     output.write(struct.pack("<H", FORMAT_VERSION))  # Version (little-endian)
     output.write(struct.pack("<H", FLAG_LITTLE_ENDIAN))  # Flags (little-endian)
+
+    # Write module type (new)
+    output.write(struct.pack("<B", 0 if module.module_type == ModuleType.PROCEDURAL else 1))
 
     # Write module name
     name_bytes = module.name.encode("utf-8")
@@ -125,6 +128,12 @@ def deserialize_module(input_file: BinaryIO) -> Module:
         raise SerializationError("Unexpected EOF reading flags")
     # flags = struct.unpack("<H", flags_bytes)[0]  # Currently unused
 
+    # Read module type (new)
+    module_type_byte = input_file.read(1)
+    if len(module_type_byte) != 1:
+        raise SerializationError("Unexpected EOF reading module type")
+    module_type = ModuleType.PROCEDURAL if struct.unpack("<B", module_type_byte)[0] == 0 else ModuleType.CLASS
+
     # Read module name
     name_len_bytes = input_file.read(4)
     if len(name_len_bytes) != 4:
@@ -139,8 +148,8 @@ def deserialize_module(input_file: BinaryIO) -> Module:
     # Read main chunk (without magic number)
     main_chunk = _read_chunk_data(input_file)
 
-    # Create module with main chunk
-    module = Module(name=module_name, main_chunk=main_chunk)
+    # Create module with main chunk and type
+    module = Module(name=module_name, main_chunk=main_chunk, module_type=module_type)
 
     # Read function count
     func_count_bytes = input_file.read(4)
@@ -207,6 +216,10 @@ def _write_chunk_data(chunk: Chunk, output: BinaryIO) -> None:
         chunk: The chunk to write.
         output: Binary file to write to.
     """
+    # Write chunk type (new)
+    chunk_type_value = list(ChunkType).index(chunk.chunk_type)
+    output.write(struct.pack("<B", chunk_type_value))
+
     # Write chunk name
     name_bytes = chunk.name.encode("utf-8")
     output.write(struct.pack("<I", len(name_bytes)))
@@ -240,6 +253,13 @@ def _read_chunk_data(input_file: BinaryIO) -> Chunk:
     Raises:
         SerializationError: If deserialization fails.
     """
+    # Read chunk type (new)
+    chunk_type_byte = input_file.read(1)
+    if len(chunk_type_byte) != 1:
+        raise SerializationError("Unexpected EOF reading chunk type")
+    chunk_type_index = struct.unpack("<B", chunk_type_byte)[0]
+    chunk_type = list(ChunkType)[chunk_type_index]
+
     # Read chunk name
     name_len_bytes = input_file.read(4)
     if len(name_len_bytes) != 4:
@@ -251,8 +271,8 @@ def _read_chunk_data(input_file: BinaryIO) -> Chunk:
         raise SerializationError("Unexpected EOF reading chunk name")
     name = name_bytes.decode("utf-8")
 
-    # Create chunk
-    chunk = Chunk(name=name)
+    # Create chunk with type
+    chunk = Chunk(name=name, chunk_type=chunk_type)
 
     # Read constants
     const_count_bytes = input_file.read(2)

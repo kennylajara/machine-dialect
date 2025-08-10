@@ -44,7 +44,14 @@ class VM:
         Returns:
             The final result left on the stack.
         """
-        return self.run_chunk(module.main_chunk)
+        # Check module type
+        if module.is_procedural():
+            # Execute procedural module - just run main chunk
+            return self.run_chunk(module.main_chunk)
+        else:
+            # Class module - for now, same behavior
+            # Future: initialize class, run constructor if needed
+            return self.run_chunk(module.main_chunk)
 
     def run_chunk(self, chunk: Chunk) -> Any:
         """Execute a chunk of bytecode.

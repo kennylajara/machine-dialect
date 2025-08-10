@@ -9,6 +9,7 @@ It is a **stack-based interpreter** that:
 - Maintains execution state (stack, frames, program counter)
 - Manages memory, variables, and function contexts
 - Interacts with the host environment for I/O and native functions
+- Supports both procedural and class-based modules (class support prepared for future)
 
 > This README assumes you are already familiar with the bytecode structure (see Codegen README).
 
@@ -158,8 +159,16 @@ RETURN          ; end with 5 on top of stack
 Execution:
 
 ```python
-vm = VM(chunk)
-result = vm.run()
+from machine_dialect.vm import VM
+from machine_dialect.codegen.serializer import deserialize_module
+
+# Load compiled module
+with open("program.mdc", "rb") as f:
+    module = deserialize_module(f)  # Validates magic number
+
+# Execute module
+vm = VM()
+result = vm.run(module)  # Checks module type (procedural/class)
 print(result)  # 5
 ```
 
@@ -230,7 +239,8 @@ ______________________________________________________________________
 
 ## Relationship with Other Modules
 
-- **Codegen** → Produces the `Chunk` that the VM executes.
+- **Codegen** → Produces the `Module` containing chunks that the VM executes.
+- **Serializer** → Handles binary format with magic number validation.
 - **AST / Parser** → Used only at compile time.
 - **VM** → The final consumer of bytecode, executing the program.
 

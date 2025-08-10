@@ -10,6 +10,7 @@ It can operate in two modes:
 import argparse
 import sys
 
+from machine_dialect.interpreter.evaluator import Evaluator
 from machine_dialect.lexer.lexer import Lexer
 from machine_dialect.lexer.tokens import Token
 from machine_dialect.parser.parser import Parser
@@ -28,21 +29,28 @@ class REPL:
         accumulated_source (str): Accumulated source code for parsing.
     """
 
-    def __init__(self, debug_tokens: bool = False) -> None:
+    def __init__(self, debug_tokens: bool = False, show_ast: bool = False) -> None:
         """Initialize the REPL with default settings.
 
         Args:
-            debug_tokens: Whether to show tokens instead of AST.
+            debug_tokens: Whether to show tokens instead of evaluating.
+            show_ast: Whether to show AST instead of evaluating.
         """
         self.prompt = "md> "
         self.running = True
         self.debug_tokens = debug_tokens
+        self.show_ast = show_ast
         self.accumulated_source = ""
 
     def print_welcome(self) -> None:
         """Print the welcome message when REPL starts."""
         print("Machine Dialect REPL v0.1.0")
-        mode = "Token Debug Mode" if self.debug_tokens else "AST Mode"
+        if self.debug_tokens:
+            mode = "Token Debug Mode"
+        elif self.show_ast:
+            mode = "AST Mode"
+        else:
+            mode = "Evaluation Mode"
         print(f"Mode: {mode}")
         print("Type 'exit' to exit, 'help' for help")
         print("-" * 50)
@@ -54,12 +62,15 @@ class REPL:
         print("  help   - Show this help message")
         print("  clear  - Clear the screen")
         if not self.debug_tokens:
-            print("  reset  - Clear accumulated source (AST mode only)")
+            print("  reset  - Clear accumulated source")
 
         if self.debug_tokens:
             print("\nEnter any text to see its tokens.")
-        else:
+        elif self.show_ast:
             print("\nEnter Machine Dialect code to see its AST.")
+            print("Source is accumulated across lines until an error occurs.")
+        else:
+            print("\nEnter Machine Dialect code to see its evaluation result.")
             print("Source is accumulated across lines until an error occurs.")
         print("\nExample: Set `x` to _10_.")
         print()
@@ -120,7 +131,7 @@ class REPL:
             print()
 
     def parse_and_print(self, input_text: str) -> None:
-        """Parse the input and print the AST.
+        """Parse the input and print the AST or evaluation result.
 
         Args:
             input_text: The Machine Dialect code to parse.
@@ -151,18 +162,33 @@ class REPL:
             print("(Input not added to accumulated source)")
             print()
         else:
-            # If successful, update accumulated source and print AST
+            # If successful, update accumulated source
             self.accumulated_source = test_source
 
-            print("\nAST:")
-            print("-" * 50)
-            if ast and ast.statements:
-                for node in ast.statements:
-                    print(f"  {node}")
+            if self.show_ast:
+                # Show AST
+                print("\nAST:")
+                print("-" * 50)
+                if ast and ast.statements:
+                    for node in ast.statements:
+                        print(f"  {node}")
+                else:
+                    print("  (empty)")
+                print("-" * 50)
+                print()
             else:
-                print("  (empty)")
-            print("-" * 50)
-            print()
+                # Evaluate and show result
+                evaluator = Evaluator()
+                result = evaluator.evaluate(ast)
+
+                print("\nResult:")
+                print("-" * 50)
+                if result is not None:
+                    print(f"  {result.inspect()}")
+                else:
+                    print("  None")
+                print("-" * 50)
+                print()
 
     def run(self) -> int:
         """Main REPL loop. Returns exit code."""
@@ -183,7 +209,7 @@ class REPL:
                 elif user_input.lower() == "clear":
                     self.clear_screen()
                     self.print_welcome()
-                    # Also clear accumulated source in AST mode
+                    # Also clear accumulated source
                     if not self.debug_tokens:
                         self.accumulated_source = ""
                 elif user_input.lower() == "reset" and not self.debug_tokens:
@@ -191,6 +217,10 @@ class REPL:
                     self.accumulated_source = ""
                     print("Accumulated source cleared.")
                 elif user_input:
+                    # Auto-append period if missing (for non-token mode)
+                    if not self.debug_tokens and not user_input.lstrip().endswith("."):
+                        user_input = user_input + "."
+
                     # Process input based on mode
                     if self.debug_tokens:
                         self.tokenize_and_print(user_input)
@@ -214,11 +244,21 @@ def main() -> None:
     parser.add_argument(
         "--debug-tokens",
         action="store_true",
-        help="Run in token debug mode (show tokens instead of AST)",
+        help="Run in token debug mode (show tokens)",
+    )
+    parser.add_argument(
+        "--ast",
+        action="store_true",
+        help="Run in AST mode (show AST instead of evaluating)",
     )
     args = parser.parse_args()
 
-    repl = REPL(debug_tokens=args.debug_tokens)
+    # Check for incompatible flags
+    if args.debug_tokens and args.ast:
+        print("Error: --debug-tokens and --ast flags are not compatible")
+        sys.exit(1)
+
+    repl = REPL(debug_tokens=args.debug_tokens, show_ast=args.ast)
     exit_code = repl.run()
     sys.exit(exit_code)
 

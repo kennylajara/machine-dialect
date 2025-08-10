@@ -200,9 +200,17 @@ def run(bytecode_file: str, debug: bool) -> None:
     is_flag=True,
     help="Run in token debug mode",
 )
-def shell(tokens: bool) -> None:
+@click.option(
+    "--ast",
+    is_flag=True,
+    help="Run in AST mode (show AST instead of evaluating)",
+)
+def shell(tokens: bool, ast: bool) -> None:
     """Start an interactive Machine Dialect shell (REPL)."""
-    repl = REPL(debug_tokens=tokens)
+    if tokens and ast:
+        click.echo("Error: --tokens and --ast flags are not compatible", err=True)
+        sys.exit(1)
+    repl = REPL(debug_tokens=tokens, show_ast=ast)
     exit_code = repl.run()
     sys.exit(exit_code)
 

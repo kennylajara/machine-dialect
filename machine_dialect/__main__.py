@@ -5,14 +5,18 @@ Main command-line interface for the Machine Dialect language.
 Provides commands for compiling, running, and interacting with Machine Dialect programs.
 """
 
-import pickle
 import sys
 from pathlib import Path
 
 import click
 
 from machine_dialect.codegen.codegen import CodeGenerator
-from machine_dialect.codegen.objects import Module
+from machine_dialect.codegen.serializer import (
+    InvalidMagicError,
+    SerializationError,
+    deserialize_module,
+    serialize_module,
+)
 from machine_dialect.parser.parser import Parser
 from machine_dialect.repl.repl import REPL
 from machine_dialect.vm.disasm import print_disassembly
@@ -98,9 +102,9 @@ def compile(
             click.echo("\nCompilation failed.", err=True)
             sys.exit(1)
 
-        # Save compiled module
+        # Save compiled module using new binary format
         with open(output_path, "wb") as f:
-            pickle.dump(module, f)
+            serialize_module(module, f)
 
         click.echo(f"Successfully compiled to '{output_path}'")
 
@@ -131,16 +135,18 @@ def run(bytecode_file: str, debug: bool) -> None:
     # Load compiled module
     try:
         with open(bytecode_file, "rb") as f:
-            module = pickle.load(f)
+            module = deserialize_module(f)
     except FileNotFoundError:
         click.echo(f"Error: File '{bytecode_file}' not found", err=True)
         sys.exit(1)
-    except Exception as e:
+    except InvalidMagicError as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
+    except SerializationError as e:
         click.echo(f"Error loading file: {e}", err=True)
         sys.exit(1)
-
-    if not isinstance(module, Module):
-        click.echo("Error: File does not contain a valid compiled module", err=True)
+    except Exception as e:
+        click.echo(f"Error loading file: {e}", err=True)
         sys.exit(1)
 
     if debug:
@@ -189,16 +195,18 @@ def disasm(bytecode_file: str) -> None:
     # Load compiled module
     try:
         with open(bytecode_file, "rb") as f:
-            module = pickle.load(f)
+            module = deserialize_module(f)
     except FileNotFoundError:
         click.echo(f"Error: File '{bytecode_file}' not found", err=True)
         sys.exit(1)
-    except Exception as e:
+    except InvalidMagicError as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
+    except SerializationError as e:
         click.echo(f"Error loading file: {e}", err=True)
         sys.exit(1)
-
-    if not isinstance(module, Module):
-        click.echo("Error: File does not contain a valid compiled module", err=True)
+    except Exception as e:
+        click.echo(f"Error loading file: {e}", err=True)
         sys.exit(1)
 
     # Show disassembly

@@ -26,6 +26,7 @@ from machine_dialect.ast import (
     SetStatement,
     Statement,
     StringLiteral,
+    URLLiteral,
 )
 from machine_dialect.errors.exceptions import MDBaseException, MDNameError, MDSyntaxError
 from machine_dialect.errors.messages import (
@@ -499,6 +500,19 @@ class Parser:
             value=self._current_token.literal,
         )
 
+    def _parse_url_literal(self) -> URLLiteral:
+        """Parse a URL literal.
+
+        Returns:
+            A URLLiteral AST node.
+        """
+        assert self._current_token is not None
+
+        return URLLiteral(
+            token=self._current_token,
+            value=self._current_token.literal,
+        )
+
     def _parse_prefix_expression(self) -> PrefixExpression:
         """Parse a prefix expression.
 
@@ -854,6 +868,11 @@ class Parser:
             str_value = self._parse_string_literal()
             self._advance_tokens()
             return str_value
+        elif token.type == TokenType.LIT_URL:
+            # URL literal
+            url_value = self._parse_url_literal()
+            self._advance_tokens()
+            return url_value
         elif token.type in (TokenType.LIT_TRUE, TokenType.LIT_FALSE):
             # Boolean literal
             bool_value = self._parse_boolean_literal()
@@ -983,6 +1002,7 @@ class Parser:
                     TokenType.LIT_INT,
                     TokenType.LIT_FLOAT,
                     TokenType.LIT_TEXT,
+                    TokenType.LIT_URL,
                     TokenType.LIT_TRUE,
                     TokenType.LIT_FALSE,
                     TokenType.MISC_IDENT,
@@ -1408,6 +1428,7 @@ class Parser:
             TokenType.LIT_INT: self._parse_integer_literal,
             TokenType.LIT_FLOAT: self._parse_float_literal,
             TokenType.LIT_TEXT: self._parse_string_literal,
+            TokenType.LIT_URL: self._parse_url_literal,
             TokenType.LIT_TRUE: self._parse_boolean_literal,
             TokenType.LIT_FALSE: self._parse_boolean_literal,
             TokenType.KW_EMPTY: self._parse_empty_literal,

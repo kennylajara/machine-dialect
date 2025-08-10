@@ -24,7 +24,7 @@ from .statements import (
     Statement,
 )
 from .program import Program
-from .literals import IntegerLiteral, FloatLiteral, StringLiteral, BooleanLiteral, EmptyLiteral
+from .literals import IntegerLiteral, FloatLiteral, StringLiteral, BooleanLiteral, EmptyLiteral, URLLiteral
 
 
 __all__ = [
@@ -54,4 +54,5 @@ __all__ = [
     "SetStatement",
     "Statement",
     "StringLiteral",
+    "URLLiteral",
 ]

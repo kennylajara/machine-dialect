@@ -217,6 +217,7 @@ keywords_mapping: dict[str, TokenType] = {
     "entrypoint": TokenType.KW_ENTRYPOINT,
     # boolean primitive: false
     "False": TokenType.LIT_FALSE,
+    "No": TokenType.LIT_FALSE,
     # filter mini-programs that act as proxy to decide on AI code execution
     "filter": TokenType.KW_FILTER,
     # float typing: set `a` as float | set `a` to float 3.14
@@ -314,6 +315,7 @@ keywords_mapping: dict[str, TokenType] = {
     "trait": TokenType.KW_TRAIT,
     # boolean primitive: true
     "True": TokenType.LIT_TRUE,
+    "Yes": TokenType.LIT_TRUE,
     # parameters:
     #   tell **alice** to **walk**.
     #   tell **alice** to **walk** with `speed` = `10`.

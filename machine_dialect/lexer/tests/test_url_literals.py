@@ -140,3 +140,30 @@ class TestURLLiterals:
         assert len(tokens) == 1
         assert tokens[0].type == TokenType.LIT_URL
         assert tokens[0].literal == '"data:text/plain;base64,SGVsbG8="'
+
+    def test_underscore_wrapped_url(self) -> None:
+        """Test URL detection with underscore wrapping (Machine Dialect syntax)."""
+        source = '_"https://example.com"_'
+        tokens = self._tokenize_no_errors(source)
+
+        assert len(tokens) == 1
+        assert tokens[0].type == TokenType.LIT_URL
+        assert tokens[0].literal == '"https://example.com"'
+
+    def test_underscore_wrapped_non_url(self) -> None:
+        """Test that non-URLs with underscores are still text."""
+        source = '_"not a url"_'
+        tokens = self._tokenize_no_errors(source)
+
+        assert len(tokens) == 1
+        assert tokens[0].type == TokenType.LIT_TEXT
+        assert tokens[0].literal == '"not a url"'
+
+    def test_underscore_wrapped_url_with_query(self) -> None:
+        """Test complex URL with underscore wrapping."""
+        source = '_"https://api.example.com/v1/users?id=123&active=true#profile"_'
+        tokens = self._tokenize_no_errors(source)
+
+        assert len(tokens) == 1
+        assert tokens[0].type == TokenType.LIT_URL
+        assert tokens[0].literal == '"https://api.example.com/v1/users?id=123&active=true#profile"'

@@ -62,3 +62,16 @@ class EmptyLiteral(Expression):
 
     def __str__(self) -> str:
         return "empty"
+
+
+class URLLiteral(Expression):
+    """Represents a URL literal expression."""
+
+    def __init__(self, token: Token, value: str) -> None:
+        super().__init__(token)
+        self.value = value
+
+    def __str__(self) -> str:
+        # Display with underscores for the new syntax
+        # The value includes the quotes
+        return f"_{self.value}_"

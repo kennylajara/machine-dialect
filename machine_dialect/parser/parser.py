@@ -139,16 +139,18 @@ class Parser:
                 self._advance_tokens()
                 continue
 
+            # Save the token position before parsing
+            token_before = self._current_token
+
             statement = self._parse_statement()
             program.statements.append(statement)
 
-            # Check if we need to advance
-            # If statements with blocks leave the cursor at the next statement
-            # Other statements leave the cursor at or after their terminator (period)
-            # We should only advance if we're not already at a statement start
-            stmt_token_types = list(self._register_statement_functions())
-            stmt_token_types.append(TokenType.MISC_EOF)
-            if self._current_token and self._current_token.type not in stmt_token_types:
+            # If we haven't advanced past the token we started with, we need to advance
+            # This happens when expression parsing leaves us at the last token
+            if self._current_token == token_before:
+                self._advance_tokens()
+            # After parsing a statement, skip any trailing period
+            elif self._current_token and self._current_token.type == TokenType.PUNCT_PERIOD:  # type: ignore[comparison-overlap]
                 self._advance_tokens()
 
         return program
@@ -298,6 +300,11 @@ class Parser:
             if self._current_token is not None:
                 skipped_tokens.append(self._current_token)
 
+        # Advance one more token to move past the last error token
+        # This prevents the main loop from trying to parse the last token again
+        if self._current_token is not None and self._current_token.type != TokenType.MISC_EOF:
+            self._advance_tokens()
+
         return skipped_tokens
 
     def _parse_expression(self, precedence: Precedence = Precedence.LOWEST) -> Expression:
@@ -321,8 +328,8 @@ class Parser:
                 column=self._current_token.position,
             )
             self.errors.append(name_error)
-            # Advance past the illegal token so we can continue parsing
-            self._advance_tokens()
+            # Don't advance here - let the caller handle advancement for consistency
+            # This ensures we don't double-advance and skip tokens
             # Return an ErrorExpression to preserve AST structure
             return ErrorExpression(token=error_token, message=f"Name '{error_token.literal}' is not defined")
 
@@ -392,10 +399,14 @@ class Parser:
             expression=expression,
         )
 
-        # Require trailing period if not at EOF
+        # Require trailing period if not at EOF or if we're in a block
         assert self._peek_token is not None
-        if self._peek_token.type != TokenType.MISC_EOF:
+        if self._peek_token.type != TokenType.MISC_EOF or self._block_depth > 0:
             self._expected_token(TokenType.PUNCT_PERIOD)
+
+        # Advance past the last token of the expression
+        # Expression parsing leaves us at the last token, not after it
+        self._advance_tokens()
 
         return expression_statement
 
@@ -701,6 +712,10 @@ class Parser:
         # Parse the value expression
         let_statement.value = self._parse_expression()
 
+        # Advance past the last token of the expression
+        # Expression parsing leaves us at the last token, not after it
+        self._advance_tokens()
+
         # If the expression failed, skip to synchronization point
         if isinstance(let_statement.value, ErrorExpression):
             # Skip remaining tokens until we're at a period or EOF
@@ -710,13 +725,13 @@ class Parser:
             ):
                 self._advance_tokens()
 
-        # Require trailing period if not at EOF
+        # Require trailing period if not at EOF or if we're in a block
         # But if we're already at a period (after error recovery), don't expect another
         assert self._peek_token is not None
         if self._current_token and self._current_token.type == TokenType.PUNCT_PERIOD:
             # Already at period, no need to expect one
             pass
-        elif self._peek_token.type != TokenType.MISC_EOF:
+        elif self._peek_token.type != TokenType.MISC_EOF or self._block_depth > 0:
             self._expected_token(TokenType.PUNCT_PERIOD)
 
         return let_statement
@@ -738,14 +753,20 @@ class Parser:
         # Parse the return value expression
         return_statement.return_value = self._parse_expression()
 
-        # Require trailing period if not at EOF
-        # But if we're already at a period (after error recovery), don't expect another
-        assert self._peek_token is not None
-        if self._current_token and self._current_token.type == TokenType.PUNCT_PERIOD:
-            # Already at period, no need to expect one
-            pass
-        elif self._peek_token.type != TokenType.MISC_EOF:
-            self._expected_token(TokenType.PUNCT_PERIOD)
+        # Advance past the last token of the expression
+        # Expression parsing leaves us at the last token, not after it
+        self._advance_tokens()
+
+        # If the expression failed, don't require a period since we're already in error recovery
+        if not isinstance(return_statement.return_value, ErrorExpression):
+            # Require trailing period if not at EOF or if we're in a block
+            # But if we're already at a period (after error recovery), don't expect another
+            assert self._peek_token is not None
+            if self._current_token and self._current_token.type == TokenType.PUNCT_PERIOD:
+                # Already at period, no need to expect one
+                pass
+            elif self._peek_token.type != TokenType.MISC_EOF or self._block_depth > 0:
+                self._expected_token(TokenType.PUNCT_PERIOD)
 
         return return_statement
 

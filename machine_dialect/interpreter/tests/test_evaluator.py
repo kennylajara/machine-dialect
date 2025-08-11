@@ -9,6 +9,7 @@ from machine_dialect.interpreter.objects import (
     URL,
     Boolean,
     Empty,
+    Error,
     Float,
     Integer,
     Object,
@@ -404,36 +405,36 @@ class TestEvaluatorPrefixExpressions:
         assert result.inspect() == "3.14"  # Minus of negative is positive
 
     def test_evaluate_minus_boolean(self) -> None:
-        """Test evaluating minus prefix with boolean returns Empty."""
+        """Test evaluating minus prefix with boolean returns Error."""
         result = self._parse_and_evaluate("-Yes.")
 
         assert result is not None
-        assert isinstance(result, Empty)
-        assert result.inspect() == "Empty"
+        assert isinstance(result, Error)
+        assert "Unsupported" in result.inspect()
 
     def test_evaluate_minus_string(self) -> None:
-        """Test evaluating minus prefix with string returns Empty."""
+        """Test evaluating minus prefix with string returns Error."""
         result = self._parse_and_evaluate('-_"hello"_.')
 
         assert result is not None
-        assert isinstance(result, Empty)
-        assert result.inspect() == "Empty"
+        assert isinstance(result, Error)
+        assert "Unsupported" in result.inspect()
 
     def test_evaluate_minus_url(self) -> None:
-        """Test evaluating minus prefix with URL returns Empty."""
+        """Test evaluating minus prefix with URL returns Error."""
         result = self._parse_and_evaluate('-_"https://example.com"_.')
 
         assert result is not None
-        assert isinstance(result, Empty)
-        assert result.inspect() == "Empty"
+        assert isinstance(result, Error)
+        assert "Unsupported" in result.inspect()
 
     def test_evaluate_minus_empty(self) -> None:
-        """Test evaluating minus prefix with empty returns Empty."""
+        """Test evaluating minus prefix with empty returns Error."""
         result = self._parse_and_evaluate("-empty.")
 
         assert result is not None
-        assert isinstance(result, Empty)
-        assert result.inspect() == "Empty"
+        assert isinstance(result, Error)
+        assert "Unsupported" in result.inspect()
 
     def test_evaluate_not_boolean_true(self) -> None:
         """Test evaluating not prefix with true boolean."""
@@ -452,44 +453,44 @@ class TestEvaluatorPrefixExpressions:
         assert result.inspect() == "Yes"
 
     def test_evaluate_not_integer(self) -> None:
-        """Test evaluating not prefix with integer returns Empty."""
+        """Test evaluating not prefix with integer returns Error."""
         result = self._parse_and_evaluate("not _42_.")
 
         assert result is not None
-        assert isinstance(result, Empty)
-        assert result.inspect() == "Empty"
+        assert isinstance(result, Error)
+        assert "Unsupported" in result.inspect()
 
     def test_evaluate_not_float(self) -> None:
-        """Test evaluating not prefix with float returns Empty."""
+        """Test evaluating not prefix with float returns Error."""
         result = self._parse_and_evaluate("not _3.14_.")
 
         assert result is not None
-        assert isinstance(result, Empty)
-        assert result.inspect() == "Empty"
+        assert isinstance(result, Error)
+        assert "Unsupported" in result.inspect()
 
     def test_evaluate_not_string(self) -> None:
-        """Test evaluating not prefix with string returns Empty."""
+        """Test evaluating not prefix with string returns Error."""
         result = self._parse_and_evaluate('not _"hello"_.')
 
         assert result is not None
-        assert isinstance(result, Empty)
-        assert result.inspect() == "Empty"
+        assert isinstance(result, Error)
+        assert "Unsupported" in result.inspect()
 
     def test_evaluate_not_url(self) -> None:
-        """Test evaluating not prefix with URL returns Empty."""
+        """Test evaluating not prefix with URL returns Error."""
         result = self._parse_and_evaluate('not _"https://example.com"_.')
 
         assert result is not None
-        assert isinstance(result, Empty)
-        assert result.inspect() == "Empty"
+        assert isinstance(result, Error)
+        assert "Unsupported" in result.inspect()
 
     def test_evaluate_not_empty(self) -> None:
-        """Test evaluating not prefix with empty returns Empty."""
+        """Test evaluating not prefix with empty returns Error."""
         result = self._parse_and_evaluate("not empty.")
 
         assert result is not None
-        assert isinstance(result, Empty)
-        assert result.inspect() == "Empty"
+        assert isinstance(result, Error)
+        assert "Unsupported" in result.inspect()
 
     def test_evaluate_double_not_boolean(self) -> None:
         """Test evaluating double not with boolean."""
@@ -500,7 +501,7 @@ class TestEvaluatorPrefixExpressions:
         assert result.inspect() == "Yes"
 
     def test_evaluate_unsupported_prefix_operator(self) -> None:
-        """Test evaluating unsupported prefix operator returns Empty."""
+        """Test evaluating unsupported prefix operator returns Error."""
         # Create a prefix expression with an unsupported operator
         token = Token(TokenType.OP_PLUS, "+", 1, 0)
         right = ast.IntegerLiteral(Token(TokenType.LIT_INT, "42", 1, 2), 42)
@@ -511,8 +512,8 @@ class TestEvaluatorPrefixExpressions:
         result = evaluate(stmt)
 
         assert result is not None
-        assert isinstance(result, Empty)
-        assert result.inspect() == "Empty"
+        assert isinstance(result, Error)
+        assert result.inspect() == "ERROR: Unknown prefix operator: OP_PLUS"
 
     def test_evaluate_prefix_with_none_right(self) -> None:
         """Test that assertion fails for prefix expression with None right."""
@@ -734,6 +735,7 @@ class TestEvaluatorIfStatements:
         """
         result = self._parse_and_evaluate(source)
 
+        # Non-boolean conditions currently return Empty (not an error)
         assert result is not None
         assert isinstance(result, Empty)
         assert result.inspect() == "Empty"
@@ -806,6 +808,7 @@ class TestEvaluatorIfStatements:
         """
         result = self._parse_and_evaluate(source)
 
+        # Empty as condition returns Empty
         assert result is not None
         assert isinstance(result, Empty)
         assert result.inspect() == "Empty"
@@ -1175,32 +1178,32 @@ class TestEvaluatorLogicalOperators:
         result = self._parse_and_evaluate("_42_ and Yes.")
 
         assert result is not None
-        assert isinstance(result, Empty)
-        assert result.inspect() == "Empty"
+        assert isinstance(result, Error)
+        assert "Unsupported" in result.inspect()
 
     def test_evaluate_and_with_non_boolean_right(self) -> None:
         """Test and operator with non-boolean right operand returns Empty."""
         result = self._parse_and_evaluate("Yes and _42_.")
 
         assert result is not None
-        assert isinstance(result, Empty)
-        assert result.inspect() == "Empty"
+        assert isinstance(result, Error)
+        assert "Unsupported" in result.inspect()
 
     def test_evaluate_or_with_non_boolean_left(self) -> None:
         """Test or operator with non-boolean left operand returns Empty."""
         result = self._parse_and_evaluate('_"text"_ or No.')
 
         assert result is not None
-        assert isinstance(result, Empty)
-        assert result.inspect() == "Empty"
+        assert isinstance(result, Error)
+        assert "Unsupported" in result.inspect()
 
     def test_evaluate_or_with_non_boolean_right(self) -> None:
-        """Test or operator with non-boolean right operand returns Empty."""
+        """Test or operator with non-boolean right operand returns Error."""
         result = self._parse_and_evaluate("No or _3.14_.")
 
         assert result is not None
-        assert isinstance(result, Empty)
-        assert result.inspect() == "Empty"
+        assert isinstance(result, Error)
+        assert "Unsupported" in result.inspect()
 
     def test_evaluate_chain_of_ands(self) -> None:
         """Test chain of and operators."""

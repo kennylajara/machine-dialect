@@ -6,6 +6,7 @@ from machine_dialect.interpreter.objects import (
     URL,
     Boolean,
     Empty,
+    Error,
     Float,
     Integer,
     Object,
@@ -22,6 +23,7 @@ class TestObjectType:
         expected_types = {
             "BOOLEAN",
             "EMPTY",
+            "ERROR",
             "FLOAT",
             "INTEGER",
             "RETURN",
@@ -354,12 +356,12 @@ class TestObjectPrefixOperatorReactions:
 
         # Minus of boolean should return Empty
         result = true_bool.react_to_prefix_operator_minus()
-        assert isinstance(result, Empty)
-        assert result.inspect() == "Empty"
+        assert isinstance(result, Error)
+        assert "Unsupported" in result.inspect()
 
         result = false_bool.react_to_prefix_operator_minus()
-        assert isinstance(result, Empty)
-        assert result.inspect() == "Empty"
+        assert isinstance(result, Error)
+        assert "Unsupported" in result.inspect()
 
     def test_integer_react_to_not(self) -> None:
         """Test Integer reaction to not operator."""
@@ -367,8 +369,8 @@ class TestObjectPrefixOperatorReactions:
 
         # Not of integer should return Empty
         result = int_obj.react_to_prefix_operator_not()
-        assert isinstance(result, Empty)
-        assert result.inspect() == "Empty"
+        assert isinstance(result, Error)
+        assert "Unsupported" in result.inspect()
 
     def test_integer_react_to_minus(self) -> None:
         """Test Integer reaction to minus operator."""
@@ -397,8 +399,8 @@ class TestObjectPrefixOperatorReactions:
 
         # Not of float should return Empty
         result = float_obj.react_to_prefix_operator_not()
-        assert isinstance(result, Empty)
-        assert result.inspect() == "Empty"
+        assert isinstance(result, Error)
+        assert "Unsupported" in result.inspect()
 
     def test_float_react_to_minus(self) -> None:
         """Test Float reaction to minus operator."""
@@ -427,8 +429,8 @@ class TestObjectPrefixOperatorReactions:
 
         # Not of string should return Empty
         result = str_obj.react_to_prefix_operator_not()
-        assert isinstance(result, Empty)
-        assert result.inspect() == "Empty"
+        assert isinstance(result, Error)
+        assert "Unsupported" in result.inspect()
 
     def test_string_react_to_minus(self) -> None:
         """Test String reaction to minus operator."""
@@ -436,8 +438,8 @@ class TestObjectPrefixOperatorReactions:
 
         # Minus of string should return Empty
         result = str_obj.react_to_prefix_operator_minus()
-        assert isinstance(result, Empty)
-        assert result.inspect() == "Empty"
+        assert isinstance(result, Error)
+        assert "Unsupported" in result.inspect()
 
     def test_url_react_to_not(self) -> None:
         """Test URL reaction to not operator."""
@@ -445,8 +447,8 @@ class TestObjectPrefixOperatorReactions:
 
         # Not of URL should return Empty
         result = url_obj.react_to_prefix_operator_not()
-        assert isinstance(result, Empty)
-        assert result.inspect() == "Empty"
+        assert isinstance(result, Error)
+        assert "Unsupported" in result.inspect()
 
     def test_url_react_to_minus(self) -> None:
         """Test URL reaction to minus operator."""
@@ -454,30 +456,26 @@ class TestObjectPrefixOperatorReactions:
 
         # Minus of URL should return Empty
         result = url_obj.react_to_prefix_operator_minus()
-        assert isinstance(result, Empty)
-        assert result.inspect() == "Empty"
+        assert isinstance(result, Error)
+        assert "Unsupported" in result.inspect()
 
     def test_empty_react_to_not(self) -> None:
-        """Test Empty reaction to not operator."""
+        """Test Empty reaction to not operator returns Error."""
         empty = Empty()
 
-        # Not of Empty should return Empty
+        # Not of Empty should return Error
         result = empty.react_to_prefix_operator_not()
-        assert isinstance(result, Empty)
-        assert result.inspect() == "Empty"
-        # Should be the same singleton
-        assert result is empty
+        assert isinstance(result, Error)
+        assert "Unsupported" in result.inspect()
 
     def test_empty_react_to_minus(self) -> None:
-        """Test Empty reaction to minus operator."""
+        """Test Empty reaction to minus operator returns Error."""
         empty = Empty()
 
-        # Minus of Empty should return Empty
+        # Minus of Empty should return Error
         result = empty.react_to_prefix_operator_minus()
-        assert isinstance(result, Empty)
-        assert result.inspect() == "Empty"
-        # Should be the same singleton
-        assert result is empty
+        assert isinstance(result, Error)
+        assert "Unsupported" in result.inspect()
 
     def test_default_object_reactions(self) -> None:
         """Test that default Object methods return Empty."""
@@ -522,19 +520,19 @@ class TestObjectPrefixOperatorReactions:
         assert not_false is true1
 
     def test_empty_reactions_preserve_singleton(self) -> None:
-        """Test that Empty reactions preserve singleton pattern."""
+        """Test that Empty singleton pattern is preserved."""
         empty1 = Empty()
         empty2 = Empty()
 
         # Check singleton is working
         assert empty1 is empty2
 
-        # Reactions should return the same singleton
+        # Reactions now return Error objects, not the singleton
         not_result = empty1.react_to_prefix_operator_not()
         minus_result = empty1.react_to_prefix_operator_minus()
 
-        assert not_result is empty1
-        assert minus_result is empty1
+        assert isinstance(not_result, Error)
+        assert isinstance(minus_result, Error)
 
 
 class TestObjectLogicalOperatorReactions:
@@ -599,17 +597,20 @@ class TestObjectLogicalOperatorReactions:
 
         # Boolean and Integer
         result = true.react_to_infix_operator_and(num)
-        assert isinstance(result, Empty)
+        assert isinstance(result, Error)
+        assert "Unsupported" in result.inspect()
 
         result = false.react_to_infix_operator_and(num)
-        assert isinstance(result, Empty)
+        assert isinstance(result, Error)
+        assert "Unsupported" in result.inspect()
 
         # Boolean and String
         result = true.react_to_infix_operator_and(text)
-        assert isinstance(result, Empty)
+        assert isinstance(result, Error)
+        assert "Unsupported" in result.inspect()
 
     def test_boolean_or_non_boolean(self) -> None:
-        """Test Boolean or non-Boolean returns Empty."""
+        """Test Boolean or non-Boolean returns Error."""
         true = Boolean(True)
         false = Boolean(False)
         num = Float(3.14)
@@ -617,14 +618,17 @@ class TestObjectLogicalOperatorReactions:
 
         # Boolean or Float
         result = true.react_to_infix_operator_or(num)
-        assert isinstance(result, Empty)
+        assert isinstance(result, Error)
+        assert "Unsupported" in result.inspect()
 
         result = false.react_to_infix_operator_or(num)
-        assert isinstance(result, Empty)
+        assert isinstance(result, Error)
+        assert "Unsupported" in result.inspect()
 
         # Boolean or Empty
         result = true.react_to_infix_operator_or(empty)
-        assert isinstance(result, Empty)
+        assert isinstance(result, Error)
+        assert "Unsupported" in result.inspect()
 
     def test_non_boolean_logical_operations(self) -> None:
         """Test that non-Boolean types return Empty for logical operations."""
@@ -636,38 +640,48 @@ class TestObjectLogicalOperatorReactions:
 
         # Integer logical operations
         result = num.react_to_infix_operator_and(Boolean(True))
-        assert isinstance(result, Empty)
+        assert isinstance(result, Error)
+        assert "Unsupported" in result.inspect()
 
         result = num.react_to_infix_operator_or(Boolean(False))
-        assert isinstance(result, Empty)
+        assert isinstance(result, Error)
+        assert "Unsupported" in result.inspect()
 
         # String logical operations
         result = text.react_to_infix_operator_and(Boolean(True))
-        assert isinstance(result, Empty)
+        assert isinstance(result, Error)
+        assert "Unsupported" in result.inspect()
 
         result = text.react_to_infix_operator_or(Boolean(False))
-        assert isinstance(result, Empty)
+        assert isinstance(result, Error)
+        assert "Unsupported" in result.inspect()
 
         # Float logical operations
         result = flt.react_to_infix_operator_and(Boolean(True))
-        assert isinstance(result, Empty)
+        assert isinstance(result, Error)
+        assert "Unsupported" in result.inspect()
 
         result = flt.react_to_infix_operator_or(Boolean(False))
-        assert isinstance(result, Empty)
+        assert isinstance(result, Error)
+        assert "Unsupported" in result.inspect()
 
         # URL logical operations
         result = url.react_to_infix_operator_and(Boolean(True))
-        assert isinstance(result, Empty)
+        assert isinstance(result, Error)
+        assert "Unsupported" in result.inspect()
 
         result = url.react_to_infix_operator_or(Boolean(False))
-        assert isinstance(result, Empty)
+        assert isinstance(result, Error)
+        assert "Unsupported" in result.inspect()
 
-        # Empty logical operations
+        # Empty logical operations (Empty returns Error)
         result = empty.react_to_infix_operator_and(Boolean(True))
-        assert isinstance(result, Empty)
+        assert isinstance(result, Error)
+        assert "Unsupported" in result.inspect()
 
         result = empty.react_to_infix_operator_or(Boolean(False))
-        assert isinstance(result, Empty)
+        assert isinstance(result, Error)
+        assert "Unsupported" in result.inspect()
 
     def test_boolean_logical_preserves_singleton(self) -> None:
         """Test that logical operations preserve Boolean singleton instances."""

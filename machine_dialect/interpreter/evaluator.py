@@ -1,10 +1,12 @@
 from typing import Any, cast
 
 import machine_dialect.ast as ast
+from machine_dialect.errors.messages import UNKNOWN_INFIX_OPERATOR, UNKNOWN_PREFIX_OPERATOR
 from machine_dialect.interpreter.objects import (
     URL,
     Boolean,
     Empty,
+    Error,
     Float,
     Integer,
     Object,
@@ -102,7 +104,7 @@ def _evaluate_block_statement(node: ast.BlockStatement) -> Object | None:
 
     for statement in node.statements:
         result = evaluate(statement)
-        if result is not None and type(result) == Return:
+        if result is not None and isinstance(result, Return | Error):
             return result
 
     return result
@@ -156,7 +158,9 @@ def _evaluate_infix_expression(token_type: TokenType, left: Object, right: Objec
         case TokenType.OP_STRICT_NOT_EQ:
             return left.react_to_infix_operator_strict_not_equals(right)
         case _:
-            return EMPTY
+            # Return an error for unknown infix operators
+            error_message = UNKNOWN_INFIX_OPERATOR.format(operator=token_type.name)
+            return Error(error_message)
 
 
 def _evaluate_operator_expression_not(right: Object) -> Object:
@@ -174,7 +178,9 @@ def _evaluate_prefix_expression(token_type: TokenType, right: Object) -> Object:
         case TokenType.KW_NEGATION:
             return right.react_to_prefix_operator_not()
         case _:
-            return EMPTY
+            # Return an error for unknown prefix operators
+            error_message = UNKNOWN_PREFIX_OPERATOR.format(operator=token_type.name)
+            return Error(error_message)
 
 
 def _evaluate_program(program: ast.Program) -> Object | None:
@@ -183,7 +189,10 @@ def _evaluate_program(program: ast.Program) -> Object | None:
     for statement in program.statements:
         result = evaluate(statement)
 
-        if result is not None and type(result) == Return:
-            return result.value
+        if result is not None:
+            if isinstance(result, Return):
+                return result.value
+            elif isinstance(result, Error):
+                return result
 
     return result

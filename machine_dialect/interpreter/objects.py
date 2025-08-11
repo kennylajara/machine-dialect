@@ -4,12 +4,19 @@ from abc import ABC, abstractmethod
 from enum import Enum, auto
 from typing import ClassVar
 
+from machine_dialect.errors.messages import (
+    DIVISION_BY_ZERO,
+    UNSUPPORTED_OPERAND_TYPE,
+    UNSUPPORTED_UNARY_OPERAND,
+)
+
 
 class ObjectType(Enum):
     """Represents an object type."""
 
     BOOLEAN = auto()
     EMPTY = auto()
+    ERROR = auto()
     FLOAT = auto()
     INTEGER = auto()
     RETURN = auto()
@@ -30,28 +37,44 @@ class Object(ABC):
         pass
 
     def react_to_infix_operator_addition(self, other: Object) -> Object:
-        return Empty()
+        return Error(
+            UNSUPPORTED_OPERAND_TYPE.format(operator="+", left_type=self.type.name, right_type=other.type.name)
+        )
 
     def react_to_infix_operator_substraction(self, other: Object) -> Object:
-        return Empty()
+        return Error(
+            UNSUPPORTED_OPERAND_TYPE.format(operator="-", left_type=self.type.name, right_type=other.type.name)
+        )
 
     def react_to_infix_operator_multiplication(self, other: Object) -> Object:
-        return Empty()
+        return Error(
+            UNSUPPORTED_OPERAND_TYPE.format(operator="*", left_type=self.type.name, right_type=other.type.name)
+        )
 
     def react_to_infix_operator_division(self, other: Object) -> Object:
-        return Empty()
+        return Error(
+            UNSUPPORTED_OPERAND_TYPE.format(operator="/", left_type=self.type.name, right_type=other.type.name)
+        )
 
     def react_to_infix_operator_less_than(self, other: Object) -> Object:
-        return Empty()
+        return Error(
+            UNSUPPORTED_OPERAND_TYPE.format(operator="<", left_type=self.type.name, right_type=other.type.name)
+        )
 
     def react_to_infix_operator_greater_than(self, other: Object) -> Object:
-        return Empty()
+        return Error(
+            UNSUPPORTED_OPERAND_TYPE.format(operator=">", left_type=self.type.name, right_type=other.type.name)
+        )
 
     def react_to_infix_operator_less_than_or_equal(self, other: Object) -> Object:
-        return Empty()
+        return Error(
+            UNSUPPORTED_OPERAND_TYPE.format(operator="<=", left_type=self.type.name, right_type=other.type.name)
+        )
 
     def react_to_infix_operator_greater_than_or_equal(self, other: Object) -> Object:
-        return Empty()
+        return Error(
+            UNSUPPORTED_OPERAND_TYPE.format(operator=">=", left_type=self.type.name, right_type=other.type.name)
+        )
 
     def react_to_infix_operator_equals(self, other: Object) -> Object:
         # Value equality: compare inspect() values
@@ -70,16 +93,20 @@ class Object(ABC):
         return Boolean(self.type != other.type or self.inspect() != other.inspect())
 
     def react_to_prefix_operator_not(self) -> Object:
-        return Empty()
+        return Error(UNSUPPORTED_UNARY_OPERAND.format(operator="not", type=self.type.name))
 
     def react_to_prefix_operator_minus(self) -> Object:
-        return Empty()
+        return Error(UNSUPPORTED_UNARY_OPERAND.format(operator="-", type=self.type.name))
 
     def react_to_infix_operator_and(self, other: Object) -> Object:
-        return Empty()
+        return Error(
+            UNSUPPORTED_OPERAND_TYPE.format(operator="and", left_type=self.type.name, right_type=other.type.name)
+        )
 
     def react_to_infix_operator_or(self, other: Object) -> Object:
-        return Empty()
+        return Error(
+            UNSUPPORTED_OPERAND_TYPE.format(operator="or", left_type=self.type.name, right_type=other.type.name)
+        )
 
 
 class Boolean(Object):
@@ -108,12 +135,16 @@ class Boolean(Object):
     def react_to_infix_operator_and(self, other: Object) -> Object:
         if isinstance(other, Boolean):
             return Boolean(self._value and other._value)
-        return Empty()
+        return Error(
+            UNSUPPORTED_OPERAND_TYPE.format(operator="and", left_type=self.type.name, right_type=other.type.name)
+        )
 
     def react_to_infix_operator_or(self, other: Object) -> Object:
         if isinstance(other, Boolean):
             return Boolean(self._value or other._value)
-        return Empty()
+        return Error(
+            UNSUPPORTED_OPERAND_TYPE.format(operator="or", left_type=self.type.name, right_type=other.type.name)
+        )
 
 
 class Empty(Object):
@@ -135,6 +166,25 @@ class Empty(Object):
         return "Empty"
 
 
+class Error(Object):
+    """Represents an error that occurred during evaluation."""
+
+    def __init__(self, message: str) -> None:
+        """Initialize an Error object.
+
+        Args:
+            message: The formatted error message.
+        """
+        self.message = message
+
+    @property
+    def type(self) -> ObjectType:
+        return ObjectType.ERROR
+
+    def inspect(self) -> str:
+        return f"ERROR: {self.message}"
+
+
 class Float(Object):
     def __init__(self, value: float) -> None:
         self._value = value
@@ -153,44 +203,60 @@ class Float(Object):
     def react_to_infix_operator_addition(self, other: Object) -> Object:
         if isinstance(other, Float) or isinstance(other, Integer):
             return Float(self._value + other.value)
-        return Empty()
+        return Error(
+            UNSUPPORTED_OPERAND_TYPE.format(operator="+", left_type=self.type.name, right_type=other.type.name)
+        )
 
     def react_to_infix_operator_substraction(self, other: Object) -> Object:
         if isinstance(other, Float) or isinstance(other, Integer):
             return Float(self._value - other.value)
-        return Empty()
+        return Error(
+            UNSUPPORTED_OPERAND_TYPE.format(operator="-", left_type=self.type.name, right_type=other.type.name)
+        )
 
     def react_to_infix_operator_multiplication(self, other: Object) -> Object:
         if isinstance(other, Float) or isinstance(other, Integer):
             return Float(self._value * other.value)
-        return Empty()
+        return Error(
+            UNSUPPORTED_OPERAND_TYPE.format(operator="*", left_type=self.type.name, right_type=other.type.name)
+        )
 
     def react_to_infix_operator_division(self, other: Object) -> Object:
         if isinstance(other, Float) or isinstance(other, Integer):
             if other.value == 0:
-                return Empty()  # Division by zero
+                return Error(DIVISION_BY_ZERO.format())
             return Float(self._value / other.value)
-        return Empty()
+        return Error(
+            UNSUPPORTED_OPERAND_TYPE.format(operator="/", left_type=self.type.name, right_type=other.type.name)
+        )
 
     def react_to_infix_operator_less_than(self, other: Object) -> Object:
         if isinstance(other, Float) or isinstance(other, Integer):
             return Boolean(self._value < other.value)
-        return Empty()
+        return Error(
+            UNSUPPORTED_OPERAND_TYPE.format(operator="<", left_type=self.type.name, right_type=other.type.name)
+        )
 
     def react_to_infix_operator_greater_than(self, other: Object) -> Object:
         if isinstance(other, Float) or isinstance(other, Integer):
             return Boolean(self._value > other.value)
-        return Empty()
+        return Error(
+            UNSUPPORTED_OPERAND_TYPE.format(operator=">", left_type=self.type.name, right_type=other.type.name)
+        )
 
     def react_to_infix_operator_less_than_or_equal(self, other: Object) -> Object:
         if isinstance(other, Float) or isinstance(other, Integer):
             return Boolean(self._value <= other.value)
-        return Empty()
+        return Error(
+            UNSUPPORTED_OPERAND_TYPE.format(operator="<=", left_type=self.type.name, right_type=other.type.name)
+        )
 
     def react_to_infix_operator_greater_than_or_equal(self, other: Object) -> Object:
         if isinstance(other, Float) or isinstance(other, Integer):
             return Boolean(self._value >= other.value)
-        return Empty()
+        return Error(
+            UNSUPPORTED_OPERAND_TYPE.format(operator=">=", left_type=self.type.name, right_type=other.type.name)
+        )
 
     def react_to_infix_operator_equals(self, other: Object) -> Object:
         # Allow numeric comparison between Float and Integer
@@ -228,49 +294,65 @@ class Integer(Object):
             return Integer(self._value + other.value)
         elif isinstance(other, Float):
             return Float(self._value + other.value)
-        return Empty()
+        return Error(
+            UNSUPPORTED_OPERAND_TYPE.format(operator="+", left_type=self.type.name, right_type=other.type.name)
+        )
 
     def react_to_infix_operator_substraction(self, other: Object) -> Object:
         if isinstance(other, Integer):
             return Integer(self._value - other.value)
         elif isinstance(other, Float):
             return Float(self._value - other.value)
-        return Empty()
+        return Error(
+            UNSUPPORTED_OPERAND_TYPE.format(operator="-", left_type=self.type.name, right_type=other.type.name)
+        )
 
     def react_to_infix_operator_multiplication(self, other: Object) -> Object:
         if isinstance(other, Integer):
             return Integer(self._value * other.value)
         elif isinstance(other, Float):
             return Float(self._value * other.value)
-        return Empty()
+        return Error(
+            UNSUPPORTED_OPERAND_TYPE.format(operator="*", left_type=self.type.name, right_type=other.type.name)
+        )
 
     def react_to_infix_operator_division(self, other: Object) -> Object:
         if isinstance(other, Integer) or isinstance(other, Float):
             if other.value == 0:
-                return Empty()  # Division by zero
+                return Error(DIVISION_BY_ZERO.format())
             # Integer division always returns a Float
             return Float(self._value / other.value)
-        return Empty()
+        return Error(
+            UNSUPPORTED_OPERAND_TYPE.format(operator="/", left_type=self.type.name, right_type=other.type.name)
+        )
 
     def react_to_infix_operator_less_than(self, other: Object) -> Object:
         if isinstance(other, Integer) or isinstance(other, Float):
             return Boolean(self._value < other.value)
-        return Empty()
+        return Error(
+            UNSUPPORTED_OPERAND_TYPE.format(operator="<", left_type=self.type.name, right_type=other.type.name)
+        )
 
     def react_to_infix_operator_greater_than(self, other: Object) -> Object:
         if isinstance(other, Integer) or isinstance(other, Float):
             return Boolean(self._value > other.value)
-        return Empty()
+        return Error(
+            UNSUPPORTED_OPERAND_TYPE.format(operator=">", left_type=self.type.name, right_type=other.type.name)
+        )
 
     def react_to_infix_operator_less_than_or_equal(self, other: Object) -> Object:
         if isinstance(other, Integer) or isinstance(other, Float):
             return Boolean(self._value <= other.value)
-        return Empty()
+        return Error(
+            UNSUPPORTED_OPERAND_TYPE.format(operator="<=", left_type=self.type.name, right_type=other.type.name)
+        )
 
     def react_to_infix_operator_greater_than_or_equal(self, other: Object) -> Object:
         if isinstance(other, Integer) or isinstance(other, Float):
             return Boolean(self._value >= other.value)
-        return Empty()
+        return Error(
+            UNSUPPORTED_OPERAND_TYPE.format(operator=">=", left_type=self.type.name, right_type=other.type.name)
+        )
 
     def react_to_infix_operator_equals(self, other: Object) -> Object:
         # Allow numeric comparison between Integer and Float

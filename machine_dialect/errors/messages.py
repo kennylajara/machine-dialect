@@ -36,3 +36,14 @@ EXPECTED_FUNCTION_NAME = ErrorTemplate("Expected identifier for function name, g
 EXPECTED_IDENTIFIER_FOR_NAMED_ARG = ErrorTemplate("Expected identifier for named argument, got $type_name")
 POSITIONAL_AFTER_NAMED = ErrorTemplate("Positional arguments cannot appear after named arguments")
 INVALID_ARGUMENT_VALUE = ErrorTemplate("Invalid argument value: '$literal'")
+
+# Interpreter errors
+UNKNOWN_PREFIX_OPERATOR = ErrorTemplate("Unknown prefix operator: $operator")
+UNKNOWN_INFIX_OPERATOR = ErrorTemplate("Unknown infix operator: $operator")
+TYPE_MISMATCH = ErrorTemplate(
+    "Type mismatch: cannot apply operator '$operator' to operands of type '$left_type' and '$right_type'"
+)
+UNSUPPORTED_OPERATION = ErrorTemplate("Unsupported operation: '$operation' on type '$type'")
+DIVISION_BY_ZERO = ErrorTemplate("Division by zero")
+UNSUPPORTED_OPERAND_TYPE = ErrorTemplate("Unsupported operand type(s) for $operator: '$left_type' and '$right_type'")
+UNSUPPORTED_UNARY_OPERAND = ErrorTemplate("Unsupported operand type for unary $operator: '$type'")

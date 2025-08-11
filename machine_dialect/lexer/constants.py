@@ -9,7 +9,6 @@ CHAR_TO_TOKEN_MAP = {
     "=": TokenType.OP_ASSIGN,
     "<": TokenType.OP_LT,
     ">": TokenType.OP_GT,
-    "!": TokenType.OP_NEGATION,
     "(": TokenType.DELIM_LPAREN,
     ")": TokenType.DELIM_RPAREN,
     "{": TokenType.DELIM_LBRACE,

@@ -476,11 +476,34 @@ class Lexer:
             self.current_char = self.source[self.position] if self.position < len(self.source) else None
             return None
 
+        # Check for negative sign before number
+        has_minus = False
+        if self.current_char == "-":
+            has_minus = True
+            self.advance()  # Skip minus sign
+
+            # Check what comes after the minus
+            if not self.current_char:
+                # Restore position
+                self.position = start_pos
+                self.line = start_line
+                self.column = start_column
+                self.current_char = self.source[self.position] if self.position < len(self.source) else None
+                return None
+
         # Try different literal types
         next_char = self.peek()
         if self.current_char.isdigit() or (self.current_char == "." and next_char and next_char.isdigit()):
             # Number literal
             literal, is_float, _, _ = self.read_number()
+
+            # Normalize decimal-only floats (e.g., ".5" -> "0.5")
+            if is_float and literal.startswith("."):
+                literal = "0" + literal
+
+            # Add minus sign if present
+            if has_minus:
+                literal = "-" + literal
 
             # Check for closing underscore
             if self.current_char == "_":
@@ -496,7 +519,14 @@ class Lexer:
                 token_type = TokenType.LIT_FLOAT if is_float else TokenType.LIT_INT
                 return literal, token_type, start_line, literal_column
         elif self.current_char in ('"', "'"):
-            # String literal
+            # String literal - but minus sign is not valid before strings
+            if has_minus:
+                # Restore position
+                self.position = start_pos
+                self.line = start_line
+                self.column = start_column
+                self.current_char = self.source[self.position] if self.position < len(self.source) else None
+                return None
             quote_char = self.current_char
             self.advance()  # Skip opening quote
 
@@ -526,6 +556,14 @@ class Lexer:
                     return full_literal, token_type, start_line, literal_column
         elif self.current_char.isalpha():
             # Read alphabetic characters only (no underscores) for potential boolean literal
+            # Minus sign is not valid before boolean literals
+            if has_minus:
+                # Restore position
+                self.position = start_pos
+                self.line = start_line
+                self.column = start_column
+                self.current_char = self.source[self.position] if self.position < len(self.source) else None
+                return None
             ident_start = self.position
             while self.current_char and self.current_char.isalpha():
                 self.advance()
@@ -543,6 +581,7 @@ class Lexer:
                     return canonical_literal, token_type, start_line, literal_column
 
         # Not a valid underscore-wrapped literal, restore position
+        # (This also handles the case where we have a minus sign but no valid literal follows)
         self.position = start_pos
         self.line = start_line
         self.column = start_column

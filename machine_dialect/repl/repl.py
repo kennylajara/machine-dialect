@@ -7,10 +7,11 @@ It can operate in two modes:
 - Debug tokens (--debug-tokens): Tokenizes input and displays tokens
 """
 
+import readline  # noqa
 import argparse
 import sys
 
-from machine_dialect.interpreter.evaluator import Evaluator
+from machine_dialect.interpreter.evaluator import evaluate
 from machine_dialect.lexer.lexer import Lexer
 from machine_dialect.lexer.tokens import Token
 from machine_dialect.parser.parser import Parser
@@ -41,6 +42,8 @@ class REPL:
         self.debug_tokens = debug_tokens
         self.show_ast = show_ast
         self.accumulated_source = ""
+        self.multiline_buffer = ""
+        self.in_multiline_mode = False
 
     def print_welcome(self) -> None:
         """Print the welcome message when REPL starts."""
@@ -72,7 +75,18 @@ class REPL:
         else:
             print("\nEnter Machine Dialect code to see its evaluation result.")
             print("Source is accumulated across lines until an error occurs.")
+
+        print("\nMulti-line input:")
+        print("  Lines ending with ':' enter multi-line mode")
+        print("  Lines starting with '>' continue multi-line input")
+        print("  Empty line or line not matching above completes input")
+        print("  Ctrl+C cancels multi-line input")
+
         print("\nExample: Set `x` to _10_.")
+        print("\nMulti-line example:")
+        print("  md> If _5_ > _3_ then:")
+        print("  ... > _42_.")
+        print("  ... ")
         print()
 
     def clear_screen(self) -> None:
@@ -91,6 +105,43 @@ class REPL:
             A formatted string representation of the token.
         """
         return f"  {token.type.name:<20} | {token.literal!r}"
+
+    def should_continue_multiline(self, line: str) -> bool:
+        """Check if we should continue collecting multi-line input.
+
+        Args:
+            line: The current input line.
+
+        Returns:
+            True if we should continue collecting input, False otherwise.
+        """
+        stripped = line.strip()
+        # Continue if line ends with colon or starts with '>'
+        return stripped.endswith(":") or stripped.startswith(">")
+
+    def get_multiline_prompt(self) -> str:
+        """Get the appropriate prompt for multi-line input.
+
+        Returns:
+            The prompt string to use.
+        """
+        # Count the depth of '>' markers in the buffer
+        depth = 0
+        for line in self.multiline_buffer.split("\n"):
+            stripped = line.strip()
+            if stripped.startswith(">"):
+                # Count consecutive '>' at the start
+                for char in stripped:
+                    if char == ">":
+                        depth += 1
+                    else:
+                        break
+                break
+
+        if depth > 0:
+            return "... "
+        else:
+            return "... "
 
     def tokenize_and_print(self, input_text: str) -> None:
         """Tokenize the input and print the results.
@@ -178,8 +229,7 @@ class REPL:
                 print()
             else:
                 # Evaluate and show result
-                evaluator = Evaluator()
-                result = evaluator.evaluate(ast)
+                result = evaluate(ast)
 
                 print("\nResult:")
                 print("-" * 50)
@@ -196,29 +246,70 @@ class REPL:
 
         while self.running:
             try:
-                # Get input
-                user_input = input(self.prompt).strip()
+                # Determine prompt based on multiline mode
+                if self.in_multiline_mode:
+                    prompt = self.get_multiline_prompt()
+                else:
+                    prompt = self.prompt
 
-                # Check for commands
-                if user_input.lower() == "exit":
-                    print("Goodbye!")
-                    self.running = False
-                    return 0  # Normal exit
-                elif user_input.lower() == "help":
-                    self.print_help()
-                elif user_input.lower() == "clear":
-                    self.clear_screen()
-                    self.print_welcome()
-                    # Also clear accumulated source
-                    if not self.debug_tokens:
+                # Get input
+                user_input = input(prompt)
+
+                # In multiline mode, handle special cases
+                if self.in_multiline_mode:
+                    # Check if we should continue multiline
+                    if self.should_continue_multiline(user_input):
+                        # Add to buffer with newline
+                        if self.multiline_buffer:
+                            self.multiline_buffer += "\n" + user_input
+                        else:
+                            self.multiline_buffer = user_input
+                        continue
+                    else:
+                        # End multiline mode - process the complete buffer
+                        if self.multiline_buffer:
+                            complete_input = self.multiline_buffer + "\n" + user_input
+                        else:
+                            complete_input = user_input
+
+                        # Reset multiline mode
+                        self.multiline_buffer = ""
+                        self.in_multiline_mode = False
+
+                        # Process the complete input
+                        user_input = complete_input
+                else:
+                    # Check for commands (only in normal mode)
+                    if user_input.strip().lower() == "exit":
+                        print("Goodbye!")
+                        self.running = False
+                        return 0  # Normal exit
+                    elif user_input.strip().lower() == "help":
+                        self.print_help()
+                        continue
+                    elif user_input.strip().lower() == "clear":
+                        self.clear_screen()
+                        self.print_welcome()
+                        # Also clear accumulated source
+                        if not self.debug_tokens:
+                            self.accumulated_source = ""
+                        continue
+                    elif user_input.strip().lower() == "reset" and not self.debug_tokens:
+                        # Reset accumulated source in AST mode
                         self.accumulated_source = ""
-                elif user_input.lower() == "reset" and not self.debug_tokens:
-                    # Reset accumulated source in AST mode
-                    self.accumulated_source = ""
-                    print("Accumulated source cleared.")
-                elif user_input:
+                        print("Accumulated source cleared.")
+                        continue
+
+                    # Check if we should enter multiline mode
+                    if not self.debug_tokens and self.should_continue_multiline(user_input):
+                        self.in_multiline_mode = True
+                        self.multiline_buffer = user_input
+                        continue
+
+                # Process non-empty input
+                if user_input.strip():
                     # Auto-append period if missing (for non-token mode)
-                    if not self.debug_tokens and not user_input.lstrip().endswith("."):
+                    if not self.debug_tokens and not user_input.strip().endswith("."):
                         user_input = user_input + "."
 
                     # Process input based on mode
@@ -228,11 +319,22 @@ class REPL:
                         self.parse_and_print(user_input)
 
             except (KeyboardInterrupt, EOFError):
-                print("\nGoodbye!")
-                self.running = False
-                return 0  # Normal exit via Ctrl+D
+                # Handle Ctrl+C and Ctrl+D
+                if self.in_multiline_mode:
+                    # Cancel multiline mode
+                    print("\nMultiline input cancelled.")
+                    self.multiline_buffer = ""
+                    self.in_multiline_mode = False
+                else:
+                    print("\nGoodbye!")
+                    self.running = False
+                    return 0  # Normal exit via Ctrl+D
             except Exception as e:
                 print(f"Unexpected error: {e}")
+                # Reset multiline mode on error
+                if self.in_multiline_mode:
+                    self.multiline_buffer = ""
+                    self.in_multiline_mode = False
                 return 1  # Error exit
 
         return 0  # Default normal exit

@@ -157,3 +157,130 @@ class TestUnderscoreLiterals:
 
         # Verify EOF
         assert_eof(lexer.next_token())
+
+    def test_wrapped_negative_integer(self) -> None:
+        """Test underscore-wrapped negative integer literals."""
+        source = "_-42_"
+        lexer = Lexer(source)
+
+        # Expected token
+        expected = Token(TokenType.LIT_INT, "-42", line=1, position=1)
+
+        # Get and verify token
+        actual = lexer.next_token()
+        assert_expected_token(actual, expected)
+        assert is_literal_token(actual)
+
+        # Verify EOF
+        assert_eof(lexer.next_token())
+
+    def test_wrapped_negative_float(self) -> None:
+        """Test underscore-wrapped negative float literals."""
+        source = "_-3.14_"
+        lexer = Lexer(source)
+
+        # Expected token
+        expected = Token(TokenType.LIT_FLOAT, "-3.14", line=1, position=1)
+
+        # Get and verify token
+        actual = lexer.next_token()
+        assert_expected_token(actual, expected)
+        assert is_literal_token(actual)
+
+        # Verify EOF
+        assert_eof(lexer.next_token())
+
+    def test_wrapped_negative_decimal_only(self) -> None:
+        """Test underscore-wrapped negative float starting with decimal point."""
+        source = "_-.5_"
+        lexer = Lexer(source)
+
+        # Expected token
+        expected = Token(TokenType.LIT_FLOAT, "-0.5", line=1, position=1)
+
+        # Get and verify token
+        actual = lexer.next_token()
+        assert_expected_token(actual, expected)
+        assert is_literal_token(actual)
+
+        # Verify EOF
+        assert_eof(lexer.next_token())
+
+    def test_wrapped_positive_decimal_only(self) -> None:
+        """Test underscore-wrapped positive float starting with decimal point."""
+        source = "_.5_"
+        lexer = Lexer(source)
+
+        # Expected token (should normalize .5 to 0.5)
+        expected = Token(TokenType.LIT_FLOAT, "0.5", line=1, position=1)
+
+        # Get and verify token
+        actual = lexer.next_token()
+        assert_expected_token(actual, expected)
+        assert is_literal_token(actual)
+
+        # Verify EOF
+        assert_eof(lexer.next_token())
+
+    def test_invalid_negative_patterns(self) -> None:
+        """Test various invalid negative patterns in underscore literals."""
+        # Test _-_ (minus with no number)
+        source = "_-_"
+        lexer = Lexer(source)
+
+        # Should produce identifier "_" followed by minus and another identifier
+        token1 = lexer.next_token()
+        assert token1.type == TokenType.MISC_IDENT
+        assert token1.literal == "_"
+
+        token2 = lexer.next_token()
+        assert token2.type == TokenType.OP_MINUS
+        assert token2.literal == "-"
+
+        token3 = lexer.next_token()
+        assert token3.type == TokenType.MISC_IDENT
+        assert token3.literal == "_"
+
+        assert_eof(lexer.next_token())
+
+    def test_double_negative_invalid(self) -> None:
+        """Test that double negative is not valid in underscore literals."""
+        source = "_--5_"
+        lexer = Lexer(source)
+
+        # Should not parse as a literal
+        token1 = lexer.next_token()
+        assert token1.type == TokenType.MISC_IDENT
+        assert token1.literal == "_"
+
+        # Followed by two minus operators
+        token2 = lexer.next_token()
+        assert token2.type == TokenType.OP_MINUS
+
+        token3 = lexer.next_token()
+        assert token3.type == TokenType.OP_MINUS
+
+        # Then illegal pattern 5_
+        token4 = lexer.next_token()
+        assert token4.type == TokenType.MISC_ILLEGAL
+        assert token4.literal == "5_"
+
+        assert_eof(lexer.next_token())
+
+    def test_negative_in_expression(self) -> None:
+        """Test negative literal in an expression context."""
+        source = "Set **x** to _-5_."
+        lexer = Lexer(source)
+
+        # Collect all tokens
+        tokens = []
+        while True:
+            token = lexer.next_token()
+            if token.type == TokenType.MISC_EOF:
+                break
+            tokens.append(token)
+
+        # Find the negative integer literal
+        int_literals = [t for t in tokens if t.type == TokenType.LIT_INT]
+        assert len(int_literals) == 1
+        assert int_literals[0].literal == "-5"

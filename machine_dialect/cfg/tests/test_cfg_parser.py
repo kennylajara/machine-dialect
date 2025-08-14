@@ -37,7 +37,6 @@ class TestCFGParser:
         tree = self.parser.parse(code)
         assert tree is not None
 
-    @pytest.mark.skip(reason="Natural language comparisons not supported in simplified grammar")
     def test_parse_comparison(self) -> None:
         """Test parsing comparison expressions."""
         test_cases = [

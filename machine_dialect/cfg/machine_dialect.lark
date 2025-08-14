@@ -24,6 +24,12 @@ comparison: sum
           | sum "<=" sum -> less_equal
           | sum ">=" sum -> greater_equal
           | sum "equals" sum -> equals
+          | sum "is" "greater" "than" sum -> is_greater_than
+          | sum "is" "less" "than" sum -> is_less_than
+          | sum "is" "not" "equal" "to" sum -> is_not_equal_to
+          | sum "is" "equal" "to" sum -> is_equal_to
+          | sum "is" "greater" "than" "or" "equal" "to" sum -> is_greater_equal
+          | sum "is" "less" "than" "or" "equal" "to" sum -> is_less_equal
 
 sum: product
    | sum "+" product -> add

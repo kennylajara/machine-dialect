@@ -233,7 +233,8 @@ class TestMachineDialectCFG:
         # Check terminal definitions
         assert "WORD: /[a-zA-Z_][a-zA-Z0-9_]*/" in grammar
         assert r"NUMBER: /\d+(\.\d+)?/" in grammar
-        assert 'STRING: /"[^"]*"/' in grammar
+        # Updated STRING pattern to support both single and double quotes
+        assert "STRING: /\"[^\"]*\"|'[^']*'/" in grammar
 
         # Check whitespace handling
         assert "%import common.WS" in grammar

@@ -50,7 +50,6 @@ class TestCFGParser:
             tree = self.parser.parse(code)
             assert tree is not None
 
-    @pytest.mark.skip(reason="If statements syntax differs in simplified grammar")
     def test_parse_if_statement(self) -> None:
         """Test parsing if statements."""
         code = """
@@ -61,7 +60,6 @@ class TestCFGParser:
         tree = self.parser.parse(code)
         assert tree is not None
 
-    @pytest.mark.skip(reason="If-else statements syntax differs in simplified grammar")
     def test_parse_if_else_statement(self) -> None:
         """Test parsing if-else statements."""
         code = """

@@ -4,7 +4,10 @@ statement: set_stmt | say_stmt | if_stmt
 
 set_stmt: "Set" "`" WORD "`" "to" expr
 say_stmt: "Say" expr
-if_stmt: "if" expr "then" "{" statement+ "}" ("else" "{" statement+ "}")?
+if_stmt: "if" expr "then" "{" block_content "}" ("else" "{" block_content "}")?
+
+block_content: block_statement ("." block_statement)* "."?
+block_statement: set_stmt | say_stmt | if_stmt
 
 // Expressions with logical, comparison and arithmetic operators
 expr: logical_or

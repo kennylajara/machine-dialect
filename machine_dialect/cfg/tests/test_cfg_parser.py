@@ -89,7 +89,6 @@ class TestCFGParser:
         tree = self.parser.parse(code)
         assert tree is not None
 
-    @pytest.mark.skip(reason="Single quotes not supported in simplified grammar")
     def test_parse_string_literals(self) -> None:
         """Test parsing string literals."""
         test_cases = [

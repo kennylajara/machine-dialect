@@ -202,10 +202,17 @@ class TestMachineDialectCFG:
         assert 'set_stmt: "Set" "`" WORD "`" "to" expr' in grammar
         assert 'say_stmt: "Say" expr' in grammar
 
-        # Check for expression rules with arithmetic
-        assert "expr: comparison" in grammar
+        # Check for expression rules with logical, comparison and arithmetic
+        assert "expr: logical_or" in grammar
+        assert "logical_or: logical_and" in grammar
+        assert "logical_and: logical_not" in grammar
         assert "sum: product" in grammar
-        assert "product: atom" in grammar
+        assert "product: unary" in grammar
+
+        # Check for logical operators
+        assert 'logical_or "or" logical_and -> or_op' in grammar
+        assert 'logical_and "and" logical_not -> and_op' in grammar
+        assert '"not" logical_not -> not_op' in grammar
 
         # Check for comparison operators
         assert 'sum "<" sum -> less_than' in grammar
@@ -215,8 +222,8 @@ class TestMachineDialectCFG:
         # Check for arithmetic operators
         assert 'sum "+" product -> add' in grammar
         assert 'sum "-" product -> subtract' in grammar
-        assert 'product "*" atom -> multiply' in grammar
-        assert 'product "/" atom -> divide' in grammar
+        assert 'product "*" unary -> multiply' in grammar
+        assert 'product "/" unary -> divide' in grammar
 
     def test_grammar_terminals(self) -> None:
         """Test that terminals are properly defined in Lark grammar."""

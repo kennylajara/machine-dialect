@@ -6,8 +6,17 @@ set_stmt: "Set" "`" WORD "`" "to" expr
 say_stmt: "Say" expr
 if_stmt: "if" expr "then" "{" statement+ "}" ("else" "{" statement+ "}")?
 
-// Expressions with arithmetic and comparison operators
-expr: comparison
+// Expressions with logical, comparison and arithmetic operators
+expr: logical_or
+
+logical_or: logical_and
+          | logical_or "or" logical_and -> or_op
+
+logical_and: logical_not
+           | logical_and "and" logical_not -> and_op
+
+logical_not: comparison
+           | "not" logical_not -> not_op
 
 comparison: sum
           | sum "<" sum -> less_than
@@ -20,13 +29,18 @@ sum: product
    | sum "+" product -> add
    | sum "-" product -> subtract
 
-product: atom
-       | product "*" atom -> multiply
-       | product "/" atom -> divide
+product: unary
+       | product "*" unary -> multiply
+       | product "/" unary -> divide
+
+unary: atom
+     | "-" unary -> negate
 
 atom: NUMBER
     | WORD
     | STRING
+    | "True" -> true_lit
+    | "False" -> false_lit
     | "(" expr ")"
 
 WORD: /[a-zA-Z_][a-zA-Z0-9_]*/

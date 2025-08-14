@@ -31,10 +31,9 @@ class TestCFGParser:
         tree = self.parser.parse(code)
         assert tree is not None
 
-    @pytest.mark.skip(reason="Logical operators not supported in simplified grammar")
     def test_parse_logical_expression(self) -> None:
         """Test parsing logical expressions."""
-        code = "Set `flag` to True and not False."
+        code = "Set `flag` to True and not False or False."
         tree = self.parser.parse(code)
         assert tree is not None
 

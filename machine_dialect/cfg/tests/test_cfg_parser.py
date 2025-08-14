@@ -1,6 +1,5 @@
 """Tests for the CFG parser."""
 
-import pytest
 
 from machine_dialect.cfg import CFGParser
 
@@ -171,7 +170,6 @@ class TestCFGParser:
         tree = self.parser.parse(code)
         assert tree is not None
 
-    @pytest.mark.skip(reason="Natural language operators not supported in simplified grammar")
     def test_natural_language_operators(self) -> None:
         """Test parsing natural language operators."""
         test_cases = [

@@ -198,8 +198,8 @@ class TestMachineDialectCFG:
         assert 'start: statement ("." statement)* "."?' in grammar
         assert "statement: set_stmt | say_stmt | if_stmt" in grammar
 
-        # Check for set and say statements (now case-insensitive)
-        assert 'set_stmt: "Set"i "`" WORD "`" "to"i expr' in grammar
+        # Check for set and say statements (now case-insensitive with identifier support)
+        assert 'set_stmt: "Set"i "`" IDENTIFIER "`" "to"i expr' in grammar
         assert 'say_stmt: "Say"i expr' in grammar
 
         # Check for expression rules with logical, comparison and arithmetic
@@ -231,6 +231,7 @@ class TestMachineDialectCFG:
         grammar = cfg["definition"]
 
         # Check terminal definitions
+        assert "IDENTIFIER: /[a-zA-Z_][a-zA-Z0-9_ -]*/" in grammar  # Supports spaces and hyphens
         assert "WORD: /[a-zA-Z_][a-zA-Z0-9_]*/" in grammar
         assert r"NUMBER: /\d+(\.\d+)?/" in grammar
         # Updated STRING pattern to support both single and double quotes

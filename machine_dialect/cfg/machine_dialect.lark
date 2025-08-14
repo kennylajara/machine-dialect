@@ -2,7 +2,7 @@ start: statement ("." statement)* "."?
 
 statement: set_stmt | say_stmt | if_stmt
 
-set_stmt: "Set"i "`" WORD "`" "to"i expr
+set_stmt: "Set"i "`" IDENTIFIER "`" "to"i expr
 say_stmt: "Say"i expr
 if_stmt: "if"i expr "then"i "{" block_content "}" ("else"i "{" block_content "}")?
 
@@ -52,6 +52,7 @@ atom: NUMBER
     | "False"i -> false_lit
     | "(" expr ")"
 
+IDENTIFIER: /[a-zA-Z_][a-zA-Z0-9_ -]*/  // Allows letters, numbers, underscores, spaces, and hyphens
 WORD: /[a-zA-Z_][a-zA-Z0-9_]*/
 NUMBER: /\d+(\.\d+)?/
 STRING: /"[^"]*"|'[^']*'/

@@ -145,7 +145,6 @@ class TestCFGParser:
             tree = self.parser.parse(code)
             assert tree is not None
 
-    @pytest.mark.skip(reason="Complex if-else and >= operator not fully supported in simplified grammar")
     def test_complex_program(self) -> None:
         """Test parsing a complex program."""
         code = """
@@ -166,7 +165,6 @@ class TestCFGParser:
         tree = self.parser.parse(code)
         assert tree is not None
 
-    @pytest.mark.skip(reason="Identifiers with spaces not supported in simplified grammar")
     def test_identifier_with_spaces(self) -> None:
         """Test parsing identifiers with spaces."""
         code = 'Set `user name` to "Alice".'

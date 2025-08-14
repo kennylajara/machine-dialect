@@ -240,6 +240,199 @@ def disasm(bytecode_file: str) -> None:
     print_disassembly(module.main_chunk)
 
 
+@cli.command()
+@click.argument("task", nargs=-1, required=True)
+@click.option(
+    "--api-key",
+    help="AI API key (or set in .mdconfig file or MD_AI_API_KEY env var)",
+)
+@click.option(
+    "--model",
+    help="AI model to use (e.g., gpt-5, gpt-5-mini). If not specified, uses .mdconfig or env vars",
+)
+@click.option(
+    "-t",
+    "--temperature",
+    type=float,
+    default=0.7,
+    help="Sampling temperature 0-2 (default: 0.7)",
+)
+@click.option(
+    "-m",
+    "--max-tokens",
+    type=int,
+    default=400,
+    help="Maximum tokens to generate (default: 400)",
+)
+@click.option(
+    "-o",
+    "--output",
+    type=click.Path(),
+    help="Save generated code to file",
+)
+@click.option(
+    "--validate/--no-validate",
+    default=True,
+    help="Validate generated code syntax (default: validate)",
+)
+@click.option(
+    "-v",
+    "--verbose",
+    is_flag=True,
+    help="Show detailed generation information",
+)
+def llm(
+    task: tuple[str, ...],
+    api_key: str | None,
+    model: str | None,
+    temperature: float,
+    max_tokens: int,
+    output: str | None,
+    validate: bool,
+    verbose: bool,
+) -> None:
+    """Generate Machine Dialect code using AI models.
+
+    Examples:
+        machine-dialect llm "calculate the factorial of 5"
+        machine-dialect llm "check if age 18 can vote" --output vote_check.md
+        machine-dialect llm "sum numbers from 1 to 10" -t 0.1 -m 500
+
+    Note: Escape backticks in your task description or use single quotes:
+        machine-dialect llm 'Sum `r` and `s`, being r=11 and s=45'
+    """
+    # Join task arguments into a single string
+    task_description = " ".join(task)
+
+    if not task_description.strip():
+        click.echo("Error: Task description cannot be empty", err=True)
+        sys.exit(1)
+
+    # Load configuration
+    from machine_dialect.cfg.config import ConfigLoader
+
+    loader = ConfigLoader()
+    config = loader.load()
+
+    # Override with command-line arguments if provided
+    if api_key:
+        config.key = api_key
+    if model:
+        config.model = model
+
+    # Check if configuration is valid
+    if not config.key:
+        click.echo("Error: No API key configured", err=True)
+        click.echo(loader.get_error_message(), err=True)
+        sys.exit(1)
+
+    if not config.model:
+        click.echo("Error: No AI model configured", err=True)
+        click.echo(loader.get_error_message(), err=True)
+        sys.exit(1)
+
+    try:
+        # Import OpenAI and our generator
+        try:
+            from openai import OpenAI
+        except ImportError:
+            click.echo("Error: OpenAI library not installed", err=True)
+            click.echo("Install with: pip install openai", err=True)
+            sys.exit(1)
+
+        from machine_dialect.cfg import CFGParser
+        from machine_dialect.cfg.openai_generation import generate_with_openai
+
+        if verbose:
+            click.echo(f"Model: {config.model}")
+            click.echo(f"Task: {task_description}")
+            click.echo(f"Temperature: {temperature}")
+            click.echo(f"Max tokens: {max_tokens}")
+            click.echo("-" * 50)
+
+        # Initialize OpenAI client
+        client = OpenAI(api_key=config.key)
+
+        # Generate code
+        click.echo(f"Generating Machine Dialect code with {config.model}...")
+
+        try:
+            generated_code = generate_with_openai(
+                client=client,
+                model=config.model,
+                task_description=task_description,
+                temperature=temperature,
+                max_tokens=max_tokens,
+            )
+
+            # Check what we got
+            if not generated_code:
+                click.echo("Error: Empty response from API", err=True)
+                sys.exit(1)
+
+        except Exception as e:
+            click.echo(f"Error: API call failed - {e}", err=True)
+            sys.exit(1)
+
+        # Only show output if we actually got code
+        click.echo("\n" + "=" * 50)
+        click.echo("Generated Code:")
+        click.echo("=" * 50)
+        click.echo(generated_code)
+        click.echo("=" * 50)
+
+        # Validate if requested
+        if validate:
+            click.echo("\nValidating syntax...")
+            parser = CFGParser()
+
+            try:
+                is_valid = parser.validate(generated_code)
+                if is_valid:
+                    click.echo("✓ Generated code is syntactically valid!")
+
+                    if verbose:
+                        tree = parser.parse(generated_code)
+                        click.echo("\nAST Preview:")
+                        ast_str = parser.pretty_print(tree)
+                        # Show first few lines
+                        for line in ast_str.split("\n")[:8]:
+                            click.echo(f"  {line}")
+                        if len(ast_str.split("\n")) > 8:
+                            click.echo("  ...")
+                else:
+                    click.echo("✗ Generated code has syntax errors", err=True)
+            except Exception as e:
+                click.echo(f"✗ Validation error: {e}", err=True)
+
+        # Save to file if requested
+        if output:
+            try:
+                with open(output, "w") as f:
+                    f.write(generated_code)
+                click.echo(f"\n✓ Code saved to: {output}")
+            except Exception as e:
+                click.echo(f"Error saving file: {e}", err=True)
+                sys.exit(1)
+
+        if verbose:
+            click.echo("\n" + "-" * 50)
+            click.echo("Generation complete!")
+            click.echo("CFG ensures 100% syntactic correctness")
+
+    except ImportError as e:
+        click.echo(f"Error: Missing required module: {e}", err=True)
+        click.echo("Make sure Lark is installed: pip install lark", err=True)
+        sys.exit(1)
+    except Exception as e:
+        click.echo(f"Error: {e}", err=True)
+        if verbose:
+            import traceback
+
+            traceback.print_exc()
+        sys.exit(1)
+
+
 def main() -> None:
     """Entry point for the CLI."""
     cli()

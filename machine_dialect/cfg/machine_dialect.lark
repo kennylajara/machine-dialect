@@ -1,0 +1,37 @@
+start: statement ("." statement)* "."?
+
+statement: set_stmt | say_stmt | if_stmt
+
+set_stmt: "Set" "`" WORD "`" "to" expr
+say_stmt: "Say" expr
+if_stmt: "if" expr "then" "{" statement+ "}" ("else" "{" statement+ "}")?
+
+// Expressions with arithmetic and comparison operators
+expr: comparison
+
+comparison: sum
+          | sum "<" sum -> less_than
+          | sum ">" sum -> greater_than
+          | sum "<=" sum -> less_equal
+          | sum ">=" sum -> greater_equal
+          | sum "equals" sum -> equals
+
+sum: product
+   | sum "+" product -> add
+   | sum "-" product -> subtract
+
+product: atom
+       | product "*" atom -> multiply
+       | product "/" atom -> divide
+
+atom: NUMBER
+    | WORD
+    | STRING
+    | "(" expr ")"
+
+WORD: /[a-zA-Z_][a-zA-Z0-9_]*/
+NUMBER: /\d+(\.\d+)?/
+STRING: /"[^"]*"/
+
+%import common.WS
+%ignore WS

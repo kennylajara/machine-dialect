@@ -24,6 +24,8 @@ classifiers = [
 dependencies = [
     "rfc3986>=2.0.0",
     "click>=8.1.0",
+    "lark>=1.2.2",
+    "openai>=1.99.9",
 ]
 
 [project.scripts]

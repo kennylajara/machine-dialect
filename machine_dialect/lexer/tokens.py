@@ -190,10 +190,12 @@ keywords_mapping: dict[str, TokenType] = {
     # logic and: true and false
     "and": TokenType.KW_AND,
     # call function:
-    #   apply rule `add` with **1** and **5**`.
-    #   apply rule `add` with `left` = **1** and `right` = **5**`.
     #   call `turn alarm off`.
     #   call `make noise` with `sound`: _"WEE-OO"_, volume: _80_.
+    # TODO: Implement proper 'apply' statement with its own token type (KW_APPLY)
+    #       Should support: apply rule `add` with **1** and **5**
+    #                      apply formula `calculate` with `left` = **1** and `right` = **5**
+    #       Currently maps to KW_CALL which is incorrect
     "apply": TokenType.KW_CALL,
     "call": TokenType.KW_CALL,
     # type indicator: set `a` as integer
@@ -292,6 +294,7 @@ keywords_mapping: dict[str, TokenType] = {
     # The typical functions: Define a rule called `add` that takes two numbers and returns another number.
     "rule": TokenType.KW_RULE,
     # output/display: Say `message`.
+    # TODO: Make 'Say' case-insensitive (currently only accepts capital 'S')
     "Say": TokenType.KW_SAY,
     # declare variable: set `a` as integer.
     "Set": TokenType.KW_SET,

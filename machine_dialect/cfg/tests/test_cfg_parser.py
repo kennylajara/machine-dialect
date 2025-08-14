@@ -130,7 +130,6 @@ class TestCFGParser:
         code = "Set x to 5"  # Missing backticks and period
         assert self.parser.validate(code) is False
 
-    @pytest.mark.skip(reason="Case-insensitive keywords not supported in simplified grammar")
     def test_case_insensitive_keywords(self) -> None:
         """Test that keywords are case-insensitive."""
         test_cases = [

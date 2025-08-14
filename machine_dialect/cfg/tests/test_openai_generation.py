@@ -198,9 +198,9 @@ class TestMachineDialectCFG:
         assert 'start: statement ("." statement)* "."?' in grammar
         assert "statement: set_stmt | say_stmt | if_stmt" in grammar
 
-        # Check for set and say statements
-        assert 'set_stmt: "Set" "`" WORD "`" "to" expr' in grammar
-        assert 'say_stmt: "Say" expr' in grammar
+        # Check for set and say statements (now case-insensitive)
+        assert 'set_stmt: "Set"i "`" WORD "`" "to"i expr' in grammar
+        assert 'say_stmt: "Say"i expr' in grammar
 
         # Check for expression rules with logical, comparison and arithmetic
         assert "expr: logical_or" in grammar
@@ -209,15 +209,15 @@ class TestMachineDialectCFG:
         assert "sum: product" in grammar
         assert "product: unary" in grammar
 
-        # Check for logical operators
-        assert 'logical_or "or" logical_and -> or_op' in grammar
-        assert 'logical_and "and" logical_not -> and_op' in grammar
-        assert '"not" logical_not -> not_op' in grammar
+        # Check for logical operators (now case-insensitive)
+        assert 'logical_or "or"i logical_and -> or_op' in grammar
+        assert 'logical_and "and"i logical_not -> and_op' in grammar
+        assert '"not"i logical_not -> not_op' in grammar
 
         # Check for comparison operators
         assert 'sum "<" sum -> less_than' in grammar
         assert 'sum ">" sum -> greater_than' in grammar
-        assert 'sum "equals" sum -> equals' in grammar
+        assert 'sum "equals"i sum -> equals' in grammar
 
         # Check for arithmetic operators
         assert 'sum "+" product -> add' in grammar

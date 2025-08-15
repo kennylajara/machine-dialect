@@ -17,7 +17,7 @@ from machine_dialect.vm.errors import (
 )
 from machine_dialect.vm.frame import CallStack, Frame
 from machine_dialect.vm.natives import get_native_function
-from machine_dialect.vm.objects import NativeFunction, equals, is_truthy
+from machine_dialect.vm.objects import NativeFunction, equals, is_truthy, strict_equals
 from machine_dialect.vm.stack import Stack
 
 
@@ -153,6 +153,10 @@ class VM:
             self._op_lte()
         elif op == Opcode.GTE:
             self._op_gte()
+        elif op == Opcode.STRICT_EQ:
+            self._op_strict_eq()
+        elif op == Opcode.STRICT_NEQ:
+            self._op_strict_neq()
         elif op == Opcode.AND:
             self._op_and()
         elif op == Opcode.OR:
@@ -365,6 +369,18 @@ class VM:
             raise VMTypeError(f"Cannot compare {type(a).__name__} and {type(b).__name__}")
 
         self.stack.push(a >= b)
+
+    def _op_strict_eq(self) -> None:
+        """Check strict equality (type and value)."""
+        b = self.stack.pop()
+        a = self.stack.pop()
+        self.stack.push(strict_equals(a, b))
+
+    def _op_strict_neq(self) -> None:
+        """Check strict inequality (type or value)."""
+        b = self.stack.pop()
+        a = self.stack.pop()
+        self.stack.push(not strict_equals(a, b))
 
     # Logical operations
 

@@ -376,10 +376,8 @@ class CodeGenerator:
             "equals": Opcode.EQ,
             "is not": Opcode.NEQ,
             # Strict equality operators (canonicalized by parser)
-            # Note: strict equality would need separate opcodes for proper semantics
-            # For now, treat them as regular equality
-            "is strictly equal to": Opcode.EQ,
-            "is not strictly equal to": Opcode.NEQ,
+            "is strictly equal to": Opcode.STRICT_EQ,
+            "is not strictly equal to": Opcode.STRICT_NEQ,
         }
 
         opcode = operator_map.get(expr.operator)

@@ -35,12 +35,14 @@ class Opcode(IntEnum):
     NOT = auto()  # Logical NOT
 
     # Comparison operations
-    EQ = auto()  # Equal
-    NEQ = auto()  # Not equal
+    EQ = auto()  # Equal (value equality)
+    NEQ = auto()  # Not equal (value inequality)
     LT = auto()  # Less than
     GT = auto()  # Greater than
     LTE = auto()  # Less than or equal
     GTE = auto()  # Greater than or equal
+    STRICT_EQ = auto()  # Strict equality (type and value)
+    STRICT_NEQ = auto()  # Strict inequality (type or value)
 
     # Logical operations (no short-circuit)
     AND = auto()  # Logical AND
@@ -105,6 +107,8 @@ INSTRUCTIONS: dict[Opcode, InstructionSpec] = {
     Opcode.GT: InstructionSpec(Opcode.GT, "GT", [], -1),
     Opcode.LTE: InstructionSpec(Opcode.LTE, "LTE", [], -1),
     Opcode.GTE: InstructionSpec(Opcode.GTE, "GTE", [], -1),
+    Opcode.STRICT_EQ: InstructionSpec(Opcode.STRICT_EQ, "STRICT_EQ", [], -1),
+    Opcode.STRICT_NEQ: InstructionSpec(Opcode.STRICT_NEQ, "STRICT_NEQ", [], -1),
     # Logical
     Opcode.AND: InstructionSpec(Opcode.AND, "AND", [], -1),
     Opcode.OR: InstructionSpec(Opcode.OR, "OR", [], -1),

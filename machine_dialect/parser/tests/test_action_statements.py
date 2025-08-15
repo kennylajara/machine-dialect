@@ -1,6 +1,5 @@
 """Tests for Action statements (private methods) in Machine Dialect."""
 
-
 from machine_dialect.ast import ActionStatement, BlockStatement, SetStatement
 from machine_dialect.parser import Parser
 

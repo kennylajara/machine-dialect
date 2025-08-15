@@ -1,6 +1,5 @@
 """Tests for individual linting rules."""
 
-
 from machine_dialect.ast import ExpressionStatement, IntegerLiteral
 from machine_dialect.lexer import Token, TokenType
 from machine_dialect.linter.rules.base import Context

@@ -1,6 +1,5 @@
 """Tests for the interpreter evaluator module."""
 
-
 import pytest
 
 import machine_dialect.ast as ast
@@ -93,7 +92,7 @@ class TestEvaluatorLiterals:
         assert result is not None
         assert isinstance(result, String)
         assert result.type == ObjectType.STRING
-        assert result.inspect() == '"Hello, World!"'
+        assert result.inspect() == "Hello, World!"
 
     def test_evaluate_url_literal(self) -> None:
         """Test evaluating a URL literal."""
@@ -105,7 +104,7 @@ class TestEvaluatorLiterals:
         assert result is not None
         assert isinstance(result, URL)
         assert result.type == ObjectType.URL
-        assert result.inspect() == '"https://example.com"'
+        assert result.inspect() == "https://example.com"
 
 
 class TestEvaluatorStatements:
@@ -247,7 +246,7 @@ class TestEvaluatorIntegration:
 
         assert result is not None
         assert isinstance(result, String)
-        assert result.inspect() == '"Hello, World!"'
+        assert result.inspect() == "Hello, World!"
 
     def test_integrate_url_literal(self) -> None:
         """Test parsing and evaluating a URL literal."""
@@ -255,7 +254,7 @@ class TestEvaluatorIntegration:
 
         assert result is not None
         assert isinstance(result, URL)
-        assert result.inspect() == '"https://example.com"'
+        assert result.inspect() == "https://example.com"
 
     def test_integrate_multiple_statements(self) -> None:
         """Test parsing and evaluating multiple statements."""
@@ -286,7 +285,7 @@ class TestEvaluatorIntegration:
         # Should return the last statement's result
         assert result is not None
         assert isinstance(result, String)
-        assert result.inspect() == '"final value"'
+        assert result.inspect() == "final value"
 
     def test_integrate_boolean_singleton(self) -> None:
         """Test that boolean singletons work through the full pipeline."""
@@ -603,7 +602,7 @@ class TestEvaluatorIfStatements:
 
         assert result is not None
         assert isinstance(result, String)
-        assert result.inspect() == '"yes"'
+        assert result.inspect() == "yes"
 
     def test_evaluate_if_with_complex_condition(self) -> None:
         """Test if statement with complex boolean expression."""
@@ -664,7 +663,7 @@ class TestEvaluatorIfStatements:
 
         assert result is not None
         assert isinstance(result, String)
-        assert result.inspect() == '"d"'
+        assert result.inspect() == "d"
 
     def test_evaluate_if_with_comparison_operators(self) -> None:
         """Test if statement with various comparison operators."""
@@ -676,7 +675,7 @@ class TestEvaluatorIfStatements:
         result = self._parse_and_evaluate(source)
         assert result is not None
         assert isinstance(result, String)
-        assert result.inspect() == '"less"'
+        assert result.inspect() == "less"
 
         # Test greater than or equal
         source = """
@@ -686,7 +685,7 @@ class TestEvaluatorIfStatements:
         result = self._parse_and_evaluate(source)
         assert result is not None
         assert isinstance(result, String)
-        assert result.inspect() == '"gte"'
+        assert result.inspect() == "gte"
 
         # Test equality
         source = """
@@ -696,7 +695,7 @@ class TestEvaluatorIfStatements:
         result = self._parse_and_evaluate(source)
         assert result is not None
         assert isinstance(result, String)
-        assert result.inspect() == '"equal"'
+        assert result.inspect() == "equal"
 
     def test_evaluate_if_with_not_operator(self) -> None:
         """Test if statement with not operator in condition."""
@@ -710,7 +709,7 @@ class TestEvaluatorIfStatements:
 
         assert result is not None
         assert isinstance(result, String)
-        assert result.inspect() == '"success"'
+        assert result.inspect() == "success"
 
     def test_evaluate_if_with_empty_blocks(self) -> None:
         """Test if statement with empty consequence block."""
@@ -796,7 +795,7 @@ class TestEvaluatorIfStatements:
 
         assert result is not None
         assert isinstance(result, String)
-        assert result.inspect() == '"math works"'
+        assert result.inspect() == "math works"
 
     def test_evaluate_if_with_empty_literal_condition(self) -> None:
         """Test if statement with empty literal as condition."""
@@ -849,7 +848,7 @@ class TestEvaluatorReturnStatements:
 
         assert result is not None
         assert isinstance(result, String)
-        assert result.inspect() == '"hello world"'
+        assert result.inspect() == "hello world"
 
     def test_return_boolean_true(self) -> None:
         """Test returning boolean true."""
@@ -881,7 +880,7 @@ class TestEvaluatorReturnStatements:
 
         assert result is not None
         assert isinstance(result, URL)
-        assert result.inspect() == '"https://example.com"'
+        assert result.inspect() == "https://example.com"
 
     def test_gives_back_variant(self) -> None:
         """Test 'Gives back' variant of return statement."""
@@ -947,7 +946,7 @@ class TestEvaluatorReturnStatements:
 
         assert result is not None
         assert isinstance(result, String)
-        assert result.inspect() == '"first"'
+        assert result.inspect() == "first"
 
     def test_return_in_if_true_branch(self) -> None:
         """Test return inside true branch of if statement."""
@@ -960,7 +959,7 @@ class TestEvaluatorReturnStatements:
 
         assert result is not None
         assert isinstance(result, String)
-        assert result.inspect() == '"from if"'
+        assert result.inspect() == "from if"
 
     def test_return_in_if_false_branch(self) -> None:
         """Test return inside false branch of if statement."""
@@ -973,7 +972,7 @@ class TestEvaluatorReturnStatements:
 
         assert result is not None
         assert isinstance(result, String)
-        assert result.inspect() == '"after if"'
+        assert result.inspect() == "after if"
 
     def test_return_in_else_branch(self) -> None:
         """Test return inside else branch."""
@@ -988,7 +987,7 @@ class TestEvaluatorReturnStatements:
 
         assert result is not None
         assert isinstance(result, String)
-        assert result.inspect() == '"from else"'
+        assert result.inspect() == "from else"
 
     def test_return_in_both_branches(self) -> None:
         """Test return in both if and else branches."""
@@ -1018,7 +1017,7 @@ class TestEvaluatorReturnStatements:
 
         assert result is not None
         assert isinstance(result, String)
-        assert result.inspect() == '"nested"'
+        assert result.inspect() == "nested"
 
     def test_conditional_return(self) -> None:
         """Test conditional return based on expression."""
@@ -1031,7 +1030,7 @@ class TestEvaluatorReturnStatements:
 
         assert result is not None
         assert isinstance(result, String)
-        assert result.inspect() == '"greater"'
+        assert result.inspect() == "greater"
 
     def test_return_before_other_statements(self) -> None:
         """Test return before other statements in block."""
@@ -1045,7 +1044,7 @@ class TestEvaluatorReturnStatements:
 
         assert result is not None
         assert isinstance(result, String)
-        assert result.inspect() == '"returned"'
+        assert result.inspect() == "returned"
 
     def test_return_complex_expression(self) -> None:
         """Test returning complex nested expression."""

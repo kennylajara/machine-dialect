@@ -1,6 +1,5 @@
 """Tests for the Virtual Machine."""
 
-
 from typing import Any
 
 from machine_dialect.ast import (

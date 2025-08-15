@@ -1,6 +1,5 @@
 """Tests for error handling in call statements."""
 
-
 from machine_dialect.ast import Arguments, CallStatement
 from machine_dialect.parser import Parser
 

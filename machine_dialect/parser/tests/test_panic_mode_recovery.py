@@ -4,7 +4,6 @@ This module tests the parser's panic mode recovery mechanism which allows
 the parser to recover from errors and continue parsing to find more errors.
 """
 
-
 from machine_dialect.errors.exceptions import MDNameError, MDSyntaxError
 from machine_dialect.parser import Parser
 

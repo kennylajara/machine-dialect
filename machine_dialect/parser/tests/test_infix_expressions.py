@@ -675,6 +675,6 @@ class TestInfixExpressions:
 
         # Check that at least one error contains the expected message
         error_messages = [str(error) for error in parser.errors]
-        assert any(expected_error in msg for msg in error_messages), (
-            f"Expected error containing '{expected_error}' for '{source}', " f"but got: {error_messages}"
-        )
+        assert any(
+            expected_error in msg for msg in error_messages
+        ), f"Expected error containing '{expected_error}' for '{source}', but got: {error_messages}"

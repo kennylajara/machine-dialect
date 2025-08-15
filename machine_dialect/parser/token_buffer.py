@@ -5,7 +5,6 @@ and streams them from the lexer to the parser on demand, instead of generating
 all tokens upfront.
 """
 
-
 from machine_dialect.lexer.tokens import Token, TokenType
 
 # Buffer size constant - number of tokens to keep in the buffer

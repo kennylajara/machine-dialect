@@ -277,7 +277,7 @@ class TestMagicNumberValidation:
         output = io.BytesIO()
 
         # Write only partial magic number
-        output.write(b"\xBE\xBE")
+        output.write(b"\xbe\xbe")
 
         output.seek(0)
         with pytest.raises(SerializationError) as exc_info:

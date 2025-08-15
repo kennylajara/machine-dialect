@@ -4,7 +4,6 @@ This module implements the main code generator that walks the AST
 and produces bytecode using the emitter.
 """
 
-
 from machine_dialect.ast import (
     BlockStatement,
     BooleanLiteral,
@@ -271,7 +270,13 @@ class CodeGenerator:
             expr: The string literal to compile.
         """
         assert self.emitter is not None
-        self.emitter.emit_constant(expr.value)
+        # Strip quotes from string literal value
+        value = expr.value
+        if value and value.startswith('"') and value.endswith('"'):
+            value = value[1:-1]
+        elif value and value.startswith("'") and value.endswith("'"):
+            value = value[1:-1]
+        self.emitter.emit_constant(value)
 
     def _compile_boolean_literal(self, expr: BooleanLiteral) -> None:
         """Compile a boolean literal.
@@ -367,6 +372,14 @@ class CodeGenerator:
             "!=": Opcode.NEQ,
             "and": Opcode.AND,
             "or": Opcode.OR,
+            # Natural language equality operators (canonicalized by parser)
+            "equals": Opcode.EQ,
+            "is not": Opcode.NEQ,
+            # Strict equality operators (canonicalized by parser)
+            # Note: strict equality would need separate opcodes for proper semantics
+            # For now, treat them as regular equality
+            "is strictly equal to": Opcode.EQ,
+            "is not strictly equal to": Opcode.NEQ,
         }
 
         opcode = operator_map.get(expr.operator)

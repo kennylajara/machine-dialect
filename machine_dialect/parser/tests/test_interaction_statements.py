@@ -1,6 +1,5 @@
 """Tests for Interaction statements (public methods) in Machine Dialect."""
 
-
 from machine_dialect.ast import (
     BlockStatement,
     IfStatement,

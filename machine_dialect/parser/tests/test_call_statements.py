@@ -1,6 +1,5 @@
 """Tests for call statements in Machine Dialect."""
 
-
 from machine_dialect.ast import (
     Arguments,
     CallStatement,

@@ -1,6 +1,5 @@
 """Tests specifically for MD101: Statement Termination rule."""
 
-
 import pytest
 
 from machine_dialect.ast import ExpressionStatement, ReturnStatement, SetStatement

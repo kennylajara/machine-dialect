@@ -1,6 +1,5 @@
 """Tests for the CFG parser."""
 
-
 from machine_dialect.cfg import CFGParser
 
 

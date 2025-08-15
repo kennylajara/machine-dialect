@@ -88,12 +88,24 @@ def evaluate(node: ast.ASTNode) -> Object | None:
         case ast.StringLiteral:
             node = cast(ast.StringLiteral, node)
             assert node.value is not None
-            return String(node.value)
+            # Strip the quotes from the string literal value
+            value = node.value
+            if value.startswith('"') and value.endswith('"'):
+                value = value[1:-1]
+            elif value.startswith("'") and value.endswith("'"):
+                value = value[1:-1]
+            return String(value)
 
         case ast.URLLiteral:
             node = cast(ast.URLLiteral, node)
             assert node.value is not None
-            return URL(node.value)
+            # Strip the quotes from the URL literal value
+            value = node.value
+            if value.startswith('"') and value.endswith('"'):
+                value = value[1:-1]
+            elif value.startswith("'") and value.endswith("'"):
+                value = value[1:-1]
+            return URL(value)
 
         case _:
             return None

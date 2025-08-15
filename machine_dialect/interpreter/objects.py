@@ -126,6 +126,10 @@ class Boolean(Object):
     def type(self) -> ObjectType:
         return ObjectType.BOOLEAN
 
+    @property
+    def value(self) -> bool:
+        return self._value
+
     def inspect(self) -> str:
         return "Yes" if self._value else "No"
 
@@ -134,14 +138,14 @@ class Boolean(Object):
 
     def react_to_infix_operator_and(self, other: Object) -> Object:
         if isinstance(other, Boolean):
-            return Boolean(self._value and other._value)
+            return Boolean(self.value and other.value)
         return Error(
             UNSUPPORTED_OPERAND_TYPE.format(operator="and", left_type=self.type.name, right_type=other.type.name)
         )
 
     def react_to_infix_operator_or(self, other: Object) -> Object:
         if isinstance(other, Boolean):
-            return Boolean(self._value or other._value)
+            return Boolean(self.value or other.value)
         return Error(
             UNSUPPORTED_OPERAND_TYPE.format(operator="or", left_type=self.type.name, right_type=other.type.name)
         )
@@ -161,6 +165,10 @@ class Empty(Object):
     @property
     def type(self) -> ObjectType:
         return ObjectType.EMPTY
+
+    @property
+    def value(self) -> None:
+        return None
 
     def inspect(self) -> str:
         return "Empty"
@@ -393,6 +401,10 @@ class String(Object):
     @property
     def type(self) -> ObjectType:
         return ObjectType.STRING
+
+    @property
+    def value(self) -> str:
+        return self._value
 
     def inspect(self) -> str:
         return self._value

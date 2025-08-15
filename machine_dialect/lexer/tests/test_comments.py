@@ -1,6 +1,5 @@
 """Tests for comment token recognition."""
 
-
 from machine_dialect.lexer.lexer import Lexer
 from machine_dialect.lexer.tokens import TokenType
 

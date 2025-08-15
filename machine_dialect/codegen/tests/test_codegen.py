@@ -1,6 +1,5 @@
 """Tests for the code generator."""
 
-
 from machine_dialect.ast import (
     ExpressionStatement,
     FloatLiteral,

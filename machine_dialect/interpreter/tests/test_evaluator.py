@@ -171,8 +171,12 @@ class TestEvaluatorEdgeCases:
     def test_evaluate_unsupported_node_type(self) -> None:
         """Test evaluating an unsupported node type."""
         # Create a node type that's not handled by the evaluator
-        # Using Identifier as an example of an unhandled type
-        node = ast.Identifier(Token(TokenType.MISC_IDENT, "x", 1, 0), "x")
+        # Using CallStatement as an example of an unhandled type
+        node = ast.CallStatement(
+            Token(TokenType.KW_CALL, "Call", 1, 0),
+            ast.StringLiteral(Token(TokenType.LIT_TEXT, '"function_name"', 1, 5), "function_name"),
+            None,
+        )
 
         result = evaluate(node)
 
@@ -1219,3 +1223,61 @@ class TestEvaluatorLogicalOperators:
         assert result is not None
         assert isinstance(result, Boolean)
         assert result.inspect() == "Yes"
+
+
+class TestEvaluatorVariables:
+    """Test variable declaration and retrieval."""
+
+    def _parse_and_evaluate(self, input_text: str) -> Object | None:
+        """Helper method to parse and evaluate code."""
+        parser = Parser()
+        program = parser.parse(input_text)
+        return evaluate(program)
+
+    def test_set_and_retrieve_integer(self) -> None:
+        """Test setting and retrieving an integer variable."""
+        result = self._parse_and_evaluate("Set x to _10_. Give back x.")
+
+        assert result is not None
+        assert isinstance(result, Integer)
+        assert result.value == 10
+
+    def test_set_and_retrieve_string(self) -> None:
+        """Test setting and retrieving a string variable."""
+        result = self._parse_and_evaluate('Set name to _"Alice"_. Give back name.')
+
+        assert result is not None
+        assert isinstance(result, String)
+        assert result.value == "Alice"
+
+    def test_set_and_retrieve_boolean(self) -> None:
+        """Test setting and retrieving a boolean variable."""
+        result = self._parse_and_evaluate("Set flag to Yes. Give back flag.")
+
+        assert result is not None
+        assert isinstance(result, Boolean)
+        assert result.value is True
+
+    def test_variable_arithmetic(self) -> None:
+        """Test arithmetic with variables."""
+        result = self._parse_and_evaluate("Set x to _10_. Set y to _5_. Give back x + y.")
+
+        assert result is not None
+        assert isinstance(result, Integer)
+        assert result.value == 15
+
+    def test_variable_reassignment(self) -> None:
+        """Test reassigning a variable."""
+        result = self._parse_and_evaluate("Set x to _10_. Set x to _20_. Give back x.")
+
+        assert result is not None
+        assert isinstance(result, Integer)
+        assert result.value == 20
+
+    def test_undefined_variable(self) -> None:
+        """Test accessing an undefined variable returns an error."""
+        result = self._parse_and_evaluate("Give back undefined_var.")
+
+        assert result is not None
+        assert isinstance(result, Error)
+        assert "Name 'undefined_var' is not defined" == result.message

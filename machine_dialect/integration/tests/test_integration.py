@@ -5,8 +5,8 @@ from typing import Any
 import pytest
 
 from machine_dialect.integration.integration_tests import (
+    IntegrationTestCase,
     IntegrationTestRunner,
-    TestCase,
 )
 
 
@@ -32,7 +32,7 @@ class TestIntegration:
 
     def test_integer_literal(self, runner: IntegrationTestRunner) -> None:
         """Test integer literal handling across components."""
-        test_case = TestCase(
+        test_case = IntegrationTestCase(
             name="integer_literal",
             code="Give back _42_.",
             expected_output=42,
@@ -53,7 +53,7 @@ class TestIntegration:
 
     def test_float_literal(self, runner: IntegrationTestRunner) -> None:
         """Test float literal handling across components."""
-        test_case = TestCase(
+        test_case = IntegrationTestCase(
             name="float_literal",
             code="Give back _3.14_.",
             expected_output=3.14,
@@ -74,7 +74,7 @@ class TestIntegration:
 
     def test_string_literal(self, runner: IntegrationTestRunner) -> None:
         """Test string literal handling across components."""
-        test_case = TestCase(
+        test_case = IntegrationTestCase(
             name="string_literal",
             code='Give back _"hello"_.',
             expected_output="hello",
@@ -96,7 +96,7 @@ class TestIntegration:
     def test_boolean_literals(self, runner: IntegrationTestRunner) -> None:
         """Test boolean literal handling across components."""
         # Test true
-        test_case_true = TestCase(
+        test_case_true = IntegrationTestCase(
             name="boolean_true",
             code="Give back _true_.",
             expected_output=True,
@@ -111,7 +111,7 @@ class TestIntegration:
         assert results_true["VM"].output is True
 
         # Test false
-        test_case_false = TestCase(
+        test_case_false = IntegrationTestCase(
             name="boolean_false",
             code="Give back _false_.",
             expected_output=False,
@@ -128,10 +128,10 @@ class TestIntegration:
     def test_arithmetic_operations(self, runner: IntegrationTestRunner) -> None:
         """Test arithmetic operations across components."""
         test_cases = [
-            TestCase("addition", "Give back _5_ + _3_.", 8),
-            TestCase("subtraction", "Give back _10_ - _4_.", 6),
-            TestCase("multiplication", "Give back _3_ * _7_.", 21),
-            TestCase("division", "Give back _15_ / _3_.", 5.0),
+            IntegrationTestCase("addition", "Give back _5_ + _3_.", 8),
+            IntegrationTestCase("subtraction", "Give back _10_ - _4_.", 6),
+            IntegrationTestCase("multiplication", "Give back _3_ * _7_.", 21),
+            IntegrationTestCase("division", "Give back _15_ / _3_.", 5.0),
         ]
 
         for test_case in test_cases:
@@ -151,10 +151,10 @@ class TestIntegration:
     def test_comparison_operations(self, runner: IntegrationTestRunner) -> None:
         """Test comparison operations across components."""
         test_cases = [
-            TestCase("equals", "Give back _5_ equals _5_.", True),
-            TestCase("not_equals", "Give back _5_ is not _3_.", True),
-            TestCase("greater_than", "Give back _7_ > _3_.", True),
-            TestCase("less_than", "Give back _2_ < _8_.", True),
+            IntegrationTestCase("equals", "Give back _5_ equals _5_.", True),
+            IntegrationTestCase("not_equals", "Give back _5_ is not _3_.", True),
+            IntegrationTestCase("greater_than", "Give back _7_ > _3_.", True),
+            IntegrationTestCase("less_than", "Give back _2_ < _8_.", True),
         ]
 
         for test_case in test_cases:
@@ -174,9 +174,9 @@ class TestIntegration:
     def test_logical_operations(self, runner: IntegrationTestRunner) -> None:
         """Test logical operations across components."""
         test_cases = [
-            TestCase("logical_and", "Give back _true_ and _true_.", True),
-            TestCase("logical_or", "Give back _false_ or _true_.", True),
-            TestCase("logical_not", "Give back not _true_.", False),
+            IntegrationTestCase("logical_and", "Give back _true_ and _true_.", True),
+            IntegrationTestCase("logical_or", "Give back _false_ or _true_.", True),
+            IntegrationTestCase("logical_not", "Give back not _true_.", False),
         ]
 
         for test_case in test_cases:
@@ -196,12 +196,12 @@ class TestIntegration:
     def test_conditional_statements(self, runner: IntegrationTestRunner) -> None:
         """Test conditional statements across components."""
         test_cases = [
-            TestCase(
+            IntegrationTestCase(
                 "if_true",
                 "If _true_ then:\n> Give back _1_.\nElse:\n> Give back _0_.",
                 1,
             ),
-            TestCase(
+            IntegrationTestCase(
                 "if_false",
                 "If _false_ then:\n> Give back _1_.\nElse:\n> Give back _0_.",
                 0,
@@ -224,7 +224,7 @@ class TestIntegration:
 
     def test_complex_expressions(self, runner: IntegrationTestRunner) -> None:
         """Test complex expressions across components."""
-        test_case = TestCase(
+        test_case = IntegrationTestCase(
             name="complex_arithmetic",
             code="Give back (_5_ + _3_) * _2_.",
             expected_output=16,
@@ -246,8 +246,8 @@ class TestIntegration:
     def test_prefix_operations(self, runner: IntegrationTestRunner) -> None:
         """Test prefix operations across components."""
         test_cases = [
-            TestCase("negation", "Give back -_5_.", -5),
-            TestCase("logical_not", "Give back not _true_.", False),
+            IntegrationTestCase("negation", "Give back -_5_.", -5),
+            IntegrationTestCase("logical_not", "Give back not _true_.", False),
         ]
 
         for test_case in test_cases:

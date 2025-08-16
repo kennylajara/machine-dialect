@@ -16,7 +16,7 @@ from machine_dialect.vm.vm import VM
 
 
 @dataclass
-class TestCase:
+class IntegrationTestCase:
     """Represents a test case for integration testing."""
 
     name: str
@@ -44,183 +44,190 @@ class IntegrationTestRunner:
         self.cfg_parser = CFGParser()
         self.code_generator = CodeGenerator()
         self.vm = VM()
-        self.test_cases: list[TestCase] = []
+        self.test_cases: list[IntegrationTestCase] = []
         self._setup_test_cases()
 
     def _setup_test_cases(self) -> None:
         """Set up the test cases for integration testing."""
         self.test_cases = [
             # Basic literals
-            TestCase(
-                name="integer_literal",
-                code="Set x to _42_.",
-                expected_output=None,
-                description="Test integer literal assignment",
+            # Variable assignment and retrieval
+            IntegrationTestCase(
+                name="integer_variable",
+                code="Set x to _42_. Give back x.",
+                expected_output=42,
+                description="Test integer variable assignment and retrieval",
             ),
-            TestCase(
-                name="float_literal",
-                code="Set x to _3.14_.",
-                expected_output=None,
-                description="Test float literal assignment",
+            IntegrationTestCase(
+                name="float_variable",
+                code="Set x to _3.14_. Give back x.",
+                expected_output=3.14,
+                description="Test float variable assignment and retrieval",
             ),
-            TestCase(
-                name="string_literal",
-                code='Set x to _"hello"_.',
-                expected_output=None,
-                description="Test string literal assignment",
+            IntegrationTestCase(
+                name="string_variable",
+                code='Set x to _"hello"_. Give back x.',
+                expected_output="hello",
+                description="Test string variable assignment and retrieval",
             ),
-            TestCase(
-                name="boolean_true",
-                code="Set x to _true_.",
-                expected_output=None,
-                description="Test boolean true literal",
+            IntegrationTestCase(
+                name="boolean_variable",
+                code="Set x to _true_. Give back x.",
+                expected_output=True,
+                description="Test boolean variable assignment and retrieval",
             ),
-            TestCase(
-                name="boolean_false",
-                code="Set x to _false_.",
-                expected_output=None,
-                description="Test boolean false literal",
+            IntegrationTestCase(
+                name="variable_arithmetic",
+                code="Set x to _10_. Set y to _5_. Give back x + y.",
+                expected_output=15,
+                description="Test arithmetic with variables",
+            ),
+            IntegrationTestCase(
+                name="variable_reassignment",
+                code="Set x to _10_. Set x to _20_. Give back x.",
+                expected_output=20,
+                description="Test variable reassignment",
             ),
             # Arithmetic expressions
-            TestCase(
+            IntegrationTestCase(
                 name="addition",
                 code="Give back _5_ + _3_.",
                 expected_output=8,
                 description="Test addition operation",
             ),
-            TestCase(
+            IntegrationTestCase(
                 name="subtraction",
                 code="Give back _10_ - _4_.",
                 expected_output=6,
                 description="Test subtraction operation",
             ),
-            TestCase(
+            IntegrationTestCase(
                 name="multiplication",
                 code="Give back _3_ * _7_.",
                 expected_output=21,
                 description="Test multiplication operation",
             ),
-            TestCase(
+            IntegrationTestCase(
                 name="division",
                 code="Give back _15_ / _3_.",
                 expected_output=5.0,
                 description="Test division operation",
             ),
             # Comparison operations
-            TestCase(
+            IntegrationTestCase(
                 name="equals",
                 code="Give back _5_ equals _5_.",
                 expected_output=True,
                 description="Test equality comparison",
             ),
-            TestCase(
+            IntegrationTestCase(
                 name="not_equals",
                 code="Give back _5_ is not _3_.",
                 expected_output=True,
                 description="Test inequality comparison",
             ),
-            TestCase(
+            IntegrationTestCase(
                 name="greater_than",
                 code="Give back _7_ > _3_.",
                 expected_output=True,
                 description="Test greater than comparison",
             ),
-            TestCase(
+            IntegrationTestCase(
                 name="less_than",
                 code="Give back _2_ < _8_.",
                 expected_output=True,
                 description="Test less than comparison",
             ),
             # Conditional statements
-            TestCase(
+            IntegrationTestCase(
                 name="if_statement_true",
                 code="If _true_ then:\n> Give back _1_.\nElse:\n> Give back _0_.",
                 expected_output=1,
                 description="Test if statement with true condition",
             ),
-            TestCase(
+            IntegrationTestCase(
                 name="if_statement_false",
                 code="If _false_ then:\n> Give back _1_.\nElse:\n> Give back _0_.",
                 expected_output=0,
                 description="Test if statement with false condition",
             ),
-            TestCase(
+            IntegrationTestCase(
                 name="if_expression_true",
                 code="Give back _'Alice'_ if _true_ else _'Bob'_.",
                 expected_output="Alice",
                 description="Test if expression with true condition",
             ),
-            TestCase(
+            IntegrationTestCase(
                 name="if_expression_false",
                 code="Give back _'Alice'_ if _false_ else _'Bob'_.",
                 expected_output="Bob",
                 description="Test if expression with false condition",
             ),
             # Complex expressions
-            TestCase(
+            IntegrationTestCase(
                 name="complex_arithmetic",
                 code="Give back (_5_ + _3_) * _2_.",
                 expected_output=16,
                 description="Test complex arithmetic expression with parentheses",
             ),
-            TestCase(
+            IntegrationTestCase(
                 name="logical_and",
                 code="Give back _true_ and _true_.",
                 expected_output=True,
                 description="Test logical AND operation",
             ),
-            TestCase(
+            IntegrationTestCase(
                 name="logical_or",
                 code="Give back _false_ or _true_.",
                 expected_output=True,
                 description="Test logical OR operation",
             ),
             # Prefix operations
-            TestCase(
+            IntegrationTestCase(
                 name="negation",
                 code="Give back -_5_.",
                 expected_output=-5,
                 description="Test unary negation",
             ),
-            TestCase(
+            IntegrationTestCase(
                 name="logical_not_true",
                 code="Give back not _true_.",
                 expected_output=False,
                 description="Test logical NOT operation with true condition",
             ),
-            TestCase(
+            IntegrationTestCase(
                 name="logical_not_false",
                 code="Give back not _false_.",
                 expected_output=True,
                 description="Test logical NOT operation with false condition",
             ),
             # Strict equality operations
-            TestCase(
+            IntegrationTestCase(
                 name="strict_equality_same_type",
                 code="Give back _5_ is strictly equal to _5_.",
                 expected_output=True,
                 description="Test strict equality with same type and value",
             ),
-            TestCase(
+            IntegrationTestCase(
                 name="strict_equality_diff_type",
                 code="Give back _5_ is strictly equal to _5.0_.",
                 expected_output=False,
                 description="Test strict equality with different types",
             ),
-            TestCase(
+            IntegrationTestCase(
                 name="strict_inequality_diff_type",
                 code="Give back _5_ is not strictly equal to _5.0_.",
                 expected_output=True,
                 description="Test strict inequality with different types",
             ),
-            TestCase(
+            IntegrationTestCase(
                 name="strict_inequality_same_type",
                 code="Give back _5_ is not strictly equal to _5_.",
                 expected_output=False,
                 description="Test strict inequality with same type and value",
             ),
             # Value equality for comparison
-            TestCase(
+            IntegrationTestCase(
                 name="value_equality_diff_type",
                 code="Give back _5_ equals _5.0_.",
                 expected_output=True,
@@ -228,7 +235,7 @@ class IntegrationTestRunner:
             ),
         ]
 
-    def test_parser(self, test_case: TestCase) -> TestResult:
+    def test_parser(self, test_case: IntegrationTestCase) -> TestResult:
         """Test the parser component.
 
         Args:
@@ -250,7 +257,7 @@ class IntegrationTestRunner:
         except Exception as e:
             return TestResult(component="Parser", success=False, output=None, error=str(e))
 
-    def test_cfg_parser(self, test_case: TestCase) -> TestResult:
+    def test_cfg_parser(self, test_case: IntegrationTestCase) -> TestResult:
         """Test the CFG parser component.
 
         Args:
@@ -265,7 +272,7 @@ class IntegrationTestRunner:
         except Exception as e:
             return TestResult(component="CFG Parser", success=False, output=None, error=str(e))
 
-    def test_interpreter(self, test_case: TestCase) -> TestResult:
+    def test_interpreter(self, test_case: IntegrationTestCase) -> TestResult:
         """Test the interpreter component.
 
         Args:
@@ -295,7 +302,7 @@ class IntegrationTestRunner:
         except Exception as e:
             return TestResult(component="Interpreter", success=False, output=None, error=str(e))
 
-    def test_vm(self, test_case: TestCase) -> TestResult:
+    def test_vm(self, test_case: IntegrationTestCase) -> TestResult:
         """Test the VM component.
 
         Args:
@@ -335,7 +342,7 @@ class IntegrationTestRunner:
         except Exception as e:
             return TestResult(component="VM", success=False, output=None, error=str(e))
 
-    def run_test(self, test_case: TestCase) -> dict[str, TestResult]:
+    def run_test(self, test_case: IntegrationTestCase) -> dict[str, TestResult]:
         """Run a single test case through all components.
 
         Args:

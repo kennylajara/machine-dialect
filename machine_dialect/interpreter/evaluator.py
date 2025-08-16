@@ -1,11 +1,12 @@
 from typing import Any, cast
 
 import machine_dialect.ast as ast
-from machine_dialect.errors.messages import UNKNOWN_INFIX_OPERATOR, UNKNOWN_PREFIX_OPERATOR
+from machine_dialect.errors.messages import NAME_UNDEFINED, UNKNOWN_INFIX_OPERATOR, UNKNOWN_PREFIX_OPERATOR
 from machine_dialect.interpreter.objects import (
     URL,
     Boolean,
     Empty,
+    Environment,
     Error,
     Float,
     Integer,
@@ -20,13 +21,25 @@ FALSE = Boolean(False)
 EMPTY = Empty()
 
 
-def evaluate(node: ast.ASTNode) -> Object | None:
+def evaluate(node: ast.ASTNode, env: Environment | None = None) -> Object | None:
+    """Evaluate an AST node.
+
+    Args:
+        node: The AST node to evaluate.
+        env: The environment for variable storage. If None, a new one is created.
+
+    Returns:
+        The evaluated object or None.
+    """
+    if env is None:
+        env = Environment()
+
     node_type: type[Any] = type(node)
 
     match node_type:
         case ast.BlockStatement:
             node = cast(ast.BlockStatement, node)
-            return _evaluate_block_statement(node)
+            return _evaluate_block_statement(node, env)
 
         case ast.BooleanLiteral:
             node = cast(ast.BooleanLiteral, node)
@@ -39,19 +52,19 @@ def evaluate(node: ast.ASTNode) -> Object | None:
         case ast.ExpressionStatement:
             node = cast(ast.ExpressionStatement, node)
             assert node.expression is not None
-            return evaluate(node.expression)
+            return evaluate(node.expression, env)
 
         case ast.IfStatement:
             node = cast(ast.IfStatement, node)
 
-            return _evaluate_if_statement(node)
+            return _evaluate_if_statement(node, env)
 
         case ast.InfixExpression:
             node = cast(ast.InfixExpression, node)
             assert node.right is not None and node.left is not None
 
-            left = evaluate(node.left)
-            right = evaluate(node.right)
+            left = evaluate(node.left, env)
+            right = evaluate(node.right, env)
             assert left is not None and right is not None
 
             return _evaluate_infix_expression(node.token.type, left, right)
@@ -69,18 +82,18 @@ def evaluate(node: ast.ASTNode) -> Object | None:
         case ast.PrefixExpression:
             node = cast(ast.PrefixExpression, node)
             assert node.right is not None
-            right = evaluate(node.right)
+            right = evaluate(node.right, env)
             assert right is not None
             return _evaluate_prefix_expression(node.token.type, right)
 
         case ast.Program:
             node = cast(ast.Program, node)
-            return _evaluate_program(node)
+            return _evaluate_program(node, env)
 
         case ast.ReturnStatement:
             node = cast(ast.ReturnStatement, node)
             assert node.return_value is not None
-            value = evaluate(node.return_value)
+            value = evaluate(node.return_value, env)
 
             assert value is not None
             return Return(value)
@@ -109,41 +122,49 @@ def evaluate(node: ast.ASTNode) -> Object | None:
 
         case ast.ConditionalExpression:
             node = cast(ast.ConditionalExpression, node)
-            return _evaluate_conditional_expression(node)
+            return _evaluate_conditional_expression(node, env)
+
+        case ast.SetStatement:
+            node = cast(ast.SetStatement, node)
+            return _evaluate_set_statement(node, env)
+
+        case ast.Identifier:
+            node = cast(ast.Identifier, node)
+            return _evaluate_identifier(node, env)
 
         case _:
             return None
 
 
-def _evaluate_block_statement(node: ast.BlockStatement) -> Object | None:
+def _evaluate_block_statement(node: ast.BlockStatement, env: Environment) -> Object | None:
     result: Object | None = None
 
     for statement in node.statements:
-        result = evaluate(statement)
+        result = evaluate(statement, env)
         if result is not None and isinstance(result, Return | Error):
             return result
 
     return result
 
 
-def _evaluate_if_statement(if_statement: ast.IfStatement) -> Object | None:
+def _evaluate_if_statement(if_statement: ast.IfStatement, env: Environment) -> Object | None:
     assert if_statement.condition is not None
-    condition = evaluate(if_statement.condition)
+    condition = evaluate(if_statement.condition, env)
 
     assert condition is not None
     if condition == TRUE:
         if if_statement.consequence is not None:
-            return evaluate(if_statement.consequence)
+            return evaluate(if_statement.consequence, env)
         return None
     elif condition == FALSE:
         if if_statement.alternative is not None:
-            return evaluate(if_statement.alternative)
+            return evaluate(if_statement.alternative, env)
         return None
 
     return EMPTY
 
 
-def _evaluate_conditional_expression(node: ast.ConditionalExpression) -> Object | None:
+def _evaluate_conditional_expression(node: ast.ConditionalExpression, env: Environment) -> Object | None:
     """Evaluate a conditional (ternary) expression.
 
     Args:
@@ -154,17 +175,17 @@ def _evaluate_conditional_expression(node: ast.ConditionalExpression) -> Object 
         based on the condition.
     """
     assert node.condition is not None
-    condition = evaluate(node.condition)
+    condition = evaluate(node.condition, env)
 
     assert condition is not None
     # Check if condition is truthy
     if condition == TRUE or (hasattr(condition, "value") and condition.value):
         if node.consequence is not None:
-            return evaluate(node.consequence)
+            return evaluate(node.consequence, env)
         return None
     else:
         if node.alternative is not None:
-            return evaluate(node.alternative)
+            return evaluate(node.alternative, env)
         return None
 
 
@@ -224,11 +245,11 @@ def _evaluate_prefix_expression(token_type: TokenType, right: Object) -> Object:
             return Error(error_message)
 
 
-def _evaluate_program(program: ast.Program) -> Object | None:
+def _evaluate_program(program: ast.Program, env: Environment) -> Object | None:
     result: Object | None = None
 
     for statement in program.statements:
-        result = evaluate(statement)
+        result = evaluate(statement, env)
 
         if result is not None:
             if isinstance(result, Return):
@@ -237,3 +258,50 @@ def _evaluate_program(program: ast.Program) -> Object | None:
                 return result
 
     return result
+
+
+def _evaluate_set_statement(node: ast.SetStatement, env: Environment) -> Object | None:
+    """Evaluate a set (assignment) statement.
+
+    Args:
+        node: The SetStatement node to evaluate.
+        env: The environment to store the variable in.
+
+    Returns:
+        The value that was assigned, or None.
+    """
+    if node.value is None:
+        return Error("SetStatement has no value")
+
+    value = evaluate(node.value, env)
+    if value is None:
+        return Error("Failed to evaluate SetStatement value")
+
+    if isinstance(value, Error):
+        return value
+
+    if node.name is None:
+        return Error("SetStatement has no name")
+
+    # Store the value in the environment
+    env[node.name.value] = value
+
+    # Return None for statements (they don't produce values)
+    return None
+
+
+def _evaluate_identifier(node: ast.Identifier, env: Environment) -> Object | None:
+    """Evaluate an identifier by looking it up in the environment.
+
+    Args:
+        node: The Identifier node to evaluate.
+        env: The environment to look up the variable in.
+
+    Returns:
+        The value from the environment, or an error if not found.
+    """
+    name = node.value
+    if name in env:
+        return env[name]
+
+    return Error(NAME_UNDEFINED.format(name=name))

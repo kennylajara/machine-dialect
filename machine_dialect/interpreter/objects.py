@@ -151,6 +151,23 @@ class Boolean(Object):
         )
 
 
+class Environment:
+    """Environment for storing variables."""
+
+    def __init__(self) -> None:
+        """Initialize an empty environment."""
+        self.store: dict[str, Object] = {}
+
+    def __getitem__(self, key: str) -> Object:
+        return self.store[key]
+
+    def __setitem__(self, key: str, value: Object) -> None:
+        self.store[key] = value
+
+    def __contains__(self, key: str) -> bool:
+        return key in self.store
+
+
 class Empty(Object):
     _instance: Empty | None = None
 

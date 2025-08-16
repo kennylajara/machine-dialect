@@ -12,6 +12,7 @@ import argparse
 import sys
 
 from machine_dialect.interpreter.evaluator import evaluate
+from machine_dialect.interpreter.objects import Environment
 from machine_dialect.lexer.lexer import Lexer
 from machine_dialect.lexer.tokens import Token
 from machine_dialect.parser.parser import Parser
@@ -44,6 +45,7 @@ class REPL:
         self.accumulated_source = ""
         self.multiline_buffer = ""
         self.in_multiline_mode = False
+        self.env = Environment()  # Persistent environment for variables
 
     def print_welcome(self) -> None:
         """Print the welcome message when REPL starts."""
@@ -229,16 +231,12 @@ class REPL:
                 print()
             else:
                 # Evaluate and show result
-                result = evaluate(ast)
+                result = evaluate(ast, self.env)
 
-                print("\nResult:")
-                print("-" * 50)
                 if result is not None:
-                    print(f"  {result.inspect()}")
+                    print(result.inspect())
                 else:
-                    print("  None")
-                print("-" * 50)
-                print()
+                    print("None")
 
     def run(self) -> int:
         """Main REPL loop. Returns exit code."""

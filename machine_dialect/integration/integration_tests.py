@@ -53,31 +53,31 @@ class IntegrationTestRunner:
             # Basic literals
             TestCase(
                 name="integer_literal",
-                code="Set **x** to _42_.",
+                code="Set x to _42_.",
                 expected_output=None,
                 description="Test integer literal assignment",
             ),
             TestCase(
                 name="float_literal",
-                code="Set **x** to _3.14_.",
+                code="Set x to _3.14_.",
                 expected_output=None,
                 description="Test float literal assignment",
             ),
             TestCase(
                 name="string_literal",
-                code='Set **x** to _"hello"_.',
+                code='Set x to _"hello"_.',
                 expected_output=None,
                 description="Test string literal assignment",
             ),
             TestCase(
                 name="boolean_true",
-                code="Set **x** to _true_.",
+                code="Set x to _true_.",
                 expected_output=None,
                 description="Test boolean true literal",
             ),
             TestCase(
                 name="boolean_false",
-                code="Set **x** to _false_.",
+                code="Set x to _false_.",
                 expected_output=None,
                 description="Test boolean false literal",
             ),
@@ -176,6 +176,38 @@ class IntegrationTestRunner:
                 expected_output=False,
                 description="Test logical NOT operation",
             ),
+            # Strict equality operations
+            TestCase(
+                name="strict_equality_same_type",
+                code="Give back _5_ is strictly equal to _5_.",
+                expected_output=True,
+                description="Test strict equality with same type and value",
+            ),
+            TestCase(
+                name="strict_equality_diff_type",
+                code="Give back _5_ is strictly equal to _5.0_.",
+                expected_output=False,
+                description="Test strict equality with different types",
+            ),
+            TestCase(
+                name="strict_inequality_diff_type",
+                code="Give back _5_ is not strictly equal to _5.0_.",
+                expected_output=True,
+                description="Test strict inequality with different types",
+            ),
+            TestCase(
+                name="strict_inequality_same_type",
+                code="Give back _5_ is not strictly equal to _5_.",
+                expected_output=False,
+                description="Test strict inequality with same type and value",
+            ),
+            # Value equality for comparison
+            TestCase(
+                name="value_equality_diff_type",
+                code="Give back _5_ equals _5.0_.",
+                expected_output=True,
+                description="Test value equality across types",
+            ),
         ]
 
     def test_parser(self, test_case: TestCase) -> TestResult:
@@ -209,18 +241,8 @@ class IntegrationTestRunner:
         Returns:
             TestResult indicating success or failure.
         """
-        # CFG parser expects simplified syntax - convert our syntax
-        simplified_code = self._convert_to_cfg_syntax(test_case.code)
-        if simplified_code is None:
-            return TestResult(
-                component="CFG Parser",
-                success=True,
-                output="Skipped (unsupported syntax)",
-                error=None,
-            )
-
         try:
-            tree = self.cfg_parser.parse(simplified_code)
+            tree = self.cfg_parser.parse(test_case.code)
             return TestResult(component="CFG Parser", success=True, output=tree, error=None)
         except Exception as e:
             return TestResult(component="CFG Parser", success=False, output=None, error=str(e))
@@ -420,33 +442,29 @@ class IntegrationTestRunner:
         else:
             return str(obj)
 
-    def _convert_to_cfg_syntax(self, code: str) -> str | None:
-        """Convert Machine Dialect syntax to CFG parser syntax.
 
-        Args:
-            code: The Machine Dialect code to convert.
+def test_integration_runner() -> None:
+    """Test that all components work together on the same input."""
+    runner = IntegrationTestRunner()
+    results = runner.run_all_tests()
+    runner.print_results(results)
 
-        Returns:
-            Converted code or None if conversion not supported.
-        """
-        # Simple conversion for basic cases
-        # CFG uses backticks for identifiers and different syntax
+    # Assert that all tests pass for critical components
+    for test_name, test_results in results.items():
+        # Parser should pass all tests
+        parser_result = test_results.get("Parser")
+        assert (
+            parser_result and parser_result.success
+        ), f"Parser failed for {test_name}: {parser_result.error if parser_result else 'No result'}"
 
-        # Skip complex cases that CFG doesn't support
-        if "Give back" in code or "Gives back" in code:
-            return None  # CFG doesn't have return statements
+        # Interpreter should pass all tests
+        interpreter_result = test_results.get("Interpreter")
+        assert (
+            interpreter_result and interpreter_result.success
+        ), f"Interpreter failed for {test_name}: {interpreter_result.error if interpreter_result else 'No result'}"
 
-        # Basic conversion rules
-        converted = code
-        converted = converted.replace("**", "`")  # Variables
-        converted = converted.replace("_", "")  # Literals
-
-        # Handle if statements - CFG uses braces
-        if "If " in converted:
-            converted = converted.replace("\n>", "")  # Remove block markers
-            converted = converted.replace("then", "then {")
-            converted = converted.replace("Else", "} else {")
-            if not converted.rstrip().endswith("}"):
-                converted += " }"
-
-        return converted
+        # VM should pass all tests
+        vm_result = test_results.get("VM")
+        assert (
+            vm_result and vm_result.success
+        ), f"VM failed for {test_name}: {vm_result.error if vm_result else 'No result'}"

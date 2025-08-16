@@ -1,61 +1,113 @@
-start: statement ("." statement)* "."?
+// Machine Dialect Grammar for LARK Parser
+// This grammar should match the exact syntax of the main parser
 
-statement: set_stmt | say_stmt | if_stmt
+start: program
 
-set_stmt: "Set"i "`" IDENTIFIER "`" "to"i expr
-say_stmt: "Say"i expr
-if_stmt: "if"i expr "then"i "{" block_content "}" ("else"i "{" block_content "}")?
+program: statement_list
 
-block_content: block_statement ("." block_statement)* "."?
-block_statement: set_stmt | say_stmt | if_stmt
+statement_list: (statement ".")* statement "."?
 
-// Expressions with logical, comparison and arithmetic operators
-expr: logical_or
+statement: set_stmt
+         | give_back_stmt
+         | if_stmt
+         | call_stmt
+         | action_stmt
+         | interaction_stmt
 
-logical_or: logical_and
-          | logical_or "or"i logical_and -> or_op
+// Statements
+set_stmt: "Set"i IDENTIFIER "to"i expression
+give_back_stmt: ("Give"i "back"i | "Gives"i "back"i) expression
+call_stmt: "Call"i "`" IDENTIFIER "`" ("with"i expression_list)?
 
-logical_and: logical_not
-           | logical_and "and"i logical_not -> and_op
+// Action and Interaction with simplified blocks
+// For CFG validation, we'll accept the structure but not fully parse blocks
+action_stmt: "Action"i IDENTIFIER ("with"i parameter_list)? ":" BLOCK_CONTENT?
+interaction_stmt: "Interaction"i IDENTIFIER ("with"i parameter_list)? ":" BLOCK_CONTENT?
 
-logical_not: comparison
-           | "not"i logical_not -> not_op
+// If statement with simplified blocks
+if_stmt: "If"i expression "then"i ":" BLOCK_CONTENT? else_clause?
+else_clause: "Else"i ":" BLOCK_CONTENT?
 
-comparison: sum
-          | sum "<" sum -> less_than
-          | sum ">" sum -> greater_than
-          | sum "<=" sum -> less_equal
-          | sum ">=" sum -> greater_equal
-          | sum "equals"i sum -> equals
-          | sum "is"i "greater"i "than"i sum -> is_greater_than
-          | sum "is"i "less"i "than"i sum -> is_less_than
-          | sum "is"i "not"i "equal"i "to"i sum -> is_not_equal_to
-          | sum "is"i "equal"i "to"i sum -> is_equal_to
-          | sum "is"i "greater"i "than"i "or"i "equal"i "to"i sum -> is_greater_equal
-          | sum "is"i "less"i "than"i "or"i "equal"i "to"i sum -> is_less_equal
+// Parameters
+parameter_list: parameter ("," parameter)*
+parameter: IDENTIFIER (":" IDENTIFIER)? ("=" expression)?
 
-sum: product
-   | sum "+" product -> add
-   | sum "-" product -> subtract
+expression_list: expression ("," expression)*
 
-product: unary
-       | product "*" unary -> multiply
-       | product "/" unary -> divide
+// Expressions
+expression: or_expr
 
-unary: atom
-     | "-" unary -> negate
+or_expr: and_expr ("or"i and_expr)*
 
-atom: NUMBER
-    | WORD
-    | STRING
-    | "True"i -> true_lit
-    | "False"i -> false_lit
-    | "(" expr ")"
+and_expr: not_expr ("and"i not_expr)*
 
-IDENTIFIER: /[a-zA-Z_][a-zA-Z0-9_ -]*/  // Allows letters, numbers, underscores, spaces, and hyphens
-WORD: /[a-zA-Z_][a-zA-Z0-9_]*/
-NUMBER: /\d+(\.\d+)?/
-STRING: /"[^"]*"|'[^']*'/
+not_expr: "not"i not_expr
+        | comparison
+
+comparison: arith_expr (comp_op arith_expr)?
+
+comp_op: "<=" | ">=" | "<" | ">"
+       | "equals"i
+       | "is"i "equal"i "to"i
+       | "is"i "the"i "same"i "as"i
+       | "is"i "not"i "equal"i "to"i
+       | "does"i "not"i "equal"i
+       | "is"i "different"i "from"i
+       | "is"i "not"i
+       | "is"i "strictly"i "equal"i "to"i
+       | "is"i "exactly"i "equal"i "to"i
+       | "is"i "identical"i "to"i
+       | "is"i "not"i "strictly"i "equal"i "to"i
+       | "is"i "not"i "exactly"i "equal"i "to"i
+       | "is"i "not"i "identical"i "to"i
+       | "is"i "greater"i "than"i "or"i "equal"i "to"i
+       | "is"i "less"i "than"i "or"i "equal"i "to"i
+       | "is"i "greater"i "than"i
+       | "is"i "less"i "than"i
+
+arith_expr: term (("+"|"-") term)*
+
+term: factor (("*"|"/") factor)*
+
+factor: "-" factor
+      | atom
+
+atom: "(" expression ")"
+    | literal
+    | IDENT  // Changed from IDENTIFIER to avoid conflict
+
+// Literals - parse with underscores as complete tokens
+literal: LITERAL_FLOAT
+       | LITERAL_INT
+       | LITERAL_STRING
+       | LITERAL_TRUE
+       | LITERAL_FALSE
+       | LITERAL_EMPTY
+       | LITERAL_URL
+
+// Literal patterns - these are complete tokens including underscores
+// Higher priority than IDENT to ensure they match first
+LITERAL_FLOAT.3: /_\d+\.\d+_/
+LITERAL_INT.3: /_\d+_/
+LITERAL_STRING.3: /_"[^"]*"_|_'[^']*'_/
+LITERAL_TRUE.3: /_true_/i
+LITERAL_FALSE.3: /_false_/i
+LITERAL_EMPTY.3: /_empty_/i
+LITERAL_URL.3: /_https?:\/\/[^\s]+_/
+
+// Use IDENT instead of IDENTIFIER to avoid conflicts with literal patterns
+IDENT: /[a-zA-Z][a-zA-Z0-9_]*|[a-zA-Z_][a-zA-Z0-9_]+/
+// This pattern ensures single underscore is not matched as identifier
+
+// For places where IDENTIFIER was used
+IDENTIFIER: IDENT
+
+// Block content - matches everything after : until end or next statement
+// This is a simplified approach for CFG validation
+BLOCK_CONTENT.2: /(\n[ \t]*>[^\n]*)+/
+
+COMMENT: /#[^\n]*/
 
 %import common.WS
 %ignore WS
+%ignore COMMENT

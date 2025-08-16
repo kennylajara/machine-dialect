@@ -12,36 +12,36 @@ class TestCFGParser:
 
     def test_parse_set_statement(self) -> None:
         """Test parsing Set statements."""
-        code = "Set `x` to 10."
+        code = "Set x to _10_."
         tree = self.parser.parse(code)
         assert tree is not None
         assert tree.data == "start"
 
-    def test_parse_say_statement(self) -> None:
-        """Test parsing Say statements."""
-        code = 'Say "Hello, World!".'
+    def test_parse_give_back_statement(self) -> None:
+        """Test parsing Give back statements."""
+        code = 'Give back _"Hello, World!"_.'
         tree = self.parser.parse(code)
         assert tree is not None
 
     def test_parse_arithmetic_expression(self) -> None:
         """Test parsing arithmetic expressions."""
-        code = "Set `result` to 5 + 3 * 2."
+        code = "Set result to _5_ + _3_ * _2_."
         tree = self.parser.parse(code)
         assert tree is not None
 
     def test_parse_logical_expression(self) -> None:
         """Test parsing logical expressions."""
-        code = "Set `flag` to True and not False or False."
+        code = "Set flag to _true_ and not _false_ or _false_."
         tree = self.parser.parse(code)
         assert tree is not None
 
     def test_parse_comparison(self) -> None:
         """Test parsing comparison expressions."""
         test_cases = [
-            "Set `check` to x > 5.",
-            "Set `check` to y is greater than 10.",
-            "Set `check` to z equals 0.",
-            "Set `check` to a is not equal to b.",
+            "Set check to x > _5_.",
+            "Set check to y is greater than _10_.",
+            "Set check to z equals _0_.",
+            "Set check to a is not equal to b.",
         ]
 
         for code in test_cases:
@@ -50,49 +50,41 @@ class TestCFGParser:
 
     def test_parse_if_statement(self) -> None:
         """Test parsing if statements."""
-        code = """
-        if x > 0 then {
-            Say "Positive".
-        }
-        """
+        code = """If x > _0_ then:
+> Give back _"Positive"_."""
         tree = self.parser.parse(code)
         assert tree is not None
 
     def test_parse_if_else_statement(self) -> None:
         """Test parsing if-else statements."""
-        code = """
-        if age >= 18 then {
-            Say "Adult".
-        } else {
-            Say "Minor".
-        }
-        """
+        code = """If age >= _18_ then:
+> Give back _"Adult"_.
+Else:
+> Give back _"Minor"_."""
         tree = self.parser.parse(code)
         assert tree is not None
 
     def test_parse_multiple_statements(self) -> None:
         """Test parsing multiple statements."""
-        code = """
-        Set `x` to 10.
-        Set `y` to 20.
-        Set `sum` to x + y.
-        Say sum.
-        """
+        code = """Set x to _10_.
+Set y to _20_.
+Set sum to x + y.
+Give back sum."""
         tree = self.parser.parse(code)
         assert tree is not None
 
     def test_parse_nested_expressions(self) -> None:
         """Test parsing nested expressions."""
-        code = "Set `result` to (5 + 3) * (10 - 2)."
+        code = "Set result to (_5_ + _3_) * (_10_ - _2_)."
         tree = self.parser.parse(code)
         assert tree is not None
 
     def test_parse_string_literals(self) -> None:
         """Test parsing string literals."""
         test_cases = [
-            'Say "Hello".',
-            "Say 'World'.",
-            'Say "Machine Dialect!".',
+            'Give back _"Hello"_.',
+            "Give back _'World'_.",
+            'Give back _"Machine Dialect!"_.',
         ]
 
         for code in test_cases:
@@ -102,10 +94,8 @@ class TestCFGParser:
     def test_parse_boolean_literals(self) -> None:
         """Test parsing boolean literals."""
         test_cases = [
-            "Set `flag` to True.",
-            "Set `flag` to False.",
-            "Set `flag` to Yes.",
-            "Set `flag` to No.",
+            "Set flag to _true_.",
+            "Set flag to _false_.",
         ]
 
         for code in test_cases:
@@ -114,29 +104,29 @@ class TestCFGParser:
 
     def test_parse_empty_literal(self) -> None:
         """Test parsing empty literal."""
-        code = "Set `value` to empty."
+        code = "Set value to _empty_."
         tree = self.parser.parse(code)
         assert tree is not None
 
     def test_validate_valid_code(self) -> None:
         """Test validation of valid code."""
-        code = "Set `x` to 5."
+        code = "Set x to _5_."
         assert self.parser.validate(code) is True
 
     def test_validate_invalid_code(self) -> None:
         """Test validation of invalid code."""
-        code = "Set x to 5"  # Missing backticks and period
+        code = "Set x to 5"  # Missing underscores and period
         assert self.parser.validate(code) is False
 
     def test_case_insensitive_keywords(self) -> None:
         """Test that keywords are case-insensitive."""
         test_cases = [
-            "set `x` to 5.",
-            "SET `x` to 5.",
-            "Set `x` TO 5.",
-            'say "Hello".',
-            'SAY "Hello".',
-            'IF x > 0 THEN { Say "Yes". }',
+            "set x to _5_.",
+            "SET x to _5_.",
+            "Set x TO _5_.",
+            'give back _"Hello"_.',
+            'GIVE BACK _"Hello"_.',
+            'If x > _0_ then:\n> Give back _"Yes"_.',
         ]
 
         for code in test_cases:
@@ -145,39 +135,81 @@ class TestCFGParser:
 
     def test_complex_program(self) -> None:
         """Test parsing a complex program."""
-        code = """
-        Set `score` to 85.
-        Set `passing_grade` to 60.
-        Set `is_excellent` to score >= 90.
-
-        if score >= passing_grade then {
-            if is_excellent then {
-                Say "Excellent work!".
-            } else {
-                Say "Good job, you passed.".
-            }
-        } else {
-            Say "Please try again.".
-        }
-        """
+        code = """Set score to _85_.
+Set passing_grade to _60_.
+Set is_excellent to score >= _90_.
+If score >= passing_grade then:
+> If is_excellent then:
+> > Give back _"Excellent work!"_.
+> Else:
+> > Give back _"Good job, you passed."_.
+Else:
+> Give back _"Please try again."_."""
         tree = self.parser.parse(code)
         assert tree is not None
 
-    def test_identifier_with_spaces(self) -> None:
-        """Test parsing identifiers with spaces."""
-        code = 'Set `user name` to "Alice".'
+    def test_identifier_with_underscores(self) -> None:
+        """Test parsing identifiers with underscores."""
+        code = 'Set user_name to _"Alice"_.'
         tree = self.parser.parse(code)
         assert tree is not None
 
     def test_natural_language_operators(self) -> None:
         """Test parsing natural language operators."""
         test_cases = [
-            "Set `check` to x is equal to y.",
-            "Set `check` to a is not equal to b.",
-            "Set `check` to m is less than n.",
-            "Set `check` to p is greater than q.",
+            "Set check to x is equal to y.",
+            "Set check to a is not equal to b.",
+            "Set check to m is less than n.",
+            "Set check to p is greater than q.",
         ]
 
         for code in test_cases:
             tree = self.parser.parse(code)
             assert tree is not None
+
+    def test_strict_equality_operators(self) -> None:
+        """Test parsing strict equality operators."""
+        test_cases = [
+            "Give back _5_ is strictly equal to _5_.",
+            "Give back _5_ is not strictly equal to _5.0_.",
+            "Give back _5_ is exactly equal to _5_.",
+            "Give back _5_ is not exactly equal to _5.0_.",
+            "Give back _5_ is identical to _5_.",
+            "Give back _5_ is not identical to _5.0_.",
+        ]
+
+        for code in test_cases:
+            tree = self.parser.parse(code)
+            assert tree is not None
+
+    def test_float_literals(self) -> None:
+        """Test parsing float literals."""
+        test_cases = [
+            "Set pi to _3.14_.",
+            "Give back _2.5_ + _1.5_.",
+            "Set result to _10.0_ / _3.0_.",
+        ]
+
+        for code in test_cases:
+            tree = self.parser.parse(code)
+            assert tree is not None
+
+    def test_call_statement(self) -> None:
+        """Test parsing Call statements."""
+        code = 'Call `print` with _"Hello"_, _42_.'
+        tree = self.parser.parse(code)
+        assert tree is not None
+
+    def test_action_statement(self) -> None:
+        """Test parsing Action statements."""
+        code = """Action greet with name:
+> Give back _"Hello, "_ + name."""
+        tree = self.parser.parse(code)
+        assert tree is not None
+
+    def test_interaction_statement(self) -> None:
+        """Test parsing Interaction statements."""
+        code = """Interaction get_input:
+> Give back _"Enter your name: "_."""
+        tree = self.parser.parse(code)
+        assert tree is not None

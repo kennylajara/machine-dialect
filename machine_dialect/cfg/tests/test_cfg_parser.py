@@ -204,16 +204,49 @@ Else:
 
     @pytest.mark.skip(reason="Actions not yet implemented in main parser")
     def test_action_statement(self) -> None:
-        """Test parsing Action statements."""
-        code = """Action greet with name:
-> Give back _"Hello, "_ + name."""
+        """Test parsing Action statements with inputs, outputs, and body."""
+        # Action with parameters and Say statement
+        code = """Action make_noise with sound as Text, volume as Number = _60_:
+> Set noise to sound.
+> Say noise."""
+        tree = self.parser.parse(code)
+        assert tree is not None
+
+    @pytest.mark.skip(reason="Actions with complex syntax not yet implemented")
+    def test_action_with_markdown_format(self) -> None:
+        """Test parsing Action in markdown documentation format."""
+        # This represents the full markdown format with details tags
+        # The parser would need to handle this documentation-style format
+        code = """Action `make noise`:
+<details>
+<summary>Emits the sound of the alarm.</summary>
+
+> Set `noise` to _"WEE-OO WEE-OO WEE-OO"_.
+> Say `noise`.
+
+</details>"""
         tree = self.parser.parse(code)
         assert tree is not None
 
     @pytest.mark.skip(reason="Interactions not yet implemented in main parser")
     def test_interaction_statement(self) -> None:
         """Test parsing Interaction statements."""
-        code = """Interaction get_input:
-> Give back _"Enter your name: "_."""
+        code = """Interaction turn_alarm_off:
+> If alarm_is_on then:
+> > Set alarm_is_on to _false_.
+> > Say _"Alarm has been turned off"_."""
         tree = self.parser.parse(code)
         assert tree is not None
+
+    @pytest.mark.skip(reason="Say statements not yet implemented in main parser")
+    def test_say_statement(self) -> None:
+        """Test parsing Say statements (used in actions/interactions)."""
+        test_cases = [
+            'Say _"Hello, World!"_.',
+            "Say noise.",
+            'Say _"Alarm is "_ + status + _"."_.',
+        ]
+
+        for code in test_cases:
+            tree = self.parser.parse(code)
+            assert tree is not None

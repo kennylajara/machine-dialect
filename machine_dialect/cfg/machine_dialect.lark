@@ -9,6 +9,7 @@ statement_list: (statement ".")* statement "."?
 
 statement: set_stmt
          | give_back_stmt
+         | say_stmt
          | if_stmt
          | call_stmt
          | action_stmt
@@ -17,6 +18,7 @@ statement: set_stmt
 // Statements
 set_stmt: "Set"i IDENTIFIER "to"i expression
 give_back_stmt: ("Give"i "back"i | "Gives"i "back"i) expression
+say_stmt: "Say"i expression
 call_stmt: "Call"i "`" IDENTIFIER "`" ("with"i expression_list)?
 
 // Action and Interaction with simplified blocks
@@ -28,9 +30,9 @@ interaction_stmt: "Interaction"i IDENTIFIER ("with"i parameter_list)? ":" BLOCK_
 if_stmt: "If"i expression "then"i ":" BLOCK_CONTENT? else_clause?
 else_clause: "Else"i ":" BLOCK_CONTENT?
 
-// Parameters
+// Parameters - supports "as Type" syntax for actions/interactions
 parameter_list: parameter ("," parameter)*
-parameter: IDENTIFIER (":" IDENTIFIER)? ("=" expression)?
+parameter: IDENTIFIER ("as"i IDENTIFIER)? ("=" expression)?
 
 expression_list: expression ("," expression)*
 
@@ -104,7 +106,8 @@ IDENTIFIER: IDENT
 
 // Block content - matches everything after : until end or next statement
 // This is a simplified approach for CFG validation
-BLOCK_CONTENT.2: /(\n[ \t]*>[^\n]*)+/
+// Supports nested blocks with multiple > markers
+BLOCK_CONTENT.2: /(\n[ \t]*>+[^\n]*)+/
 
 COMMENT: /#[^\n]*/
 

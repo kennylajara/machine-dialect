@@ -1,4 +1,4 @@
-"""Integration tests for Machine Dialect components.
+"""Acceptance tests for Machine Dialect components.
 
 This module tests that all components (parser, interpreter, compiler, VM, CFG)
 can handle the same input and produce consistent results.
@@ -17,7 +17,7 @@ from machine_dialect.vm.vm import VM
 
 @dataclass
 class IntegrationTestCase:
-    """Represents a test case for integration testing."""
+    """Represents a test case for acceptance testing."""
 
     name: str
     code: str
@@ -36,10 +36,10 @@ class TestResult:
 
 
 class IntegrationTestRunner:
-    """Runs integration tests across all Machine Dialect components."""
+    """Runs acceptance tests across all Machine Dialect components."""
 
     def __init__(self) -> None:
-        """Initialize the integration test runner."""
+        """Initialize the acceptance test runner."""
         self.parser = Parser()
         self.cfg_parser = CFGParser()
         self.code_generator = CodeGenerator()
@@ -48,7 +48,7 @@ class IntegrationTestRunner:
         self._setup_test_cases()
 
     def _setup_test_cases(self) -> None:
-        """Set up the test cases for integration testing."""
+        """Set up the test cases for acceptance testing."""
         self.test_cases = [
             # Basic literals
             # Variable assignment and retrieval
@@ -380,7 +380,7 @@ class IntegrationTestRunner:
         """
         # Print header
         print("\n" + "=" * 80)
-        print("INTEGRATION TEST RESULTS")
+        print("ACCEPTANCE TEST RESULTS")
         print("=" * 80)
 
         # Components to test

@@ -1,21 +1,21 @@
-"""Pytest-based integration tests for Machine Dialect components."""
+"""Pytest-based acceptance tests for Machine Dialect components."""
 
 from typing import Any
 
 import pytest
 
-from machine_dialect.integration.integration_tests import (
+from machine_dialect.acceptance.integration_tests import (
     IntegrationTestCase,
     IntegrationTestRunner,
 )
 
 
 class TestIntegration:
-    """Integration tests for all Machine Dialect components."""
+    """Acceptance tests for all Machine Dialect components."""
 
     @pytest.fixture
     def runner(self) -> IntegrationTestRunner:
-        """Create an integration test runner.
+        """Create an acceptance test runner.
 
         Returns:
             An initialized IntegrationTestRunner.

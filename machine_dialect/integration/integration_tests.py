@@ -133,16 +133,28 @@ class IntegrationTestRunner:
             ),
             # Conditional statements
             TestCase(
-                name="if_true",
+                name="if_statement_true",
                 code="If _true_ then:\n> Give back _1_.\nElse:\n> Give back _0_.",
                 expected_output=1,
                 description="Test if statement with true condition",
             ),
             TestCase(
-                name="if_false",
+                name="if_statement_false",
                 code="If _false_ then:\n> Give back _1_.\nElse:\n> Give back _0_.",
                 expected_output=0,
                 description="Test if statement with false condition",
+            ),
+            TestCase(
+                name="if_expression_true",
+                code="Give back _'Alice'_ if _true_ else _'Bob'_.",
+                expected_output="Alice",
+                description="Test if expression with true condition",
+            ),
+            TestCase(
+                name="if_expression_false",
+                code="Give back _'Alice'_ if _false_ else _'Bob'_.",
+                expected_output="Bob",
+                description="Test if expression with false condition",
             ),
             # Complex expressions
             TestCase(
@@ -171,10 +183,16 @@ class IntegrationTestRunner:
                 description="Test unary negation",
             ),
             TestCase(
-                name="logical_not",
+                name="logical_not_true",
                 code="Give back not _true_.",
                 expected_output=False,
-                description="Test logical NOT operation",
+                description="Test logical NOT operation with true condition",
+            ),
+            TestCase(
+                name="logical_not_false",
+                code="Give back not _false_.",
+                expected_output=True,
+                description="Test logical NOT operation with false condition",
             ),
             # Strict equality operations
             TestCase(
@@ -270,7 +288,10 @@ class IntegrationTestRunner:
             # Convert Object to Python value for comparison
             output = self._object_to_python(result)
             success = output == test_case.expected_output if test_case.expected_output is not None else True
-            return TestResult(component="Interpreter", success=success, output=output, error=None)
+            error = None
+            if not success and test_case.expected_output is not None:
+                error = f"Expected {test_case.expected_output!r}, got {output!r}"
+            return TestResult(component="Interpreter", success=success, output=output, error=error)
         except Exception as e:
             return TestResult(component="Interpreter", success=False, output=None, error=str(e))
 
@@ -307,7 +328,10 @@ class IntegrationTestRunner:
             vm = VM()  # Create fresh VM for each test
             result = vm.run(module)
             success = result == test_case.expected_output if test_case.expected_output is not None else True
-            return TestResult(component="VM", success=success, output=result, error=None)
+            error = None
+            if not success and test_case.expected_output is not None:
+                error = f"Expected {test_case.expected_output!r}, got {result!r}"
+            return TestResult(component="VM", success=success, output=result, error=error)
         except Exception as e:
             return TestResult(component="VM", success=False, output=None, error=str(e))
 

@@ -1,5 +1,7 @@
 """Pytest-based integration tests for Machine Dialect components."""
 
+from typing import Any
+
 import pytest
 
 from machine_dialect.integration.integration_tests import (
@@ -266,29 +268,63 @@ class TestIntegration:
         """Run the comprehensive test suite and verify consistency."""
         results = runner.run_all_tests()
 
-        # Track overall success
+        # Track overall success and failures
         total_tests = len(results)
-        parser_pass = 0
-        interpreter_pass = 0
-        vm_pass = 0
+        parser_failures = []
+        cfg_parser_failures = []
+        interpreter_failures = []
+        vm_failures = []
 
-        for _, test_results in results.items():
-            if test_results["Parser"].success:
-                parser_pass += 1
-            if test_results["Interpreter"].success:
-                interpreter_pass += 1
-            if test_results["VM"].success:
-                vm_pass += 1
+        for test_name, test_results in results.items():
+            if not test_results["Parser"].success:
+                parser_failures.append(
+                    {
+                        "test": test_name,
+                        "error": test_results["Parser"].error,
+                        "output": test_results["Parser"].output,
+                    }
+                )
+            if not test_results["CFG Parser"].success:
+                cfg_parser_failures.append(
+                    {
+                        "test": test_name,
+                        "error": test_results["CFG Parser"].error,
+                        "output": test_results["CFG Parser"].output,
+                    }
+                )
+            if not test_results["Interpreter"].success:
+                interpreter_failures.append(
+                    {
+                        "test": test_name,
+                        "error": test_results["Interpreter"].error,
+                        "output": test_results["Interpreter"].output,
+                    }
+                )
+            if not test_results["VM"].success:
+                vm_failures.append(
+                    {
+                        "test": test_name,
+                        "error": test_results["VM"].error,
+                        "output": test_results["VM"].output,
+                    }
+                )
 
-        # Parser should handle most cases
-        assert parser_pass > 0, "Parser should pass at least some tests"
+        # Build detailed error messages
+        def format_failures(component: str, failures: list[dict[str, Any]]) -> str:
+            if not failures:
+                return ""
+            msg = f"\n{component} failed {len(failures)}/{total_tests} tests:\n"
+            for failure in failures:
+                msg += f"  - {failure['test']}: "
+                if failure["error"]:
+                    msg += f"{failure['error']}"
+                else:
+                    msg += f"Output={failure['output']} (expected output didn't match)"
+                msg += "\n"
+            return msg
 
-        # Interpreter and VM should have similar success rates
-        assert interpreter_pass > 0, "Interpreter should pass at least some tests"
-        assert vm_pass > 0, "VM should pass at least some tests"
-
-        # Log the summary
-        print("\nTest Summary:")
-        print(f"  Parser: {parser_pass}/{total_tests} passed")
-        print(f"  Interpreter: {interpreter_pass}/{total_tests} passed")
-        print(f"  VM: {vm_pass}/{total_tests} passed")
+        # Assert with detailed error messages
+        assert not parser_failures, f"Parser failures:{format_failures('Parser', parser_failures)}"
+        assert not cfg_parser_failures, f"CFG Parser failures:{format_failures('CFG Parser', cfg_parser_failures)}"
+        assert not interpreter_failures, f"Interpreter failures:{format_failures('Interpreter', interpreter_failures)}"
+        assert not vm_failures, f"VM failures:{format_failures('VM', vm_failures)}"

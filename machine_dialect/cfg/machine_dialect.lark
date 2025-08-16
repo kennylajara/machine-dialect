@@ -37,7 +37,10 @@ parameter: IDENTIFIER ("as"i IDENTIFIER)? ("=" expression)?
 expression_list: expression ("," expression)*
 
 // Expressions
-expression: or_expr
+expression: conditional_expr
+          | or_expr
+
+conditional_expr: or_expr "if"i or_expr "else"i or_expr
 
 or_expr: and_expr ("or"i and_expr)*
 

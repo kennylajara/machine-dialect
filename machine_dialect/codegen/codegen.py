@@ -7,6 +7,7 @@ and produces bytecode using the emitter.
 from machine_dialect.ast import (
     BlockStatement,
     BooleanLiteral,
+    ConditionalExpression,
     EmptyLiteral,
     Expression,
     ExpressionStatement,
@@ -242,6 +243,8 @@ class CodeGenerator:
             self._compile_prefix_expression(expr)
         elif isinstance(expr, InfixExpression):
             self._compile_infix_expression(expr)
+        elif isinstance(expr, ConditionalExpression):
+            self._compile_conditional_expression(expr)
         else:
             self._add_error(f"Unsupported expression type: {type(expr).__name__}")
 
@@ -385,6 +388,47 @@ class CodeGenerator:
             self.emitter.emit(opcode)
         else:
             self._add_error(f"Unknown infix operator: {expr.operator}")
+
+    def _compile_conditional_expression(self, expr: ConditionalExpression) -> None:
+        """Compile a conditional (ternary) expression.
+
+        This compiles to bytecode that evaluates the condition and leaves
+        either the consequence or alternative value on the stack.
+
+        Args:
+            expr: The conditional expression to compile.
+        """
+        assert self.emitter is not None
+
+        # Compile condition
+        if expr.condition is None:
+            self._add_error("ConditionalExpression has no condition")
+            return
+        self._compile_expression(expr.condition)
+
+        # Jump to alternative if condition is false
+        jump_to_alternative = self.emitter.emit_jump(Opcode.JUMP_IF_FALSE)
+
+        # Compile consequence (value when true)
+        if expr.consequence is None:
+            self._add_error("ConditionalExpression has no consequence")
+            return
+        self._compile_expression(expr.consequence)
+
+        # Jump over alternative
+        jump_to_end = self.emitter.emit_jump(Opcode.JUMP)
+
+        # Patch jump to alternative
+        self.emitter.patch_jump(jump_to_alternative)
+
+        # Compile alternative (value when false)
+        if expr.alternative is None:
+            self._add_error("ConditionalExpression has no alternative")
+            return
+        self._compile_expression(expr.alternative)
+
+        # Patch jump to end
+        self.emitter.patch_jump(jump_to_end)
 
     def _add_error(self, message: str) -> None:
         """Add a compilation error.

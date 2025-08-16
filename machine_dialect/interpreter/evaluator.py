@@ -107,6 +107,10 @@ def evaluate(node: ast.ASTNode) -> Object | None:
                 value = value[1:-1]
             return URL(value)
 
+        case ast.ConditionalExpression:
+            node = cast(ast.ConditionalExpression, node)
+            return _evaluate_conditional_expression(node)
+
         case _:
             return None
 
@@ -137,6 +141,31 @@ def _evaluate_if_statement(if_statement: ast.IfStatement) -> Object | None:
         return None
 
     return EMPTY
+
+
+def _evaluate_conditional_expression(node: ast.ConditionalExpression) -> Object | None:
+    """Evaluate a conditional (ternary) expression.
+
+    Args:
+        node: The ConditionalExpression node to evaluate.
+
+    Returns:
+        The result of evaluating either the consequence or alternative expression
+        based on the condition.
+    """
+    assert node.condition is not None
+    condition = evaluate(node.condition)
+
+    assert condition is not None
+    # Check if condition is truthy
+    if condition == TRUE or (hasattr(condition, "value") and condition.value):
+        if node.consequence is not None:
+            return evaluate(node.consequence)
+        return None
+    else:
+        if node.alternative is not None:
+            return evaluate(node.alternative)
+        return None
 
 
 def _evaluate_infix_expression(token_type: TokenType, left: Object, right: Object) -> Object | None:

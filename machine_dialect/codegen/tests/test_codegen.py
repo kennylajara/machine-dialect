@@ -256,6 +256,81 @@ def test_compile_comparison() -> None:
     assert bytecode[6] == Opcode.GT
 
 
+def test_strict_equality_opcodes() -> None:
+    """Test that strict equality generates correct opcodes."""
+    # Test strict equality: 5 is strictly equal to 5
+    left = IntegerLiteral(Token(TokenType.LIT_INT, "5", 1, 0), 5)
+    right = IntegerLiteral(Token(TokenType.LIT_INT, "5", 1, 4), 5)
+    expr = InfixExpression(Token(TokenType.OP_STRICT_EQ, "is strictly equal to", 1, 2), "is strictly equal to", left)
+    expr.right = right
+    stmt = ExpressionStatement(Token(TokenType.LIT_INT, "5", 1, 0), expr)
+    program = Program([stmt])
+
+    # Compile
+    gen = CodeGenerator()
+    module = gen.compile(program)
+
+    # Check bytecode contains STRICT_EQ opcode
+    bytecode = module.main_chunk.bytecode
+    assert Opcode.STRICT_EQ in bytecode, "Should contain STRICT_EQ opcode"
+
+
+def test_strict_inequality_opcodes() -> None:
+    """Test that strict inequality generates correct opcodes."""
+    # Test strict inequality: 5 is not strictly equal to 5
+    left = IntegerLiteral(Token(TokenType.LIT_INT, "5", 1, 0), 5)
+    right = IntegerLiteral(Token(TokenType.LIT_INT, "5", 1, 4), 5)
+    expr = InfixExpression(
+        Token(TokenType.OP_STRICT_NOT_EQ, "is not strictly equal to", 1, 2), "is not strictly equal to", left
+    )
+    expr.right = right
+    stmt = ExpressionStatement(Token(TokenType.LIT_INT, "5", 1, 0), expr)
+    program = Program([stmt])
+
+    # Compile
+    gen = CodeGenerator()
+    module = gen.compile(program)
+
+    # Check bytecode contains STRICT_NEQ opcode
+    bytecode = module.main_chunk.bytecode
+    assert Opcode.STRICT_NEQ in bytecode, "Should contain STRICT_NEQ opcode"
+
+
+def test_strict_vs_regular_equality() -> None:
+    """Test that strict and regular equality generate different opcodes."""
+    # Regular equality
+    left1 = IntegerLiteral(Token(TokenType.LIT_INT, "5", 1, 0), 5)
+    right1 = IntegerLiteral(Token(TokenType.LIT_INT, "5", 1, 4), 5)
+    expr1 = InfixExpression(Token(TokenType.OP_EQ, "equals", 1, 2), "equals", left1)
+    expr1.right = right1
+    stmt1 = ExpressionStatement(Token(TokenType.LIT_INT, "5", 1, 0), expr1)
+
+    # Strict equality
+    left2 = IntegerLiteral(Token(TokenType.LIT_INT, "5", 2, 0), 5)
+    right2 = IntegerLiteral(Token(TokenType.LIT_INT, "5", 2, 4), 5)
+    expr2 = InfixExpression(Token(TokenType.OP_STRICT_EQ, "is strictly equal to", 2, 2), "is strictly equal to", left2)
+    expr2.right = right2
+    stmt2 = ExpressionStatement(Token(TokenType.LIT_INT, "5", 2, 0), expr2)
+
+    program = Program([stmt1, stmt2])
+
+    # Compile
+    gen = CodeGenerator()
+    module = gen.compile(program)
+
+    # Check bytecode contains both opcodes
+    bytecode = module.main_chunk.bytecode
+    assert Opcode.EQ in bytecode, "Should contain EQ opcode for regular equality"
+    assert Opcode.STRICT_EQ in bytecode, "Should contain STRICT_EQ opcode for strict equality"
+
+    # Find the positions of the opcodes
+    eq_pos = bytecode.index(Opcode.EQ)
+    strict_eq_pos = bytecode.index(Opcode.STRICT_EQ)
+
+    # They should be different and in the right order
+    assert eq_pos < strict_eq_pos, "Regular equality should come before strict equality"
+
+
 def test_module_name_parameter() -> None:
     """Test that module name parameter works correctly."""
     # Create a simple AST

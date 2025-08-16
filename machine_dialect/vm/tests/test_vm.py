@@ -217,6 +217,76 @@ def test_comparison_lt() -> None:
     assert vm.globals["result"] is True
 
 
+def test_strict_equality() -> None:
+    """Test strict equality comparison."""
+    # Test: 5 is strictly equal to 5 (should be True)
+    left = IntegerLiteral(Token(TokenType.LIT_INT, "5", 1, 0), 5)
+    right = IntegerLiteral(Token(TokenType.LIT_INT, "5", 1, 4), 5)
+    expr = InfixExpression(Token(TokenType.OP_STRICT_EQ, "is strictly equal to", 1, 2), "is strictly equal to", left)
+    expr.right = right
+
+    stmt = SetStatement(
+        Token(TokenType.KW_SET, "Set", 1, 0), Identifier(Token(TokenType.MISC_IDENT, "result1", 1, 4), "result1"), expr
+    )
+
+    # Test: 5 is strictly equal to 5.0 (should be False - different types)
+    left2 = IntegerLiteral(Token(TokenType.LIT_INT, "5", 2, 0), 5)
+    right2 = FloatLiteral(Token(TokenType.LIT_FLOAT, "5.0", 2, 4), 5.0)
+    expr2 = InfixExpression(Token(TokenType.OP_STRICT_EQ, "is strictly equal to", 2, 2), "is strictly equal to", left2)
+    expr2.right = right2
+
+    stmt2 = SetStatement(
+        Token(TokenType.KW_SET, "Set", 2, 0), Identifier(Token(TokenType.MISC_IDENT, "result2", 2, 4), "result2"), expr2
+    )
+
+    program = Program([stmt, stmt2])
+
+    vm = VM()
+    gen = CodeGenerator()
+    module = gen.compile(program)
+    vm.run(module)
+
+    assert vm.globals["result1"] is True, "5 should be strictly equal to 5"
+    assert vm.globals["result2"] is False, "5 should not be strictly equal to 5.0"
+
+
+def test_strict_inequality() -> None:
+    """Test strict inequality comparison."""
+    # Test: 5 is not strictly equal to 5.0 (should be True - different types)
+    left = IntegerLiteral(Token(TokenType.LIT_INT, "5", 1, 0), 5)
+    right = FloatLiteral(Token(TokenType.LIT_FLOAT, "5.0", 1, 4), 5.0)
+    expr = InfixExpression(
+        Token(TokenType.OP_STRICT_NOT_EQ, "is not strictly equal to", 1, 2), "is not strictly equal to", left
+    )
+    expr.right = right
+
+    stmt = SetStatement(
+        Token(TokenType.KW_SET, "Set", 1, 0), Identifier(Token(TokenType.MISC_IDENT, "result1", 1, 4), "result1"), expr
+    )
+
+    # Test: 5 is not strictly equal to 5 (should be False - same type and value)
+    left2 = IntegerLiteral(Token(TokenType.LIT_INT, "5", 2, 0), 5)
+    right2 = IntegerLiteral(Token(TokenType.LIT_INT, "5", 2, 4), 5)
+    expr2 = InfixExpression(
+        Token(TokenType.OP_STRICT_NOT_EQ, "is not strictly equal to", 2, 2), "is not strictly equal to", left2
+    )
+    expr2.right = right2
+
+    stmt2 = SetStatement(
+        Token(TokenType.KW_SET, "Set", 2, 0), Identifier(Token(TokenType.MISC_IDENT, "result2", 2, 4), "result2"), expr2
+    )
+
+    program = Program([stmt, stmt2])
+
+    vm = VM()
+    gen = CodeGenerator()
+    module = gen.compile(program)
+    vm.run(module)
+
+    assert vm.globals["result1"] is True, "5 should not be strictly equal to 5.0"
+    assert vm.globals["result2"] is False, "5 should be strictly equal to 5"
+
+
 def test_variable_assignment_and_reference() -> None:
     """Test variable assignment and reference."""
     # Set x to 10

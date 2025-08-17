@@ -703,16 +703,38 @@ class Parser:
         # Use the identifier value directly (backticks already stripped by lexer)
         let_statement.name = self._parse_identifier()
 
-        # Expect "to" keyword
-        if not self._expected_token(TokenType.KW_TO):
+        # Check for "to" or "using" keyword
+        assert self._peek_token is not None
+        if self._peek_token.type == TokenType.KW_TO:
+            # Standard assignment: Set x to value
+            self._advance_tokens()  # Move to 'to'
+            self._advance_tokens()  # Move past 'to'
+            # Parse the value expression
+            let_statement.value = self._parse_expression()
+        elif self._peek_token.type == TokenType.KW_USING:
+            # Function call assignment: Set x using function_name
+            self._advance_tokens()  # Move to 'using'
+            self._advance_tokens()  # Move past 'using'
+            # Parse a function call (similar to Use statement but returns the value)
+            func_call = self._parse_function_call_expression()
+            # CallStatement is also an Expression, so this is valid
+            let_statement.value = func_call  # type: ignore[assignment]
+        else:
+            # Report the error
+            assert self._peek_token is not None
+            error = MDSyntaxError(
+                message=UNEXPECTED_TOKEN,
+                token_literal=self._peek_token.literal,
+                expected_token_type=TokenType.KW_TO,  # For compatibility with tests
+                received_token_type=self._peek_token.type,
+                line=self._peek_token.line,
+                column=self._peek_token.position,
+            )
+            self.errors.append(error)
             skipped = self._panic_mode_recovery()
-            return ErrorStatement(token=statement_token, skipped_tokens=skipped, message="Expected 'to' keyword")
-
-        # Advance to the expression
-        self._advance_tokens()
-
-        # Parse the value expression
-        let_statement.value = self._parse_expression()
+            return ErrorStatement(
+                token=statement_token, skipped_tokens=skipped, message="Expected 'to' or 'using' keyword"
+            )
 
         # Advance past the last token of the expression
         # Expression parsing leaves us at the last token, not after it
@@ -733,7 +755,7 @@ class Parser:
         if self._current_token and self._current_token.type == TokenType.PUNCT_PERIOD:
             # Already at period, no need to expect one
             pass
-        elif self._peek_token.type != TokenType.MISC_EOF or self._block_depth > 0:
+        elif self._peek_token.type != TokenType.MISC_EOF or self._block_depth > 0:  # type: ignore[comparison-overlap]
             self._expected_token(TokenType.PUNCT_PERIOD)
 
         return let_statement
@@ -802,6 +824,52 @@ class Parser:
             self._expected_token(TokenType.PUNCT_PERIOD)
 
         return say_statement
+
+    def _parse_function_call_expression(self) -> CallStatement | ErrorExpression:
+        """Parse a function call as an expression (for use with 'using' in Set statements).
+
+        Syntax: function_name [with <arguments>] or function_name [where <named arguments>].
+
+        Returns:
+            A CallStatement AST node that will be evaluated as an expression.
+        """
+        assert self._current_token is not None
+
+        # Parse the function name (must be an identifier in backticks)
+        if self._current_token and self._current_token.type == TokenType.MISC_IDENT:
+            function_name = Identifier(self._current_token, self._current_token.literal)
+            call_token = self._current_token
+            self._advance_tokens()
+        else:
+            # Error: expected identifier for function name
+            error = MDSyntaxError(
+                message=EXPECTED_FUNCTION_NAME,
+                token_type=self._current_token.type if self._current_token else "EOF",
+                line=self._current_token.line if self._current_token else 0,
+                column=self._current_token.position if self._current_token else 0,
+            )
+            self.errors.append(error)
+            error_message = EXPECTED_FUNCTION_NAME.substitute(
+                token_type=self._current_token.type if self._current_token else "EOF"
+            )
+            return ErrorExpression(token=self._current_token, message=error_message)
+
+        # Create the CallStatement
+        call_statement = CallStatement(token=call_token, function_name=function_name)
+
+        # Check for arguments
+        if self._current_token and self._current_token.type == TokenType.KW_WITH:  # type: ignore[comparison-overlap]
+            # Positional arguments
+            with_token = self._current_token
+            self._advance_tokens()
+            call_statement.arguments = self._parse_positional_arguments(with_token)
+        elif self._current_token and self._current_token.type == TokenType.KW_WHERE:  # type: ignore[comparison-overlap]
+            # Named arguments
+            where_token = self._current_token
+            self._advance_tokens()
+            call_statement.arguments = self._parse_named_arguments(where_token)
+
+        return call_statement
 
     def _parse_call_statement(self) -> CallStatement:
         """Parse a Use statement.

@@ -116,6 +116,7 @@ class TokenType(Enum):
     KW_TRAIT = auto()
     KW_URL = auto()
     KW_USE = auto()
+    KW_USING = auto()
     KW_UTILITY = auto()
     KW_WHERE = auto()
     KW_WHOLE_NUMBER = auto()
@@ -320,6 +321,8 @@ keywords_mapping: dict[str, TokenType] = {
     # boolean primitive: true
     "True": TokenType.LIT_TRUE,
     "Yes": TokenType.LIT_TRUE,
+    # using - for capturing function return values in Set statements
+    "using": TokenType.KW_USING,
     # Utility (equivalent to function in other languages)
     "Utility": TokenType.KW_UTILITY,
     # parameters:

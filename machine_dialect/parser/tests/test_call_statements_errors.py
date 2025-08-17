@@ -1,15 +1,15 @@
-"""Tests for error handling in call statements."""
+"""Tests for error handling in use statements."""
 
 from machine_dialect.ast import Arguments, CallStatement
 from machine_dialect.parser import Parser
 
 
 class TestCallStatementErrors:
-    """Test error handling for call statements."""
+    """Test error handling for use statements."""
 
     def test_call_missing_function_name(self) -> None:
-        """Test that call without function name produces an error."""
-        source = 'call with _"test"_.'
+        """Test that use without function name produces an error."""
+        source = 'use with _"test"_.'
 
         parser = Parser()
         parser.parse(source)
@@ -22,8 +22,8 @@ class TestCallStatementErrors:
         ), f"Expected error about missing function name, got: {parser.errors}"
 
     def test_call_with_invalid_function_name_type(self) -> None:
-        """Test that call with non-identifier function name produces an error."""
-        source = 'call _"not_an_identifier"_ with _"test"_.'
+        """Test that use with non-identifier function name produces an error."""
+        source = 'use _"not_an_identifier"_ with _"test"_.'
 
         parser = Parser()
         parser.parse(source)
@@ -35,8 +35,8 @@ class TestCallStatementErrors:
         ), f"Expected error about invalid function name type, got: {parser.errors}"
 
     def test_call_without_period(self) -> None:
-        """Test that call statement without period produces an error."""
-        source = "call `my_function`"
+        """Test that use statement without period produces an error."""
+        source = "use `my_function`"
 
         parser = Parser()
         parser.parse(source)
@@ -48,8 +48,8 @@ class TestCallStatementErrors:
         ), f"Expected error about missing period, got: {parser.errors}"
 
     def test_call_with_invalid_argument_value(self) -> None:
-        """Test that call with truly invalid argument value produces an error."""
-        source = "call `my_function` with @#$."
+        """Test that use with truly invalid argument value produces an error."""
+        source = "use `my_function` with @#$."
 
         parser = Parser()
         parser.parse(source)
@@ -63,7 +63,7 @@ class TestCallStatementErrors:
 
     def test_call_with_missing_comma_between_positional_args(self) -> None:
         """Test that missing comma between arguments produces an error."""
-        source = 'call `my_function` with `param` _"value"_.'
+        source = 'use `my_function` with `param` _"value"_.'
 
         parser = Parser()
         program = parser.parse(source)
@@ -85,8 +85,8 @@ class TestCallStatementErrors:
             assert len(call_stmt.arguments.positional) == 2
 
     def test_call_with_empty_arguments(self) -> None:
-        """Test that call with 'with' but no arguments produces reasonable behavior."""
-        source = "call `my_function` with ."
+        """Test that use with 'with' but no arguments produces reasonable behavior."""
+        source = "use `my_function` with ."
 
         parser = Parser()
         program = parser.parse(source)
@@ -108,7 +108,7 @@ class TestCallStatementErrors:
 
     def test_call_with_duplicate_named_arguments(self) -> None:
         """Test behavior with duplicate named argument keys."""
-        source = 'call `my_function` where `param` is _"value1"_, `param` is _"value2"_.'
+        source = 'use `my_function` where `param` is _"value1"_, `param` is _"value2"_.'
 
         parser = Parser()
         program = parser.parse(source)
@@ -130,7 +130,7 @@ class TestCallStatementErrors:
 
     def test_call_with_missing_comma_between_arguments(self) -> None:
         """Test that missing comma between arguments produces an error."""
-        source = 'call `my_function` with _"arg1"_ _"arg2"_.'
+        source = 'use `my_function` with _"arg1"_ _"arg2"_.'
 
         parser = Parser()
         program = parser.parse(source)
@@ -153,7 +153,7 @@ class TestCallStatementErrors:
 
     def test_call_with_trailing_comma(self) -> None:
         """Test that trailing comma in arguments is handled gracefully."""
-        source = 'call `my_function` with _"arg1"_, _"arg2"_,.'
+        source = 'use `my_function` with _"arg1"_, _"arg2"_,.'
 
         parser = Parser()
         program = parser.parse(source)
@@ -171,7 +171,7 @@ class TestCallStatementErrors:
         """Test error recovery with mixed valid and invalid arguments."""
         # Note: 'invalid' without backticks is actually a valid identifier argument
         # To test truly invalid syntax, we need something that's not a valid token
-        source = 'call `my_function` with _"valid"_, , _42_.'
+        source = 'use `my_function` with _"valid"_, , _42_.'
 
         parser = Parser()
         program = parser.parse(source)

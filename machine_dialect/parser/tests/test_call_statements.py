@@ -1,4 +1,4 @@
-"""Tests for call statements in Machine Dialect."""
+"""Tests for use statements in Machine Dialect."""
 
 from machine_dialect.ast import (
     Arguments,
@@ -11,11 +11,11 @@ from machine_dialect.parser import Parser
 
 
 class TestCallStatements:
-    """Test parsing of call statements."""
+    """Test parsing of use statements."""
 
     def test_call_without_parameters(self) -> None:
-        """Test parsing a call statement without parameters."""
-        source = "call `turn alarm off`."
+        """Test parsing a use statement without parameters."""
+        source = "use `turn alarm off`."
 
         parser = Parser()
         program = parser.parse(source)
@@ -30,8 +30,8 @@ class TestCallStatements:
         assert call_stmt.arguments is None
 
     def test_call_with_positional_arguments(self) -> None:
-        """Test parsing a call statement with positional arguments."""
-        source = "call `add numbers` with _5_, _10_."
+        """Test parsing a use statement with positional arguments."""
+        source = "use `add numbers` with _5_, _10_."
 
         parser = Parser()
         program = parser.parse(source)
@@ -59,8 +59,8 @@ class TestCallStatements:
         assert call_stmt.arguments.positional[1].value == 10
 
     def test_call_with_named_arguments(self) -> None:
-        """Test parsing a call statement with named arguments."""
-        source = 'call `make noise` where `sound` is _"WEE-OO WEE-OO WEE-OO"_, `volume` is _80_.'
+        """Test parsing a use statement with named arguments."""
+        source = 'use `make noise` where `sound` is _"WEE-OO WEE-OO WEE-OO"_, `volume` is _80_.'
 
         parser = Parser()
         program = parser.parse(source)
@@ -94,8 +94,8 @@ class TestCallStatements:
         assert val1.value == 80
 
     def test_call_with_identifier_as_function_name(self) -> None:
-        """Test parsing a call statement with an identifier as the function name."""
-        source = 'call `my_function` with _"test"_.'
+        """Test parsing a use statement with an identifier as the function name."""
+        source = 'use `my_function` with _"test"_.'
 
         parser = Parser()
         program = parser.parse(source)
@@ -109,8 +109,8 @@ class TestCallStatements:
         assert call_stmt.function_name.value == "my_function"
 
     def test_call_without_period(self) -> None:
-        """Test that call statement without period fails."""
-        source = "call `my_function`"
+        """Test that use statement without period fails."""
+        source = "use `my_function`"
 
         parser = Parser()
         parser.parse(source)
@@ -120,10 +120,10 @@ class TestCallStatements:
         assert any("period" in str(err).lower() for err in parser.errors)
 
     def test_multiple_call_statements(self) -> None:
-        """Test parsing multiple call statements."""
-        source = """call `start process`.
-call `log message` with _"Process started"_.
-call `stop process`.
+        """Test parsing multiple use statements."""
+        source = """use `start process`.
+use `log message` with _"Process started"_.
+use `stop process`.
 """
 
         parser = Parser()

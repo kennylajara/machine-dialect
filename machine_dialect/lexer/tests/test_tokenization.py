@@ -76,7 +76,7 @@ class TestLexer:
             # More keywords
             ("action", [Token(TokenType.KW_ACTION, "action", line=1, position=1)]),
             ("actions", [Token(TokenType.KW_ACTION, "actions", line=1, position=1)]),
-            ("apply", [Token(TokenType.KW_CALL, "apply", line=1, position=1)]),
+            # "apply" is reserved for future use, currently not mapped
             ("behavior", [Token(TokenType.KW_BEHAVIOR, "behavior", line=1, position=1)]),
             ("behaviors", [Token(TokenType.KW_BEHAVIOR, "behaviors", line=1, position=1)]),
             ("behaviour", [Token(TokenType.KW_BEHAVIOR, "behaviour", line=1, position=1)]),
@@ -105,6 +105,7 @@ class TestLexer:
             ("to", [Token(TokenType.KW_TO, "to", line=1, position=1)]),
             ("trait", [Token(TokenType.KW_TRAIT, "trait", line=1, position=1)]),
             ("traits", [Token(TokenType.KW_TRAIT, "traits", line=1, position=1)]),
+            ("Use", [Token(TokenType.KW_USE, "Use", line=1, position=1)]),
             ("URL", [Token(TokenType.KW_URL, "URL", line=1, position=1)]),
             ("URLs", [Token(TokenType.KW_URL, "URLs", line=1, position=1)]),
             ("Date", [Token(TokenType.KW_DATE, "Date", line=1, position=1)]),

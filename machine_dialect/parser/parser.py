@@ -804,19 +804,19 @@ class Parser:
         return say_statement
 
     def _parse_call_statement(self) -> CallStatement:
-        """Parse a Call statement.
+        """Parse a Use statement.
 
-        Syntax: call <function> [with <arguments>].
+        Syntax: use <function> [with <arguments>] or use <function> [where <named arguments>].
 
         Returns:
             A CallStatement AST node.
         """
         assert self._current_token is not None
-        assert self._current_token.type == TokenType.KW_CALL
+        assert self._current_token.type == TokenType.KW_USE
 
         statement_token = self._current_token
 
-        # Move past 'call'
+        # Move past 'use'
         self._advance_tokens()
 
         # Parse the function name (must be an identifier in backticks)
@@ -1531,7 +1531,7 @@ class Parser:
             TokenType.KW_RETURN: self._parse_return_statement,
             TokenType.KW_IF: self._parse_if_statement,
             TokenType.KW_SAY: self._parse_say_statement,
-            TokenType.KW_CALL: self._parse_call_statement,
+            TokenType.KW_USE: self._parse_call_statement,
             TokenType.PUNCT_HASH_TRIPLE: self._parse_action_interaction_or_utility,
         }
 

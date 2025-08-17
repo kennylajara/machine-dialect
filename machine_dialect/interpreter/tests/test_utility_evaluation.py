@@ -46,7 +46,7 @@ class TestUtilityEvaluation:
 
 </details>
 
-Call `get pi`."""
+Use `get pi`."""
 
         parser = Parser()
         program = parser.parse(source)
@@ -78,7 +78,7 @@ Call `get pi`."""
 
 Set `x` to _10_.
 Set `y` to _5_.
-Call `add numbers` with `x`, `y`."""
+Use `add numbers` with `x`, `y`."""
 
         parser = Parser()
         program = parser.parse(source)
@@ -107,7 +107,7 @@ Call `add numbers` with `x`, `y`."""
 - `minuend` **as** Number (required)
 - `subtrahend` **as** Number (required)
 
-Call `subtract` where `subtrahend` is _3_, `minuend` is _10_."""
+Use `subtract` where `subtrahend` is _3_, `minuend` is _10_."""
 
         parser = Parser()
         program = parser.parse(source)
@@ -136,7 +136,7 @@ Call `subtract` where `subtrahend` is _3_, `minuend` is _10_."""
 - `name` **as** Text (required)
 - `greeting` **as** Text (optional, default: _"Hello"_)
 
-Call `greet` with _"World"_."""
+Use `greet` with _"World"_."""
 
         parser = Parser()
         program = parser.parse(source)
@@ -167,7 +167,7 @@ Call `greet` with _"World"_."""
 #### Inputs:
 - `number` **as** Number (required)
 
-Call `absolute value` with _-5_."""
+Use `absolute value` with _-5_."""
 
         parser = Parser()
         program = parser.parse(source)
@@ -196,7 +196,7 @@ Call `absolute value` with _-5_."""
 - `a` **as** Number (required)
 - `b` **as** Number (required)
 
-Call `multiply` with _5_."""
+Use `multiply` with _5_."""
 
         parser = Parser()
         program = parser.parse(source)
@@ -212,7 +212,7 @@ Call `multiply` with _5_."""
 
     def test_call_undefined_utility(self) -> None:
         """Test calling a utility that doesn't exist."""
-        source = """Call `undefined function`."""
+        source = """Use `undefined function`."""
 
         parser = Parser()
         program = parser.parse(source)
@@ -240,7 +240,7 @@ Call `multiply` with _5_."""
 
 </details>
 
-Call `test scope`."""
+Use `test scope`."""
 
         parser = Parser()
         program = parser.parse(source)
@@ -277,9 +277,9 @@ Call `test scope`."""
 <details>
 <summary>Quadruples a number.</summary>
 
-> Call `double` with `n`.
+> Use `double` with `n`.
 > Set `doubled` to _6_.
-> Call `double` with `doubled`.
+> Use `double` with `doubled`.
 > Set `result` to _12_.
 > Give back `result`.
 
@@ -288,7 +288,7 @@ Call `test scope`."""
 #### Inputs:
 - `n` **as** Number (required)
 
-Call `quadruple` with _3_."""
+Use `quadruple` with _3_."""
 
         parser = Parser()
         program = parser.parse(source)
@@ -313,7 +313,7 @@ Call `quadruple` with _3_."""
 
 </details>
 
-Call `do nothing`."""
+Use `do nothing`."""
 
         parser = Parser()
         program = parser.parse(source)

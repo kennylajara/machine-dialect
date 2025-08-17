@@ -35,7 +35,7 @@ MISSING_DEPTH_TRANSITION = ErrorTemplate(
 )
 UNEXPECTED_BLOCK_DEPTH = ErrorTemplate("Unexpected block depth: expected $expected '>' but got $actual")
 
-# Call statement errors
+# Use statement errors
 EXPECTED_FUNCTION_NAME = ErrorTemplate("Expected identifier for function name, got $token_type")
 EXPECTED_IDENTIFIER_FOR_NAMED_ARG = ErrorTemplate("Expected identifier for named argument, got $type_name")
 POSITIONAL_AFTER_NAMED = ErrorTemplate("Positional arguments cannot appear after named arguments")

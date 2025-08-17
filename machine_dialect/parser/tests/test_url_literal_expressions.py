@@ -174,8 +174,8 @@ class TestURLLiteralExpressions:
         assert str(stmt.expression) == '_"https://example.com"_'
 
     def test_url_in_call_statement(self) -> None:
-        """Test using a URL literal as an argument in a call statement."""
-        source = 'Call `fetch` with _"https://api.example.com/data"_.'
+        """Test using a URL literal as an argument in a use statement."""
+        source = 'Use `fetch` with _"https://api.example.com/data"_.'
         parser = Parser()
         program = parser.parse(source)
 

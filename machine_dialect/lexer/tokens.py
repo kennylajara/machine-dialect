@@ -77,7 +77,6 @@ class TokenType(Enum):
     KW_AS = auto()
     KW_BEHAVIOR = auto()
     KW_BOOL = auto()
-    KW_CALL = auto()
     KW_DATATYPE = auto()
     KW_DATE = auto()
     KW_DATETIME = auto()
@@ -116,6 +115,7 @@ class TokenType(Enum):
     KW_TO = auto()
     KW_TRAIT = auto()
     KW_URL = auto()
+    KW_USE = auto()
     KW_UTILITY = auto()
     KW_WHERE = auto()
     KW_WHOLE_NUMBER = auto()
@@ -191,15 +191,14 @@ keywords_mapping: dict[str, TokenType] = {
     "action": TokenType.KW_ACTION,
     # logic and: true and false
     "and": TokenType.KW_AND,
-    # call function:
-    #   call `turn alarm off`.
-    #   call `make noise` with `sound`: _"WEE-OO"_, volume: _80_.
+    # Use function:
+    #   Use `turn alarm off`.
+    #   Use `make noise` where `sound` is _"WEE-OO"_, `volume` is _80_.
     # TODO: Implement proper 'apply' statement with its own token type (KW_APPLY)
     #       Should support: apply rule `add` with **1** and **5**
     #                      apply formula `calculate` with `left` = **1** and `right` = **5**
-    #       Currently maps to KW_CALL which is incorrect
-    "apply": TokenType.KW_CALL,
-    "call": TokenType.KW_CALL,
+    # "apply": TokenType.KW_APPLY,  # Reserved for future use
+    "Use": TokenType.KW_USE,
     # type indicator: set `a` as integer
     "as": TokenType.KW_AS,
     # behavior for objects

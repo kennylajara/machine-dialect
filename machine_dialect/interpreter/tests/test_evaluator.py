@@ -168,20 +168,6 @@ class TestEvaluatorStatements:
 class TestEvaluatorEdgeCases:
     """Test edge cases and error conditions."""
 
-    def test_evaluate_unsupported_node_type(self) -> None:
-        """Test evaluating an unsupported node type."""
-        # Create a node type that's not handled by the evaluator
-        # Using CallStatement as an example of an unhandled type
-        node = ast.CallStatement(
-            Token(TokenType.KW_CALL, "Call", 1, 0),
-            ast.StringLiteral(Token(TokenType.LIT_TEXT, '"function_name"', 1, 5), "function_name"),
-            None,
-        )
-
-        result = evaluate(node)
-
-        assert result is None
-
     def test_evaluate_none_expression_in_statement(self) -> None:
         """Test that assertion fails for statement with None expression."""
         # Create an expression statement with None expression

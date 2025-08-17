@@ -25,6 +25,7 @@ class TestObjectType:
             "EMPTY",
             "ERROR",
             "FLOAT",
+            "FUNCTION",
             "INTEGER",
             "RETURN",
             "STRING",

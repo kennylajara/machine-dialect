@@ -2,13 +2,16 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from enum import Enum, auto
-from typing import ClassVar
+from typing import TYPE_CHECKING, ClassVar
 
 from machine_dialect.errors.messages import (
     DIVISION_BY_ZERO,
     UNSUPPORTED_OPERAND_TYPE,
     UNSUPPORTED_UNARY_OPERAND,
 )
+
+if TYPE_CHECKING:
+    import machine_dialect.ast as ast
 
 
 class ObjectType(Enum):
@@ -18,6 +21,7 @@ class ObjectType(Enum):
     EMPTY = auto()
     ERROR = auto()
     FLOAT = auto()
+    FUNCTION = auto()
     INTEGER = auto()
     RETURN = auto()
     STRING = auto()
@@ -437,3 +441,34 @@ class URL(String):
     def inspect(self) -> str:
         # URLs display without quotes to distinguish from regular strings
         return self._value
+
+
+class Function(Object):
+    """Function object representing a utility."""
+
+    def __init__(
+        self,
+        name: str,
+        parameters: list[tuple[str, bool, Object | None]],
+        body: ast.BlockStatement,
+        env: Environment,
+    ) -> None:
+        """Initialize a function object.
+
+        Args:
+            name: The name of the function.
+            parameters: List of (name, is_required, default_value) tuples.
+            body: The body of the function (BlockStatement).
+            env: The environment where the function was defined.
+        """
+        self.name = name
+        self.parameters = parameters
+        self.body = body
+        self.env = env
+
+    @property
+    def type(self) -> ObjectType:
+        return ObjectType.FUNCTION
+
+    def inspect(self) -> str:
+        return f"<utility: {self.name}>"

@@ -37,14 +37,13 @@ from machine_dialect.errors.messages import (
     EXPECTED_DETAILS_CLOSE,
     EXPECTED_EXPRESSION,
     EXPECTED_FUNCTION_NAME,
-    EXPECTED_IDENTIFIER_FOR_NAMED_ARG,
     INVALID_ARGUMENT_VALUE,
     INVALID_FLOAT_LITERAL,
     INVALID_INTEGER_LITERAL,
+    MISSING_COMMA_BETWEEN_ARGS,
     MISSING_DEPTH_TRANSITION,
     NAME_UNDEFINED,
     NO_PARSE_FUNCTION,
-    POSITIONAL_AFTER_NAMED,
     UNEXPECTED_BLOCK_DEPTH,
     UNEXPECTED_TOKEN,
     UNEXPECTED_TOKEN_AT_START,
@@ -837,15 +836,23 @@ class Parser:
             )
             function_name = None
 
-        # Check for 'with' keyword for arguments
+        # Check for 'with' or 'where' keyword for arguments
         arguments: Arguments | None = None
         if self._current_token and self._current_token.type == TokenType.KW_WITH:  # type: ignore[comparison-overlap]
-            # Save 'with' token for Arguments node
+            # 'with' is for positional arguments
             with_token = self._current_token
             self._advance_tokens()  # Move past 'with'
 
-            # Parse arguments
-            arguments = self._parse_arguments_with_token(with_token)
+            # Parse positional arguments
+            arguments = self._parse_positional_arguments(with_token)
+
+        elif self._current_token and self._current_token.type == TokenType.KW_WHERE:  # type: ignore[comparison-overlap]
+            # 'where' is for named arguments
+            where_token = self._current_token
+            self._advance_tokens()  # Move past 'where'
+
+            # Parse named arguments
+            arguments = self._parse_named_arguments(where_token)
 
         # Create the Call statement
         call_statement = CallStatement(statement_token, function_name, arguments)
@@ -920,123 +927,112 @@ class Parser:
             self._advance_tokens()  # Skip the invalid token
             return None
 
-    def _parse_arguments_with_token(self, with_token: Token) -> Arguments:
-        """Parse function call arguments.
+    def _parse_positional_arguments(self, with_token: Token) -> Arguments:
+        """Parse positional arguments after 'with' keyword.
 
-        Arguments can be:
-        - Positional: _value1_, _value2_
-        - Named: `param1`: _value1_, `param2`: _value2_
-        - Mixed: _value1_, `param`: _value2_ (positional must come first)
+        Syntax: with _value1_, _value2_
 
         Returns:
-            An Arguments AST node.
+            An Arguments AST node with positional arguments.
         """
-        # Create Arguments node with the 'with' token
         arguments = Arguments(with_token)
-        has_named = False  # Track if we've seen named arguments
 
         while self._current_token and self._current_token.type not in (
             TokenType.PUNCT_PERIOD,
             TokenType.MISC_EOF,
-            TokenType.DELIM_RPAREN,
         ):
-            # Check if this is a named argument (next token is colon after an identifier/string)
-            if self._peek_token and self._peek_token.type == TokenType.PUNCT_COLON:
-                # This is a named argument
-                has_named = True
+            # Parse argument value
+            value = self._parse_argument_value()
+            if value:
+                arguments.positional.append(value)
 
-                # Parse the parameter name (should be an identifier in backticks)
-                if self._current_token and self._current_token.type == TokenType.MISC_IDENT:
-                    name_expr = Identifier(self._current_token, self._current_token.literal)
-                    self._advance_tokens()
-                else:
-                    name_expr = None
-
-                # Verify it's an identifier
-                if not isinstance(name_expr, Identifier):
-                    # Record error for invalid named argument
-                    error_token = self._current_token or Token(TokenType.MISC_EOF, "", 0, 0)
-                    self.errors.append(
-                        MDSyntaxError(
-                            message=EXPECTED_IDENTIFIER_FOR_NAMED_ARG,
-                            type_name=type(name_expr).__name__ if name_expr else "None",
-                            line=error_token.line,
-                            column=error_token.position,
-                        )
-                    )
-                    # Try to recover by skipping to next comma or period
-                    self._panic_mode_recovery()
-                    break
-
-                # Skip the colon
-                if self._current_token and self._current_token.type == TokenType.PUNCT_COLON:
-                    self._advance_tokens()
-
-                # Parse the value
-                value = self._parse_argument_value()
-
-                # Add to named arguments if both name and value are valid
-                if name_expr and value:
-                    arguments.named.append((name_expr, value))
-            else:
-                # This is a positional argument
-                if has_named:
-                    # Error: positional argument after named argument
-                    error_token = self._current_token or Token(TokenType.MISC_EOF, "", 0, 0)
-                    self.errors.append(
-                        MDSyntaxError(
-                            message=POSITIONAL_AFTER_NAMED,
-                            line=error_token.line,
-                            column=error_token.position,
-                        )
-                    )
-                    # Try to recover by skipping to next comma or period
-                    self._panic_mode_recovery()
-                    break
-
-                # Parse the value
-                value = self._parse_argument_value()
-
-                # Add to positional arguments if valid
-                if value:
-                    arguments.positional.append(value)
-
-            # Check for comma separator
+            # Check for comma (optional)
             if self._current_token and self._current_token.type == TokenType.PUNCT_COMMA:
-                self._advance_tokens()  # Skip comma
+                self._advance_tokens()
+            # Check for 'and' (optional)
+            elif self._current_token and self._current_token.type == TokenType.KW_AND:
+                self._advance_tokens()
+            # If no comma or 'and', and we're not at the end, check if another argument follows
             elif self._current_token and self._current_token.type not in (
                 TokenType.PUNCT_PERIOD,
                 TokenType.MISC_EOF,
             ):
-                # No comma but not at the end either - missing comma error
-                error_token = self._current_token
-                self.errors.append(
-                    MDSyntaxError(
-                        message=UNEXPECTED_TOKEN,
-                        token_literal=error_token.literal,
-                        expected_token_type=TokenType.PUNCT_COMMA,
-                        received_token_type=error_token.type,
-                        line=error_token.line,
-                        column=error_token.position,
-                    )
-                )
-                # Try to recover by continuing to parse the next argument or ending
-                # Check if the next token looks like it could be an argument
+                # Check if this looks like another argument (identifier or literal)
                 if self._current_token.type in (
+                    TokenType.MISC_IDENT,
                     TokenType.LIT_INT,
                     TokenType.LIT_FLOAT,
                     TokenType.LIT_TEXT,
-                    TokenType.LIT_URL,
                     TokenType.LIT_TRUE,
                     TokenType.LIT_FALSE,
-                    TokenType.MISC_IDENT,
                     TokenType.KW_EMPTY,
                 ):
-                    # Looks like another argument, continue parsing
+                    # Report error but continue parsing (error recovery)
+                    syntax_error = MDSyntaxError(
+                        message=MISSING_COMMA_BETWEEN_ARGS,
+                        line=self._current_token.line,
+                        column=self._current_token.position,
+                    )
+                    self.errors.append(syntax_error)
+                    # Continue parsing the next argument for error recovery
                     continue
                 else:
-                    # Doesn't look like an argument, stop parsing arguments
+                    # Not an argument, stop parsing
                     break
+
+        return arguments
+
+    def _parse_named_arguments(self, where_token: Token) -> Arguments:
+        """Parse named arguments after 'where' keyword.
+
+        Syntax: where `param1` is _value1_, `param2` is _value2_
+
+        Returns:
+            An Arguments AST node with named arguments.
+        """
+        arguments = Arguments(where_token)
+
+        while self._current_token and self._current_token.type not in (
+            TokenType.PUNCT_PERIOD,
+            TokenType.MISC_EOF,
+        ):
+            # Parse parameter name (should be an identifier in backticks)
+            name_expr: Identifier | None = None
+            if self._current_token and self._current_token.type == TokenType.MISC_IDENT:
+                name_expr = Identifier(self._current_token, self._current_token.literal)
+                self._advance_tokens()
+            else:
+                # Error: expected identifier
+                self._expected_token(TokenType.MISC_IDENT)
+                break
+
+            # Expect 'is' keyword - mypy doesn't realize _advance_tokens() changes _current_token
+            assert self._current_token is not None  # Help mypy understand
+            if self._current_token.type == TokenType.KW_IS:  # type: ignore[comparison-overlap]
+                self._advance_tokens()
+            else:
+                self._expected_token(TokenType.KW_IS)
+                break
+
+            # Parse the value
+            value = self._parse_argument_value()
+
+            # Add to named arguments if both name and value are valid
+            if name_expr and value:
+                arguments.named.append((name_expr, value))
+
+            # Check for comma (optional)
+            if self._current_token and self._current_token.type == TokenType.PUNCT_COMMA:
+                self._advance_tokens()
+            # Check for 'and' (optional)
+            elif self._current_token and self._current_token.type == TokenType.KW_AND:
+                self._advance_tokens()
+            # If no comma or 'and', and we're not at the end, break
+            elif self._current_token and self._current_token.type not in (
+                TokenType.PUNCT_PERIOD,
+                TokenType.MISC_EOF,
+            ):
+                break
 
         return arguments
 

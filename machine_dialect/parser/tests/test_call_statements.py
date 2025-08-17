@@ -60,7 +60,7 @@ class TestCallStatements:
 
     def test_call_with_named_arguments(self) -> None:
         """Test parsing a call statement with named arguments."""
-        source = 'call `make noise` with `sound`: _"WEE-OO WEE-OO WEE-OO"_, `volume`: _80_.'
+        source = 'call `make noise` where `sound` is _"WEE-OO WEE-OO WEE-OO"_, `volume` is _80_.'
 
         parser = Parser()
         program = parser.parse(source)
@@ -108,42 +108,6 @@ class TestCallStatements:
         assert isinstance(call_stmt.function_name, Identifier)
         assert call_stmt.function_name.value == "my_function"
 
-    def test_call_with_mixed_arguments(self) -> None:
-        """Test parsing a call statement with mix of positional and named arguments."""
-        source = 'call `process` with _"data"_, _42_, `format`: _"json"_.'
-
-        parser = Parser()
-        program = parser.parse(source)
-
-        assert len(parser.errors) == 0, f"Parser errors: {parser.errors}"
-        assert len(program.statements) == 1
-
-        call_stmt = program.statements[0]
-        assert isinstance(call_stmt, CallStatement)
-        assert isinstance(call_stmt.function_name, Identifier)
-        assert call_stmt.function_name.value == "process"
-
-        assert call_stmt.arguments is not None
-        assert isinstance(call_stmt.arguments, Arguments)
-        # Should have 2 positional and 1 named argument
-        assert len(call_stmt.arguments.positional) == 2
-        assert len(call_stmt.arguments.named) == 1
-
-        # First positional argument
-        assert isinstance(call_stmt.arguments.positional[0], StringLiteral)
-        assert call_stmt.arguments.positional[0].value == '"data"'
-
-        # Second positional argument
-        assert isinstance(call_stmt.arguments.positional[1], IntegerLiteral)
-        assert call_stmt.arguments.positional[1].value == 42
-
-        # Named argument: format
-        name, val = call_stmt.arguments.named[0]
-        assert isinstance(name, Identifier)
-        assert name.value == "format"
-        assert isinstance(val, StringLiteral)
-        assert val.value == '"json"'
-
     def test_call_without_period(self) -> None:
         """Test that call statement without period fails."""
         source = "call `my_function`"
@@ -188,20 +152,3 @@ call `stop process`.
         assert isinstance(call3.function_name, Identifier)
         assert call3.function_name.value == "stop process"
         assert call3.arguments is None
-
-    def test_keyword_before_positional_arguments_fails(self) -> None:
-        """Test that keyword arguments before positional arguments produces an error."""
-        source = 'call `process` with `format`: _"json"_, _"data"_.'
-
-        parser = Parser()
-        parser.parse(source)
-
-        # Should have an error about argument ordering
-        assert len(parser.errors) > 0
-        error_messages = [str(err).lower() for err in parser.errors]
-        assert any(
-            ("keyword" in msg and "positional" in msg)
-            or ("named" in msg and "positional" in msg)
-            or ("argument" in msg and "order" in msg)
-            for msg in error_messages
-        ), f"Expected error about argument ordering, got: {parser.errors}"

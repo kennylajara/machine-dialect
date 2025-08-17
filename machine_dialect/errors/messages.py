@@ -40,6 +40,7 @@ EXPECTED_FUNCTION_NAME = ErrorTemplate("Expected identifier for function name, g
 EXPECTED_IDENTIFIER_FOR_NAMED_ARG = ErrorTemplate("Expected identifier for named argument, got $type_name")
 POSITIONAL_AFTER_NAMED = ErrorTemplate("Positional arguments cannot appear after named arguments")
 INVALID_ARGUMENT_VALUE = ErrorTemplate("Invalid argument value: '$literal'")
+MISSING_COMMA_BETWEEN_ARGS = ErrorTemplate("Expected comma between arguments")
 
 # Interpreter errors
 UNKNOWN_PREFIX_OPERATOR = ErrorTemplate("Unknown prefix operator: $operator")

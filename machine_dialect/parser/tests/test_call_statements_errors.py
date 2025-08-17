@@ -61,19 +61,6 @@ class TestCallStatementErrors:
             "invalid" in msg or "no suitable parse function" in msg for msg in error_messages
         ), f"Expected error about invalid argument, got: {parser.errors}"
 
-    def test_keyword_before_positional_arguments(self) -> None:
-        """Test that keyword arguments before positional arguments produces an error."""
-        source = 'call `process` with `format`: _"json"_, _"data"_.'
-
-        parser = Parser()
-        parser.parse(source)
-
-        assert len(parser.errors) > 0
-        error_messages = [str(err).lower() for err in parser.errors]
-        assert any(
-            "positional" in msg and "after" in msg and "named" in msg for msg in error_messages
-        ), f"Expected error about argument ordering, got: {parser.errors}"
-
     def test_call_with_missing_comma_between_positional_args(self) -> None:
         """Test that missing comma between arguments produces an error."""
         source = 'call `my_function` with `param` _"value"_.'
@@ -121,7 +108,7 @@ class TestCallStatementErrors:
 
     def test_call_with_duplicate_named_arguments(self) -> None:
         """Test behavior with duplicate named argument keys."""
-        source = 'call `my_function` with `param`: _"value1"_, `param`: _"value2"_.'
+        source = 'call `my_function` where `param` is _"value1"_, `param` is _"value2"_.'
 
         parser = Parser()
         program = parser.parse(source)

@@ -29,6 +29,10 @@ EXPECTED_EXPRESSION = ErrorTemplate("expected expression, got $got")
 EMPTY_IF_CONSEQUENCE = ErrorTemplate("If statement must have a non-empty consequence block")
 EMPTY_ELSE_BLOCK = ErrorTemplate("Else/otherwise block must not be empty. If no alternative is needed, omit it.")
 EXPECTED_DETAILS_CLOSE = ErrorTemplate("Expected </details> tag after action body, got $token_type")
+MISSING_DEPTH_TRANSITION = ErrorTemplate(
+    "After nested blocks ($nested_depth), add a blank line with just '$parent_depth' "
+    "before continuing at the parent depth. Found '$token_type' at line $line"
+)
 UNEXPECTED_BLOCK_DEPTH = ErrorTemplate("Unexpected block depth: expected $expected '>' but got $actual")
 
 # Call statement errors

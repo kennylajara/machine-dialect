@@ -18,6 +18,7 @@ from machine_dialect.ast import (
     InfixExpression,
     IntegerLiteral,
     InteractionStatement,
+    Output,
     Parameter,
     PrefixExpression,
     Program,
@@ -27,6 +28,7 @@ from machine_dialect.ast import (
     Statement,
     StringLiteral,
     URLLiteral,
+    UtilityStatement,
 )
 from machine_dialect.errors.exceptions import MDBaseException, MDNameError, MDSyntaxError
 from machine_dialect.errors.messages import (
@@ -39,6 +41,7 @@ from machine_dialect.errors.messages import (
     INVALID_ARGUMENT_VALUE,
     INVALID_FLOAT_LITERAL,
     INVALID_INTEGER_LITERAL,
+    MISSING_DEPTH_TRANSITION,
     NAME_UNDEFINED,
     NO_PARSE_FUNCTION,
     POSITIONAL_AFTER_NAMED,
@@ -1119,13 +1122,17 @@ class Parser:
 
         return if_statement
 
-    def _parse_action_or_interaction(self) -> ActionStatement | InteractionStatement | ErrorStatement:
-        """Parse an Action or Interaction statement.
+    def _parse_action_interaction_or_utility(
+        self
+    ) -> ActionStatement | InteractionStatement | UtilityStatement | ErrorStatement:
+        """Parse an Action, Interaction, or Utility statement.
 
         Expected format:
         ### **Action**: `name`
         or
         ### **Interaction**: `name`
+        or
+        ### **Utility**: `name`
 
         <details>
         <summary>Description</summary>
@@ -1133,7 +1140,7 @@ class Parser:
         </details>
 
         Returns:
-            ActionStatement or InteractionStatement node, or ErrorStatement if parsing fails.
+            ActionStatement, InteractionStatement, or UtilityStatement node, or ErrorStatement if parsing fails.
         """
         assert self._current_token is not None
         assert self._current_token.type == TokenType.PUNCT_HASH_TRIPLE
@@ -1144,24 +1151,30 @@ class Parser:
         # Move past ###
         self._advance_tokens()
 
-        # Expect **Action** or **Interaction** (wrapped keyword)
-        if not self._current_token or self._current_token.type not in (TokenType.KW_ACTION, TokenType.KW_INTERACTION):
+        # Expect **Action**, **Interaction**, or **Utility** (wrapped keyword)
+        if not self._current_token or self._current_token.type not in (
+            TokenType.KW_ACTION,
+            TokenType.KW_INTERACTION,
+            TokenType.KW_UTILITY,
+        ):
             skipped = self._panic_mode_recovery()
             return ErrorStatement(
-                token=hash_token, skipped_tokens=skipped, message="Expected **Action** or **Interaction** after ###"
+                token=hash_token,
+                skipped_tokens=skipped,
+                message="Expected **Action**, **Interaction**, or **Utility** after ###",
             )
 
-        is_action = self._current_token.type == TokenType.KW_ACTION  # type: ignore[comparison-overlap]
+        statement_type = self._current_token.type
         keyword_token = self._current_token
 
-        # Move past Action/Interaction keyword
+        # Move past Action/Interaction/Utility keyword
         self._advance_tokens()
 
         # Expect colon - should be at current position
         if not self._current_token or self._current_token.type != TokenType.PUNCT_COLON:  # type: ignore[comparison-overlap]
             skipped = self._panic_mode_recovery()
             return ErrorStatement(
-                token=keyword_token, skipped_tokens=skipped, message="Expected ':' after Action/Interaction"
+                token=keyword_token, skipped_tokens=skipped, message="Expected ':' after Action/Interaction/Utility"
             )
 
         # Move past colon
@@ -1207,14 +1220,31 @@ class Parser:
             # If we're not at </details>, something went wrong with block parsing
             # Create an error but don't panic recover
             if self._current_token:
-                self._errors.append(
-                    MDSyntaxError(
-                        line=self._current_token.line,
-                        column=self._current_token.position,
-                        message=EXPECTED_DETAILS_CLOSE,
-                        token_type=self._current_token.type.name,
+                # Check if this is likely a missing depth transition issue
+                if self._current_token.type == TokenType.KW_RETURN and self._block_depth > 0:
+                    # This looks like a "Give back" statement after nested blocks
+                    # The user likely forgot to add a transition line
+                    nested_depth = ">" * (self._block_depth + 1)  # The depth they were at (e.g., >>)
+                    parent_depth = ">" * self._block_depth  # The depth they need to transition to (e.g., >)
+                    self._errors.append(
+                        MDSyntaxError(
+                            line=self._current_token.line,
+                            column=self._current_token.position,
+                            message=MISSING_DEPTH_TRANSITION,
+                            nested_depth=nested_depth,
+                            parent_depth=parent_depth,
+                            token_type=self._current_token.type.name,
+                        )
                     )
-                )
+                else:
+                    self._errors.append(
+                        MDSyntaxError(
+                            line=self._current_token.line,
+                            column=self._current_token.position,
+                            message=EXPECTED_DETAILS_CLOSE,
+                            token_type=self._current_token.type.name,
+                        )
+                    )
 
         # Check for parameter sections (#### Inputs: and #### Outputs:)
         inputs: list[Parameter] = []
@@ -1226,13 +1256,23 @@ class Parser:
             inputs, outputs = self._parse_parameter_sections()
 
         # Create and return the appropriate statement
-        if is_action:
+        if statement_type == TokenType.KW_ACTION:
             return ActionStatement(
                 keyword_token, name, inputs=inputs, outputs=outputs, body=body, description=description
             )
-        else:
+        elif statement_type == TokenType.KW_INTERACTION:
             return InteractionStatement(
                 keyword_token, name, inputs=inputs, outputs=outputs, body=body, description=description
+            )
+        elif statement_type == TokenType.KW_UTILITY:
+            return UtilityStatement(
+                keyword_token, name, inputs=inputs, outputs=outputs, body=body, description=description
+            )
+        else:
+            # This should never happen since we check for valid types above
+            skipped = self._panic_mode_recovery()
+            return ErrorStatement(
+                token=keyword_token, skipped_tokens=skipped, message=f"Unexpected statement type: {statement_type}"
             )
 
     def _parse_block_statement(self, expected_depth: int = 1) -> BlockStatement:
@@ -1496,17 +1536,17 @@ class Parser:
             TokenType.KW_IF: self._parse_if_statement,
             TokenType.KW_SAY: self._parse_say_statement,
             TokenType.KW_CALL: self._parse_call_statement,
-            TokenType.PUNCT_HASH_TRIPLE: self._parse_action_or_interaction,
+            TokenType.PUNCT_HASH_TRIPLE: self._parse_action_interaction_or_utility,
         }
 
-    def _parse_parameter_sections(self) -> tuple[list[Parameter], list[Parameter]]:
+    def _parse_parameter_sections(self) -> tuple[list[Parameter], list[Output]]:
         """Parse parameter sections (#### Inputs: and #### Outputs:).
 
         Returns:
-            A tuple of (inputs, outputs) lists of parameters.
+            A tuple of (inputs, outputs) - inputs are Parameters, outputs are Outputs.
         """
         inputs: list[Parameter] = []
-        outputs: list[Parameter] = []
+        outputs: list[Output] = []
 
         while self._current_token and self._current_token.type == TokenType.PUNCT_HASH_QUAD:
             # Move past ####
@@ -1536,8 +1576,8 @@ class Parser:
                     if colon_token2 and colon_token2.type == TokenType.PUNCT_COLON:
                         self._advance_tokens()
 
-                        # Parse output parameters
-                        outputs = self._parse_parameter_list()
+                        # Parse output list (different format from inputs)
+                        outputs = self._parse_output_list()
 
                 else:
                     # Not a parameter section, break
@@ -1652,6 +1692,105 @@ class Parser:
             name=name,
             type_name=type_name,
             is_required=is_required,
+            default_value=default_value,
+        )
+
+    def _parse_output_list(self) -> list[Output]:
+        """Parse a list of outputs (lines starting with -).
+
+        Expected format for outputs:
+        - `name` **as** Type
+        - `name` **as** Type (default: value)
+
+        Returns:
+            List of Output objects.
+        """
+        outputs: list[Output] = []
+
+        while self._current_token and self._current_token.type == TokenType.OP_MINUS:
+            # Move past -
+            self._advance_tokens()
+
+            # Parse single output
+            output = self._parse_output()
+            if output:
+                outputs.append(output)
+
+        return outputs
+
+    def _parse_output(self) -> Output | None:
+        """Parse a single output.
+
+        Expected format:
+        `name` **as** Type
+        `name` **as** Type (default: value)
+
+        Note: Outputs don't have required/optional, only optional defaults.
+
+        Returns:
+            An Output object or None if parsing fails.
+        """
+        if not self._current_token:
+            return None
+
+        # Save starting token for error reporting
+        start_token = self._current_token
+
+        # Expect identifier in backticks
+        if self._current_token.type != TokenType.MISC_IDENT:
+            return None
+
+        name = Identifier(self._current_token, self._current_token.literal)
+        self._advance_tokens()
+
+        # Expect "as" keyword
+        current = self._current_token
+        if not current or current.type != TokenType.KW_AS:
+            return None
+        self._advance_tokens()
+
+        # Parse type name (could be multi-word like "Whole Number")
+        type_name = self._parse_type_name()
+        if not type_name:
+            return None
+
+        # Default value (optional)
+        default_value: Expression | None = None
+
+        # Check for (default: value)
+        paren_token = self._current_token
+        if paren_token and paren_token.type == TokenType.DELIM_LPAREN:
+            self._advance_tokens()
+
+            # Expect "default"
+            default_token = self._current_token
+            if default_token and default_token.type == TokenType.KW_DEFAULT:
+                self._advance_tokens()
+
+                # Expect colon
+                colon_check = self._current_token
+                if colon_check and colon_check.type == TokenType.PUNCT_COLON:
+                    self._advance_tokens()
+
+                    # Parse the default value expression
+                    default_value = self._parse_expression(Precedence.LOWEST)
+
+                    # After parsing expression, advance past it
+                    self._advance_tokens()
+
+            # Expect closing paren
+            rparen_token = self._current_token
+            if rparen_token and rparen_token.type == TokenType.DELIM_RPAREN:
+                self._advance_tokens()
+
+        # If no default value was specified, use Empty as the default
+        if default_value is None:
+            default_value = EmptyLiteral(start_token)
+
+        return Output(
+            token=start_token,
+            name=name,
+            type_name=type_name,
             default_value=default_value,
         )
 

@@ -282,9 +282,9 @@ class ErrorStatement(Statement):
 
 
 class Parameter(ASTNode):
-    """Represents a parameter with type and optional default value.
+    """Represents an input parameter with type and optional default value.
 
-    Parameters are used in Actions and Interactions to define inputs and outputs.
+    Parameters are used in Actions, Interactions, and Utilities to define inputs.
     They follow the syntax: `name` **as** Type (required|optional, default: value)
 
     Attributes:
@@ -334,6 +334,50 @@ class Parameter(ASTNode):
         return result
 
 
+class Output(ASTNode):
+    """Represents an output with type and optional default value.
+
+    Outputs are used in Actions, Interactions, and Utilities to define return values.
+    They follow the syntax: `name` **as** Type (default: value)
+
+    Attributes:
+        name: The identifier naming the output.
+        type_name: The type of the output (e.g., "Text", "Number", "Status").
+        default_value: The optional default value for the output.
+    """
+
+    def __init__(
+        self,
+        token: Token,
+        name: Identifier,
+        type_name: str = "",
+        default_value: Expression | None = None,
+    ) -> None:
+        """Initialize an Output node.
+
+        Args:
+            token: The token that begins this output.
+            name: The identifier naming the output.
+            type_name: The type of the output.
+            default_value: The optional default value.
+        """
+        self.token = token
+        self.name = name
+        self.type_name = type_name
+        self.default_value = default_value
+
+    def __str__(self) -> str:
+        """Return string representation of the output.
+
+        Returns:
+            A string like "`name` as Type" or "`name` as Type (default: value)".
+        """
+        result = f"`{self.name.value}` as {self.type_name}"
+        if self.default_value is not None:
+            result += f" (default: {self.default_value})"
+        return result
+
+
 class ActionStatement(Statement):
     """Represents an Action statement (private method) in Machine Dialect.
 
@@ -344,7 +388,7 @@ class ActionStatement(Statement):
     Attributes:
         name: The identifier naming the action.
         inputs: List of input parameters.
-        outputs: List of output parameters.
+        outputs: List of outputs.
         body: The block of statements that make up the action body.
         description: Optional description from the summary tag.
     """
@@ -354,7 +398,7 @@ class ActionStatement(Statement):
         token: Token,
         name: Identifier,
         inputs: list[Parameter] | None = None,
-        outputs: list[Parameter] | None = None,
+        outputs: list[Output] | None = None,
         body: BlockStatement | None = None,
         description: str = "",
     ) -> None:
@@ -364,7 +408,7 @@ class ActionStatement(Statement):
             token: The token that begins this statement (KW_ACTION).
             name: The identifier naming the action.
             inputs: List of input parameters (defaults to empty list).
-            outputs: List of output parameters (defaults to empty list).
+            outputs: List of outputs (defaults to empty list).
             body: The block of statements in the action body.
             description: Optional description from summary tag.
         """
@@ -447,7 +491,7 @@ class InteractionStatement(Statement):
     Attributes:
         name: The identifier naming the interaction.
         inputs: List of input parameters.
-        outputs: List of output parameters.
+        outputs: List of outputs.
         body: The block of statements that make up the interaction body.
         description: Optional description from the summary tag.
     """
@@ -457,7 +501,7 @@ class InteractionStatement(Statement):
         token: Token,
         name: Identifier,
         inputs: list[Parameter] | None = None,
-        outputs: list[Parameter] | None = None,
+        outputs: list[Output] | None = None,
         body: BlockStatement | None = None,
         description: str = "",
     ) -> None:
@@ -467,7 +511,7 @@ class InteractionStatement(Statement):
             token: The token that begins this statement (KW_INTERACTION).
             name: The identifier naming the interaction.
             inputs: List of input parameters (defaults to empty list).
-            outputs: List of output parameters (defaults to empty list).
+            outputs: List of outputs (defaults to empty list).
             body: The block of statements in the interaction body.
             description: Optional description from summary tag.
         """
@@ -495,6 +539,72 @@ class InteractionStatement(Statement):
         inputs_str = ", ".join(str(p) for p in self.inputs)
         outputs_str = ", ".join(str(p) for p in self.outputs)
         result = f"interaction {self.name}"
+        if inputs_str:
+            result += f"(inputs: {inputs_str})"
+        if outputs_str:
+            result += f" -> {outputs_str}"
+        result += f" {{\n{self.body}\n}}"
+        return result
+
+
+class UtilityStatement(Statement):
+    """Represents a Utility statement (function) in Machine Dialect.
+
+    Utilities are functions that can be called and return values.
+    They are defined using the markdown-style syntax:
+    ### **Utility**: `name`
+
+    Attributes:
+        name: The identifier naming the utility.
+        inputs: List of input parameters.
+        outputs: List of outputs.
+        body: The block of statements that make up the utility body.
+        description: Optional description from the summary tag.
+    """
+
+    def __init__(
+        self,
+        token: Token,
+        name: Identifier,
+        inputs: list[Parameter] | None = None,
+        outputs: list[Output] | None = None,
+        body: BlockStatement | None = None,
+        description: str = "",
+    ) -> None:
+        """Initialize a UtilityStatement node.
+
+        Args:
+            token: The token that begins this statement (KW_UTILITY).
+            name: The identifier naming the utility.
+            inputs: List of input parameters (defaults to empty list).
+            outputs: List of outputs (defaults to empty list).
+            body: The block of statements in the utility body.
+            description: Optional description from summary tag.
+        """
+        super().__init__(token)
+        self.name = name
+        self.inputs = inputs if inputs is not None else []
+        self.outputs = outputs if outputs is not None else []
+        self.body = body if body is not None else BlockStatement(token)
+        self.description = description
+
+    def token_literal(self) -> str:
+        """Return the literal value of the utility token.
+
+        Returns:
+            The literal value of the utility keyword token.
+        """
+        return self.token.literal
+
+    def __str__(self) -> str:
+        """Return string representation of the utility statement.
+
+        Returns:
+            A string representation of the utility with its name and body.
+        """
+        inputs_str = ", ".join(str(p) for p in self.inputs)
+        outputs_str = ", ".join(str(p) for p in self.outputs)
+        result = f"utility {self.name}"
         if inputs_str:
             result += f"(inputs: {inputs_str})"
         if outputs_str:

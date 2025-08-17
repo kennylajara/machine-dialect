@@ -17,11 +17,13 @@ from .statements import (
     ExpressionStatement,
     IfStatement,
     InteractionStatement,
+    Output,
     Parameter,
     ReturnStatement,
     SayStatement,
     SetStatement,
     Statement,
+    UtilityStatement,
 )
 from .program import Program
 from .literals import IntegerLiteral, FloatLiteral, StringLiteral, BooleanLiteral, EmptyLiteral, URLLiteral
@@ -46,6 +48,7 @@ __all__ = [
     "InfixExpression",
     "IntegerLiteral",
     "InteractionStatement",
+    "Output",
     "Parameter",
     "PrefixExpression",
     "Program",
@@ -55,4 +58,5 @@ __all__ = [
     "Statement",
     "StringLiteral",
     "URLLiteral",
+    "UtilityStatement",
 ]

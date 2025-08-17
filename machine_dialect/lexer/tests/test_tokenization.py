@@ -96,6 +96,7 @@ class TestLexer:
             ("otherwise", [Token(TokenType.KW_ELSE, "otherwise", line=1, position=1)]),
             ("rule", [Token(TokenType.KW_RULE, "rule", line=1, position=1)]),
             ("Set", [Token(TokenType.KW_SET, "Set", line=1, position=1)]),
+            ("Utility", [Token(TokenType.KW_UTILITY, "Utility", line=1, position=1)]),
             ("take", [Token(TokenType.KW_TAKE, "take", line=1, position=1)]),
             ("takes", [Token(TokenType.KW_TAKE, "takes", line=1, position=1)]),
             ("Tell", [Token(TokenType.KW_TELL, "Tell", line=1, position=1)]),

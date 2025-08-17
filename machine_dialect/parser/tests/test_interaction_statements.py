@@ -2,8 +2,10 @@
 
 from machine_dialect.ast import (
     BlockStatement,
+    EmptyLiteral,
     IfStatement,
     InteractionStatement,
+    Output,
 )
 from machine_dialect.parser import Parser
 
@@ -182,8 +184,8 @@ class TestInteractionStatements:
 - `userId` **as** Text (required)
 
 #### Outputs:
-- `user` **as** Text (required)
-- `age` **as** Number (required)"""
+- `user` **as** Text
+- `age` **as** Number"""
 
         parser = Parser()
         program = parser.parse(source)
@@ -206,14 +208,18 @@ class TestInteractionStatements:
         assert len(interaction_stmt.outputs) == 2
 
         user_param = interaction_stmt.outputs[0]
+        assert isinstance(user_param, Output)
         assert user_param.name.value == "user"
         assert user_param.type_name == "Text"
-        assert user_param.is_required is True
+        # All outputs have Empty as default when not specified
+        assert isinstance(user_param.default_value, EmptyLiteral)
 
         age_param = interaction_stmt.outputs[1]
+        assert isinstance(age_param, Output)
         assert age_param.name.value == "age"
         assert age_param.type_name == "Number"
-        assert age_param.is_required is True
+        # All outputs have Empty as default when not specified
+        assert isinstance(age_param.default_value, EmptyLiteral)
 
     def test_mixed_actions_and_interactions(self) -> None:
         """Test parsing both actions and interactions in same program."""

@@ -572,13 +572,16 @@ class Lexer:
 
             # Check for closing underscore
             if self.current_char == "_":
-                # Check if it's a boolean
-                if literal.lower() in ("true", "false"):
+                # Check if it's a boolean or empty literal
+                if literal.lower() in ("true", "false", "empty"):
                     self.advance()  # Consume the closing underscore
                     # Use canonical form for the literal (without underscores)
-                    canonical_literal = "True" if literal.lower() == "true" else "False"
-                    token_type = TokenType.LIT_TRUE if literal.lower() == "true" else TokenType.LIT_FALSE
-                    return canonical_literal, token_type, start_line, literal_column
+                    if literal.lower() == "empty":
+                        return "empty", TokenType.KW_EMPTY, start_line, literal_column
+                    else:
+                        canonical_literal = "True" if literal.lower() == "true" else "False"
+                        token_type = TokenType.LIT_TRUE if literal.lower() == "true" else TokenType.LIT_FALSE
+                        return canonical_literal, token_type, start_line, literal_column
 
         # Not a valid underscore-wrapped literal, restore position
         # (This also handles the case where we have a minus sign but no valid literal follows)
@@ -779,8 +782,15 @@ class Lexer:
                     self.advance()  # Skip closing backtick
                     token_type, canonical_literal = lookup_token_type(identifier)
 
-                    # Stopwords in backticks become identifiers
-                    if token_type == TokenType.MISC_STOPWORD:
+                    # Keywords, stopwords, and boolean literals in backticks become identifiers
+                    # Backticks force the content to be treated as an identifier
+                    from machine_dialect.lexer.tokens import TokenMetaType
+
+                    if (
+                        token_type == TokenType.MISC_STOPWORD
+                        or token_type.meta_type == TokenMetaType.KW
+                        or token_type in (TokenType.LIT_TRUE, TokenType.LIT_FALSE)
+                    ):
                         token_type = TokenType.MISC_IDENT
                         canonical_literal = identifier
 

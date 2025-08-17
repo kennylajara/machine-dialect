@@ -116,6 +116,7 @@ class TokenType(Enum):
     KW_TO = auto()
     KW_TRAIT = auto()
     KW_URL = auto()
+    KW_UTILITY = auto()
     KW_WHOLE_NUMBER = auto()
     KW_WITH = auto()
 
@@ -319,6 +320,8 @@ keywords_mapping: dict[str, TokenType] = {
     # boolean primitive: true
     "True": TokenType.LIT_TRUE,
     "Yes": TokenType.LIT_TRUE,
+    # Utility (equivalent to function in other languages)
+    "Utility": TokenType.KW_UTILITY,
     # parameters:
     #   tell **alice** to **walk**.
     #   tell **alice** to **walk** with `speed` = `10`.

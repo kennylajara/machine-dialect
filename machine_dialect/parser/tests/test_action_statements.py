@@ -1,6 +1,6 @@
 """Tests for Action statements (private methods) in Machine Dialect."""
 
-from machine_dialect.ast import ActionStatement, BlockStatement, SetStatement
+from machine_dialect.ast import ActionStatement, BlockStatement, EmptyLiteral, Output, SetStatement
 from machine_dialect.parser import Parser
 
 
@@ -224,8 +224,8 @@ class TestActionStatements:
 </details>
 
 #### Outputs:
-- `result` **as** Number (required)
-- `success` **as** Status (required)"""
+- `result` **as** Number
+- `success` **as** Status"""
 
         parser = Parser()
         program = parser.parse(source)
@@ -245,15 +245,15 @@ class TestActionStatements:
 
         # First output: result
         result_param = action_stmt.outputs[0]
+        assert isinstance(result_param, Output)
         assert result_param.name.value == "result"
         assert result_param.type_name == "Number"
-        assert result_param.is_required is True
 
         # Second output: success
         success_param = action_stmt.outputs[1]
+        assert isinstance(success_param, Output)
         assert success_param.name.value == "success"
         assert success_param.type_name == "Status"
-        assert success_param.is_required is True
 
     def test_action_with_both_inputs_and_outputs(self) -> None:
         """Test parsing an action with both input and output parameters."""
@@ -272,8 +272,8 @@ class TestActionStatements:
 - `format` **as** Text (optional, default: _"json"_)
 
 #### Outputs:
-- `result` **as** Text (required)
-- `error` **as** Text (optional)"""
+- `result` **as** Text
+- `error` **as** Text"""
 
         parser = Parser()
         program = parser.parse(source)
@@ -307,12 +307,14 @@ class TestActionStatements:
         assert len(action_stmt.outputs) == 2
 
         result_param = action_stmt.outputs[0]
+        assert isinstance(result_param, Output)
         assert result_param.name.value == "result"
         assert result_param.type_name == "Text"
-        assert result_param.is_required is True
 
         error_param = action_stmt.outputs[1]
+        assert isinstance(error_param, Output)
         assert error_param.name.value == "error"
         assert error_param.type_name == "Text"
-        assert error_param.is_required is False
-        assert error_param.default_value is None
+        # Outputs without explicit defaults should have Empty as default
+        assert error_param.default_value is not None
+        assert isinstance(error_param.default_value, EmptyLiteral)

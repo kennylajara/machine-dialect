@@ -67,7 +67,7 @@ class TestCaseInsensitiveKeywords:
                 assert tokens[0].literal == keyword
 
     def test_backtick_keywords_all_cases(self) -> None:
-        """Test that keywords work with backtick wrapping in different cases."""
+        """Test that keywords in backticks become identifiers (case-insensitive)."""
         # Test a subset of keywords with backticks
         test_keywords = ["Float", "Integer", "True", "False", "define", "rule"]
 
@@ -75,7 +75,6 @@ class TestCaseInsensitiveKeywords:
             if keyword not in keywords_mapping:
                 continue
 
-            token_type = keywords_mapping[keyword]
             test_cases = [
                 f"`{keyword}`",
                 f"`{keyword.lower()}`",
@@ -86,8 +85,10 @@ class TestCaseInsensitiveKeywords:
                 lexer = Lexer(source)
                 tokens = collect_all_tokens(lexer)
                 assert len(tokens) == 1
-                assert tokens[0].type == token_type
-                assert tokens[0].literal == keyword
+                # Backticks force content to be identifiers
+                assert tokens[0].type == TokenType.MISC_IDENT
+                # The literal should be the actual text within backticks
+                assert tokens[0].literal.lower() == keyword.lower()
 
     def test_underscore_wrapped_booleans_all_cases(self) -> None:
         """Test underscore-wrapped boolean literals in different cases."""

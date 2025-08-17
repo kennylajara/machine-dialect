@@ -14,13 +14,13 @@ class TestBacktickIdentifiers:
         assert tokens[0].literal == "identifier"
 
     def test_backtick_wrapped_keyword(self) -> None:
-        """Test that backtick-wrapped keywords are still recognized as keywords."""
+        """Test that backtick-wrapped keywords become identifiers."""
         source = "`define`"
         lexer = Lexer(source)
         tokens = collect_all_tokens(lexer)
 
         assert len(tokens) == 1
-        assert tokens[0].type == TokenType.KW_DEFINE
+        assert tokens[0].type == TokenType.MISC_IDENT
         assert tokens[0].literal == "define"
 
     def test_backtick_wrapped_number(self) -> None:
@@ -128,3 +128,13 @@ class TestBacktickIdentifiers:
         assert len(tokens) == 1
         assert tokens[0].type == TokenType.MISC_IDENT
         assert tokens[0].literal == "my-complex identifier"
+
+    def test_backtick_wrapped_type_keyword(self) -> None:
+        """Test that type keywords like 'number' become identifiers in backticks."""
+        source = "`number`"
+        lexer = Lexer(source)
+        tokens = collect_all_tokens(lexer)
+
+        assert len(tokens) == 1
+        assert tokens[0].type == TokenType.MISC_IDENT
+        assert tokens[0].literal == "number"

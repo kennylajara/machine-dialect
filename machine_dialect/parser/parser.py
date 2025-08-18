@@ -705,6 +705,7 @@ class Parser:
 
         # Check for "to" or "using" keyword
         assert self._peek_token is not None
+        used_using = False  # Track if we used the 'using' branch
         if self._peek_token.type == TokenType.KW_TO:
             # Standard assignment: Set x to value
             self._advance_tokens()  # Move to 'to'
@@ -719,6 +720,9 @@ class Parser:
             func_call = self._parse_function_call_expression()
             # CallStatement is also an Expression, so this is valid
             let_statement.value = func_call  # type: ignore[assignment]
+            # Note: _parse_function_call_expression already leaves us at the period,
+            # so we'll skip the advance_tokens() call below for this branch
+            used_using = True
         else:
             # Report the error
             assert self._peek_token is not None
@@ -738,7 +742,9 @@ class Parser:
 
         # Advance past the last token of the expression
         # Expression parsing leaves us at the last token, not after it
-        self._advance_tokens()
+        # BUT: the 'using' branch already leaves us at the period, so skip this
+        if not used_using:
+            self._advance_tokens()
 
         # If the expression failed, skip to synchronization point
         if isinstance(let_statement.value, ErrorExpression):

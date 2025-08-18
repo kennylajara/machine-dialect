@@ -245,13 +245,15 @@ class IntegrationTestRunner:
             TestResult indicating success or failure.
         """
         try:
-            ast = self.parser.parse(test_case.code)
-            if self.parser.errors:
+            # Create a fresh parser for each test to avoid error accumulation
+            parser = Parser()
+            ast = parser.parse(test_case.code)
+            if parser.errors:
                 return TestResult(
                     component="Parser",
                     success=False,
                     output=None,
-                    error=f"Parser errors: {self.parser.errors}",
+                    error=f"Parser errors: {parser.errors}",
                 )
             return TestResult(component="Parser", success=True, output=ast, error=None)
         except Exception as e:
@@ -282,13 +284,15 @@ class IntegrationTestRunner:
             TestResult indicating success or failure.
         """
         try:
-            ast = self.parser.parse(test_case.code)
-            if self.parser.errors:
+            # Create a fresh parser for each test to avoid error accumulation
+            parser = Parser()
+            ast = parser.parse(test_case.code)
+            if parser.errors:
                 return TestResult(
                     component="Interpreter",
                     success=False,
                     output=None,
-                    error=f"Parser errors: {self.parser.errors}",
+                    error=f"Parser errors: {parser.errors}",
                 )
 
             result = evaluate(ast)
@@ -312,23 +316,26 @@ class IntegrationTestRunner:
             TestResult indicating success or failure.
         """
         try:
-            ast = self.parser.parse(test_case.code)
-            if self.parser.errors:
+            # Create a fresh parser for each test to avoid error accumulation
+            parser = Parser()
+            ast = parser.parse(test_case.code)
+            if parser.errors:
                 return TestResult(
                     component="VM",
                     success=False,
                     output=None,
-                    error=f"Parser errors: {self.parser.errors}",
+                    error=f"Parser errors: {parser.errors}",
                 )
 
-            # Compile to bytecode
-            module = self.code_generator.compile(ast)
-            if self.code_generator.errors:
+            # Compile to bytecode with a fresh code generator
+            code_generator = CodeGenerator()
+            module = code_generator.compile(ast)
+            if code_generator.errors:
                 return TestResult(
                     component="VM",
                     success=False,
                     output=None,
-                    error=f"Compiler errors: {self.code_generator.errors}",
+                    error=f"Compiler errors: {code_generator.errors}",
                 )
 
             # Execute in VM

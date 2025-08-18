@@ -573,14 +573,16 @@ class Lexer:
             # Check for closing underscore
             if self.current_char == "_":
                 # Check if it's a boolean or empty literal
-                if literal.lower() in ("true", "false", "empty"):
+                if literal.lower() in ("true", "false", "yes", "no", "empty"):
                     self.advance()  # Consume the closing underscore
                     # Use canonical form for the literal (without underscores)
                     if literal.lower() == "empty":
                         return "empty", TokenType.KW_EMPTY, start_line, literal_column
                     else:
-                        canonical_literal = "True" if literal.lower() == "true" else "False"
-                        token_type = TokenType.LIT_TRUE if literal.lower() == "true" else TokenType.LIT_FALSE
+                        # Map Yes/No to True/False
+                        is_true = literal.lower() in ("true", "yes")
+                        canonical_literal = "True" if is_true else "False"
+                        token_type = TokenType.LIT_TRUE if is_true else TokenType.LIT_FALSE
                         return canonical_literal, token_type, start_line, literal_column
 
         # Not a valid underscore-wrapped literal, restore position

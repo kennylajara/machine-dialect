@@ -26,6 +26,7 @@ from machine_dialect.ast import (
     SetStatement,
     Statement,
     StringLiteral,
+    URLLiteral,
 )
 from machine_dialect.codegen.emitter import Emitter
 from machine_dialect.codegen.isa import Opcode
@@ -237,6 +238,8 @@ class CodeGenerator:
             self._compile_boolean_literal(expr)
         elif isinstance(expr, EmptyLiteral):
             self._compile_empty_literal(expr)
+        elif isinstance(expr, URLLiteral):
+            self._compile_url_literal(expr)
         elif isinstance(expr, Identifier):
             self._compile_identifier(expr)
         elif isinstance(expr, PrefixExpression):
@@ -298,6 +301,22 @@ class CodeGenerator:
         """
         assert self.emitter is not None
         self.emitter.emit_constant(None)
+
+    def _compile_url_literal(self, expr: URLLiteral) -> None:
+        """Compile a URL literal.
+
+        Args:
+            expr: The URL literal to compile.
+        """
+        assert self.emitter is not None
+        # Strip quotes from URL value if present
+        value = expr.value
+        if value and value.startswith('"') and value.endswith('"'):
+            value = value[1:-1]
+        elif value and value.startswith("'") and value.endswith("'"):
+            value = value[1:-1]
+        # URLs are treated as strings in the VM
+        self.emitter.emit_constant(value)
 
     def _compile_identifier(self, expr: Identifier) -> None:
         """Compile an identifier (variable reference).

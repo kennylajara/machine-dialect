@@ -801,15 +801,15 @@ class Parser:
         return return_statement
 
     def _parse_say_statement(self) -> SayStatement:
-        """Parse a Say statement.
+        """Parse a Say or Tell statement.
 
-        Syntax: Say <expression>.
+        Syntax: Say <expression>. or Tell <expression>.
 
         Returns:
             A SayStatement AST node.
         """
         assert self._current_token is not None
-        assert self._current_token.type == TokenType.KW_SAY
+        assert self._current_token.type in (TokenType.KW_SAY, TokenType.KW_TELL)
 
         statement_token = self._current_token
 
@@ -826,7 +826,7 @@ class Parser:
         if self._peek_token and self._peek_token.type == TokenType.PUNCT_PERIOD:
             self._advance_tokens()
         # But if we're already at a period (after error recovery), don't expect another
-        elif self._current_token and self._current_token.type != TokenType.PUNCT_PERIOD:  # type: ignore[comparison-overlap]
+        elif self._current_token and self._current_token.type != TokenType.PUNCT_PERIOD:
             self._expected_token(TokenType.PUNCT_PERIOD)
 
         return say_statement
@@ -1605,6 +1605,7 @@ class Parser:
             TokenType.KW_RETURN: self._parse_return_statement,
             TokenType.KW_IF: self._parse_if_statement,
             TokenType.KW_SAY: self._parse_say_statement,
+            TokenType.KW_TELL: self._parse_say_statement,  # Tell is an alias for Say
             TokenType.KW_USE: self._parse_call_statement,
             TokenType.PUNCT_HASH_TRIPLE: self._parse_action_interaction_or_utility,
         }

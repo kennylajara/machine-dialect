@@ -1792,9 +1792,10 @@ class Parser:
     def _parse_output(self) -> Output | None:
         """Parse a single output.
 
-        Expected format:
-        `name` **as** Type
-        `name` **as** Type (default: value)
+        Expected formats:
+        - Returns Type  (simple format)
+        - `name` **as** Type
+        - `name` **as** Type (default: value)
 
         Note: Outputs don't have required/optional, only optional defaults.
 
@@ -1807,7 +1808,25 @@ class Parser:
         # Save starting token for error reporting
         start_token = self._current_token
 
-        # Expect identifier in backticks
+        # Check for simple "Returns Type" format
+        if self._current_token.type == TokenType.MISC_IDENT and self._current_token.literal.lower() == "returns":
+            self._advance_tokens()
+
+            # Parse type name
+            type_name = self._parse_type_name()
+            if type_name:
+                # Create a simple output with no specific name
+                return Output(
+                    token=start_token,
+                    name=Identifier(start_token, "return_value"),  # Default name
+                    type_name=type_name,
+                    default_value=EmptyLiteral(start_token),
+                )
+            else:
+                # Failed to parse type, restore position
+                return None
+
+        # Otherwise expect identifier in backticks for named output
         if self._current_token.type != TokenType.MISC_IDENT:
             return None
 

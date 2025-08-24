@@ -44,6 +44,7 @@ class Chunk:
     constants: ConstantPool = field(default_factory=ConstantPool)
     num_locals: int = 0
     num_params: int = 0
+    param_names: list[str] = field(default_factory=list)  # Parameter names in order
     source_map: dict[int, tuple[int, int]] = field(default_factory=dict)  # pc -> (line, col)
 
     # Future OOP fields

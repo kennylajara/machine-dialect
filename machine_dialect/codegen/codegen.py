@@ -266,10 +266,36 @@ class CodeGenerator:
                 for arg in stmt.arguments.positional:
                     self._compile_expression(arg)
                     arg_count += 1
-                # Compile named arguments (just compile values, ignore names for now)
-                for _name, value in stmt.arguments.named:
-                    self._compile_expression(value)
-                    arg_count += 1
+
+                # Handle named arguments - need to reorder based on function parameters
+                if stmt.arguments.named:
+                    # Look up the function to get parameter order
+                    func_chunk = None
+                    if self.module:
+                        func_chunk = self.module.get_function(func_name)
+
+                    if func_chunk and func_chunk.param_names:
+                        # Create a dict of name -> value for named arguments
+                        # Note: names are Identifier objects, need to extract .value
+                        named_args = {name.value: value for name, value in stmt.arguments.named}
+
+                        # Compile named arguments in parameter order
+                        # Skip positions already filled by positional arguments
+                        for i in range(len(stmt.arguments.positional), len(func_chunk.param_names)):
+                            param_name = func_chunk.param_names[i]
+                            if param_name in named_args:
+                                self._compile_expression(named_args[param_name])
+                                arg_count += 1
+                                del named_args[param_name]  # Mark as used
+
+                        # Check for any unused named arguments (might be errors)
+                        for name in named_args:
+                            self._add_error(f"Unknown parameter: {name}")
+                    else:
+                        # No parameter info - compile in order given (fallback)
+                        for _name, value in stmt.arguments.named:
+                            self._compile_expression(value)
+                            arg_count += 1
             else:
                 # Single expression argument
                 self._compile_expression(stmt.arguments)
@@ -304,10 +330,15 @@ class CodeGenerator:
 
         # Create new chunk for the function
         func_name = stmt.name.value if stmt.name else "anonymous"
+
+        # Extract parameter names
+        param_names = [param.name.value for param in stmt.inputs if param.name]
+
         func_chunk = Chunk(
             name=func_name,
             chunk_type=ChunkType.FUNCTION,
             num_params=len(stmt.inputs),
+            param_names=param_names,
         )
 
         # Create new emitter for function chunk

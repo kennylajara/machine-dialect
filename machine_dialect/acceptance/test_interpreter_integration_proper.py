@@ -175,19 +175,15 @@ Use `max` with _15_, _8_.
                 "Interpreter"
             ].success, f"Interpreter failed for {test_case.name}: {results['Interpreter'].error}"
 
-            # VM expected to fail for utility-related tests
-            if "utility" in test_case.name.lower() or "set_using" in test_case.name:
-                # These should fail in VM due to missing utility support
-                assert not results[
-                    "VM"
-                ].success, f"VM unexpectedly passed for {test_case.name} (should fail for utilities)"
-                assert "Unsupported statement type" in (
-                    results["VM"].error or ""
-                ), f"VM error message unexpected for {test_case.name}"
-            else:
-                # Non-utility tests should pass in VM
-                if test_case.expected_output is not None:  # Skip None checks for Say statements
-                    assert results["VM"].success, f"VM failed for {test_case.name}: {results['VM'].error}"
+            # VM should now pass all tests including utilities
+            if test_case.expected_output is not None:  # Skip None checks for Say statements
+                assert results["VM"].success, f"VM failed for {test_case.name}: {results['VM'].error}"
+                # Check output matches expected
+                if results["VM"].success:
+                    assert results["VM"].output == test_case.expected_output, (
+                        f"VM output mismatch for {test_case.name}: "
+                        f"expected {test_case.expected_output}, got {results['VM'].output}"
+                    )
 
     def test_original_test_cases_all_pass(self, runner: IntegrationTestRunner) -> None:
         """Test that all original test cases pass in all components."""
@@ -259,12 +255,6 @@ Use `identity` with _42_.
         # Run all tests and print results
         results = runner.run_all_tests()
         runner.print_results(results)
-
-        # Verify expected patterns
-        for test_name, test_results in results.items():
-            if "utility" in test_name.lower():
-                # Utility tests should fail in VM
-                assert not test_results["VM"].success, f"VM should fail for utility test: {test_name}"
 
 
 def test_comprehensive_integration() -> None:

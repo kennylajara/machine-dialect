@@ -191,6 +191,18 @@ class Emitter:
         index = self.chunk.add_constant(name)
         return self.emit_u16(Opcode.STORE_GLOBAL, index)
 
+    def emit_load_function(self, name: str) -> int:
+        """Emit a LOAD_FUNCTION instruction.
+
+        Args:
+            name: Function name.
+
+        Returns:
+            Position where instruction was emitted.
+        """
+        index = self.chunk.add_constant(name)
+        return self.emit_u16(Opcode.LOAD_FUNCTION, index)
+
     def emit_binary_op(self, opcode: Opcode) -> int:
         """Emit a binary operation.
 
@@ -228,6 +240,17 @@ class Emitter:
             Position where instruction was emitted.
         """
         return self.emit(Opcode.POP)
+
+    def emit_call(self, nargs: int) -> int:
+        """Emit a CALL instruction.
+
+        Args:
+            nargs: Number of arguments for the function call.
+
+        Returns:
+            Position where instruction was emitted.
+        """
+        return self.emit_byte(Opcode.CALL, nargs)
 
     def current_position(self) -> int:
         """Get the current bytecode position.

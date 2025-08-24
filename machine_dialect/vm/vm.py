@@ -33,6 +33,7 @@ class VM:
         self.stack = Stack()
         self.call_stack = CallStack()
         self.globals: dict[str, Any] = {}
+        self.module: Module | None = None
         self.debug = debug
 
     def run(self, module: Module) -> Any:
@@ -44,6 +45,9 @@ class VM:
         Returns:
             The final result left on the stack.
         """
+        # Store module for function lookups
+        self.module = module
+
         # Check module type
         if module.is_procedural():
             # Execute procedural module - just run main chunk
@@ -169,6 +173,8 @@ class VM:
             self._op_return()
         elif op == Opcode.CALL:
             self._op_call(frame)
+        elif op == Opcode.LOAD_FUNCTION:
+            self._op_load_function(frame)
         elif op == Opcode.NOP:
             pass  # No operation
         elif op == Opcode.HALT:
@@ -222,6 +228,29 @@ class VM:
             raise VMTypeError(f"Global name must be string, got {type(name).__name__}")
         value = self.stack.pop()
         self.globals[name] = value
+
+    def _op_load_function(self, frame: Frame) -> None:
+        """Load a function by name onto the stack."""
+        index = frame.read_u16()
+        name = frame.chunk.get_constant(index)
+        if not isinstance(name, str):
+            raise VMTypeError(f"Function name must be string, got {type(name).__name__}")
+
+        # Check for native function first
+        native_func = get_native_function(name)
+        if native_func:
+            self.stack.push(native_func)
+            return
+
+        # Look up user-defined function from module
+        if self.module is None:
+            raise VMTypeError("No module loaded for function lookup")
+
+        func_chunk = self.module.get_function(name)
+        if func_chunk is None:
+            raise VMTypeError(f"Undefined function: {name}")
+
+        self.stack.push(func_chunk)
 
     # Stack operations
 
@@ -431,6 +460,36 @@ class VM:
         if isinstance(func, NativeFunction):
             # Call native function
             result = func.call(args)
+            self.stack.push(result)
+        elif isinstance(func, Chunk):
+            # Call user-defined function
+            # Create new frame for the function
+            func_frame = Frame(func)
+
+            # Set up parameters as locals
+            for i, arg in enumerate(args):
+                func_frame.set_local(i, arg)
+
+            # Push new frame onto call stack
+            self.call_stack.push(func_frame)
+
+            # Execute the function
+            result = None
+            while func_frame.pc < len(func.bytecode):
+                op = Opcode(func_frame.read_byte())
+
+                # Check for return
+                if op == Opcode.RETURN:
+                    # Pop return value
+                    result = self.stack.pop() if self.stack.size() > 0 else None
+                    # Pop frame
+                    self.call_stack.pop()
+                    break
+
+                # Execute instruction
+                self._execute_instruction(op, func_frame)
+
+            # Push result onto stack
             self.stack.push(result)
         else:
             raise VMTypeError(f"Cannot call {type(func).__name__}")

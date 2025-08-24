@@ -55,6 +55,7 @@ class Opcode(IntEnum):
 
     # Function calls
     CALL = auto()  # Call function [u8 nargs]
+    LOAD_FUNCTION = auto()  # Load function by name [u16 name_idx]
 
     # Miscellaneous
     NOP = auto()  # No operation
@@ -118,6 +119,7 @@ INSTRUCTIONS: dict[Opcode, InstructionSpec] = {
     Opcode.RETURN: InstructionSpec(Opcode.RETURN, "RETURN", [], 0),
     # Functions
     Opcode.CALL: InstructionSpec(Opcode.CALL, "CALL", [OperandType.U8], 0),
+    Opcode.LOAD_FUNCTION: InstructionSpec(Opcode.LOAD_FUNCTION, "LOAD_FUNCTION", [OperandType.U16], 1),
     # Misc
     Opcode.NOP: InstructionSpec(Opcode.NOP, "NOP", [], 0),
     Opcode.HALT: InstructionSpec(Opcode.HALT, "HALT", [], 0),

@@ -7,6 +7,7 @@ and produces bytecode using the emitter.
 from machine_dialect.ast import (
     BlockStatement,
     BooleanLiteral,
+    CallStatement,
     ConditionalExpression,
     EmptyLiteral,
     Expression,
@@ -27,6 +28,7 @@ from machine_dialect.ast import (
     Statement,
     StringLiteral,
     URLLiteral,
+    UtilityStatement,
 )
 from machine_dialect.codegen.emitter import Emitter
 from machine_dialect.codegen.isa import Opcode
@@ -42,6 +44,7 @@ class CodeGenerator:
         self.symbol_table = SymbolTable()
         self.current_chunk: Chunk | None = None
         self.emitter: Emitter | None = None
+        self.module: Module | None = None
         self.errors: list[str] = []
 
     def compile(
@@ -62,6 +65,9 @@ class CodeGenerator:
         self.current_chunk = main_chunk
         self.emitter = Emitter(main_chunk)
 
+        # Create module early so functions can be added to it
+        self.module = Module(name=module_name, main_chunk=main_chunk, module_type=module_type)
+
         # Compile all statements
         for statement in program.statements:
             self._compile_statement(statement)
@@ -69,9 +75,7 @@ class CodeGenerator:
         # Update chunk metadata
         main_chunk.num_locals = self.symbol_table.num_locals()
 
-        # Create and return module with type
-        module = Module(name=module_name, main_chunk=main_chunk, module_type=module_type)
-        return module
+        return self.module
 
     def _compile_statement(self, stmt: Statement) -> None:
         """Compile a statement node.
@@ -91,6 +95,10 @@ class CodeGenerator:
             self._compile_block_statement(stmt)
         elif isinstance(stmt, SayStatement):
             self._compile_say_statement(stmt)
+        elif isinstance(stmt, CallStatement):
+            self._compile_call_statement(stmt)
+        elif isinstance(stmt, UtilityStatement):
+            self._compile_utility_statement(stmt)
         else:
             self._add_error(f"Unsupported statement type: {type(stmt).__name__}")
 
@@ -222,6 +230,132 @@ class CodeGenerator:
         self._compile_expression(stmt.expression)
         self.emitter.emit_pop()
 
+    def _compile_call_as_expression(self, stmt: CallStatement) -> None:
+        """Compile a call statement as an expression (leaves result on stack).
+
+        Args:
+            stmt: The call statement to compile as expression.
+        """
+        assert self.emitter is not None
+
+        # Get function name
+        if stmt.function_name is None:
+            self._add_error("CallStatement has no function name")
+            return
+
+        # Handle function name - it should be a StringLiteral or Identifier
+        func_name = None
+        if isinstance(stmt.function_name, StringLiteral):
+            func_name = stmt.function_name.value
+        elif isinstance(stmt.function_name, Identifier):
+            func_name = stmt.function_name.value
+        else:
+            self._add_error(f"Unsupported function name type: {type(stmt.function_name).__name__}")
+            return
+
+        # Load function onto stack using LOAD_FUNCTION
+        self.emitter.emit_load_function(func_name)
+
+        # Compile arguments
+        arg_count = 0
+        if stmt.arguments is not None:
+            from machine_dialect.ast import Arguments
+
+            if isinstance(stmt.arguments, Arguments):
+                # Compile positional arguments
+                for arg in stmt.arguments.positional:
+                    self._compile_expression(arg)
+                    arg_count += 1
+                # Compile named arguments (just compile values, ignore names for now)
+                for _name, value in stmt.arguments.named:
+                    self._compile_expression(value)
+                    arg_count += 1
+            else:
+                # Single expression argument
+                self._compile_expression(stmt.arguments)
+                arg_count = 1
+
+        # Emit call instruction
+        self.emitter.emit_call(arg_count)
+
+        # Don't pop result - leave it on stack as expression value
+
+    def _compile_call_statement(self, stmt: CallStatement) -> None:
+        """Compile a call statement.
+
+        Args:
+            stmt: The call statement to compile.
+        """
+        # Compile as expression first
+        self._compile_call_as_expression(stmt)
+
+        # Don't pop result - let it be the statement's value
+        # This allows "Use" statements to return values
+
+    def _compile_utility_statement(self, stmt: UtilityStatement) -> None:
+        """Compile a utility statement (function definition).
+
+        Args:
+            stmt: The utility statement to compile.
+        """
+        # Save current compilation state
+        prev_chunk = self.current_chunk
+        prev_emitter = self.emitter
+
+        # Create new chunk for the function
+        func_name = stmt.name.value if stmt.name else "anonymous"
+        func_chunk = Chunk(
+            name=func_name,
+            chunk_type=ChunkType.FUNCTION,
+            num_params=len(stmt.inputs),
+        )
+
+        # Create new emitter for function chunk
+        self.current_chunk = func_chunk
+        self.emitter = Emitter(func_chunk)
+
+        # Enter new scope for function
+        self.symbol_table.enter_scope(func_name)
+
+        # Define parameters as local variables
+        for param in stmt.inputs:
+            if param.name:
+                self.symbol_table.define(param.name.value, is_parameter=True)
+
+        # Compile function body
+        if stmt.body is not None:
+            self._compile_block_statement(stmt.body)
+
+        # Ensure function returns (add implicit return if needed)
+        if not self._last_instruction_is_return():
+            # Return None implicitly
+            self.emitter.emit_constant(None)
+            self.emitter.emit_return()
+
+        # Update local count
+        func_chunk.num_locals = self.symbol_table.num_locals()
+
+        # Exit function scope
+        self.symbol_table.exit_scope()
+
+        # Add function to module
+        if self.module is not None:
+            self.module.add_function(func_name, func_chunk)
+
+        # Restore previous compilation state
+        self.current_chunk = prev_chunk
+        self.emitter = prev_emitter
+
+    def _last_instruction_is_return(self) -> bool:
+        """Check if the last instruction is a return.
+
+        Returns:
+            True if the last instruction is RETURN, False otherwise.
+        """
+        if self.current_chunk is None or len(self.current_chunk.bytecode) == 0:
+            return False
+        return self.current_chunk.bytecode[-1] == Opcode.RETURN
+
     def _compile_expression(self, expr: Expression) -> None:
         """Compile an expression node.
 
@@ -248,6 +382,9 @@ class CodeGenerator:
             self._compile_infix_expression(expr)
         elif isinstance(expr, ConditionalExpression):
             self._compile_conditional_expression(expr)
+        elif isinstance(expr, CallStatement):
+            # Handle CallStatement used as expression (e.g., in "Set x using `func`")
+            self._compile_call_as_expression(expr)
         else:
             self._add_error(f"Unsupported expression type: {type(expr).__name__}")
 

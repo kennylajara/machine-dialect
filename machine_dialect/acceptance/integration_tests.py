@@ -42,6 +42,10 @@ class IntegrationTestRunner:
     def __init__(self) -> None:
         """Initialize the acceptance test runner."""
         self.test_cases: list[IntegrationTestCase] = []
+        self.parser = Parser()
+        self.cfg_parser = CFGParser()
+        self.code_generator = CodeGenerator()
+        self.vm = VM()
         self._setup_test_cases()
 
     def _setup_test_cases(self) -> None:

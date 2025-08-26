@@ -200,7 +200,7 @@ class TestMachineDialectCFG:
         assert "give_back_stmt" in grammar
 
         # Check for set and give back statements
-        assert 'set_stmt: "Set"i IDENTIFIER "to"i expression' in grammar
+        assert 'set_stmt: "Set"i identifier "to"i expression' in grammar
         assert 'give_back_stmt: ("Give"i "back"i | "Gives"i "back"i) expression' in grammar
 
         # Check for expression rules

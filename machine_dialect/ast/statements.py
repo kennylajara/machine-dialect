@@ -137,8 +137,8 @@ class SetStatement(Statement):
 class CallStatement(Statement):
     """A statement that calls/invokes a function or interaction.
 
-    Call statements follow the pattern: "call <function> [with <arguments>]".
-    They are used to invoke functions, actions, or interactions with optional arguments.
+    Call statements follow the pattern: "use <function> [with <arguments>]".
+    They are used to invoke utilities, actions, or interactions with optional arguments.
 
     Attributes:
         function_name: The expression that identifies the function to call (usually a StringLiteral or Identifier).

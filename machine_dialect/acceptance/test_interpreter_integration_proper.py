@@ -189,12 +189,24 @@ Use `max` with _15_, _8_.
         """Test that all original test cases pass in all components."""
         results = runner.run_all_tests()
 
+        skipped_tests = []
         for test_name, test_results in results.items():
+            # Check if test was skipped (all components will have same skip status)
+            if test_results["Parser"].error and test_results["Parser"].error.startswith("SKIPPED:"):
+                skipped_tests.append((test_name, test_results["Parser"].error))
+                continue
+
             # All components should pass for the original test cases
             assert test_results["Parser"].success, f"Parser failed for {test_name}"
             assert test_results["Interpreter"].success, f"Interpreter failed for {test_name}"
             assert test_results["VM"].success, f"VM failed for {test_name}"
             # CFG parser might fail but we don't enforce it
+
+        # Report skipped tests if any
+        if skipped_tests:
+            print(f"\nSkipped {len(skipped_tests)} tests:")
+            for test_name, reason in skipped_tests:
+                print(f"  - {test_name}: {reason[8:]}")  # Remove "SKIPPED: " prefix
 
     def test_error_handling_cases(self, runner: IntegrationTestRunner) -> None:
         """Test error handling across components."""

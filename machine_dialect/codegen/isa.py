@@ -29,6 +29,7 @@ class Opcode(IntEnum):
     MUL = auto()  # Multiplication
     DIV = auto()  # Division
     MOD = auto()  # Modulo
+    POW = auto()  # Exponentiation
 
     # Unary operations
     NEG = auto()  # Negation (unary minus)
@@ -98,6 +99,7 @@ INSTRUCTIONS: dict[Opcode, InstructionSpec] = {
     Opcode.MUL: InstructionSpec(Opcode.MUL, "MUL", [], -1),
     Opcode.DIV: InstructionSpec(Opcode.DIV, "DIV", [], -1),
     Opcode.MOD: InstructionSpec(Opcode.MOD, "MOD", [], -1),
+    Opcode.POW: InstructionSpec(Opcode.POW, "POW", [], -1),
     # Unary
     Opcode.NEG: InstructionSpec(Opcode.NEG, "NEG", [], 0),
     Opcode.NOT: InstructionSpec(Opcode.NOT, "NOT", [], 0),

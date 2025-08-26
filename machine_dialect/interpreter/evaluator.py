@@ -220,6 +220,8 @@ def _evaluate_infix_expression(token_type: TokenType, left: Object, right: Objec
             return left.react_to_infix_operator_less_than_or_equal(right)
         case TokenType.OP_STAR:
             return left.react_to_infix_operator_multiplication(right)
+        case TokenType.OP_CARET:
+            return left.react_to_infix_operator_exponentiation(right)
         case TokenType.OP_NOT_EQ:
             return left.react_to_infix_operator_not_equals(right)
         case TokenType.KW_OR:

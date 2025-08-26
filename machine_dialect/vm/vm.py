@@ -141,6 +141,8 @@ class VM:
             self._op_div()
         elif op == Opcode.MOD:
             self._op_mod()
+        elif op == Opcode.POW:
+            self._op_pow()
         elif op == Opcode.NEG:
             self._op_neg()
         elif op == Opcode.NOT:
@@ -330,6 +332,16 @@ class VM:
             raise DivisionByZeroError("Modulo by zero")
 
         self.stack.push(a % b)
+
+    def _op_pow(self) -> None:
+        """Exponentiate top two values."""
+        b = self.stack.pop()
+        a = self.stack.pop()
+
+        if not isinstance(a, int | float) or not isinstance(b, int | float):
+            raise VMTypeError(f"Cannot exponentiate {type(a).__name__} by {type(b).__name__}")
+
+        self.stack.push(a**b)
 
     def _op_neg(self) -> None:
         """Negate top of stack."""

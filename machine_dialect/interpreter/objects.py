@@ -60,6 +60,11 @@ class Object(ABC):
             UNSUPPORTED_OPERAND_TYPE.format(operator="/", left_type=self.type.name, right_type=other.type.name)
         )
 
+    def react_to_infix_operator_exponentiation(self, other: Object) -> Object:
+        return Error(
+            UNSUPPORTED_OPERAND_TYPE.format(operator="^", left_type=self.type.name, right_type=other.type.name)
+        )
+
     def react_to_infix_operator_less_than(self, other: Object) -> Object:
         return Error(
             UNSUPPORTED_OPERAND_TYPE.format(operator="<", left_type=self.type.name, right_type=other.type.name)
@@ -259,6 +264,13 @@ class Float(Object):
             UNSUPPORTED_OPERAND_TYPE.format(operator="/", left_type=self.type.name, right_type=other.type.name)
         )
 
+    def react_to_infix_operator_exponentiation(self, other: Object) -> Object:
+        if isinstance(other, Float) or isinstance(other, Integer):
+            return Float(self._value**other.value)
+        return Error(
+            UNSUPPORTED_OPERAND_TYPE.format(operator="^", left_type=self.type.name, right_type=other.type.name)
+        )
+
     def react_to_infix_operator_less_than(self, other: Object) -> Object:
         if isinstance(other, Float) or isinstance(other, Integer):
             return Boolean(self._value < other.value)
@@ -353,6 +365,19 @@ class Integer(Object):
             return Float(self._value / other.value)
         return Error(
             UNSUPPORTED_OPERAND_TYPE.format(operator="/", left_type=self.type.name, right_type=other.type.name)
+        )
+
+    def react_to_infix_operator_exponentiation(self, other: Object) -> Object:
+        if isinstance(other, Integer):
+            # Integer exponentiation returns an Integer if both operands are integers and exponent is non-negative
+            if other.value >= 0:
+                return Integer(self._value**other.value)
+            else:
+                return Float(self._value**other.value)
+        elif isinstance(other, Float):
+            return Float(self._value**other.value)
+        return Error(
+            UNSUPPORTED_OPERAND_TYPE.format(operator="^", left_type=self.type.name, right_type=other.type.name)
         )
 
     def react_to_infix_operator_less_than(self, other: Object) -> Object:

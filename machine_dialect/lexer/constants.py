@@ -6,6 +6,7 @@ CHAR_TO_TOKEN_MAP = {
     "-": TokenType.OP_MINUS,
     "*": TokenType.OP_STAR,
     "/": TokenType.OP_DIVISION,
+    "^": TokenType.OP_CARET,
     "=": TokenType.OP_ASSIGN,
     "<": TokenType.OP_LT,
     ">": TokenType.OP_GT,

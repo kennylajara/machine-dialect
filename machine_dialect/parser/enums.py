@@ -29,13 +29,15 @@ class Precedence(IntEnum):
     MATH_ADD_SUB = 11
     # Mathematical product, division, and modulus
     MATH_PROD_DIV_MOD = 12
+    # Mathematical exponentiation
+    MATH_EXPONENT = 13
     # Unary pre-increment, Unary pre-decrement, Unary plus, Unary minus,
     # Unary logical negation, Unary bitwise complement, Unary type cast
-    UNARY_SIMPLIFIED = 13
+    UNARY_SIMPLIFIED = 14
     # Unary post-increment, Unary post-decrement
-    UNARY_POST_OPERATOR = 14
+    UNARY_POST_OPERATOR = 15
     # Parentheses, Array subscript, Member selection
-    GROUP = 15
+    GROUP = 16
 
 
 class Associativity(Enum):

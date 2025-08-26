@@ -568,6 +568,7 @@ class CodeGenerator:
             "*": Opcode.MUL,
             "/": Opcode.DIV,
             "%": Opcode.MOD,
+            "^": Opcode.POW,
             "<": Opcode.LT,
             ">": Opcode.GT,
             "<=": Opcode.LTE,

@@ -78,6 +78,7 @@ PRECEDENCES: dict[TokenType, Precedence] = {
     TokenType.OP_MINUS: Precedence.MATH_ADD_SUB,
     TokenType.OP_STAR: Precedence.MATH_PROD_DIV_MOD,
     TokenType.OP_DIVISION: Precedence.MATH_PROD_DIV_MOD,
+    TokenType.OP_CARET: Precedence.MATH_EXPONENT,
 }
 
 
@@ -1511,6 +1512,7 @@ class Parser:
             TokenType.OP_MINUS: self._parse_infix_expression,
             TokenType.OP_STAR: self._parse_infix_expression,
             TokenType.OP_DIVISION: self._parse_infix_expression,
+            TokenType.OP_CARET: self._parse_infix_expression,
             # Comparison operators
             TokenType.OP_EQ: self._parse_infix_expression,
             TokenType.OP_NOT_EQ: self._parse_infix_expression,

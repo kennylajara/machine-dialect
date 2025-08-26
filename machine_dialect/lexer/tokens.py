@@ -38,6 +38,7 @@ class TokenType(Enum):
     OP_GTE = auto()
     OP_NEGATION = auto()
     OP_TWO_STARS = auto()
+    OP_CARET = auto()  # Exponentiation operator ^
 
     # Delimiters
     DELIM_LPAREN = auto()

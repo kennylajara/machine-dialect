@@ -72,6 +72,7 @@ ignore_missing_imports = true
 [[tool.mypy.overrides]]
 module = [
     "machine_dialect.*.tests.*",
+    "machine_dialect.acceptance.*",
     "machine_dialect.__main__"
 ]
 disable_error_code = ["misc"]

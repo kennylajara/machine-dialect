@@ -129,8 +129,8 @@ literal: LITERAL_FLOAT
 
 // Literal patterns - these are complete tokens including underscores
 // Higher priority than IDENT to ensure they match first
-LITERAL_FLOAT.3: /_\d+\.\d+_/
-LITERAL_INT.3: /_\d+_/
+LITERAL_FLOAT.3: /_-?\d+\.\d+_/
+LITERAL_INT.3: /_-?\d+_/
 LITERAL_STRING.3: /_"(?:[^"\\]|\\.)*"_|_'(?:[^'\\]|\\.)*'_/
 LITERAL_TRUE.3: /_true_/i
 LITERAL_FALSE.3: /_false_/i

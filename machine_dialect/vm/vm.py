@@ -470,6 +470,18 @@ class VM:
             for i, arg in enumerate(args):
                 func_frame.set_local(i, arg)
 
+            # Fill in default values for missing parameters
+            if len(args) < func.num_params:
+                # We have fewer arguments than parameters
+                # Fill in defaults for the missing ones
+                for i in range(len(args), func.num_params):
+                    if i < len(func.param_defaults):
+                        default_val = func.param_defaults[i]
+                        func_frame.set_local(i, default_val)
+                    else:
+                        # No default available - set to None
+                        func_frame.set_local(i, None)
+
             # Push new frame onto call stack
             self.call_stack.push(func_frame)
 

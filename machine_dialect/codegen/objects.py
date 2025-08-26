@@ -45,6 +45,7 @@ class Chunk:
     num_locals: int = 0
     num_params: int = 0
     param_names: list[str] = field(default_factory=list)  # Parameter names in order
+    param_defaults: list[Any | None] = field(default_factory=list)  # Default values for params (None if required)
     source_map: dict[int, tuple[int, int]] = field(default_factory=dict)  # pc -> (line, col)
 
     # Future OOP fields

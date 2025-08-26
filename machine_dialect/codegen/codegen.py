@@ -4,6 +4,8 @@ This module implements the main code generator that walks the AST
 and produces bytecode using the emitter.
 """
 
+from typing import Any
+
 from machine_dialect.ast import (
     BlockStatement,
     BooleanLiteral,
@@ -331,14 +333,26 @@ class CodeGenerator:
         # Create new chunk for the function
         func_name = stmt.name.value if stmt.name else "anonymous"
 
-        # Extract parameter names
+        # Extract parameter names and default values
         param_names = [param.name.value for param in stmt.inputs if param.name]
+        param_defaults: list[Any | None] = []
+
+        # Compile default values for parameters
+        for param in stmt.inputs:
+            if param.default_value is not None:
+                # Need to evaluate the default value expression
+                # For now, handle simple literals
+                default_val = self._evaluate_default_value(param.default_value)
+                param_defaults.append(default_val)
+            else:
+                param_defaults.append(None)
 
         func_chunk = Chunk(
             name=func_name,
             chunk_type=ChunkType.FUNCTION,
             num_params=len(stmt.inputs),
             param_names=param_names,
+            param_defaults=param_defaults,
         )
 
         # Create new emitter for function chunk
@@ -616,6 +630,57 @@ class CodeGenerator:
 
         # Patch jump to end
         self.emitter.patch_jump(jump_to_end)
+
+    def _evaluate_default_value(self, expr: Expression) -> Any:
+        """Evaluate a default value expression to a Python value.
+
+        This is used to evaluate default parameter values at compile time.
+        Currently only supports literal values.
+
+        Args:
+            expr: The expression to evaluate.
+
+        Returns:
+            The evaluated Python value.
+        """
+        from machine_dialect.ast.literals import (
+            BooleanLiteral,
+            EmptyLiteral,
+            FloatLiteral,
+            IntegerLiteral,
+            StringLiteral,
+            URLLiteral,
+        )
+
+        if isinstance(expr, IntegerLiteral):
+            return expr.value
+        elif isinstance(expr, FloatLiteral):
+            return expr.value
+        elif isinstance(expr, StringLiteral):
+            # Strip quotes from string value if present
+            value = expr.value
+            if value and value.startswith('"') and value.endswith('"'):
+                value = value[1:-1]
+            elif value and value.startswith("'") and value.endswith("'"):
+                value = value[1:-1]
+            return value
+        elif isinstance(expr, BooleanLiteral):
+            return expr.value
+        elif isinstance(expr, EmptyLiteral):
+            return None
+        elif isinstance(expr, URLLiteral):
+            # Strip quotes from URL value if present
+            value = expr.value
+            if value and value.startswith('"') and value.endswith('"'):
+                value = value[1:-1]
+            elif value and value.startswith("'") and value.endswith("'"):
+                value = value[1:-1]
+            return value
+        else:
+            # For complex expressions, we can't evaluate at compile time
+            # Return None and handle at runtime
+            self._add_error(f"Default value must be a literal, got {type(expr).__name__}")
+            return None
 
     def _add_error(self, message: str) -> None:
         """Add a compilation error.

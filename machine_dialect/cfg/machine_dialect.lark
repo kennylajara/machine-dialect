@@ -1,25 +1,46 @@
 // Machine Dialect Grammar for LARK Parser
 // This grammar should match the exact syntax of the main parser
+// CRITICAL: 100% feature parity with main parser is MANDATORY
 
 start: program
 
-program: statement_list
+program: utility_def* statement_list
+
+// Utility definitions (markdown style) - parsed but treated as metadata
+utility_def: MARKDOWN_HEADER HTML_BLOCK? INPUTS_SECTION? OUTPUTS_SECTION?
+
+MARKDOWN_HEADER: /###\s+\*\*[^*]+\*\*:\s*`[^`]+`[^\n]*/
+HTML_BLOCK: /<details>[\s\S]*?<\/details>/
+INPUTS_SECTION: /####\s+Inputs:[^\n]*(\n-[^\n]*)*/
+OUTPUTS_SECTION: /####\s+Outputs:[^\n]*(\n-[^\n]*)*/
 
 statement_list: (statement ".")* statement "."?
 
 statement: set_stmt
          | give_back_stmt
          | say_stmt
+         | tell_stmt      // Add Tell as alias for Say
          | if_stmt
-         | call_stmt
+         | when_stmt      // Add When as alias for If
+         | use_stmt       // Add Use (replaces Call)
+         | call_stmt      // Keep for backward compatibility
          | action_stmt
          | interaction_stmt
 
 // Statements
-set_stmt: "Set"i IDENTIFIER "to"i expression
+set_stmt: "Set"i identifier "to"i expression
+        | "Set"i identifier "using"i identifier ("with"i expression_list)?     // Set using with positional args
+        | "Set"i identifier "using"i identifier ("where"i named_args)?         // Set using with named args
 give_back_stmt: ("Give"i "back"i | "Gives"i "back"i) expression
 say_stmt: "Say"i expression
-call_stmt: "Call"i "`" IDENTIFIER "`" ("with"i expression_list)?
+tell_stmt: "Tell"i expression  // Alias for Say
+use_stmt: "Use"i identifier ("with"i expression_list)?  // Modern syntax
+        | "Use"i identifier ("where"i named_args)?      // Named arguments
+call_stmt: "Call"i identifier ("with"i expression_list)?  // Deprecated but kept for compatibility
+
+// Support for When as alias for If
+when_stmt: "When"i expression "then"i ":" BLOCK_CONTENT? otherwise_clause?
+otherwise_clause: "Otherwise"i ":" BLOCK_CONTENT?
 
 // Action and Interaction with simplified blocks
 // For CFG validation, we'll accept the structure but not fully parse blocks
@@ -28,11 +49,15 @@ interaction_stmt: "Interaction"i IDENTIFIER ("with"i parameter_list)? ":" BLOCK_
 
 // If statement with simplified blocks
 if_stmt: "If"i expression "then"i ":" BLOCK_CONTENT? else_clause?
-else_clause: "Else"i ":" BLOCK_CONTENT?
+else_clause: ("Else"i | "Otherwise"i) ":" BLOCK_CONTENT?
 
 // Parameters - supports "as Type" syntax for actions/interactions
 parameter_list: parameter ("," parameter)*
-parameter: IDENTIFIER ("as"i IDENTIFIER)? ("=" expression)?
+parameter: identifier ("as"i IDENTIFIER)? ("=" expression)?
+
+// Named arguments for function calls
+named_args: named_arg ("," named_arg)*
+named_arg: identifier "is"i expression
 
 expression_list: expression ("," expression)*
 
@@ -69,6 +94,10 @@ comp_op: "<=" | ">=" | "<" | ">"
        | "is"i "less"i "than"i "or"i "equal"i "to"i
        | "is"i "greater"i "than"i
        | "is"i "less"i "than"i
+       | "is"i "more"i "than"i         // Natural language >
+       | "is"i "under"i                // Natural language <
+       | "is"i "at"i "least"i          // Natural language >=
+       | "is"i "at"i "most"i           // Natural language <=
 
 arith_expr: term (("+"|"-") term)*
 
@@ -79,7 +108,11 @@ factor: "-" factor
 
 atom: "(" expression ")"
     | literal
-    | IDENT  // Changed from IDENTIFIER to avoid conflict
+    | identifier
+
+// Identifier can be plain, backtick-wrapped, or bold-wrapped
+identifier: IDENT
+          | BACKTICK_IDENT
 
 // Literals - parse with underscores as complete tokens
 literal: LITERAL_FLOAT
@@ -87,6 +120,8 @@ literal: LITERAL_FLOAT
        | LITERAL_STRING
        | LITERAL_TRUE
        | LITERAL_FALSE
+       | LITERAL_YES    // Add Yes as boolean true
+       | LITERAL_NO     // Add No as boolean false
        | LITERAL_EMPTY
        | LITERAL_URL
 
@@ -97,8 +132,13 @@ LITERAL_INT.3: /_\d+_/
 LITERAL_STRING.3: /_"[^"]*"_|_'[^']*'_/
 LITERAL_TRUE.3: /_true_/i
 LITERAL_FALSE.3: /_false_/i
+LITERAL_YES.3: /_yes_/i       // Yes literal
+LITERAL_NO.3: /_no_/i         // No literal
 LITERAL_EMPTY.3: /_empty_/i
 LITERAL_URL.3: /_https?:\/\/[^\s]+_/
+
+// Backtick identifier - can contain spaces and special characters
+BACKTICK_IDENT.2: /`[^`]+`/
 
 // Use IDENT instead of IDENTIFIER to avoid conflicts with literal patterns
 IDENT: /[a-zA-Z][a-zA-Z0-9_]*|[a-zA-Z_][a-zA-Z0-9_]+/

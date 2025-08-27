@@ -8,16 +8,32 @@ from typing import Any
 
 from machine_dialect.codegen.isa import Opcode
 from machine_dialect.codegen.objects import Chunk, Module
-from machine_dialect.vm.errors import (
+from machine_dialect.runtime import (
     DivisionByZeroError,
-    InvalidOpcodeError,
+    TypeError,
+    add,
+    divide,
+    equals,
+    get_builtin,
+    greater_than,
+    greater_than_or_equal,
+    is_truthy,
+    less_than,
+    less_than_or_equal,
+    logical_and,
+    logical_not,
+    logical_or,
+    modulo,
+    multiply,
+    negate,
+    not_equals,
+    power,
+    strict_equals,
+    strict_not_equals,
+    subtract,
 )
-from machine_dialect.vm.errors import (
-    TypeError as VMTypeError,
-)
+from machine_dialect.vm.errors import InvalidOpcodeError
 from machine_dialect.vm.frame import CallStack, Frame
-from machine_dialect.vm.natives import get_native_function
-from machine_dialect.vm.objects import NativeFunction, equals, is_truthy, strict_equals
 from machine_dialect.vm.stack import Stack
 
 
@@ -210,12 +226,12 @@ class VM:
         index = frame.read_u16()
         name = frame.chunk.get_constant(index)
         if not isinstance(name, str):
-            raise VMTypeError(f"Global name must be string, got {type(name).__name__}")
+            raise TypeError(f"Global name must be string, got {type(name).__name__}")
 
-        # Check for native function first
-        native_func = get_native_function(name)
-        if native_func:
-            self.stack.push(native_func)
+        # Check for builtin function first
+        builtin_func = get_builtin(name)
+        if builtin_func:
+            self.stack.push(builtin_func)
         elif name in self.globals:
             self.stack.push(self.globals[name])
         else:
@@ -227,7 +243,7 @@ class VM:
         index = frame.read_u16()
         name = frame.chunk.get_constant(index)
         if not isinstance(name, str):
-            raise VMTypeError(f"Global name must be string, got {type(name).__name__}")
+            raise TypeError(f"Global name must be string, got {type(name).__name__}")
         value = self.stack.pop()
         self.globals[name] = value
 
@@ -236,21 +252,21 @@ class VM:
         index = frame.read_u16()
         name = frame.chunk.get_constant(index)
         if not isinstance(name, str):
-            raise VMTypeError(f"Function name must be string, got {type(name).__name__}")
+            raise TypeError(f"Function name must be string, got {type(name).__name__}")
 
-        # Check for native function first
-        native_func = get_native_function(name)
-        if native_func:
-            self.stack.push(native_func)
+        # Check for builtin function first
+        builtin_func = get_builtin(name)
+        if builtin_func:
+            self.stack.push(builtin_func)
             return
 
         # Look up user-defined function from module
         if self.module is None:
-            raise VMTypeError("No module loaded for function lookup")
+            raise TypeError("No module loaded for function lookup")
 
         func_chunk = self.module.get_function(name)
         if func_chunk is None:
-            raise VMTypeError(f"Undefined function: {name}")
+            raise TypeError(f"Undefined function: {name}")
 
         self.stack.push(func_chunk)
 
@@ -274,88 +290,76 @@ class VM:
         """Add top two values."""
         b = self.stack.pop()
         a = self.stack.pop()
-
-        # String concatenation
-        if isinstance(a, str) or isinstance(b, str):
-            result: Any = str(a) + str(b)
-        # Numeric addition
-        elif isinstance(a, int | float) and isinstance(b, int | float):
-            result = a + b
-        else:
-            raise VMTypeError(f"Cannot add {type(a).__name__} and {type(b).__name__}")
-
-        self.stack.push(result)
+        try:
+            result = add(a, b)
+            self.stack.push(result)
+        except TypeError as e:
+            raise TypeError(str(e)) from None
 
     def _op_sub(self) -> None:
         """Subtract top two values."""
         b = self.stack.pop()
         a = self.stack.pop()
-
-        if not isinstance(a, int | float) or not isinstance(b, int | float):
-            raise VMTypeError(f"Cannot subtract {type(b).__name__} from {type(a).__name__}")
-
-        self.stack.push(a - b)
+        try:
+            result = subtract(a, b)
+            self.stack.push(result)
+        except TypeError as e:
+            raise TypeError(str(e)) from None
 
     def _op_mul(self) -> None:
         """Multiply top two values."""
         b = self.stack.pop()
         a = self.stack.pop()
-
-        if not isinstance(a, int | float) or not isinstance(b, int | float):
-            raise VMTypeError(f"Cannot multiply {type(a).__name__} and {type(b).__name__}")
-
-        self.stack.push(a * b)
+        try:
+            result = multiply(a, b)
+            self.stack.push(result)
+        except TypeError as e:
+            raise TypeError(str(e)) from None
 
     def _op_div(self) -> None:
         """Divide top two values."""
         b = self.stack.pop()
         a = self.stack.pop()
-
-        if not isinstance(a, int | float) or not isinstance(b, int | float):
-            raise VMTypeError(f"Cannot divide {type(a).__name__} by {type(b).__name__}")
-
-        if b == 0:
-            raise DivisionByZeroError("Division by zero")
-
-        # Use true division
-        self.stack.push(a / b)
+        try:
+            result = divide(a, b)
+            self.stack.push(result)
+        except (TypeError, DivisionByZeroError) as e:
+            raise e from None
 
     def _op_mod(self) -> None:
         """Modulo top two values."""
         b = self.stack.pop()
         a = self.stack.pop()
-
-        if not isinstance(a, int | float) or not isinstance(b, int | float):
-            raise VMTypeError(f"Cannot modulo {type(a).__name__} by {type(b).__name__}")
-
-        if b == 0:
-            raise DivisionByZeroError("Modulo by zero")
-
-        self.stack.push(a % b)
+        try:
+            result = modulo(a, b)
+            self.stack.push(result)
+        except (TypeError, DivisionByZeroError) as e:
+            raise e from None
 
     def _op_pow(self) -> None:
         """Exponentiate top two values."""
         b = self.stack.pop()
         a = self.stack.pop()
-
-        if not isinstance(a, int | float) or not isinstance(b, int | float):
-            raise VMTypeError(f"Cannot exponentiate {type(a).__name__} by {type(b).__name__}")
-
-        self.stack.push(a**b)
+        try:
+            result = power(a, b)
+            self.stack.push(result)
+        except TypeError as e:
+            raise TypeError(str(e)) from None
 
     def _op_neg(self) -> None:
         """Negate top of stack."""
         value = self.stack.pop()
-
-        if not isinstance(value, int | float):
-            raise VMTypeError(f"Cannot negate {type(value).__name__}")
-
-        self.stack.push(-value)
+        try:
+            result = negate(value)
+            self.stack.push(result)
+        except TypeError as e:
+            raise TypeError(str(e)) from None
 
     def _op_not(self) -> None:
         """Logical NOT of top of stack."""
         value = self.stack.pop()
-        self.stack.push(not is_truthy(value))
+        result = logical_not(value)
+        self.stack.push(result)
 
     # Comparison operations
 
@@ -369,47 +373,48 @@ class VM:
         """Check inequality."""
         b = self.stack.pop()
         a = self.stack.pop()
-        self.stack.push(not equals(a, b))
+        result = not_equals(a, b)
+        self.stack.push(result)
 
     def _op_lt(self) -> None:
         """Check less than."""
         b = self.stack.pop()
         a = self.stack.pop()
-
-        if not isinstance(a, int | float) or not isinstance(b, int | float):
-            raise VMTypeError(f"Cannot compare {type(a).__name__} and {type(b).__name__}")
-
-        self.stack.push(a < b)
+        try:
+            result = less_than(a, b)
+            self.stack.push(result)
+        except TypeError as e:
+            raise TypeError(str(e)) from None
 
     def _op_gt(self) -> None:
         """Check greater than."""
         b = self.stack.pop()
         a = self.stack.pop()
-
-        if not isinstance(a, int | float) or not isinstance(b, int | float):
-            raise VMTypeError(f"Cannot compare {type(a).__name__} and {type(b).__name__}")
-
-        self.stack.push(a > b)
+        try:
+            result = greater_than(a, b)
+            self.stack.push(result)
+        except TypeError as e:
+            raise TypeError(str(e)) from None
 
     def _op_lte(self) -> None:
         """Check less than or equal."""
         b = self.stack.pop()
         a = self.stack.pop()
-
-        if not isinstance(a, int | float) or not isinstance(b, int | float):
-            raise VMTypeError(f"Cannot compare {type(a).__name__} and {type(b).__name__}")
-
-        self.stack.push(a <= b)
+        try:
+            result = less_than_or_equal(a, b)
+            self.stack.push(result)
+        except TypeError as e:
+            raise TypeError(str(e)) from None
 
     def _op_gte(self) -> None:
         """Check greater than or equal."""
         b = self.stack.pop()
         a = self.stack.pop()
-
-        if not isinstance(a, int | float) or not isinstance(b, int | float):
-            raise VMTypeError(f"Cannot compare {type(a).__name__} and {type(b).__name__}")
-
-        self.stack.push(a >= b)
+        try:
+            result = greater_than_or_equal(a, b)
+            self.stack.push(result)
+        except TypeError as e:
+            raise TypeError(str(e)) from None
 
     def _op_strict_eq(self) -> None:
         """Check strict equality (type and value)."""
@@ -421,7 +426,8 @@ class VM:
         """Check strict inequality (type or value)."""
         b = self.stack.pop()
         a = self.stack.pop()
-        self.stack.push(not strict_equals(a, b))
+        result = strict_not_equals(a, b)
+        self.stack.push(result)
 
     # Logical operations
 
@@ -429,13 +435,15 @@ class VM:
         """Logical AND (no short-circuit)."""
         b = self.stack.pop()
         a = self.stack.pop()
-        self.stack.push(is_truthy(a) and is_truthy(b))
+        result = logical_and(a, b)
+        self.stack.push(result)
 
     def _op_or(self) -> None:
         """Logical OR (no short-circuit)."""
         b = self.stack.pop()
         a = self.stack.pop()
-        self.stack.push(is_truthy(a) or is_truthy(b))
+        result = logical_or(a, b)
+        self.stack.push(result)
 
     # Control flow
 
@@ -469,9 +477,12 @@ class VM:
         # Get function
         func = self.stack.pop()
 
-        if isinstance(func, NativeFunction):
-            # Call native function
-            result = func.call(args)
+        # Check if it's a builtin function from runtime
+        if hasattr(func, "func") and hasattr(func, "arity"):
+            # Call builtin function
+            if func.arity >= 0 and len(args) != func.arity:
+                raise TypeError(f"Function '{func.name}' expects {func.arity} arguments, got {len(args)}")
+            result = func.func(*args)
             self.stack.push(result)
         elif isinstance(func, Chunk):
             # Call user-defined function
@@ -516,7 +527,7 @@ class VM:
             # Push result onto stack
             self.stack.push(result)
         else:
-            raise VMTypeError(f"Cannot call {type(func).__name__}")
+            raise TypeError(f"Cannot call {type(func).__name__}")
 
     # Debug helpers
 

@@ -1,11 +1,14 @@
 """VM-specific error types.
 
-This module defines exceptions that can occur during bytecode execution.
+This module defines exceptions that are specific to VM bytecode execution.
+General runtime errors are imported from the runtime module.
 """
 
+from machine_dialect.runtime import RuntimeError as BaseRuntimeError
 
-class VMError(Exception):
-    """Base class for all VM errors."""
+
+class VMError(BaseRuntimeError):
+    """Base class for VM-specific errors."""
 
     pass
 
@@ -24,23 +27,5 @@ class InvalidOpcodeError(VMError):
 
 class IndexOutOfRangeError(VMError):
     """Raised when accessing an invalid constant or variable index."""
-
-    pass
-
-
-class TypeError(VMError):
-    """Raised when performing an unsupported operation on given types."""
-
-    pass
-
-
-class DivisionByZeroError(VMError):
-    """Raised when attempting to divide by zero."""
-
-    pass
-
-
-class RuntimeError(VMError):
-    """General runtime error."""
 
     pass

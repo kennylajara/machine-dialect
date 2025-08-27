@@ -114,6 +114,8 @@ def is_truthy(value: Any) -> bool:
     Returns:
         True if the value is considered truthy, False otherwise.
     """
+    # TODO: Get rid of this function. In Machine Dialect we will only support True Booleans, not truthy values
+
     # Handle None/Empty
     if value is None:
         return False

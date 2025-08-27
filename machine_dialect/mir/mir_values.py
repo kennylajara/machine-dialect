@@ -1,0 +1,187 @@
+"""MIR Value Representations.
+
+This module defines the various value types used in MIR instructions,
+including temporaries, variables, constants, and function references.
+"""
+
+from abc import ABC, abstractmethod
+from typing import Any
+
+from .mir_types import MIRType, infer_type
+
+
+class MIRValue(ABC):
+    """Base class for all MIR values."""
+
+    def __init__(self, mir_type: MIRType) -> None:
+        """Initialize a MIR value.
+
+        Args:
+            mir_type: The type of the value.
+        """
+        self.type = mir_type
+
+    @abstractmethod
+    def __str__(self) -> str:
+        """Return string representation of the value."""
+        pass
+
+    @abstractmethod
+    def __eq__(self, other: object) -> bool:
+        """Check equality with another value."""
+        pass
+
+    @abstractmethod
+    def __hash__(self) -> int:
+        """Return hash of the value."""
+        pass
+
+
+class Temp(MIRValue):
+    """Temporary value in SSA form.
+
+    Temporaries are compiler-generated values used to hold intermediate
+    results in three-address code.
+    """
+
+    _next_id = 0
+
+    def __init__(self, mir_type: MIRType, temp_id: int | None = None) -> None:
+        """Initialize a temporary.
+
+        Args:
+            mir_type: The type of the temporary.
+            temp_id: Optional explicit ID. If None, auto-generated.
+        """
+        super().__init__(mir_type)
+        if temp_id is None:
+            self.id = Temp._next_id
+            Temp._next_id += 1
+        else:
+            self.id = temp_id
+
+    def __str__(self) -> str:
+        """Return string representation (e.g., 't1')."""
+        return f"t{self.id}"
+
+    def __eq__(self, other: object) -> bool:
+        """Check equality based on ID."""
+        return isinstance(other, Temp) and self.id == other.id
+
+    def __hash__(self) -> int:
+        """Hash based on ID."""
+        return hash(("temp", self.id))
+
+    @classmethod
+    def reset_counter(cls) -> None:
+        """Reset the temporary ID counter (useful for tests)."""
+        cls._next_id = 0
+
+
+class Variable(MIRValue):
+    """User-defined variable.
+
+    Variables represent named values from the source program.
+    In SSA form, these may be versioned (e.g., x_1, x_2).
+    """
+
+    def __init__(self, name: str, mir_type: MIRType, version: int = 0) -> None:
+        """Initialize a variable.
+
+        Args:
+            name: The variable name.
+            mir_type: The type of the variable.
+            version: SSA version number (0 for non-SSA).
+        """
+        super().__init__(mir_type)
+        self.name = name
+        self.version = version
+
+    def __str__(self) -> str:
+        """Return string representation."""
+        if self.version > 0:
+            return f"{self.name}_{self.version}"
+        return self.name
+
+    def __eq__(self, other: object) -> bool:
+        """Check equality based on name and version."""
+        return isinstance(other, Variable) and self.name == other.name and self.version == other.version
+
+    def __hash__(self) -> int:
+        """Hash based on name and version."""
+        return hash(("var", self.name, self.version))
+
+    def with_version(self, version: int) -> "Variable":
+        """Create a new variable with a different version.
+
+        Args:
+            version: The new version number.
+
+        Returns:
+            A new Variable with the same name and type but different version.
+        """
+        return Variable(self.name, self.type, version)
+
+
+class Constant(MIRValue):
+    """Constant value.
+
+    Constants represent literal values from the source program.
+    """
+
+    def __init__(self, value: Any, mir_type: MIRType | None = None) -> None:
+        """Initialize a constant.
+
+        Args:
+            value: The constant value.
+            mir_type: Optional explicit type. If None, inferred from value.
+        """
+        if mir_type is None:
+            mir_type = infer_type(value)
+        super().__init__(mir_type)
+        self.value = value
+
+    def __str__(self) -> str:
+        """Return string representation."""
+        if self.type == MIRType.STRING:
+            return f'"{self.value}"'
+        elif self.type == MIRType.EMPTY:
+            return "null"
+        else:
+            return str(self.value)
+
+    def __eq__(self, other: object) -> bool:
+        """Check equality based on value and type."""
+        return isinstance(other, Constant) and self.value == other.value and self.type == other.type
+
+    def __hash__(self) -> int:
+        """Hash based on value and type."""
+        return hash(("const", self.value, self.type))
+
+
+class FunctionRef(MIRValue):
+    """Function reference.
+
+    Represents a reference to a function that can be called.
+    """
+
+    def __init__(self, name: str) -> None:
+        """Initialize a function reference.
+
+        Args:
+            name: The function name.
+        """
+        super().__init__(MIRType.FUNCTION)
+        self.name = name
+
+    def __str__(self) -> str:
+        """Return string representation."""
+        return f"@{self.name}"
+
+    def __eq__(self, other: object) -> bool:
+        """Check equality based on name."""
+        return isinstance(other, FunctionRef) and self.name == other.name
+
+    def __hash__(self) -> int:
+        """Hash based on name."""
+        return hash(("func", self.name))

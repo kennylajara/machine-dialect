@@ -14,8 +14,18 @@ Statements include:
 - Parameter: Represents a parameter with type and optional default value
 """
 
+from enum import Enum, auto
+
 from machine_dialect.ast import ASTNode, Expression, Identifier
 from machine_dialect.lexer import Token
+
+
+class FunctionVisibility(Enum):
+    """Visibility levels for function statements."""
+
+    PRIVATE = auto()  # Action - private method
+    PUBLIC = auto()  # Interaction - public method
+    FUNCTION = auto()  # Utility - function with return value
 
 
 class Statement(ASTNode):
@@ -32,6 +42,14 @@ class Statement(ASTNode):
             token: The token that begins this statement.
         """
         self.token = token
+
+    def desugar(self) -> "Statement":
+        """Default desugar for statements returns self.
+
+        Returns:
+            Self unchanged.
+        """
+        return self
 
 
 class ExpressionStatement(Statement):
@@ -62,6 +80,17 @@ class ExpressionStatement(Statement):
             The string representation of the wrapped expression.
         """
         return str(self.expression)
+
+    def desugar(self) -> "ExpressionStatement":
+        """Desugar expression statement by recursively desugaring the expression.
+
+        Returns:
+            A new ExpressionStatement with desugared expression.
+        """
+        desugared = ExpressionStatement(self.token, None)
+        if self.expression:
+            desugared.expression = self.expression.desugar()
+        return desugared
 
 
 class ReturnStatement(Statement):
@@ -94,6 +123,27 @@ class ReturnStatement(Statement):
         if self.return_value:
             out += f" {self.return_value}"
         return out
+
+    def desugar(self) -> "ReturnStatement":
+        """Desugar return statement by normalizing literal and desugaring return value.
+
+        Normalizes "give back" and "gives back" to canonical "return".
+
+        Returns:
+            A new ReturnStatement with normalized literal and desugared return value.
+        """
+        # Create new token with normalized literal
+        normalized_token = Token(
+            self.token.type,
+            "return",  # Normalize to canonical form
+            self.token.line,
+            self.token.position,
+        )
+
+        desugared = ReturnStatement(normalized_token)
+        if self.return_value:
+            desugared.return_value = self.return_value.desugar()
+        return desugared
 
 
 class SetStatement(Statement):
@@ -132,6 +182,19 @@ class SetStatement(Statement):
         if self.value:
             out += str(self.value)
         return out
+
+    def desugar(self) -> "SetStatement":
+        """Desugar set statement by recursively desugaring name and value.
+
+        Returns:
+            A new SetStatement with desugared components.
+        """
+        desugared = SetStatement(self.token)
+        if self.name:
+            desugared.name = self.name.desugar() if hasattr(self.name, "desugar") else self.name
+        if self.value:
+            desugared.value = self.value.desugar()
+        return desugared
 
 
 class CallStatement(Statement):
@@ -172,6 +235,19 @@ class CallStatement(Statement):
             out += f" with {self.arguments}"
         return out
 
+    def desugar(self) -> "CallStatement":
+        """Desugar call statement by recursively desugaring function name and arguments.
+
+        Returns:
+            A new CallStatement with desugared components.
+        """
+        desugared = CallStatement(self.token)
+        if self.function_name:
+            desugared.function_name = self.function_name.desugar()
+        if self.arguments:
+            desugared.arguments = self.arguments.desugar()
+        return desugared
+
 
 class BlockStatement(Statement):
     """A block of statements with a specific depth.
@@ -205,6 +281,32 @@ class BlockStatement(Statement):
         indent = ">" * self.depth + " "
         statements_str = "\n".join(indent + str(stmt) for stmt in self.statements)
         return f":\n{statements_str}"
+
+    def desugar(self) -> "Statement | BlockStatement":
+        """Desugar block statement by flattening single-statement blocks.
+
+        If the block contains exactly one non-block statement, returns that statement.
+        Otherwise, returns a new BlockStatement with desugared statements.
+
+        Returns:
+            Either the single contained statement or a new BlockStatement.
+        """
+        # Desugar all contained statements - they return Statement type
+        desugared_statements: list[Statement] = []
+        for stmt in self.statements:
+            result = stmt.desugar()
+            # The desugar might return any Statement subclass
+            assert isinstance(result, Statement)
+            desugared_statements.append(result)
+
+        # If block contains exactly one statement and it's not another block, flatten it
+        if len(desugared_statements) == 1 and not isinstance(desugared_statements[0], BlockStatement):
+            return desugared_statements[0]
+
+        # Otherwise, return a new block with desugared statements
+        desugared = BlockStatement(self.token, self.depth)
+        desugared.statements = desugared_statements
+        return desugared
 
 
 class IfStatement(Statement):
@@ -245,6 +347,37 @@ class IfStatement(Statement):
             out += f"\nelse{self.alternative}"
         return out
 
+    def desugar(self) -> "IfStatement":
+        """Desugar if statement by recursively desugaring all components.
+
+        Returns:
+            A new IfStatement with desugared condition, consequence, and alternative.
+        """
+        desugared = IfStatement(self.token)
+        if self.condition:
+            desugared.condition = self.condition.desugar()
+        if self.consequence:
+            # BlockStatement.desugar may return a non-block if it has single statement
+            consequence_desugared = self.consequence.desugar()
+            # Ensure consequence is always a BlockStatement for consistency
+            if isinstance(consequence_desugared, BlockStatement):
+                desugared.consequence = consequence_desugared
+            else:
+                # Wrap single statement back in a block
+                block = BlockStatement(self.token, self.consequence.depth)
+                block.statements = [consequence_desugared]
+                desugared.consequence = block
+        if self.alternative:
+            # Same treatment for alternative
+            alternative_desugared = self.alternative.desugar()
+            if isinstance(alternative_desugared, BlockStatement):
+                desugared.alternative = alternative_desugared
+            else:
+                block = BlockStatement(self.token, self.alternative.depth)
+                block.statements = [alternative_desugared]
+                desugared.alternative = block
+        return desugared
+
 
 class ErrorStatement(Statement):
     """A statement that failed to parse correctly.
@@ -279,6 +412,14 @@ class ErrorStatement(Statement):
         if self.message:
             return f"<error: {self.message}>"
         return "<error>"
+
+    def desugar(self) -> "ErrorStatement":
+        """Error statements remain unchanged during desugaring.
+
+        Returns:
+            Self unchanged.
+        """
+        return self
 
 
 class Parameter(ASTNode):
@@ -443,6 +584,33 @@ class ActionStatement(Statement):
         result += f" {{\n{self.body}\n}}"
         return result
 
+    def desugar(self) -> "FunctionStatement":
+        """Desugar action statement to unified FunctionStatement.
+
+        Returns:
+            A FunctionStatement with PRIVATE visibility.
+        """
+        desugared_body: BlockStatement | None = None
+        if self.body:
+            body_result = self.body.desugar()
+            # Ensure body is always a BlockStatement
+            if isinstance(body_result, BlockStatement):
+                desugared_body = body_result
+            else:
+                # Wrap single statement in a block
+                desugared_body = BlockStatement(self.token)
+                desugared_body.statements = [body_result]
+
+        return FunctionStatement(
+            self.token,
+            FunctionVisibility.PRIVATE,
+            self.name.desugar() if hasattr(self.name, "desugar") else self.name,
+            self.inputs,
+            self.outputs,
+            desugared_body,
+            self.description,
+        )
+
 
 class SayStatement(Statement):
     """Represents a Say statement (output/display) in Machine Dialect.
@@ -479,6 +647,17 @@ class SayStatement(Statement):
             A string representation like "Say expression".
         """
         return f"Say {self.expression}" if self.expression else "Say"
+
+    def desugar(self) -> "SayStatement":
+        """Desugar say statement by recursively desugaring its expression.
+
+        Returns:
+            A new SayStatement with desugared expression.
+        """
+        desugared = SayStatement(self.token)
+        if self.expression:
+            desugared.expression = self.expression.desugar()
+        return desugared
 
 
 class InteractionStatement(Statement):
@@ -546,6 +725,33 @@ class InteractionStatement(Statement):
         result += f" {{\n{self.body}\n}}"
         return result
 
+    def desugar(self) -> "FunctionStatement":
+        """Desugar interaction statement to unified FunctionStatement.
+
+        Returns:
+            A FunctionStatement with PUBLIC visibility.
+        """
+        desugared_body: BlockStatement | None = None
+        if self.body:
+            body_result = self.body.desugar()
+            # Ensure body is always a BlockStatement
+            if isinstance(body_result, BlockStatement):
+                desugared_body = body_result
+            else:
+                # Wrap single statement in a block
+                desugared_body = BlockStatement(self.token)
+                desugared_body.statements = [body_result]
+
+        return FunctionStatement(
+            self.token,
+            FunctionVisibility.PUBLIC,
+            self.name.desugar() if hasattr(self.name, "desugar") else self.name,
+            self.inputs,
+            self.outputs,
+            desugared_body,
+            self.description,
+        )
+
 
 class UtilityStatement(Statement):
     """Represents a Utility statement (function) in Machine Dialect.
@@ -611,3 +817,126 @@ class UtilityStatement(Statement):
             result += f" -> {outputs_str}"
         result += f" {{\n{self.body}\n}}"
         return result
+
+    def desugar(self) -> "FunctionStatement":
+        """Desugar utility statement to unified FunctionStatement.
+
+        Returns:
+            A FunctionStatement with FUNCTION visibility.
+        """
+        desugared_body: BlockStatement | None = None
+        if self.body:
+            body_result = self.body.desugar()
+            # Ensure body is always a BlockStatement
+            if isinstance(body_result, BlockStatement):
+                desugared_body = body_result
+            else:
+                # Wrap single statement in a block
+                desugared_body = BlockStatement(self.token)
+                desugared_body.statements = [body_result]
+
+        return FunctionStatement(
+            self.token,
+            FunctionVisibility.FUNCTION,
+            self.name.desugar() if hasattr(self.name, "desugar") else self.name,
+            self.inputs,
+            self.outputs,
+            desugared_body,
+            self.description,
+        )
+
+
+class FunctionStatement(Statement):
+    """Unified function statement for Actions, Interactions, and Utilities.
+
+    This is the desugared form of ActionStatement, InteractionStatement, and
+    UtilityStatement. It represents all function-like constructs with a
+    visibility modifier.
+
+    Attributes:
+        visibility: The visibility level (PRIVATE, PUBLIC, or FUNCTION).
+        name: The identifier naming the function.
+        inputs: List of input parameters.
+        outputs: List of outputs.
+        body: The block of statements that make up the function body.
+        description: Optional description.
+    """
+
+    def __init__(
+        self,
+        token: Token,
+        visibility: FunctionVisibility,
+        name: Identifier,
+        inputs: list[Parameter] | None = None,
+        outputs: list[Output] | None = None,
+        body: BlockStatement | None = None,
+        description: str = "",
+    ) -> None:
+        """Initialize a FunctionStatement node.
+
+        Args:
+            token: The token that begins this statement.
+            visibility: The visibility level of the function.
+            name: The identifier naming the function.
+            inputs: List of input parameters (defaults to empty list).
+            outputs: List of outputs (defaults to empty list).
+            body: The block of statements in the function body.
+            description: Optional description.
+        """
+        super().__init__(token)
+        self.visibility = visibility
+        self.name = name
+        self.inputs = inputs if inputs is not None else []
+        self.outputs = outputs if outputs is not None else []
+        self.body = body if body is not None else BlockStatement(token)
+        self.description = description
+
+    def __str__(self) -> str:
+        """Return string representation of the function statement.
+
+        Returns:
+            A string representation of the function with its visibility, name and body.
+        """
+        visibility_str = {
+            FunctionVisibility.PRIVATE: "action",
+            FunctionVisibility.PUBLIC: "interaction",
+            FunctionVisibility.FUNCTION: "utility",
+        }[self.visibility]
+
+        inputs_str = ", ".join(str(p) for p in self.inputs)
+        outputs_str = ", ".join(str(p) for p in self.outputs)
+        result = f"{visibility_str} {self.name}"
+        if inputs_str:
+            result += f"(inputs: {inputs_str})"
+        if outputs_str:
+            result += f" -> {outputs_str}"
+        result += f" {{\n{self.body}\n}}"
+        return result
+
+    def desugar(self) -> "FunctionStatement":
+        """Desugar function statement by recursively desugaring its components.
+
+        Returns:
+            A new FunctionStatement with desugared components.
+        """
+        desugared_body: BlockStatement | None = None
+        if self.body:
+            body_result = self.body.desugar()
+            # Ensure body is always a BlockStatement
+            if isinstance(body_result, BlockStatement):
+                desugared_body = body_result
+            else:
+                # Wrap single statement in a block
+                desugared_body = BlockStatement(self.token)
+                desugared_body.statements = [body_result]
+
+        desugared = FunctionStatement(
+            self.token,
+            self.visibility,
+            self.name.desugar() if hasattr(self.name, "desugar") else self.name,
+            self.inputs,  # Parameters don't have desugar yet
+            self.outputs,  # Outputs don't have desugar yet
+            desugared_body,
+            self.description,
+        )
+        return desugared

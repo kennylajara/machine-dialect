@@ -15,6 +15,14 @@ class IntegerLiteral(Expression):
         # Display with underscores for the new syntax
         return f"_{self.value}_"
 
+    def desugar(self) -> "IntegerLiteral":
+        """Integer literals are already in simplest form.
+
+        Returns:
+            Self unchanged.
+        """
+        return self
+
 
 class FloatLiteral(Expression):
     """Represents a float literal expression."""
@@ -26,6 +34,14 @@ class FloatLiteral(Expression):
     def __str__(self) -> str:
         # Display with underscores for the new syntax
         return f"_{self.value}_"
+
+    def desugar(self) -> "FloatLiteral":
+        """Float literals are already in simplest form.
+
+        Returns:
+            Self unchanged.
+        """
+        return self
 
 
 class StringLiteral(Expression):
@@ -40,6 +56,14 @@ class StringLiteral(Expression):
         # The value includes the quotes
         return f"_{self.value}_"
 
+    def desugar(self) -> "StringLiteral":
+        """String literals are already in simplest form.
+
+        Returns:
+            Self unchanged.
+        """
+        return self
+
 
 class BooleanLiteral(Expression):
     """Represents a boolean literal expression."""
@@ -52,6 +76,14 @@ class BooleanLiteral(Expression):
         # Display with underscores for the new syntax
         return f"_{self.value}_"
 
+    def desugar(self) -> "BooleanLiteral":
+        """Boolean literals are already normalized by lexer.
+
+        Returns:
+            Self unchanged.
+        """
+        return self
+
 
 class EmptyLiteral(Expression):
     """Represents an empty/null literal expression."""
@@ -62,6 +94,14 @@ class EmptyLiteral(Expression):
 
     def __str__(self) -> str:
         return "empty"
+
+    def desugar(self) -> "EmptyLiteral":
+        """Empty literals represent null/none values.
+
+        Returns:
+            Self unchanged (already canonical).
+        """
+        return self
 
 
 class URLLiteral(Expression):
@@ -75,3 +115,11 @@ class URLLiteral(Expression):
         # Display with underscores for the new syntax
         # The value includes the quotes
         return f"_{self.value}_"
+
+    def desugar(self) -> "URLLiteral":
+        """URL literals are already in simplest form.
+
+        Returns:
+            Self unchanged.
+        """
+        return self

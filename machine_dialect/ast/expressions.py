@@ -29,6 +29,14 @@ class Expression(ASTNode):
         """
         self.token = token
 
+    def desugar(self) -> "Expression":
+        """Default desugar for expressions returns self.
+
+        Returns:
+            The expression unchanged.
+        """
+        return self
+
 
 class Identifier(Expression):
     """An identifier expression representing a variable or name.
@@ -58,6 +66,14 @@ class Identifier(Expression):
             The identifier wrapped in backticks, e.g., "`variable`".
         """
         return f"`{self.value}`"
+
+    def desugar(self) -> "Identifier":
+        """Identifiers are already in simplest form.
+
+        Returns:
+            Self unchanged.
+        """
+        return self
 
 
 class PrefixExpression(Expression):
@@ -93,6 +109,19 @@ class PrefixExpression(Expression):
             return f"({self.operator} {self.right})"
         return f"({self.operator}{self.right})"
 
+    def desugar(self) -> "PrefixExpression":
+        """Desugar prefix expression by recursively desugaring operand.
+
+        Returns:
+            A new PrefixExpression with desugared right operand.
+        """
+        if self.right is None:
+            return self
+
+        desugared = PrefixExpression(self.token, self.operator)
+        desugared.right = self.right.desugar()
+        return desugared
+
 
 class InfixExpression(Expression):
     """An infix expression with an operator between two expressions.
@@ -127,6 +156,58 @@ class InfixExpression(Expression):
             The expression in the format "(left operator right)", e.g., "(5 + 3)".
         """
         return f"({self.left} {self.operator} {self.right})"
+
+    def desugar(self) -> "InfixExpression":
+        """Desugar infix expression by normalizing operators and recursively desugaring operands.
+
+        Normalizes natural language operators to their symbolic equivalents:
+        - Equality: equals, is equal to, is the same as → ==
+        - Inequality: is not equal to, does not equal, is different from → !=
+        - Strict equality: is strictly equal to, is exactly equal to, is identical to → ===
+        - Strict inequality: is not strictly equal to, is not exactly equal to → !==
+        - Comparisons: is greater than → >, is less than → <, etc.
+        - Power: ** → ^ (** is reserved for markdown keywords)
+
+        Returns:
+            A new InfixExpression with normalized operator and desugared operands.
+        """
+        # Map of natural language operators to normalized forms
+        operator_map = {
+            # Equality operators
+            "equals": "==",
+            "is equal to": "==",
+            "is the same as": "==",
+            # Inequality operators
+            "is not equal to": "!=",
+            "does not equal": "!=",
+            "doesn't equal": "!=",
+            "is different from": "!=",
+            "isn't": "!=",
+            # Strict equality
+            "is strictly equal to": "===",
+            "is exactly equal to": "===",
+            "is identical to": "===",
+            # Strict inequality
+            "is not strictly equal to": "!==",
+            "is not exactly equal to": "!==",
+            "is not identical to": "!==",
+            # Comparison operators
+            "is greater than": ">",
+            "is less than": "<",
+            "is greater than or equal to": ">=",
+            "is less than or equal to": "<=",
+            # Power operator (** is for markdown keywords)
+            "**": "^",
+        }
+
+        # Normalize the operator
+        normalized_op = operator_map.get(self.operator, self.operator)
+
+        # Create new expression with normalized operator
+        desugared = InfixExpression(self.token, normalized_op, self.left.desugar())
+        if self.right:
+            desugared.right = self.right.desugar()
+        return desugared
 
 
 class Arguments(Expression):
@@ -165,6 +246,19 @@ class Arguments(Expression):
             parts.append(f"{name}: {value}")
         return ", ".join(parts)
 
+    def desugar(self) -> "Arguments":
+        """Desugar arguments by recursively desugaring all argument expressions.
+
+        Returns:
+            A new Arguments node with desugared expressions.
+        """
+        desugared = Arguments(self.token)
+        desugared.positional = [arg.desugar() for arg in self.positional]
+        desugared.named = [
+            (name.desugar() if isinstance(name, Expression) else name, value.desugar()) for name, value in self.named
+        ]
+        return desugared
+
 
 class ConditionalExpression(Expression):
     """A conditional (ternary) expression.
@@ -199,6 +293,19 @@ class ConditionalExpression(Expression):
         """
         return f"({self.consequence} if {self.condition} else {self.alternative})"
 
+    def desugar(self) -> "ConditionalExpression":
+        """Desugar conditional expression by recursively desugaring all parts.
+
+        Returns:
+            A new ConditionalExpression with desugared components.
+        """
+        desugared = ConditionalExpression(self.token, self.consequence.desugar())
+        if self.condition:
+            desugared.condition = self.condition.desugar()
+        if self.alternative:
+            desugared.alternative = self.alternative.desugar()
+        return desugared
+
 
 class ErrorExpression(Expression):
     """An expression that failed to parse correctly.
@@ -230,3 +337,11 @@ class ErrorExpression(Expression):
         if self.message:
             return f"<error: {self.message}>"
         return "<error>"
+
+    def desugar(self) -> "ErrorExpression":
+        """Error expressions remain unchanged.
+
+        Returns:
+            Self unchanged.
+        """
+        return self

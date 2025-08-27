@@ -11,3 +11,13 @@ class Program(ASTNode):
             out.append(str(statement))
 
         return ".\n".join(out) + ".\n"
+
+    def desugar(self) -> "Program":
+        """Desugar the program by recursively desugaring all statements.
+
+        Returns:
+            A new Program with desugared statements.
+        """
+        # Desugar each statement - the desugar method returns Statement
+        desugared_statements = [stmt.desugar() for stmt in self.statements]
+        return Program(desugared_statements)

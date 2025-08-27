@@ -156,7 +156,7 @@ class Parser:
             elif self._current_token and self._current_token.type == TokenType.PUNCT_PERIOD:  # type: ignore[comparison-overlap]
                 self._advance_tokens()
 
-        return program
+        return program.desugar()
 
     def _reset_state(self) -> None:
         """Reset the parser state for a new parse."""

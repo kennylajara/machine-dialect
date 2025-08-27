@@ -15,7 +15,7 @@ from machine_dialect.acceptance.integration_tests import (
 class TestMachineDialectIntegration:
     """Integration tests that run through all components."""
 
-    @pytest.fixture  # type: ignore[misc]
+    @pytest.fixture
     def runner(self) -> IntegrationTestRunner:
         """Create a test runner for integration tests."""
         return IntegrationTestRunner()

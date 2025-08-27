@@ -18,7 +18,7 @@ class CFGParser:
 
         self.parser = Lark(grammar_content, parser="lalr", start="start", debug=False)
 
-    def parse(self, code: str) -> Tree:
+    def parse(self, code: str) -> Tree[Any]:
         """Parse Machine Dialect code into an AST.
 
         Args:
@@ -60,7 +60,7 @@ class CFGParser:
         with open(grammar_path) as f:
             return f.read()
 
-    def tree_to_dict(self, tree: Tree | Token) -> dict[str, Any]:
+    def tree_to_dict(self, tree: Tree[Any] | Token) -> dict[str, Any]:
         """Convert a Lark tree to a dictionary representation.
 
         Args:
@@ -74,7 +74,7 @@ class CFGParser:
 
         return {"type": "tree", "name": tree.data, "children": [self.tree_to_dict(child) for child in tree.children]}
 
-    def pretty_print(self, tree: Tree) -> str:
+    def pretty_print(self, tree: Tree[Any]) -> str:
         """Pretty print a parsed tree.
 
         Args:

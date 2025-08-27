@@ -1,0 +1,451 @@
+"""Tests for MIR TAC instructions."""
+
+import unittest
+
+from machine_dialect.mir.mir_instructions import (
+    BinaryOp,
+    Call,
+    ConditionalJump,
+    Copy,
+    Jump,
+    Label,
+    LoadConst,
+    LoadVar,
+    Phi,
+    Return,
+    StoreVar,
+    UnaryOp,
+)
+from machine_dialect.mir.mir_types import MIRType
+from machine_dialect.mir.mir_values import Constant, FunctionRef, Temp, Variable
+
+
+class TestBinaryOp(unittest.TestCase):
+    """Test binary operation instruction."""
+
+    def test_binary_op_creation(self) -> None:
+        """Test creating binary operations."""
+        t0 = Temp(MIRType.INT, temp_id=0)
+        t1 = Temp(MIRType.INT, temp_id=1)
+        t2 = Temp(MIRType.INT, temp_id=2)
+
+        add_op = BinaryOp(t0, "+", t1, t2)
+        self.assertEqual(str(add_op), "t0 = t1 + t2")
+        self.assertEqual(add_op.dest, t0)
+        self.assertEqual(add_op.op, "+")
+        self.assertEqual(add_op.left, t1)
+        self.assertEqual(add_op.right, t2)
+
+    def test_binary_op_uses_and_defs(self) -> None:
+        """Test uses and defs for binary operations."""
+        t0 = Temp(MIRType.INT, temp_id=0)
+        t1 = Temp(MIRType.INT, temp_id=1)
+        t2 = Temp(MIRType.INT, temp_id=2)
+
+        mul_op = BinaryOp(t0, "*", t1, t2)
+        self.assertEqual(mul_op.get_uses(), [t1, t2])
+        self.assertEqual(mul_op.get_defs(), [t0])
+
+    def test_binary_op_replace_use(self) -> None:
+        """Test replacing uses in binary operations."""
+        t0 = Temp(MIRType.INT, temp_id=0)
+        t1 = Temp(MIRType.INT, temp_id=1)
+        t2 = Temp(MIRType.INT, temp_id=2)
+        t3 = Temp(MIRType.INT, temp_id=3)
+
+        sub_op = BinaryOp(t0, "-", t1, t2)
+        sub_op.replace_use(t1, t3)
+        self.assertEqual(sub_op.left, t3)
+        self.assertEqual(sub_op.right, t2)
+        self.assertEqual(str(sub_op), "t0 = t3 - t2")
+
+    def test_comparison_operators(self) -> None:
+        """Test comparison operators."""
+        t0 = Temp(MIRType.BOOL, temp_id=0)
+        t1 = Temp(MIRType.INT, temp_id=1)
+        t2 = Temp(MIRType.INT, temp_id=2)
+
+        eq_op = BinaryOp(t0, "==", t1, t2)
+        self.assertEqual(str(eq_op), "t0 = t1 == t2")
+
+        lt_op = BinaryOp(t0, "<", t1, t2)
+        self.assertEqual(str(lt_op), "t0 = t1 < t2")
+
+        ge_op = BinaryOp(t0, ">=", t1, t2)
+        self.assertEqual(str(ge_op), "t0 = t1 >= t2")
+
+
+class TestUnaryOp(unittest.TestCase):
+    """Test unary operation instruction."""
+
+    def test_unary_op_creation(self) -> None:
+        """Test creating unary operations."""
+        t0 = Temp(MIRType.INT, temp_id=0)
+        t1 = Temp(MIRType.INT, temp_id=1)
+
+        neg_op = UnaryOp(t0, "-", t1)
+        self.assertEqual(str(neg_op), "t0 = - t1")
+        self.assertEqual(neg_op.dest, t0)
+        self.assertEqual(neg_op.op, "-")
+        self.assertEqual(neg_op.operand, t1)
+
+    def test_unary_op_uses_and_defs(self) -> None:
+        """Test uses and defs for unary operations."""
+        t0 = Temp(MIRType.BOOL, temp_id=0)
+        t1 = Temp(MIRType.BOOL, temp_id=1)
+
+        not_op = UnaryOp(t0, "not", t1)
+        self.assertEqual(not_op.get_uses(), [t1])
+        self.assertEqual(not_op.get_defs(), [t0])
+
+    def test_unary_op_replace_use(self) -> None:
+        """Test replacing uses in unary operations."""
+        t0 = Temp(MIRType.INT, temp_id=0)
+        t1 = Temp(MIRType.INT, temp_id=1)
+        t2 = Temp(MIRType.INT, temp_id=2)
+
+        neg_op = UnaryOp(t0, "-", t1)
+        neg_op.replace_use(t1, t2)
+        self.assertEqual(neg_op.operand, t2)
+        self.assertEqual(str(neg_op), "t0 = - t2")
+
+
+class TestCopy(unittest.TestCase):
+    """Test copy instruction."""
+
+    def test_copy_creation(self) -> None:
+        """Test creating copy instructions."""
+        t0 = Temp(MIRType.INT, temp_id=0)
+        t1 = Temp(MIRType.INT, temp_id=1)
+
+        copy = Copy(t0, t1)
+        self.assertEqual(str(copy), "t0 = t1")
+        self.assertEqual(copy.dest, t0)
+        self.assertEqual(copy.source, t1)
+
+    def test_copy_with_constant(self) -> None:
+        """Test copy with constant source."""
+        t0 = Temp(MIRType.INT, temp_id=0)
+        c = Constant(42)
+
+        copy = Copy(t0, c)
+        self.assertEqual(str(copy), "t0 = 42")
+
+    def test_copy_uses_and_defs(self) -> None:
+        """Test uses and defs for copy instructions."""
+        v = Variable("x", MIRType.INT)
+        t = Temp(MIRType.INT, temp_id=0)
+
+        copy = Copy(v, t)
+        self.assertEqual(copy.get_uses(), [t])
+        self.assertEqual(copy.get_defs(), [v])
+
+
+class TestLoadConst(unittest.TestCase):
+    """Test load constant instruction."""
+
+    def test_load_const_creation(self) -> None:
+        """Test creating load constant instructions."""
+        t0 = Temp(MIRType.INT, temp_id=0)
+        load = LoadConst(t0, 42)
+
+        self.assertEqual(str(load), "t0 = 42")
+        self.assertEqual(load.dest, t0)
+        self.assertEqual(load.constant.value, 42)
+
+    def test_load_const_with_different_types(self) -> None:
+        """Test load constant with various types."""
+        t0 = Temp(MIRType.FLOAT, temp_id=0)
+        t1 = Temp(MIRType.STRING, temp_id=1)
+        t2 = Temp(MIRType.BOOL, temp_id=2)
+
+        load_float = LoadConst(t0, 3.14)
+        self.assertEqual(str(load_float), "t0 = 3.14")
+
+        load_str = LoadConst(t1, "hello")
+        self.assertEqual(str(load_str), 't1 = "hello"')
+
+        load_bool = LoadConst(t2, True)
+        self.assertEqual(str(load_bool), "t2 = True")
+
+    def test_load_const_uses_and_defs(self) -> None:
+        """Test uses and defs for load constant."""
+        t0 = Temp(MIRType.INT, temp_id=0)
+        load = LoadConst(t0, 100)
+
+        self.assertEqual(load.get_uses(), [])  # Constants are not uses
+        self.assertEqual(load.get_defs(), [t0])
+
+
+class TestLoadVar(unittest.TestCase):
+    """Test load variable instruction."""
+
+    def test_load_var_creation(self) -> None:
+        """Test creating load variable instructions."""
+        t0 = Temp(MIRType.INT, temp_id=0)
+        v = Variable("x", MIRType.INT)
+
+        load = LoadVar(t0, v)
+        self.assertEqual(str(load), "t0 = x")
+        self.assertEqual(load.dest, t0)
+        self.assertEqual(load.var, v)
+
+    def test_load_var_with_versioned_variable(self) -> None:
+        """Test load with SSA versioned variable."""
+        t0 = Temp(MIRType.INT, temp_id=0)
+        v = Variable("x", MIRType.INT, version=2)
+
+        load = LoadVar(t0, v)
+        self.assertEqual(str(load), "t0 = x_2")
+
+    def test_load_var_uses_and_defs(self) -> None:
+        """Test uses and defs for load variable."""
+        t0 = Temp(MIRType.INT, temp_id=0)
+        v = Variable("counter", MIRType.INT)
+
+        load = LoadVar(t0, v)
+        self.assertEqual(load.get_uses(), [v])
+        self.assertEqual(load.get_defs(), [t0])
+
+
+class TestStoreVar(unittest.TestCase):
+    """Test store variable instruction."""
+
+    def test_store_var_creation(self) -> None:
+        """Test creating store variable instructions."""
+        v = Variable("x", MIRType.INT)
+        t0 = Temp(MIRType.INT, temp_id=0)
+
+        store = StoreVar(v, t0)
+        self.assertEqual(str(store), "x = t0")
+        self.assertEqual(store.var, v)
+        self.assertEqual(store.source, t0)
+
+    def test_store_var_with_constant(self) -> None:
+        """Test store with constant source."""
+        v = Variable("count", MIRType.INT)
+        c = Constant(10)
+
+        store = StoreVar(v, c)
+        self.assertEqual(str(store), "count = 10")
+
+    def test_store_var_uses_and_defs(self) -> None:
+        """Test uses and defs for store variable."""
+        v = Variable("result", MIRType.FLOAT)
+        t = Temp(MIRType.FLOAT, temp_id=0)
+
+        store = StoreVar(v, t)
+        self.assertEqual(store.get_uses(), [t])
+        self.assertEqual(store.get_defs(), [v])
+
+
+class TestCall(unittest.TestCase):
+    """Test function call instruction."""
+
+    def test_call_creation(self) -> None:
+        """Test creating call instructions."""
+        t0 = Temp(MIRType.INT, temp_id=0)
+        t1 = Temp(MIRType.INT, temp_id=1)
+        t2 = Temp(MIRType.INT, temp_id=2)
+        func = FunctionRef("add")
+
+        call = Call(t0, func, [t1, t2])
+        self.assertEqual(str(call), "t0 = call @add(t1, t2)")
+        self.assertEqual(call.dest, t0)
+        self.assertEqual(call.func, func)
+        self.assertEqual(call.args, [t1, t2])
+
+    def test_call_without_return(self) -> None:
+        """Test void call without destination."""
+        t0 = Temp(MIRType.STRING, temp_id=0)
+        func = FunctionRef("print")
+
+        call = Call(None, func, [t0])
+        self.assertEqual(str(call), "call @print(t0)")
+        self.assertIsNone(call.dest)
+
+    def test_call_with_string_function_name(self) -> None:
+        """Test call with string function name."""
+        t0 = Temp(MIRType.INT, temp_id=0)
+        call = Call(t0, "factorial", [Constant(5)])
+        self.assertEqual(str(call), "t0 = call @factorial(5)")
+        self.assertIsInstance(call.func, FunctionRef)
+
+    def test_call_uses_and_defs(self) -> None:
+        """Test uses and defs for call instructions."""
+        t0 = Temp(MIRType.INT, temp_id=0)
+        t1 = Temp(MIRType.INT, temp_id=1)
+        t2 = Temp(MIRType.INT, temp_id=2)
+
+        call = Call(t0, "max", [t1, t2])
+        self.assertEqual(call.get_uses(), [t1, t2])
+        self.assertEqual(call.get_defs(), [t0])
+
+        void_call = Call(None, "print", [t1])
+        self.assertEqual(void_call.get_uses(), [t1])
+        self.assertEqual(void_call.get_defs(), [])
+
+    def test_call_replace_use(self) -> None:
+        """Test replacing argument values."""
+        t0 = Temp(MIRType.INT, temp_id=0)
+        t1 = Temp(MIRType.INT, temp_id=1)
+        t2 = Temp(MIRType.INT, temp_id=2)
+        t3 = Temp(MIRType.INT, temp_id=3)
+
+        call = Call(t0, "compute", [t1, t2])
+        call.replace_use(t1, t3)
+        self.assertEqual(call.args, [t3, t2])
+
+
+class TestReturn(unittest.TestCase):
+    """Test return instruction."""
+
+    def test_return_with_value(self) -> None:
+        """Test return with value."""
+        t0 = Temp(MIRType.INT, temp_id=0)
+        ret = Return(t0)
+        self.assertEqual(str(ret), "return t0")
+        self.assertEqual(ret.value, t0)
+
+    def test_return_without_value(self) -> None:
+        """Test void return."""
+        ret = Return()
+        self.assertEqual(str(ret), "return")
+        self.assertIsNone(ret.value)
+
+    def test_return_uses_and_defs(self) -> None:
+        """Test uses and defs for return."""
+        t0 = Temp(MIRType.INT, temp_id=0)
+        ret = Return(t0)
+        self.assertEqual(ret.get_uses(), [t0])
+        self.assertEqual(ret.get_defs(), [])
+
+        void_ret = Return()
+        self.assertEqual(void_ret.get_uses(), [])
+        self.assertEqual(void_ret.get_defs(), [])
+
+
+class TestJump(unittest.TestCase):
+    """Test unconditional jump instruction."""
+
+    def test_jump_creation(self) -> None:
+        """Test creating jump instructions."""
+        jump = Jump("loop_start")
+        self.assertEqual(str(jump), "goto loop_start")
+        self.assertEqual(jump.label, "loop_start")
+
+    def test_jump_uses_and_defs(self) -> None:
+        """Test uses and defs for jump."""
+        jump = Jump("exit")
+        self.assertEqual(jump.get_uses(), [])
+        self.assertEqual(jump.get_defs(), [])
+
+
+class TestConditionalJump(unittest.TestCase):
+    """Test conditional jump instruction."""
+
+    def test_conditional_jump_with_else(self) -> None:
+        """Test conditional jump with else branch."""
+        t0 = Temp(MIRType.BOOL, temp_id=0)
+        cjump = ConditionalJump(t0, "then_block", "else_block")
+
+        self.assertEqual(str(cjump), "if t0 goto then_block else else_block")
+        self.assertEqual(cjump.condition, t0)
+        self.assertEqual(cjump.true_label, "then_block")
+        self.assertEqual(cjump.false_label, "else_block")
+
+    def test_conditional_jump_without_else(self) -> None:
+        """Test conditional jump with fallthrough."""
+        t0 = Temp(MIRType.BOOL, temp_id=0)
+        cjump = ConditionalJump(t0, "skip")
+
+        self.assertEqual(str(cjump), "if t0 goto skip")
+        self.assertEqual(cjump.true_label, "skip")
+        self.assertIsNone(cjump.false_label)
+
+    def test_conditional_jump_uses_and_defs(self) -> None:
+        """Test uses and defs for conditional jump."""
+        t0 = Temp(MIRType.BOOL, temp_id=0)
+        cjump = ConditionalJump(t0, "L1", "L2")
+
+        self.assertEqual(cjump.get_uses(), [t0])
+        self.assertEqual(cjump.get_defs(), [])
+
+    def test_conditional_jump_replace_use(self) -> None:
+        """Test replacing condition value."""
+        t0 = Temp(MIRType.BOOL, temp_id=0)
+        t1 = Temp(MIRType.BOOL, temp_id=1)
+        cjump = ConditionalJump(t0, "L1")
+
+        cjump.replace_use(t0, t1)
+        self.assertEqual(cjump.condition, t1)
+
+
+class TestPhi(unittest.TestCase):
+    """Test SSA phi node instruction."""
+
+    def test_phi_creation(self) -> None:
+        """Test creating phi nodes."""
+        t0 = Temp(MIRType.INT, temp_id=0)
+        t1 = Temp(MIRType.INT, temp_id=1)
+        t2 = Temp(MIRType.INT, temp_id=2)
+
+        phi = Phi(t0, [(t1, "block1"), (t2, "block2")])
+        self.assertEqual(str(phi), "t0 = φ(t1:block1, t2:block2)")
+        self.assertEqual(phi.dest, t0)
+        self.assertEqual(phi.incoming, [(t1, "block1"), (t2, "block2")])
+
+    def test_phi_add_incoming(self) -> None:
+        """Test adding incoming values to phi node."""
+        v = Variable("x", MIRType.INT, version=3)
+        v1 = Variable("x", MIRType.INT, version=1)
+        v2 = Variable("x", MIRType.INT, version=2)
+
+        phi = Phi(v, [(v1, "entry")])
+        phi.add_incoming(v2, "loop")
+
+        self.assertEqual(len(phi.incoming), 2)
+        self.assertEqual(phi.incoming[1], (v2, "loop"))
+
+    def test_phi_uses_and_defs(self) -> None:
+        """Test uses and defs for phi nodes."""
+        t0 = Temp(MIRType.INT, temp_id=0)
+        t1 = Temp(MIRType.INT, temp_id=1)
+        c = Constant(0)
+
+        phi = Phi(t0, [(t1, "loop"), (c, "entry")])
+        self.assertEqual(phi.get_uses(), [t1, c])
+        self.assertEqual(phi.get_defs(), [t0])
+
+    def test_phi_replace_use(self) -> None:
+        """Test replacing incoming values in phi node."""
+        t0 = Temp(MIRType.INT, temp_id=0)
+        t1 = Temp(MIRType.INT, temp_id=1)
+        t2 = Temp(MIRType.INT, temp_id=2)
+        t3 = Temp(MIRType.INT, temp_id=3)
+
+        phi = Phi(t0, [(t1, "L1"), (t2, "L2")])
+        phi.replace_use(t1, t3)
+
+        self.assertEqual(phi.incoming[0], (t3, "L1"))
+        self.assertEqual(phi.incoming[1], (t2, "L2"))
+
+
+class TestLabel(unittest.TestCase):
+    """Test label pseudo-instruction."""
+
+    def test_label_creation(self) -> None:
+        """Test creating labels."""
+        label = Label("loop_start")
+        self.assertEqual(str(label), "loop_start:")
+        self.assertEqual(label.name, "loop_start")
+
+    def test_label_uses_and_defs(self) -> None:
+        """Test uses and defs for labels."""
+        label = Label("exit")
+        self.assertEqual(label.get_uses(), [])
+        self.assertEqual(label.get_defs(), [])
+
+
+if __name__ == "__main__":
+    unittest.main()

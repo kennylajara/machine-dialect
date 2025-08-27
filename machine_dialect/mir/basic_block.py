@@ -109,15 +109,13 @@ class CFG:
     directed graph of basic blocks.
     """
 
-    def __init__(self, entry_label: str = "entry") -> None:
-        """Initialize a control flow graph.
-
-        Args:
-            entry_label: Label for the entry block.
-        """
-        self.entry_block = BasicBlock(entry_label)
-        self.blocks: dict[str, BasicBlock] = {entry_label: self.entry_block}
-        self.exit_blocks: list[BasicBlock] = []
+    def __init__(self) -> None:
+        """Initialize a control flow graph."""
+        self.blocks: dict[str, BasicBlock] = {}
+        self.entry_block: BasicBlock | None = None
+        self.exit_block: BasicBlock | None = None
+        self.dominators: dict[BasicBlock, set[BasicBlock]] = {}
+        self.dominance_frontiers: dict[BasicBlock, list[BasicBlock]] = {}
         self._next_label_id = 0
 
     def get_or_create_block(self, label: str) -> BasicBlock:
@@ -141,6 +139,56 @@ class CFG:
         """
         self.blocks[block.label] = block
 
+    def set_entry_block(self, block: BasicBlock) -> None:
+        """Set the entry block of the CFG.
+
+        Args:
+            block: The entry block.
+        """
+        self.entry_block = block
+
+    def get_block(self, label: str) -> BasicBlock | None:
+        """Get a block by label.
+
+        Args:
+            label: The block label.
+
+        Returns:
+            The block or None if not found.
+        """
+        return self.blocks.get(label)
+
+    def connect(self, from_block: BasicBlock, to_block: BasicBlock) -> None:
+        """Connect two blocks.
+
+        Args:
+            from_block: Source block.
+            to_block: Target block.
+        """
+        from_block.add_successor(to_block)
+
+    def get_predecessors(self, block: BasicBlock) -> list[BasicBlock]:
+        """Get predecessors of a block.
+
+        Args:
+            block: The block.
+
+        Returns:
+            List of predecessor blocks.
+        """
+        return block.predecessors
+
+    def get_successors(self, block: BasicBlock) -> list[BasicBlock]:
+        """Get successors of a block.
+
+        Args:
+            block: The block.
+
+        Returns:
+            List of successor blocks.
+        """
+        return block.successors
+
     def generate_label(self, prefix: str = "L") -> str:
         """Generate a unique label.
 
@@ -155,7 +203,7 @@ class CFG:
         return label
 
     def connect_blocks(self, from_label: str, to_label: str) -> None:
-        """Connect two blocks.
+        """Connect two blocks by label.
 
         Args:
             from_label: Source block label.
@@ -178,98 +226,121 @@ class CFG:
                 exit_blocks.append(block)
         return exit_blocks
 
-    def compute_dominators(self) -> dict[str, set[str]]:
-        """Compute dominators for all blocks.
+    def compute_dominance(self) -> None:
+        """Compute dominance relationships for all blocks.
 
         A block X dominates block Y if all paths from entry to Y go through X.
-
-        Returns:
-            Map from block label to set of dominator labels.
+        Stores results in self.dominators.
         """
-        # Initialize dominators
-        dominators: dict[str, set[str]] = {}
-        all_blocks = set(self.blocks.keys())
+        if not self.entry_block:
+            return
+
+        # Initialize dominators - block -> set of dominators
+        self.dominators = {}
+        all_blocks = set(self.blocks.values())
 
         # Entry block is only dominated by itself
-        dominators[self.entry_block.label] = {self.entry_block.label}
+        self.dominators[self.entry_block] = {self.entry_block}
 
         # All other blocks are initially dominated by all blocks
-        for label in all_blocks:
-            if label != self.entry_block.label:
-                dominators[label] = all_blocks.copy()
+        for block in all_blocks:
+            if block != self.entry_block:
+                self.dominators[block] = all_blocks.copy()
 
         # Iteratively refine dominators
         changed = True
         while changed:
             changed = False
-            for label, block in self.blocks.items():
-                if label == self.entry_block.label:
+            for block in all_blocks:
+                if block == self.entry_block:
                     continue
 
                 # New dominators = {self} U (intersection of dominators of predecessors)
                 if block.predecessors:
                     new_doms = set(all_blocks)
                     for pred in block.predecessors:
-                        new_doms &= dominators[pred.label]
-                    new_doms.add(label)
+                        new_doms &= self.dominators[pred]
+                    new_doms.add(block)
 
-                    if new_doms != dominators[label]:
-                        dominators[label] = new_doms
+                    if new_doms != self.dominators[block]:
+                        self.dominators[block] = new_doms
                         changed = True
 
-        return dominators
-
-    def compute_dominance_frontiers(self) -> dict[str, set[str]]:
+    def compute_dominance_frontiers(self) -> None:
         """Compute dominance frontiers for all blocks.
 
         The dominance frontier of a block X is the set of blocks Y where:
         - X dominates a predecessor of Y
         - X does not strictly dominate Y
 
-        Returns:
-            Map from block label to set of frontier block labels.
+        Must be called after compute_dominance().
+        Stores results in self.dominance_frontiers.
         """
-        dominators = self.compute_dominators()
-        frontiers: dict[str, set[str]] = {label: set() for label in self.blocks}
+        if not self.dominators:
+            self.compute_dominance()
 
-        for label, block in self.blocks.items():
+        self.dominance_frontiers = {block: [] for block in self.blocks.values()}
+
+        for block in self.blocks.values():
             # Skip if no predecessors
             if len(block.predecessors) < 2:
                 continue
 
             for pred in block.predecessors:
-                runner = pred.label
-                while runner != self.immediate_dominator(label, dominators):
-                    frontiers[runner].add(label)
-                    runner = self.immediate_dominator(runner, dominators)
+                runner = pred
+                while runner != self._immediate_dominator(block):
+                    if block not in self.dominance_frontiers[runner]:
+                        self.dominance_frontiers[runner].append(block)
+                    runner = self._immediate_dominator(runner)
 
-        return frontiers
-
-    def immediate_dominator(self, block_label: str, dominators: dict[str, set[str]]) -> str:
+    def _immediate_dominator(self, block: BasicBlock) -> BasicBlock:
         """Find the immediate dominator of a block.
 
         Args:
-            block_label: The block to find immediate dominator for.
-            dominators: Precomputed dominators.
+            block: The block to find immediate dominator for.
 
         Returns:
-            The immediate dominator's label.
+            The immediate dominator.
         """
-        doms = dominators[block_label] - {block_label}
+        doms = self.dominators[block] - {block}
         if not doms:
-            return block_label  # Entry block
+            return block  # Entry block
 
         # Find the dominator that doesn't dominate any other dominator
         for candidate in doms:
             is_immediate = True
             for other in doms:
-                if other != candidate and candidate in dominators[other]:
+                if other != candidate and candidate in self.dominators[other]:
                     is_immediate = False
                     break
             if is_immediate:
                 return candidate
 
-        return block_label  # Shouldn't happen
+        return block  # Shouldn't happen
+
+    def topological_sort(self) -> list[BasicBlock]:
+        """Perform topological sort of blocks.
+
+        Returns:
+            List of blocks in topological order.
+        """
+        if not self.entry_block:
+            return []
+
+        visited = set()
+        result = []
+
+        def visit(block: BasicBlock) -> None:
+            if block in visited:
+                return
+            visited.add(block)
+            for succ in block.successors:
+                visit(succ)
+            result.append(block)
+
+        visit(self.entry_block)
+        result.reverse()
+        return result
 
     def to_dot(self) -> str:
         """Generate Graphviz DOT representation of the CFG.
@@ -296,6 +367,9 @@ class CFG:
 
     def __str__(self) -> str:
         """Return string representation of the CFG."""
+        if not self.entry_block:
+            return "<empty CFG>"
+
         lines = []
         visited = set()
 

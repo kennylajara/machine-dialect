@@ -34,7 +34,7 @@ class MIRFunction:
         self.return_type = return_type
         self.locals: dict[str, Variable] = {}
         self.temporaries: list[Temp] = []
-        self.cfg = CFG(entry_label=f"{name}_entry")
+        self.cfg = CFG()
         self.is_ssa = False
         self._next_temp_id = 0
         self._next_var_version: dict[str, int] = {}
@@ -114,7 +114,10 @@ class MIRFunction:
 
         # Function signature
         params_str = ", ".join(f"{p.name}: {p.type}" for p in self.params)
-        lines.append(f"function {self.name}({params_str}) -> {self.return_type} {{")
+        if self.return_type != MIRType.EMPTY:
+            lines.append(f"function {self.name}({params_str}) -> {self.return_type} {{")
+        else:
+            lines.append(f"function {self.name}({params_str}) {{")
 
         # Locals
         if self.locals:

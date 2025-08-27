@@ -107,11 +107,12 @@ class Parser:
         self._infix_parse_funcs: InfixParseFuncs = self._register_infix_funcs()
         self._postfix_parse_funcs: PostfixParseFuncs = self._register_postfix_funcs()
 
-    def parse(self, source: str) -> Program:
+    def parse(self, source: str, as_hir: bool = True) -> Program:
         """Parse the source code into an AST.
 
         Args:
             source: The source code to parse.
+            as_hir: If True, return a HIR (High level Intermediate Representation).
 
         Returns:
             The root Program node of the AST.
@@ -156,7 +157,7 @@ class Parser:
             elif self._current_token and self._current_token.type == TokenType.PUNCT_PERIOD:  # type: ignore[comparison-overlap]
                 self._advance_tokens()
 
-        return program.desugar()
+        return program.desugar() if as_hir else program
 
     def _reset_state(self) -> None:
         """Reset the parser state for a new parse."""

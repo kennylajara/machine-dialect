@@ -83,7 +83,7 @@ class MIRModule:
         self.functions: dict[str, MIRFunction] = {}
         self.globals: dict[str, Variable] = {}
         self.constants = ConstantPool()
-        self.main_function = "main"
+        self.main_function: str | None = None
 
     def add_function(self, func: MIRFunction) -> None:
         """Add a function to the module.
@@ -137,6 +137,8 @@ class MIRModule:
         Returns:
             The main function or None if not found.
         """
+        if self.main_function is None:
+            return None
         return self.functions.get(self.main_function)
 
     def validate(self) -> list[str]:

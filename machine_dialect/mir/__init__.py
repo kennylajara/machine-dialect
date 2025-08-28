@@ -8,6 +8,7 @@ targets (bytecode and LLVM IR).
 """
 
 from .basic_block import CFG, BasicBlock
+from .hir_to_mir import HIRToMIRLowering, lower_to_mir
 from .mir_function import MIRFunction
 from .mir_instructions import (
     BinaryOp,
@@ -37,6 +38,7 @@ __all__ = [
     "Constant",
     "Copy",
     "FunctionRef",
+    "HIRToMIRLowering",
     "Jump",
     "Label",
     "LoadConst",
@@ -52,4 +54,5 @@ __all__ = [
     "Temp",
     "UnaryOp",
     "Variable",
+    "lower_to_mir",
 ]

@@ -107,7 +107,7 @@ class Parser:
         self._infix_parse_funcs: InfixParseFuncs = self._register_infix_funcs()
         self._postfix_parse_funcs: PostfixParseFuncs = self._register_postfix_funcs()
 
-    def parse(self, source: str, as_hir: bool = True) -> Program:
+    def parse(self, source: str, as_hir: bool = False) -> Program:
         """Parse the source code into an AST.
 
         Args:

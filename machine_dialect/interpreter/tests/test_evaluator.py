@@ -1267,3 +1267,265 @@ class TestEvaluatorVariables:
         assert result is not None
         assert isinstance(result, Error)
         assert "Name 'undefined_var' is not defined" == result.message
+
+
+class TestEvaluatorScopes:
+    """Test variable scoping and shadowing behavior."""
+
+    def _parse_and_evaluate(self, source: str) -> Object | None:
+        """Helper to parse and evaluate source code."""
+        from machine_dialect.parser import Parser
+
+        parser = Parser()
+        program = parser.parse(source)
+        return evaluate(program)
+
+    def test_variable_shadowing(self) -> None:
+        """Test that inner scope variables shadow outer scope."""
+        source = """Set `x` to _100_.
+
+### **Utility**: `shadow test`
+
+<details>
+<summary>Tests variable shadowing.</summary>
+
+> Set `x` to _42_.
+> Give back `x`.
+
+</details>
+
+Use `shadow test`."""
+
+        result = self._parse_and_evaluate(source)
+        assert result is not None
+        assert isinstance(result, Integer)
+        assert result.value == 42  # Returns inner scope value
+
+    def test_shadowing_preserves_outer(self) -> None:
+        """Test that shadowing doesn't affect the outer scope variable."""
+        source = """Set `x` to _100_.
+
+### **Utility**: `inner scope`
+
+<details>
+<summary>Modifies x in inner scope.</summary>
+
+> Set `x` to _42_.
+> Give back `x`.
+
+</details>
+
+Use `inner scope`.
+Give back `x`."""
+
+        result = self._parse_and_evaluate(source)
+        assert result is not None
+        assert isinstance(result, Integer)
+        assert result.value == 100  # Outer x is unchanged
+
+    def test_multiple_shadowing_levels(self) -> None:
+        """Test multiple levels of nested scopes with shadowing."""
+        source = """Set `x` to _1_.
+
+### **Utility**: `level1`
+
+<details>
+<summary>First level.</summary>
+
+> Set `x` to _2_.
+> Use `level2`.
+> Give back `x`.
+
+</details>
+
+### **Utility**: `level2`
+
+<details>
+<summary>Second level.</summary>
+
+> Set `x` to _3_.
+> Use `level3`.
+> Give back `x`.
+
+</details>
+
+### **Utility**: `level3`
+
+<details>
+<summary>Third level.</summary>
+
+> Set `x` to _4_.
+> Give back `x`.
+
+</details>
+
+Use `level1`."""
+
+        result = self._parse_and_evaluate(source)
+        assert result is not None
+        assert isinstance(result, Integer)
+        assert result.value == 2  # level1's x value
+
+    def test_nested_scope_access(self) -> None:
+        """Test that inner scopes can access outer scope variables."""
+        source = """Set `outer` to _100_.
+
+### **Utility**: `access outer`
+
+<details>
+<summary>Accesses outer variable.</summary>
+
+> Give back `outer`.
+
+</details>
+
+Use `access outer`."""
+
+        result = self._parse_and_evaluate(source)
+        assert result is not None
+        assert isinstance(result, Integer)
+        assert result.value == 100
+
+    def test_scope_chain_resolution(self) -> None:
+        """Test correct variable lookup order in nested scopes."""
+        source = """Set `a` to _1_.
+Set `b` to _2_.
+
+### **Utility**: `scope test`
+
+<details>
+<summary>Tests scope resolution.</summary>
+
+> Set `b` to _20_.
+> Set `c` to _30_.
+> Give back `a` + `b` + `c`.
+
+</details>
+
+Use `scope test`."""
+
+        result = self._parse_and_evaluate(source)
+        assert result is not None
+        assert isinstance(result, Integer)
+        assert result.value == 51  # 1 + 20 + 30
+
+    def test_scope_isolation(self) -> None:
+        """Test that parallel scopes don't interfere with each other."""
+        source = """### **Utility**: `func1`
+
+<details>
+<summary>First function.</summary>
+
+> Set `x` to _10_.
+> Give back `x`.
+
+</details>
+
+### **Utility**: `func2`
+
+<details>
+<summary>Second function.</summary>
+
+> Set `x` to _20_.
+> Give back `x`.
+
+</details>
+
+Use `func1`.
+Use `func2`."""
+
+        result = self._parse_and_evaluate(source)
+        assert result is not None
+        assert isinstance(result, Integer)
+        assert result.value == 20  # Each function has its own scope
+
+    def test_if_statement_scope(self) -> None:
+        """Test that if statements create proper scopes."""
+        source = """Set `x` to _10_.
+
+If _Yes_ is equal to _Yes_, then:
+> Set `x` to _20_.
+> Set `y` to _30_.
+
+Give back `x`."""
+
+        result = self._parse_and_evaluate(source)
+        assert result is not None
+        if isinstance(result, Error):
+            print(f"Error: {result.message}")
+        assert isinstance(result, Integer)
+        assert result.value == 10  # If block has its own scope, doesn't modify outer x
+
+    def test_nested_if_scopes(self) -> None:
+        """Test nested if statements with proper scoping."""
+        source = """Set `x` to _1_.
+
+If _Yes_ is equal to _Yes_, then:
+> Set `x` to _2_.
+> If _Yes_ is equal to _Yes_, then:
+> > Set `x` to _3_.
+> Give back `x`.
+
+Give back `x`."""
+
+        result = self._parse_and_evaluate(source)
+        assert result is not None
+        assert isinstance(result, Integer)
+        assert result.value == 1  # Outer x unchanged due to block scoping
+
+    def test_function_parameter_shadowing(self) -> None:
+        """Test that function parameters shadow outer variables."""
+        source = """Set `x` to _100_.
+
+### **Utility**: `param shadow`
+
+<details>
+<summary>Parameter shadows outer variable.</summary>
+
+> Give back `x`.
+
+</details>
+
+#### Inputs:
+- `x` **as** Number (required)
+
+Use `param shadow` where `x` is _42_."""
+
+        result = self._parse_and_evaluate(source)
+        assert result is not None
+        assert isinstance(result, Integer)
+        assert result.value == 42  # Parameter value, not outer x
+
+    def test_complex_scope_chain(self) -> None:
+        """Test complex scope chain with multiple variable definitions."""
+        source = """Set `global` to _"global"_.
+Set `shared` to _"outer"_.
+
+### **Utility**: `outer func`
+
+<details>
+<summary>Outer function.</summary>
+
+> Set `local` to _"outer local"_.
+> Set `shared` to _"inner"_.
+> Use `inner func`.
+> Give back `shared`.
+
+</details>
+
+### **Utility**: `inner func`
+
+<details>
+<summary>Inner function.</summary>
+
+> Set `inner_only` to _"inner only"_.
+> Set `shared` to _"innermost"_.
+
+</details>
+
+Use `outer func`."""
+
+        result = self._parse_and_evaluate(source)
+        assert result is not None
+        assert isinstance(result, String)
+        assert result.value == "inner"  # outer func's local value

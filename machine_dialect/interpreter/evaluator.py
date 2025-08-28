@@ -148,8 +148,11 @@ def evaluate(node: ast.ASTNode, env: Environment | None = None) -> Object | None
 def _evaluate_block_statement(node: ast.BlockStatement, env: Environment) -> Object | None:
     result: Object | None = None
 
+    # Create a new environment for the block scope with parent reference
+    block_env = Environment(parent=env)
+
     for statement in node.statements:
-        result = evaluate(statement, env)
+        result = evaluate(statement, block_env)
         if result is not None and isinstance(result, Return | Error):
             return result
 
@@ -163,10 +166,12 @@ def _evaluate_if_statement(if_statement: ast.IfStatement, env: Environment) -> O
     assert condition is not None
     if condition == TRUE:
         if if_statement.consequence is not None:
+            # The consequence is a BlockStatement which will create its own scope
             return evaluate(if_statement.consequence, env)
         return None
     elif condition == FALSE:
         if if_statement.alternative is not None:
+            # The alternative is a BlockStatement which will create its own scope
             return evaluate(if_statement.alternative, env)
         return None
 
@@ -294,7 +299,7 @@ def _evaluate_set_statement(node: ast.SetStatement, env: Environment) -> Object 
     if node.name is None:
         return Error("SetStatement has no name")
 
-    # Store the value in the environment
+    # Always create/update variable in current scope (allows shadowing)
     env[node.name.value] = value
 
     # Return None for statements (they don't produce values)
@@ -379,10 +384,8 @@ def _evaluate_call_statement(node: ast.CallStatement, env: Environment) -> Objec
     if not isinstance(func_obj, Function):
         return Error(f"'{func_name}' is not a utility")
 
-    # Create a new environment for the function call
-    func_env = Environment()
-    # Copy the function's closure environment
-    func_env.store.update(func_obj.env.store)
+    # Create a new environment for the function call with closure as parent
+    func_env = Environment(parent=func_obj.env)
 
     # Process arguments
     positional_args: list[Object] = []

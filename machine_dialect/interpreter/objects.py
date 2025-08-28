@@ -161,20 +161,81 @@ class Boolean(Object):
 
 
 class Environment:
-    """Environment for storing variables."""
+    """Environment for storing variables with support for parent scopes."""
 
-    def __init__(self) -> None:
-        """Initialize an empty environment."""
+    def __init__(self, parent: Environment | None = None) -> None:
+        """Initialize an environment with optional parent scope.
+
+        Args:
+            parent: The parent environment to inherit from.
+        """
         self.store: dict[str, Object] = {}
+        self.parent = parent
 
     def __getitem__(self, key: str) -> Object:
-        return self.store[key]
+        """Get a variable from this environment or parent scopes.
+
+        Args:
+            key: The variable name.
+
+        Returns:
+            The variable value.
+
+        Raises:
+            KeyError: If variable not found in any scope.
+        """
+        if key in self.store:
+            return self.store[key]
+        elif self.parent is not None:
+            return self.parent[key]
+        else:
+            raise KeyError(key)
 
     def __setitem__(self, key: str, value: Object) -> None:
+        """Set a variable in the current environment.
+
+        Note: This always sets in the current scope, not parent scopes.
+        To update an existing variable in parent scope, use update_existing.
+
+        Args:
+            key: The variable name.
+            value: The variable value.
+        """
         self.store[key] = value
 
     def __contains__(self, key: str) -> bool:
-        return key in self.store
+        """Check if variable exists in this environment or parent scopes.
+
+        Args:
+            key: The variable name.
+
+        Returns:
+            True if variable exists in any scope.
+        """
+        if key in self.store:
+            return True
+        elif self.parent is not None:
+            return key in self.parent
+        else:
+            return False
+
+    def update_existing(self, key: str, value: Object) -> bool:
+        """Update an existing variable in the nearest scope where it exists.
+
+        Args:
+            key: The variable name.
+            value: The new value.
+
+        Returns:
+            True if variable was found and updated, False otherwise.
+        """
+        if key in self.store:
+            self.store[key] = value
+            return True
+        elif self.parent is not None:
+            return self.parent.update_existing(key, value)
+        else:
+            return False
 
 
 class Empty(Object):

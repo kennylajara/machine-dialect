@@ -1129,6 +1129,10 @@ class Parser:
         # Parse the condition expression
         if_statement.condition = self._parse_expression(Precedence.LOWEST)
 
+        # Check for optional comma before 'then'
+        if self._peek_token and self._peek_token.type == TokenType.PUNCT_COMMA:
+            self._advance_tokens()  # Skip the comma
+
         # Check for optional 'then' keyword
         if self._peek_token and self._peek_token.type == TokenType.KW_THEN:
             self._advance_tokens()  # Move to 'then'
@@ -1403,6 +1407,21 @@ class Parser:
                 break
             elif current_depth < expected_depth:
                 # We've exited the block due to lower depth
+
+                # TODO: Fix bug where statements after nested if blocks (e.g., after `> >`)
+                #  are not properly parsed as part of the parent block. Currently requires
+                #  an empty `>` line after the nested block to continue parsing correctly.
+                #  Example issue:
+                #    > If condition then:
+                #    > > Give back value.
+                #    > Set `var` to _1_.  # This line may not be parsed correctly
+                #  Example working code:
+                #    > If condition then:
+                #    > > Give back value.
+                #    >
+                #    > Set `var` to _1_.  # This line may now be parsed correctly
+                #  We expect both example codes to be working
+
                 # We've already consumed the '>' tokens while counting depth
                 # The parent block needs to handle this line's content
                 # But first check if this is an empty line (only '>')
@@ -1720,7 +1739,9 @@ class Parser:
         is_required = True
         default_value: Expression | None = None
 
-        # Check for (required) or (optional, default: value)
+        # Check for (required) or (optional, default: value) or (default: value)
+        # TODO: In the future, remove support for explicit required/optional keywords
+        # and make it fully implicit based on presence of default value
         paren_token = self._current_token
         if paren_token and paren_token.type == TokenType.DELIM_LPAREN:
             self._advance_tokens()
@@ -1752,7 +1773,28 @@ class Parser:
                                 # After parsing expression, advance past it
                                 self._advance_tokens()
 
+                elif status_token.type == TokenType.KW_DEFAULT:
+                    # Handle (default: value) without explicit optional/required
+                    # Infer that presence of default means optional
+                    is_required = False
+                    self._advance_tokens()
+
+                    # Expect colon
+                    colon_check = self._current_token
+                    if colon_check and colon_check.type == TokenType.PUNCT_COLON:
+                        self._advance_tokens()
+
+                        # Parse the default value expression
+                        default_value = self._parse_expression(Precedence.LOWEST)
+
+                        # After parsing expression, advance past it
+                        self._advance_tokens()
+
+                elif status_token.type == TokenType.KW_REQUIRED:
+                    is_required = True
+                    self._advance_tokens()
                 else:
+                    # Unknown token, keep as required
                     is_required = True
                     self._advance_tokens()
 

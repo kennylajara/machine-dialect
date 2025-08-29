@@ -104,7 +104,7 @@ class MIRValidator:
                 func_errors.append(f"Block '{block_label}' validation failed")
 
         # Check that all locals are defined
-        for local in func.locals:
+        for local in func.locals.values():
             if not isinstance(local, Variable):
                 func_errors.append(f"Local must be Variable, got {type(local)}")
 

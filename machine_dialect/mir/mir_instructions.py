@@ -432,3 +432,212 @@ class Label(MIRInstruction):
     def get_defs(self) -> list[MIRValue]:
         """Labels define nothing."""
         return []
+
+
+class Print(MIRInstruction):
+    """Print instruction for Say/Tell statements: print value."""
+
+    def __init__(self, value: MIRValue) -> None:
+        """Initialize a print instruction.
+
+        Args:
+            value: Value to print.
+        """
+        self.value = value
+
+    def __str__(self) -> str:
+        """Return string representation."""
+        return f"print {self.value}"
+
+    def get_uses(self) -> list[MIRValue]:
+        """Get value used."""
+        return [self.value]
+
+    def get_defs(self) -> list[MIRValue]:
+        """Print defines nothing."""
+        return []
+
+    def replace_use(self, old_value: MIRValue, new_value: MIRValue) -> None:
+        """Replace uses of a value."""
+        if self.value == old_value:
+            self.value = new_value
+
+
+class Nop(MIRInstruction):
+    """No-operation instruction."""
+
+    def __str__(self) -> str:
+        """Return string representation."""
+        return "nop"
+
+    def get_uses(self) -> list[MIRValue]:
+        """Nop uses nothing."""
+        return []
+
+    def get_defs(self) -> list[MIRValue]:
+        """Nop defines nothing."""
+        return []
+
+
+class Assert(MIRInstruction):
+    """Assert instruction for runtime checks: assert condition."""
+
+    def __init__(self, condition: MIRValue, message: str | None = None) -> None:
+        """Initialize an assert instruction.
+
+        Args:
+            condition: Condition to check.
+            message: Optional error message.
+        """
+        self.condition = condition
+        self.message = message
+
+    def __str__(self) -> str:
+        """Return string representation."""
+        if self.message:
+            return f'assert {self.condition}, "{self.message}"'
+        return f"assert {self.condition}"
+
+    def get_uses(self) -> list[MIRValue]:
+        """Get condition used."""
+        return [self.condition]
+
+    def get_defs(self) -> list[MIRValue]:
+        """Assert defines nothing."""
+        return []
+
+    def replace_use(self, old_value: MIRValue, new_value: MIRValue) -> None:
+        """Replace uses of a value."""
+        if self.condition == old_value:
+            self.condition = new_value
+
+
+class Select(MIRInstruction):
+    """Select instruction (ternary): dest = condition ? true_val : false_val."""
+
+    def __init__(self, dest: MIRValue, condition: MIRValue, true_val: MIRValue, false_val: MIRValue) -> None:
+        """Initialize a select instruction.
+
+        Args:
+            dest: Destination to store result.
+            condition: Condition to test.
+            true_val: Value when condition is true.
+            false_val: Value when condition is false.
+        """
+        self.dest = dest
+        self.condition = condition
+        self.true_val = true_val
+        self.false_val = false_val
+
+    def __str__(self) -> str:
+        """Return string representation."""
+        return f"{self.dest} = select {self.condition}, {self.true_val}, {self.false_val}"
+
+    def get_uses(self) -> list[MIRValue]:
+        """Get values used."""
+        return [self.condition, self.true_val, self.false_val]
+
+    def get_defs(self) -> list[MIRValue]:
+        """Get destination defined."""
+        return [self.dest]
+
+    def replace_use(self, old_value: MIRValue, new_value: MIRValue) -> None:
+        """Replace uses of a value."""
+        if self.condition == old_value:
+            self.condition = new_value
+        if self.true_val == old_value:
+            self.true_val = new_value
+        if self.false_val == old_value:
+            self.false_val = new_value
+
+
+class Scope(MIRInstruction):
+    """Scope instruction for block management: begin_scope/end_scope."""
+
+    def __init__(self, is_begin: bool = True) -> None:
+        """Initialize a scope instruction.
+
+        Args:
+            is_begin: True for begin_scope, False for end_scope.
+        """
+        self.is_begin = is_begin
+
+    def __str__(self) -> str:
+        """Return string representation."""
+        return "begin_scope" if self.is_begin else "end_scope"
+
+    def get_uses(self) -> list[MIRValue]:
+        """Scope uses nothing."""
+        return []
+
+    def get_defs(self) -> list[MIRValue]:
+        """Scope defines nothing."""
+        return []
+
+
+class GetAttr(MIRInstruction):
+    """Get attribute instruction: dest = object.attr."""
+
+    def __init__(self, dest: MIRValue, obj: MIRValue, attr: str) -> None:
+        """Initialize a get attribute instruction.
+
+        Args:
+            dest: Destination to store attribute value.
+            obj: Object to get attribute from.
+            attr: Attribute name.
+        """
+        self.dest = dest
+        self.obj = obj
+        self.attr = attr
+
+    def __str__(self) -> str:
+        """Return string representation."""
+        return f"{self.dest} = {self.obj}.{self.attr}"
+
+    def get_uses(self) -> list[MIRValue]:
+        """Get object used."""
+        return [self.obj]
+
+    def get_defs(self) -> list[MIRValue]:
+        """Get destination defined."""
+        return [self.dest]
+
+    def replace_use(self, old_value: MIRValue, new_value: MIRValue) -> None:
+        """Replace uses of a value."""
+        if self.obj == old_value:
+            self.obj = new_value
+
+
+class SetAttr(MIRInstruction):
+    """Set attribute instruction: object.attr = value."""
+
+    def __init__(self, obj: MIRValue, attr: str, value: MIRValue) -> None:
+        """Initialize a set attribute instruction.
+
+        Args:
+            obj: Object to set attribute on.
+            attr: Attribute name.
+            value: Value to set.
+        """
+        self.obj = obj
+        self.attr = attr
+        self.value = value
+
+    def __str__(self) -> str:
+        """Return string representation."""
+        return f"{self.obj}.{self.attr} = {self.value}"
+
+    def get_uses(self) -> list[MIRValue]:
+        """Get object and value used."""
+        return [self.obj, self.value]
+
+    def get_defs(self) -> list[MIRValue]:
+        """SetAttr defines nothing directly."""
+        return []
+
+    def replace_use(self, old_value: MIRValue, new_value: MIRValue) -> None:
+        """Replace uses of a value."""
+        if self.obj == old_value:
+            self.obj = new_value
+        if self.value == old_value:
+            self.value = new_value

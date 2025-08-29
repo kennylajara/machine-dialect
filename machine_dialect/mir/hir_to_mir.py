@@ -6,11 +6,17 @@ This module implements the translation from HIR (desugared AST) to MIR
 
 
 from machine_dialect.ast import (
+    ActionStatement,
     Arguments,
     ASTNode,
+    BlockStatement,
     BooleanLiteral,
     CallStatement,
+    ConditionalExpression,
     EmptyLiteral,
+    ErrorExpression,
+    ErrorStatement,
+    ExpressionStatement,
     FloatLiteral,
     FunctionStatement,
     FunctionVisibility,
@@ -18,24 +24,31 @@ from machine_dialect.ast import (
     IfStatement,
     InfixExpression,
     IntegerLiteral,
+    InteractionStatement,
     Parameter,
     PrefixExpression,
     Program,
     ReturnStatement,
+    SayStatement,
     SetStatement,
     StringLiteral,
     URLLiteral,
+    UtilityStatement,
 )
 from machine_dialect.mir.basic_block import BasicBlock
 from machine_dialect.mir.mir_function import MIRFunction
 from machine_dialect.mir.mir_instructions import (
+    Assert,
     BinaryOp,
     Call,
     ConditionalJump,
     Copy,
     Jump,
     LoadConst,
+    Print,
     Return,
+    Scope,
+    Select,
     StoreVar,
     UnaryOp,
 )
@@ -87,7 +100,7 @@ class HIRToMIRLowering:
         Args:
             stmt: The statement to lower.
         """
-        if isinstance(stmt, FunctionStatement):
+        if isinstance(stmt, FunctionStatement | UtilityStatement | ActionStatement | InteractionStatement):
             self.lower_function(stmt)
         elif isinstance(stmt, SetStatement):
             self.lower_set_statement(stmt)
@@ -97,15 +110,26 @@ class HIRToMIRLowering:
             self.lower_return_statement(stmt)
         elif isinstance(stmt, CallStatement):
             self.lower_call_statement(stmt)
+        elif isinstance(stmt, SayStatement):
+            self.lower_say_statement(stmt)
+        elif isinstance(stmt, BlockStatement):
+            self.lower_block_statement(stmt)
+        elif isinstance(stmt, ExpressionStatement):
+            self.lower_expression_statement(stmt)
+        elif isinstance(stmt, ErrorStatement):
+            self.lower_error_statement(stmt)
         else:
             # Other statements can be handled as expressions
             self.lower_expression(stmt)
 
-    def lower_function(self, func: FunctionStatement) -> None:
+    def lower_function(
+        self,
+        func: FunctionStatement | UtilityStatement | ActionStatement | InteractionStatement,
+    ) -> None:
         """Lower a function definition to MIR.
 
         Args:
-            func: The function to lower.
+            func: The function to lower (any type of function).
         """
         # Create parameter variables
         params = []
@@ -120,8 +144,19 @@ class HIRToMIRLowering:
             var = Variable(param_name, param_type)
             params.append(var)
 
-        # Determine return type based on visibility
-        return_type = MIRType.EMPTY if func.visibility != FunctionVisibility.FUNCTION else MIRType.UNKNOWN
+        # Determine return type based on function type
+        # UtilityStatement = Function (returns value)
+        # ActionStatement = Private method (returns nothing)
+        # InteractionStatement = Public method (returns nothing)
+        # FunctionStatement has visibility attribute
+        if isinstance(func, UtilityStatement):
+            return_type = MIRType.UNKNOWN  # Functions return values
+        elif isinstance(func, ActionStatement | InteractionStatement):
+            return_type = MIRType.EMPTY  # Methods return nothing
+        elif isinstance(func, FunctionStatement):
+            return_type = MIRType.EMPTY if func.visibility != FunctionVisibility.FUNCTION else MIRType.UNKNOWN
+        else:
+            return_type = MIRType.UNKNOWN
 
         # Get function name from Identifier
         func_name = func.name.value if isinstance(func.name, Identifier) else str(func.name)
@@ -310,6 +345,69 @@ class HIRToMIRLowering:
         # Call without storing result (void call)
         self.current_block.add_instruction(Call(None, func_ref, args))
 
+    def lower_say_statement(self, stmt: SayStatement) -> None:
+        """Lower a say statement to MIR.
+
+        Args:
+            stmt: The say statement to lower.
+        """
+        if not self.current_block:
+            return
+
+        # Lower the expression to print
+        if stmt.expression:
+            value = self.lower_expression(stmt.expression)
+            self.current_block.add_instruction(Print(value))
+
+    def lower_block_statement(self, stmt: BlockStatement) -> None:
+        """Lower a block statement to MIR.
+
+        Args:
+            stmt: The block statement to lower.
+        """
+        if not self.current_block:
+            return
+
+        # Add scope begin instruction
+        self.current_block.add_instruction(Scope(is_begin=True))
+
+        # Lower all statements in the block
+        for s in stmt.statements:
+            self.lower_statement(s)
+
+        # Add scope end instruction
+        if self.current_block and not self.current_block.is_terminated():
+            self.current_block.add_instruction(Scope(is_begin=False))
+
+    def lower_expression_statement(self, stmt: ExpressionStatement) -> None:
+        """Lower an expression statement to MIR.
+
+        Args:
+            stmt: The expression statement to lower.
+        """
+        if not self.current_block:
+            return
+
+        # Lower the expression and discard the result
+        if stmt.expression:
+            self.lower_expression(stmt.expression)
+            # Result is not used, no need to store it
+
+    def lower_error_statement(self, stmt: ErrorStatement) -> None:
+        """Lower an error statement to MIR.
+
+        Args:
+            stmt: The error statement to lower.
+        """
+        if not self.current_block or not self.current_function:
+            return
+
+        # Generate an assert with error message
+        # This will fail at runtime with the parse error
+        error_msg = f"Parse error: {stmt.message}"
+        false_val = Constant(False, MIRType.BOOL)
+        self.current_block.add_instruction(Assert(false_val, error_msg))
+
     def lower_expression(self, expr: ASTNode) -> MIRValue:
         """Lower an expression to MIR.
 
@@ -385,6 +483,37 @@ class HIRToMIRLowering:
             result = self.current_function.new_temp(result_type)
             self.current_block.add_instruction(UnaryOp(result, expr.operator, operand))
             return result
+
+        # Handle conditional expression (ternary)
+        elif isinstance(expr, ConditionalExpression):
+            if expr.condition is None or expr.consequence is None or expr.alternative is None:
+                raise ValueError("Conditional expression missing required parts")
+
+            # Lower condition
+            condition = self.lower_expression(expr.condition)
+
+            # Lower both branches
+            true_val = self.lower_expression(expr.consequence)
+            false_val = self.lower_expression(expr.alternative)
+
+            # Get result type (should be the same for both branches)
+            result_type = true_val.type if hasattr(true_val, "type") else MIRType.UNKNOWN
+
+            # Create temp for result
+            result = self.current_function.new_temp(result_type)
+
+            # Use Select instruction for conditional expression
+            self.current_block.add_instruction(Select(result, condition, true_val, false_val))
+            return result
+
+        # Handle error expression
+        elif isinstance(expr, ErrorExpression):
+            # Generate an assert for error expressions
+            error_msg = f"Expression error: {expr.message}"
+            false_val = Constant(False, MIRType.BOOL)
+            self.current_block.add_instruction(Assert(false_val, error_msg))
+            # Return error value
+            return Constant(None, MIRType.ERROR)
 
         # Handle call expression (not available in AST, using CallStatement instead)
         # This would need to be refactored if we have call expressions

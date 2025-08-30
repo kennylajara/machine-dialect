@@ -105,7 +105,7 @@ class TestIntegrationPipeline(unittest.TestCase):
     def test_function_call_pipeline(self) -> None:
         """Test function definition and call through pipeline."""
         # Create utility function
-        param = Parameter(self._dummy_token("x"), Identifier(self._dummy_token("x"), "x"), None, True, None)
+        param = Parameter(self._dummy_token("x"), Identifier(self._dummy_token("x"), "x"), "int", True, None)
 
         utility = UtilityStatement(
             self._dummy_token("utility"),
@@ -265,7 +265,11 @@ class TestIntegrationPipeline(unittest.TestCase):
             ),
         ]
 
-        program = Program(statements)
+        from typing import cast
+
+        from machine_dialect.ast import Statement
+
+        program = Program(cast(list[Statement], statements))
 
         # Complete pipeline
         mir = lower_to_mir(program)
@@ -388,8 +392,8 @@ class TestIntegrationPipeline(unittest.TestCase):
             self._dummy_token("utility"),
             name=Identifier(self._dummy_token("add"), "add"),
             inputs=[
-                Parameter(self._dummy_token("a"), Identifier(self._dummy_token("a"), "a"), None, True, None),
-                Parameter(self._dummy_token("b"), Identifier(self._dummy_token("b"), "b"), None, True, None),
+                Parameter(self._dummy_token("a"), Identifier(self._dummy_token("a"), "a"), "int", True, None),
+                Parameter(self._dummy_token("b"), Identifier(self._dummy_token("b"), "b"), "int", True, None),
             ],
             outputs=None,
             body=self._create_block_with_statements(
@@ -408,8 +412,8 @@ class TestIntegrationPipeline(unittest.TestCase):
             self._dummy_token("utility"),
             name=Identifier(self._dummy_token("multiply"), "multiply"),
             inputs=[
-                Parameter(self._dummy_token("x"), Identifier(self._dummy_token("x"), "x"), None, True, None),
-                Parameter(self._dummy_token("y"), Identifier(self._dummy_token("y"), "y"), None, True, None),
+                Parameter(self._dummy_token("x"), Identifier(self._dummy_token("x"), "x"), "int", True, None),
+                Parameter(self._dummy_token("y"), Identifier(self._dummy_token("y"), "y"), "int", True, None),
             ],
             outputs=None,
             body=self._create_block_with_statements(
@@ -459,7 +463,7 @@ class TestIntegrationPipeline(unittest.TestCase):
             self._dummy_token("function"),
             visibility=FunctionVisibility.PUBLIC,
             name=Identifier(self._dummy_token("factorial"), "factorial"),
-            inputs=[Parameter(self._dummy_token("n"), Identifier(self._dummy_token("n"), "n"), None, True, None)],
+            inputs=[Parameter(self._dummy_token("n"), Identifier(self._dummy_token("n"), "n"), "int", True, None)],
             outputs=None,
             body=self._create_block_with_statements(
                 [

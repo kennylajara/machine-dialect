@@ -34,6 +34,7 @@ from machine_dialect.mir.mir_instructions import (
     BinaryOp,
     ConditionalJump,
     LoadConst,
+    MIRInstruction,
     Print,
     Scope,
     Select,
@@ -72,22 +73,27 @@ class TestHIRToMIRComplete(unittest.TestCase):
         main = mir.get_function("main")
 
         # Should have entry block with Assert instruction
+        assert main is not None
         entry = main.cfg.entry_block
         self.assertIsNotNone(entry)
 
         # Find Assert instruction
+        assert entry is not None
         asserts = [inst for inst in entry.instructions if isinstance(inst, Assert)]
         self.assertEqual(len(asserts), 1)
+        assert asserts[0].message is not None
         self.assertIn("Parse error", asserts[0].message)
 
         # Should have entry block with Assert instruction
-        entry = main.cfg.entry_block
-        self.assertIsNotNone(entry)
+        entry2 = main.cfg.entry_block
+        self.assertIsNotNone(entry2)
 
         # Find Assert instruction
-        asserts = [inst for inst in entry.instructions if isinstance(inst, Assert)]
-        self.assertEqual(len(asserts), 1)
-        self.assertIn("Parse error", asserts[0].message)
+        assert entry2 is not None
+        asserts2 = [inst for inst in entry2.instructions if isinstance(inst, Assert)]
+        self.assertEqual(len(asserts2), 1)
+        assert asserts2[0].message is not None
+        self.assertIn("Parse error", asserts2[0].message)
 
     def test_error_expression_lowering(self) -> None:
         """Test lowering of ErrorExpression."""
@@ -103,9 +109,11 @@ class TestHIRToMIRComplete(unittest.TestCase):
 
         # Should have Assert for error expression
         main = mir.get_function("main")
+        assert main is not None
         entry = main.cfg.entry_block
+        assert entry is not None
         asserts = [inst for inst in entry.instructions if isinstance(inst, Assert)]
-        self.assertTrue(any("Expression error" in a.message for a in asserts))
+        self.assertTrue(any(a.message and "Expression error" in a.message for a in asserts))
 
     def test_conditional_expression_lowering(self) -> None:
         """Test lowering of ConditionalExpression (ternary)."""
@@ -125,7 +133,9 @@ class TestHIRToMIRComplete(unittest.TestCase):
 
         # Should have Select instruction
         main = mir.get_function("main")
+        assert main is not None
         entry = main.cfg.entry_block
+        assert entry is not None
         selects = [inst for inst in entry.instructions if isinstance(inst, Select)]
         self.assertEqual(len(selects), 1)
 
@@ -139,7 +149,9 @@ class TestHIRToMIRComplete(unittest.TestCase):
 
         # Should have Print instruction
         main = mir.get_function("main")
+        assert main is not None
         entry = main.cfg.entry_block
+        assert entry is not None
         prints = [inst for inst in entry.instructions if isinstance(inst, Print)]
         self.assertEqual(len(prints), 1)
 
@@ -158,7 +170,9 @@ class TestHIRToMIRComplete(unittest.TestCase):
 
         # Should have Scope instructions
         main = mir.get_function("main")
+        assert main is not None
         entry = main.cfg.entry_block
+        assert entry is not None
         scopes = [inst for inst in entry.instructions if isinstance(inst, Scope)]
 
         # Should have begin and end scope
@@ -185,6 +199,7 @@ class TestHIRToMIRComplete(unittest.TestCase):
         # Should have function with EMPTY return type
         func = mir.get_function("doWork")
         self.assertIsNotNone(func)
+        assert func is not None
         self.assertEqual(func.return_type, MIRType.EMPTY)
 
     def test_interaction_statement_lowering(self) -> None:
@@ -208,6 +223,7 @@ class TestHIRToMIRComplete(unittest.TestCase):
         # Should have function with parameter
         func = mir.get_function("handleRequest")
         self.assertIsNotNone(func)
+        assert func is not None
         self.assertEqual(len(func.params), 1)
         self.assertEqual(func.params[0].name, "input")
 
@@ -232,6 +248,7 @@ class TestHIRToMIRComplete(unittest.TestCase):
         # Should have function with UNKNOWN return type (can return values)
         func = mir.get_function("calculate")
         self.assertIsNotNone(func)
+        assert func is not None
         self.assertEqual(func.return_type, MIRType.UNKNOWN)
 
     def test_url_literal_lowering(self) -> None:
@@ -250,7 +267,9 @@ class TestHIRToMIRComplete(unittest.TestCase):
         # Check for LoadConst with URL
         main = mir.get_function("main")
         self.assertIsNotNone(main)
+        assert main is not None
         entry = main.cfg.entry_block
+        assert entry is not None
         loads = [inst for inst in entry.instructions if isinstance(inst, LoadConst)]
         self.assertTrue(
             any(isinstance(inst.constant, Constant) and inst.constant.value == "https://example.com" for inst in loads)
@@ -302,10 +321,11 @@ class TestHIRToMIRComplete(unittest.TestCase):
 
         # Should have multiple basic blocks
         main = mir.get_function("main")
+        assert main is not None
         self.assertGreater(len(main.cfg.blocks), 3)  # At least entry + branches
 
         # Should have conditional jumps
-        all_instructions = []
+        all_instructions: list[MIRInstruction] = []
         for block in main.cfg.blocks.values():
             all_instructions.extend(block.instructions)
 
@@ -331,7 +351,9 @@ class TestHIRToMIRComplete(unittest.TestCase):
 
                 # Should have BinaryOp with correct operator
                 main = mir.get_function("main")
+                assert main is not None
                 entry = main.cfg.entry_block
+                assert entry is not None
                 binops = [inst for inst in entry.instructions if isinstance(inst, BinaryOp)]
                 self.assertTrue(any(inst.op == op for inst in binops))
 
@@ -354,7 +376,9 @@ class TestHIRToMIRComplete(unittest.TestCase):
 
         mir = lower_to_mir(program)
         main = mir.get_function("main")
+        assert main is not None
         entry = main.cfg.entry_block
+        assert entry is not None
 
         # Should have UnaryOp instructions
         unaryops = [inst for inst in entry.instructions if isinstance(inst, UnaryOp)]

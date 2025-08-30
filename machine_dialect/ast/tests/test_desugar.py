@@ -244,6 +244,7 @@ class TestStatementDesugaring(unittest.TestCase):
 
         desugared1 = block1.desugar()
         self.assertIsInstance(desugared1, BlockStatement)  # Block is preserved
+        assert isinstance(desugared1, BlockStatement)
         self.assertEqual(len(desugared1.statements), 1)
 
         # Test multi-statement block - should remain a block
@@ -271,6 +272,7 @@ class TestStatementDesugaring(unittest.TestCase):
 
         desugared3 = block3.desugar()
         self.assertIsInstance(desugared3, BlockStatement)  # Outer block preserved
+        assert isinstance(desugared3, BlockStatement)
         self.assertEqual(len(desugared3.statements), 1)
         self.assertIsInstance(desugared3.statements[0], BlockStatement)  # Inner block preserved
 
@@ -523,11 +525,13 @@ class TestComplexDesugaring(unittest.TestCase):
         assert desugared.consequence is not None  # Type guard
         self.assertIsInstance(desugared.consequence, BlockStatement)
         # Blocks are now preserved for scope
+        assert isinstance(desugared.consequence, BlockStatement)
         self.assertEqual(len(desugared.consequence.statements), 1)
-        inner_block = desugared.consequence.statements[0]
-        self.assertIsInstance(inner_block, BlockStatement)  # Block is preserved
-        self.assertEqual(len(inner_block.statements), 1)
-        ret_stmt = inner_block.statements[0]
+        inner_block2 = desugared.consequence.statements[0]
+        self.assertIsInstance(inner_block2, BlockStatement)  # Block is preserved
+        assert isinstance(inner_block2, BlockStatement)
+        self.assertEqual(len(inner_block2.statements), 1)
+        ret_stmt = inner_block2.statements[0]
         self.assertIsInstance(ret_stmt, ReturnStatement)
         assert isinstance(ret_stmt, ReturnStatement)  # Type guard
         self.assertEqual(ret_stmt.token.literal, "return")

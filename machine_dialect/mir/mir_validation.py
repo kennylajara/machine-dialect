@@ -223,14 +223,15 @@ class MIRValidator:
                 if block.successors:
                     self.warnings.append(f"Block '{block.label}' has successors but no terminator")
 
-        # Check phi nodes are at beginning
-        phi_phase = True
+        # Validate phi nodes
+        for phi in block.phi_nodes:
+            if not self._validate_instruction(phi, block, func):
+                return False
+
+        # Check that no phi nodes are in regular instructions (they should be in phi_nodes)
         for inst in block.instructions:
             if isinstance(inst, Phi):
-                if not phi_phase:
-                    block_errors.append("Phi nodes must be at beginning of block")
-            else:
-                phi_phase = False
+                block_errors.append("Phi nodes must be in phi_nodes list, not instructions")
 
         if block_errors:
             self.errors.extend(block_errors)

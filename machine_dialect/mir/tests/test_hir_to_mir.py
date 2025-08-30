@@ -32,6 +32,7 @@ from machine_dialect.mir.mir_instructions import (
     BinaryOp,
     Call,
     ConditionalJump,
+    LoadConst,
     Return,
     StoreVar,
     UnaryOp,
@@ -101,8 +102,10 @@ class TestHIRToMIRLowering(unittest.TestCase):
         # Check CFG
         assert main_func.cfg.entry_block is not None
         entry = main_func.cfg.entry_block
-        self.assertEqual(len(entry.instructions), 1)
-        self.assertIsInstance(entry.instructions[0], Return)
+        # With Load-Then-Store approach, we generate LoadConst + Return
+        self.assertEqual(len(entry.instructions), 2)
+        self.assertIsInstance(entry.instructions[0], LoadConst)
+        self.assertIsInstance(entry.instructions[1], Return)
 
     def test_lower_function_with_parameters(self) -> None:
         """Test lowering a function with parameters."""

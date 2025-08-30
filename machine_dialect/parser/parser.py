@@ -5,6 +5,7 @@ from machine_dialect.ast import (
     Arguments,
     BlockStatement,
     BooleanLiteral,
+    CallExpression,
     CallStatement,
     ConditionalExpression,
     EmptyLiteral,
@@ -720,8 +721,8 @@ class Parser:
             self._advance_tokens()  # Move past 'using'
             # Parse a function call (similar to Use statement but returns the value)
             func_call = self._parse_function_call_expression()
-            # CallStatement is also an Expression, so this is valid
-            let_statement.value = func_call  # type: ignore[assignment]
+            # CallExpression is an Expression, so this is valid
+            let_statement.value = func_call
             # Note: _parse_function_call_expression already leaves us at the period,
             # so we'll skip the advance_tokens() call below for this branch
             used_using = True
@@ -833,13 +834,13 @@ class Parser:
 
         return say_statement
 
-    def _parse_function_call_expression(self) -> CallStatement | ErrorExpression:
+    def _parse_function_call_expression(self) -> Expression:
         """Parse a function call as an expression (for use with 'using' in Set statements).
 
         Syntax: function_name [with <arguments>] or function_name [where <named arguments>].
 
         Returns:
-            A CallStatement AST node that will be evaluated as an expression.
+            A CallExpression AST node that will be evaluated as an expression.
         """
         assert self._current_token is not None
 
@@ -862,22 +863,22 @@ class Parser:
             )
             return ErrorExpression(token=self._current_token, message=error_message)
 
-        # Create the CallStatement
-        call_statement = CallStatement(token=call_token, function_name=function_name)
+        # Create the CallExpression
+        call_expression = CallExpression(token=call_token, function_name=function_name)
 
         # Check for arguments
         if self._current_token and self._current_token.type == TokenType.KW_WITH:  # type: ignore[comparison-overlap]
             # Positional arguments
             with_token = self._current_token
             self._advance_tokens()
-            call_statement.arguments = self._parse_positional_arguments(with_token)
+            call_expression.arguments = self._parse_positional_arguments(with_token)
         elif self._current_token and self._current_token.type == TokenType.KW_WHERE:  # type: ignore[comparison-overlap]
             # Named arguments
             where_token = self._current_token
             self._advance_tokens()
-            call_statement.arguments = self._parse_named_arguments(where_token)
+            call_expression.arguments = self._parse_named_arguments(where_token)
 
-        return call_statement
+        return call_expression
 
     def _parse_call_statement(self) -> CallStatement:
         """Parse a Use statement.

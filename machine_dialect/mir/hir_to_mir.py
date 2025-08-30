@@ -31,6 +31,7 @@ from machine_dialect.ast import (
     ReturnStatement,
     SayStatement,
     SetStatement,
+    Statement,
     StringLiteral,
     URLLiteral,
     UtilityStatement,
@@ -84,15 +85,62 @@ class HIRToMIRLowering:
 
         self.module = MIRModule("main")  # Default module name
 
-        # Process all statements
+        # Separate functions from top-level statements
+        functions = []
+        top_level_statements = []
+
         for stmt in hir.statements:
-            self.lower_statement(stmt)
+            if isinstance(stmt, (FunctionStatement, UtilityStatement, ActionStatement, InteractionStatement)):
+                functions.append(stmt)
+            else:
+                top_level_statements.append(stmt)
+
+        # Process function definitions first
+        for func_stmt in functions:
+            self.lower_function(func_stmt)
+
+        # If there are top-level statements, create an implicit main function
+        if top_level_statements and not self.module.get_function("main"):
+            self._create_implicit_main(top_level_statements)
 
         # Set main function if it exists
         if self.module.get_function("main"):
             self.module.set_main_function("main")
 
         return self.module
+
+    def _create_implicit_main(self, statements: list[Statement]) -> None:
+        """Create an implicit main function for top-level statements.
+
+        Args:
+            statements: The top-level statements to include in main.
+        """
+        # Create main function
+        main = MIRFunction("main", [], MIRType.EMPTY)
+        self.current_function = main
+
+        # Create entry block
+        entry = BasicBlock("entry")
+        main.cfg.add_block(entry)
+        main.cfg.set_entry_block(entry)
+        self.current_block = entry
+
+        # Lower all top-level statements
+        for stmt in statements:
+            self.lower_statement(stmt)
+
+        # Add implicit return if needed
+        if not self.current_block.is_terminated():
+            self.current_block.add_instruction(Return())
+
+        # Add main function to module
+        if self.module:
+            self.module.add_function(main)
+
+        # Reset context
+        self.current_function = None
+        self.current_block = None
+        self.variable_map = {}
 
     def lower_statement(self, stmt: ASTNode) -> None:
         """Lower a statement to MIR.
@@ -226,6 +274,14 @@ class HIRToMIRLowering:
         else:
             var = self.variable_map[var_name]
 
+        # If the value is a constant, load it into a temporary first
+        if isinstance(value, Constant):
+            # Create a temporary variable for the constant
+            temp = self.current_function.new_temp(value.type)
+            self.current_block.add_instruction(LoadConst(temp, value))
+            # Use the temp as the source
+            value = temp
+
         # Store the value
         self.current_block.add_instruction(StoreVar(var, value))
 
@@ -244,6 +300,12 @@ class HIRToMIRLowering:
         else:
             # Should not happen - if statements always have conditions
             raise ValueError("If statement missing condition")
+
+        # Load constant into temporary if needed
+        if isinstance(condition, Constant):
+            temp = self.current_function.new_temp(condition.type)
+            self.current_block.add_instruction(LoadConst(temp, condition))
+            condition = temp
 
         # Create blocks
         then_label = self.generate_label("then")
@@ -305,6 +367,13 @@ class HIRToMIRLowering:
 
         if stmt.return_value:
             value = self.lower_expression(stmt.return_value)
+
+            # Load constant into temporary if needed
+            if isinstance(value, Constant):
+                temp = self.current_function.new_temp(value.type)
+                self.current_block.add_instruction(LoadConst(temp, value))
+                value = temp
+
             self.current_block.add_instruction(Return(value))
         else:
             self.current_block.add_instruction(Return())
@@ -324,11 +393,23 @@ class HIRToMIRLowering:
             # Handle positional arguments
             if hasattr(stmt.arguments, "positional"):
                 for arg in stmt.arguments.positional:
-                    args.append(self.lower_expression(arg))
+                    val = self.lower_expression(arg)
+                    # Load constants into temporaries if needed
+                    if isinstance(val, Constant):
+                        temp = self.current_function.new_temp(val.type)
+                        self.current_block.add_instruction(LoadConst(temp, val))
+                        val = temp
+                    args.append(val)
             # Handle named arguments if any
             if hasattr(stmt.arguments, "named"):
                 for _name, arg in stmt.arguments.named:
-                    args.append(self.lower_expression(arg))
+                    val = self.lower_expression(arg)
+                    # Load constants into temporaries if needed
+                    if isinstance(val, Constant):
+                        temp = self.current_function.new_temp(val.type)
+                        self.current_block.add_instruction(LoadConst(temp, val))
+                        val = temp
+                    args.append(val)
 
         # Get function name from expression
         func_name = ""
@@ -357,6 +438,11 @@ class HIRToMIRLowering:
         # Lower the expression to print
         if stmt.expression:
             value = self.lower_expression(stmt.expression)
+            # Load constant into temporary if needed
+            if isinstance(value, Constant):
+                temp = self.current_function.new_temp(value.type)
+                self.current_block.add_instruction(LoadConst(temp, value))
+                value = temp
             self.current_block.add_instruction(Print(value))
 
     def lower_block_statement(self, stmt: BlockStatement) -> None:
@@ -376,7 +462,8 @@ class HIRToMIRLowering:
             self.lower_statement(s)
 
         # Add scope end instruction
-        if self.current_block and not self.current_block.is_terminated():
+        # Always add end scope - it's safe even if block is terminated
+        if self.current_block:
             self.current_block.add_instruction(Scope(is_begin=False))
 
     def lower_expression_statement(self, stmt: ExpressionStatement) -> None:
@@ -454,6 +541,17 @@ class HIRToMIRLowering:
             else:
                 raise ValueError("Infix expression missing right operand")
 
+            # Load constants into temporaries if needed
+            if isinstance(left, Constant):
+                temp_left = self.current_function.new_temp(left.type)
+                self.current_block.add_instruction(LoadConst(temp_left, left))
+                left = temp_left
+
+            if isinstance(right, Constant):
+                temp_right = self.current_function.new_temp(right.type)
+                self.current_block.add_instruction(LoadConst(temp_right, right))
+                right = temp_right
+
             # Get result type
             from machine_dialect.mir.mir_types import get_binary_op_result_type
 
@@ -472,6 +570,12 @@ class HIRToMIRLowering:
                 operand = self.lower_expression(expr.right)
             else:
                 raise ValueError("Prefix expression missing right operand")
+
+            # Load constant into temporary if needed
+            if isinstance(operand, Constant):
+                temp_operand = self.current_function.new_temp(operand.type)
+                self.current_block.add_instruction(LoadConst(temp_operand, operand))
+                operand = temp_operand
 
             # Get result type
             from machine_dialect.mir.mir_types import get_unary_op_result_type
@@ -496,6 +600,22 @@ class HIRToMIRLowering:
             true_val = self.lower_expression(expr.consequence)
             false_val = self.lower_expression(expr.alternative)
 
+            # Load constants into temporaries if needed
+            if isinstance(condition, Constant):
+                temp_cond = self.current_function.new_temp(condition.type)
+                self.current_block.add_instruction(LoadConst(temp_cond, condition))
+                condition = temp_cond
+
+            if isinstance(true_val, Constant):
+                temp_true = self.current_function.new_temp(true_val.type)
+                self.current_block.add_instruction(LoadConst(temp_true, true_val))
+                true_val = temp_true
+
+            if isinstance(false_val, Constant):
+                temp_false = self.current_function.new_temp(false_val.type)
+                self.current_block.add_instruction(LoadConst(temp_false, false_val))
+                false_val = temp_false
+
             # Get result type (should be the same for both branches)
             result_type = true_val.type if hasattr(true_val, "type") else MIRType.UNKNOWN
 
@@ -511,7 +631,10 @@ class HIRToMIRLowering:
             # Generate an assert for error expressions
             error_msg = f"Expression error: {expr.message}"
             false_val = Constant(False, MIRType.BOOL)
-            self.current_block.add_instruction(Assert(false_val, error_msg))
+            # Load constant into temporary
+            temp_false = self.current_function.new_temp(false_val.type)
+            self.current_block.add_instruction(LoadConst(temp_false, false_val))
+            self.current_block.add_instruction(Assert(temp_false, error_msg))
             # Return error value
             return Constant(None, MIRType.ERROR)
 
@@ -525,7 +648,13 @@ class HIRToMIRLowering:
                 if isinstance(arguments, Arguments):
                     if hasattr(arguments, "positional"):
                         for arg in arguments.positional:
-                            args.append(self.lower_expression(arg))
+                            val = self.lower_expression(arg)
+                            # Load constants into temporaries if needed
+                            if isinstance(val, Constant):
+                                temp = self.current_function.new_temp(val.type)
+                                self.current_block.add_instruction(LoadConst(temp, val))
+                                val = temp
+                            args.append(val)
 
             # Get function name
             func_name = getattr(expr, "function_name", "unknown")

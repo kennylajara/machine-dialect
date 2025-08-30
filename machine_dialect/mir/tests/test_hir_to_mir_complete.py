@@ -1,0 +1,370 @@
+"""Comprehensive tests for HIR to MIR lowering with full AST coverage."""
+
+from __future__ import annotations
+
+import unittest
+
+from machine_dialect.ast import (
+    ActionStatement,
+    BlockStatement,
+    BooleanLiteral,
+    ConditionalExpression,
+    ErrorExpression,
+    ErrorStatement,
+    ExpressionStatement,
+    Identifier,
+    IfStatement,
+    InfixExpression,
+    IntegerLiteral,
+    InteractionStatement,
+    Parameter,
+    PrefixExpression,
+    Program,
+    ReturnStatement,
+    SayStatement,
+    SetStatement,
+    StringLiteral,
+    URLLiteral,
+    UtilityStatement,
+)
+from machine_dialect.lexer import Token, TokenType
+from machine_dialect.mir.hir_to_mir import HIRToMIRLowering, lower_to_mir
+from machine_dialect.mir.mir_instructions import (
+    Assert,
+    BinaryOp,
+    ConditionalJump,
+    LoadConst,
+    Print,
+    Scope,
+    Select,
+    UnaryOp,
+)
+from machine_dialect.mir.mir_types import MIRType
+from machine_dialect.mir.mir_values import Constant
+
+
+class TestHIRToMIRComplete(unittest.TestCase):
+    """Test complete HIR to MIR lowering with all AST node types."""
+
+    def setUp(self) -> None:
+        """Set up test fixtures."""
+        self.lowerer = HIRToMIRLowering()
+
+    def _dummy_token(self, literal: str = "", token_type: TokenType = TokenType.MISC_IDENT) -> Token:
+        """Create a dummy token for testing."""
+        return Token(token_type, literal, 0, 0)
+
+    def test_error_statement_lowering(self) -> None:
+        """Test lowering of ErrorStatement."""
+        # Create error statement
+        error_stmt = ErrorStatement(
+            self._dummy_token("error"), skipped_tokens=[], message="Syntax error: unexpected token"
+        )
+
+        # Create program with error
+        program = Program([error_stmt])
+
+        # Lower to MIR
+        mir = lower_to_mir(program)
+
+        # Should have main function
+        self.assertIsNotNone(mir.get_function("main"))
+        main = mir.get_function("main")
+
+        # Should have entry block with Assert instruction
+        entry = main.cfg.entry_block
+        self.assertIsNotNone(entry)
+
+        # Find Assert instruction
+        asserts = [inst for inst in entry.instructions if isinstance(inst, Assert)]
+        self.assertEqual(len(asserts), 1)
+        self.assertIn("Parse error", asserts[0].message)
+
+        # Should have entry block with Assert instruction
+        entry = main.cfg.entry_block
+        self.assertIsNotNone(entry)
+
+        # Find Assert instruction
+        asserts = [inst for inst in entry.instructions if isinstance(inst, Assert)]
+        self.assertEqual(len(asserts), 1)
+        self.assertIn("Parse error", asserts[0].message)
+
+    def test_error_expression_lowering(self) -> None:
+        """Test lowering of ErrorExpression."""
+        # Create error expression in a statement
+        error_expr = ErrorExpression(self._dummy_token("error"), message="Invalid expression")
+        expr_stmt = ExpressionStatement(self._dummy_token(), error_expr)
+
+        # Create program
+        program = Program([expr_stmt])
+
+        # Lower to MIR
+        mir = lower_to_mir(program)
+
+        # Should have Assert for error expression
+        main = mir.get_function("main")
+        entry = main.cfg.entry_block
+        asserts = [inst for inst in entry.instructions if isinstance(inst, Assert)]
+        self.assertTrue(any("Expression error" in a.message for a in asserts))
+
+    def test_conditional_expression_lowering(self) -> None:
+        """Test lowering of ConditionalExpression (ternary)."""
+        # Create: x = true ? 1 : 2
+        condition = BooleanLiteral(self._dummy_token("true"), True)
+        true_val = IntegerLiteral(self._dummy_token("1"), 1)
+        false_val = IntegerLiteral(self._dummy_token("2"), 2)
+
+        cond_expr = ConditionalExpression(self._dummy_token(), true_val)
+        cond_expr.condition = condition
+        cond_expr.alternative = false_val
+
+        set_stmt = SetStatement(self._dummy_token("set"), Identifier(self._dummy_token("x"), "x"), cond_expr)
+
+        program = Program([set_stmt])
+        mir = lower_to_mir(program)
+
+        # Should have Select instruction
+        main = mir.get_function("main")
+        entry = main.cfg.entry_block
+        selects = [inst for inst in entry.instructions if isinstance(inst, Select)]
+        self.assertEqual(len(selects), 1)
+
+    def test_say_statement_lowering(self) -> None:
+        """Test lowering of SayStatement."""
+        # Create: Say "Hello"
+        say_stmt = SayStatement(self._dummy_token("say"), StringLiteral(self._dummy_token('"Hello"'), "Hello"))
+
+        program = Program([say_stmt])
+        mir = lower_to_mir(program)
+
+        # Should have Print instruction
+        main = mir.get_function("main")
+        entry = main.cfg.entry_block
+        prints = [inst for inst in entry.instructions if isinstance(inst, Print)]
+        self.assertEqual(len(prints), 1)
+
+    def test_block_statement_with_scope(self) -> None:
+        """Test that BlockStatement generates scope instructions."""
+        # Create block with statements
+        stmt1 = SetStatement(
+            self._dummy_token("set"), Identifier(self._dummy_token("x"), "x"), IntegerLiteral(self._dummy_token("1"), 1)
+        )
+
+        block = BlockStatement(self._dummy_token(), depth=1)
+        block.statements = [stmt1]
+
+        program = Program([block])
+        mir = lower_to_mir(program)
+
+        # Should have Scope instructions
+        main = mir.get_function("main")
+        entry = main.cfg.entry_block
+        scopes = [inst for inst in entry.instructions if isinstance(inst, Scope)]
+
+        # Should have begin and end scope
+        self.assertEqual(len(scopes), 2)
+        self.assertTrue(scopes[0].is_begin)
+        self.assertFalse(scopes[1].is_begin)
+
+    def test_action_statement_lowering(self) -> None:
+        """Test lowering of ActionStatement (private method)."""
+        # Create action
+        body_block = BlockStatement(self._dummy_token())
+        body_block.statements = [ReturnStatement(self._dummy_token("return"), None)]
+        action = ActionStatement(
+            self._dummy_token("action"),
+            name=Identifier(self._dummy_token("doWork"), "doWork"),
+            inputs=[],
+            outputs=None,
+            body=body_block,
+        )
+
+        program = Program([action])
+        mir = lower_to_mir(program)
+
+        # Should have function with EMPTY return type
+        func = mir.get_function("doWork")
+        self.assertIsNotNone(func)
+        self.assertEqual(func.return_type, MIRType.EMPTY)
+
+    def test_interaction_statement_lowering(self) -> None:
+        """Test lowering of InteractionStatement (public method)."""
+        # Create interaction
+        body_block = BlockStatement(self._dummy_token())
+        body_block.statements = []
+        interaction = InteractionStatement(
+            self._dummy_token("interaction"),
+            name=Identifier(self._dummy_token("handleRequest"), "handleRequest"),
+            inputs=[
+                Parameter(self._dummy_token("input"), Identifier(self._dummy_token("input"), "input"), "", True, None)
+            ],
+            outputs=None,
+            body=body_block,
+        )
+
+        program = Program([interaction])
+        mir = lower_to_mir(program)
+
+        # Should have function with parameter
+        func = mir.get_function("handleRequest")
+        self.assertIsNotNone(func)
+        self.assertEqual(len(func.params), 1)
+        self.assertEqual(func.params[0].name, "input")
+
+    def test_utility_statement_lowering(self) -> None:
+        """Test lowering of UtilityStatement (function with return)."""
+        # Create utility that returns a value
+        body_block = BlockStatement(self._dummy_token())
+        body_block.statements = [
+            ReturnStatement(self._dummy_token("return"), IntegerLiteral(self._dummy_token("42"), 42))
+        ]
+        utility = UtilityStatement(
+            self._dummy_token("utility"),
+            name=Identifier(self._dummy_token("calculate"), "calculate"),
+            inputs=[],
+            outputs=None,
+            body=body_block,
+        )
+
+        program = Program([utility])
+        mir = lower_to_mir(program)
+
+        # Should have function with UNKNOWN return type (can return values)
+        func = mir.get_function("calculate")
+        self.assertIsNotNone(func)
+        self.assertEqual(func.return_type, MIRType.UNKNOWN)
+
+    def test_url_literal_lowering(self) -> None:
+        """Test lowering of URLLiteral."""
+        # Create: x = https://example.com
+        url = URLLiteral(self._dummy_token("https://example.com"), "https://example.com")
+        set_stmt = SetStatement(self._dummy_token("set"), Identifier(self._dummy_token("x"), "x"), url)
+
+        program = Program([set_stmt])
+        mir = lower_to_mir(program)
+
+        # Should create constant with URL type
+        main = mir.get_function("main")
+        self.assertIsNotNone(main)
+
+        # Check for LoadConst with URL
+        main = mir.get_function("main")
+        self.assertIsNotNone(main)
+        entry = main.cfg.entry_block
+        loads = [inst for inst in entry.instructions if isinstance(inst, LoadConst)]
+        self.assertTrue(
+            any(isinstance(inst.constant, Constant) and inst.constant.value == "https://example.com" for inst in loads)
+        )
+
+    def test_complex_control_flow(self) -> None:
+        """Test complex control flow with nested if statements."""
+        # Create nested if: if (x > 0) { if (x < 10) { y = x } else { y = 10 } }
+        x_ident = Identifier(self._dummy_token("x"), "x")
+        y_ident = Identifier(self._dummy_token("y"), "y")
+
+        # Outer condition: x > 0
+        outer_cond = InfixExpression(self._dummy_token(">"), ">", x_ident)
+        outer_cond.right = IntegerLiteral(self._dummy_token("0"), 0)
+
+        # Inner condition: x < 10
+        inner_cond = InfixExpression(self._dummy_token("<"), "<", x_ident)
+        inner_cond.right = IntegerLiteral(self._dummy_token("10"), 10)
+
+        # Inner then: y = x
+        inner_then = BlockStatement(self._dummy_token())
+        inner_then.statements = [SetStatement(self._dummy_token("set"), y_ident, x_ident)]
+
+        # Inner else: y = 10
+        inner_else = BlockStatement(self._dummy_token())
+        inner_else.statements = [
+            SetStatement(self._dummy_token("set"), y_ident, IntegerLiteral(self._dummy_token("10"), 10))
+        ]
+
+        # Inner if
+        inner_if = IfStatement(self._dummy_token("if"), inner_cond)
+        inner_if.consequence = inner_then
+        inner_if.alternative = inner_else
+
+        # Outer then contains inner if
+        outer_then = BlockStatement(self._dummy_token())
+        outer_then.statements = [inner_if]
+
+        # Outer if
+        outer_if = IfStatement(self._dummy_token("if"), outer_cond)
+        outer_if.consequence = outer_then
+        outer_if.alternative = None
+
+        # Initialize x
+        init_x = SetStatement(self._dummy_token("set"), x_ident, IntegerLiteral(self._dummy_token("5"), 5))
+
+        program = Program([init_x, outer_if])
+        mir = lower_to_mir(program)
+
+        # Should have multiple basic blocks
+        main = mir.get_function("main")
+        self.assertGreater(len(main.cfg.blocks), 3)  # At least entry + branches
+
+        # Should have conditional jumps
+        all_instructions = []
+        for block in main.cfg.blocks.values():
+            all_instructions.extend(block.instructions)
+
+        cond_jumps = [inst for inst in all_instructions if isinstance(inst, ConditionalJump)]
+        self.assertGreaterEqual(len(cond_jumps), 2)  # At least 2 for nested ifs
+
+    def test_all_binary_operators(self) -> None:
+        """Test all binary operators are properly lowered."""
+        operators = ["+", "-", "*", "/", "%", "^", "==", "!=", "<", ">", "<=", ">=", "and", "or"]
+
+        for op in operators:
+            with self.subTest(operator=op):
+                # Create: result = 10 op 5
+                expr = InfixExpression(self._dummy_token(op), op, IntegerLiteral(self._dummy_token("10"), 10))
+                expr.right = IntegerLiteral(self._dummy_token("5"), 5)
+
+                set_stmt = SetStatement(
+                    self._dummy_token("set"), Identifier(self._dummy_token("result"), "result"), expr
+                )
+
+                program = Program([set_stmt])
+                mir = lower_to_mir(program)
+
+                # Should have BinaryOp with correct operator
+                main = mir.get_function("main")
+                entry = main.cfg.entry_block
+                binops = [inst for inst in entry.instructions if isinstance(inst, BinaryOp)]
+                self.assertTrue(any(inst.op == op for inst in binops))
+
+    def test_unary_operators(self) -> None:
+        """Test unary operators are properly lowered."""
+        # Test negation: -5
+        neg_expr = PrefixExpression(self._dummy_token("-"), "-")
+        neg_expr.right = IntegerLiteral(self._dummy_token("5"), 5)
+
+        # Test not: not true
+        not_expr = PrefixExpression(self._dummy_token("not"), "not")
+        not_expr.right = BooleanLiteral(self._dummy_token("true"), True)
+
+        program = Program(
+            [
+                SetStatement(self._dummy_token("set"), Identifier(self._dummy_token("x"), "x"), neg_expr),
+                SetStatement(self._dummy_token("set"), Identifier(self._dummy_token("y"), "y"), not_expr),
+            ]
+        )
+
+        mir = lower_to_mir(program)
+        main = mir.get_function("main")
+        entry = main.cfg.entry_block
+
+        # Should have UnaryOp instructions
+        unaryops = [inst for inst in entry.instructions if isinstance(inst, UnaryOp)]
+        self.assertEqual(len(unaryops), 2)
+
+        # Check operators
+        ops = {inst.op for inst in unaryops}
+        self.assertIn("-", ops)
+        self.assertIn("not", ops)
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -283,13 +283,13 @@ class BlockStatement(Statement):
         return f":\n{statements_str}"
 
     def desugar(self) -> "Statement | BlockStatement":
-        """Desugar block statement by flattening single-statement blocks.
+        """Desugar block statement.
 
-        If the block contains exactly one non-block statement, returns that statement.
-        Otherwise, returns a new BlockStatement with desugared statements.
+        Always returns a BlockStatement to preserve scope semantics.
+        This ensures proper scope instructions are generated in MIR.
 
         Returns:
-            Either the single contained statement or a new BlockStatement.
+            A new BlockStatement with desugared statements.
         """
         # Desugar all contained statements - they return Statement type
         desugared_statements: list[Statement] = []
@@ -299,11 +299,7 @@ class BlockStatement(Statement):
             assert isinstance(result, Statement)
             desugared_statements.append(result)
 
-        # If block contains exactly one statement and it's not another block, flatten it
-        if len(desugared_statements) == 1 and not isinstance(desugared_statements[0], BlockStatement):
-            return desugared_statements[0]
-
-        # Otherwise, return a new block with desugared statements
+        # Always return a new block with desugared statements to preserve scope
         desugared = BlockStatement(self.token, self.depth)
         desugared.statements = desugared_statements
         return desugared

@@ -232,10 +232,10 @@ class TestStatementDesugaring(unittest.TestCase):
         self.assertIsNot(desugared.arguments, args)
 
     def test_block_statement_flattening(self) -> None:
-        """Test that single-statement blocks are flattened."""
+        """Test that blocks preserve scope (no longer flatten)."""
         token = Token(TokenType.PUNCT_COLON, ":", 1, 10)
 
-        # Test single statement block - should be flattened
+        # Test single statement block - now preserves block for scope
         block1 = BlockStatement(token, depth=1)
         single_stmt = ReturnStatement(
             Token(TokenType.KW_RETURN, "return", 2, 3), IntegerLiteral(Token(TokenType.LIT_INT, "42", 2, 10), 42)
@@ -243,8 +243,8 @@ class TestStatementDesugaring(unittest.TestCase):
         block1.statements = [single_stmt]
 
         desugared1 = block1.desugar()
-        self.assertIsInstance(desugared1, ReturnStatement)
-        self.assertEqual(desugared1.token.literal, "return")  # Should be normalized
+        self.assertIsInstance(desugared1, BlockStatement)  # Block is preserved
+        self.assertEqual(len(desugared1.statements), 1)
 
         # Test multi-statement block - should remain a block
         block2 = BlockStatement(token, depth=1)
@@ -263,14 +263,16 @@ class TestStatementDesugaring(unittest.TestCase):
         assert isinstance(desugared2, BlockStatement)  # Type guard for MyPy
         self.assertEqual(len(desugared2.statements), 2)
 
-        # Test nested block with single statement - should be fully flattened
+        # Test nested block with single statement - blocks are preserved
         block3 = BlockStatement(token, depth=1)
         inner_block = BlockStatement(token, depth=2)
         inner_block.statements = [single_stmt]
         block3.statements = [inner_block]
 
         desugared3 = block3.desugar()
-        self.assertIsInstance(desugared3, ReturnStatement)
+        self.assertIsInstance(desugared3, BlockStatement)  # Outer block preserved
+        self.assertEqual(len(desugared3.statements), 1)
+        self.assertIsInstance(desugared3.statements[0], BlockStatement)  # Inner block preserved
 
     def test_if_statement_desugaring(self) -> None:
         """Test desugaring of if statements."""
@@ -520,9 +522,12 @@ class TestComplexDesugaring(unittest.TestCase):
         # Check that nested single-statement blocks are preserved in if statement
         assert desugared.consequence is not None  # Type guard
         self.assertIsInstance(desugared.consequence, BlockStatement)
-        # The inner block should have been flattened
+        # Blocks are now preserved for scope
         self.assertEqual(len(desugared.consequence.statements), 1)
-        ret_stmt = desugared.consequence.statements[0]
+        inner_block = desugared.consequence.statements[0]
+        self.assertIsInstance(inner_block, BlockStatement)  # Block is preserved
+        self.assertEqual(len(inner_block.statements), 1)
+        ret_stmt = inner_block.statements[0]
         self.assertIsInstance(ret_stmt, ReturnStatement)
         assert isinstance(ret_stmt, ReturnStatement)  # Type guard
         self.assertEqual(ret_stmt.token.literal, "return")

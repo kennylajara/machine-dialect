@@ -159,6 +159,10 @@ class MIRPrinter:
 
         self._indent()
 
+        # Print phi nodes first
+        for phi in block.phi_nodes:
+            self._write(self._format_instruction(phi))
+
         # Print instructions
         for inst in block.instructions:
             self._write(self._format_instruction(inst))

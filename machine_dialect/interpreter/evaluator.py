@@ -141,6 +141,10 @@ def evaluate(node: ast.ASTNode, env: Environment | None = None) -> Object | None
             node = cast(ast.CallStatement, node)
             return _evaluate_call_statement(node, env)
 
+        case ast.CallExpression:
+            node = cast(ast.CallExpression, node)
+            return _evaluate_call_expression(node, env)
+
         case _:
             return None
 
@@ -362,6 +366,84 @@ def _evaluate_utility_statement(node: ast.UtilityStatement, env: Environment) ->
     return None
 
 
+def _evaluate_call_expression(node: ast.CallExpression, env: Environment) -> Object | None:
+    """Evaluate a call expression by calling a function.
+
+    Args:
+        node: The CallExpression node to evaluate.
+        env: The environment to look up the function in.
+
+    Returns:
+        The result of the function call.
+    """
+    # Look up the function
+    if not node.function_name or not isinstance(node.function_name, ast.Identifier):
+        return Error("Invalid function name in call expression")
+
+    func_name = node.function_name.value
+    if func_name not in env:
+        return Error(NAME_UNDEFINED.format(name=func_name))
+
+    func_obj = env[func_name]
+    if not isinstance(func_obj, Function):
+        return Error(f"'{func_name}' is not a utility")
+
+    # Create a new environment for the function call with closure as parent
+    func_env = Environment(parent=func_obj.env)
+
+    # Process arguments
+    positional_args: list[Object] = []
+    named_args: dict[str, Object] = {}
+
+    if node.arguments and isinstance(node.arguments, ast.Arguments):
+        # Process positional arguments
+        if hasattr(node.arguments, "positional"):
+            for arg in node.arguments.positional:
+                arg_value = evaluate(arg, env)
+                if isinstance(arg_value, Error):
+                    return arg_value
+                if arg_value is not None:
+                    positional_args.append(arg_value)
+
+        # Process named arguments
+        if hasattr(node.arguments, "named"):
+            for name, value_expr in node.arguments.named:
+                arg_value = evaluate(value_expr, env)
+                if isinstance(arg_value, Error):
+                    return arg_value
+                if arg_value is not None:
+                    # name is an Identifier, get its value
+                    name_str = name.value if hasattr(name, "value") else str(name)
+                    named_args[name_str] = arg_value
+
+    # Bind parameters
+    for i, (param_name, is_required, default_value) in enumerate(func_obj.parameters):
+        if param_name in named_args:
+            # Use named argument
+            func_env[param_name] = named_args[param_name]
+        elif i < len(positional_args):
+            # Use positional argument
+            func_env[param_name] = positional_args[i]
+        elif default_value is not None:
+            # Use default value
+            func_env[param_name] = default_value
+        elif is_required:
+            # Required parameter not provided
+            return Error(f"Missing required parameter '{param_name}' in call to '{func_name}'")
+        else:
+            # Optional parameter without default, set to Empty
+            func_env[param_name] = EMPTY
+
+    # Evaluate the function body
+    result = evaluate(func_obj.body, func_env)
+
+    # Unwrap return values
+    if isinstance(result, Return):
+        return result.value
+
+    return result
+
+
 def _evaluate_call_statement(node: ast.CallStatement, env: Environment) -> Object | None:
     """Evaluate a call statement by calling a function.
 
@@ -393,20 +475,22 @@ def _evaluate_call_statement(node: ast.CallStatement, env: Environment) -> Objec
 
     if node.arguments and isinstance(node.arguments, ast.Arguments):
         # Process positional arguments
-        for arg in node.arguments.positional:
-            arg_value = evaluate(arg, env)
-            if isinstance(arg_value, Error):
-                return arg_value
-            if arg_value is not None:
-                positional_args.append(arg_value)
+        if hasattr(node.arguments, "positional"):
+            for arg in node.arguments.positional:
+                arg_value = evaluate(arg, env)
+                if isinstance(arg_value, Error):
+                    return arg_value
+                if arg_value is not None:
+                    positional_args.append(arg_value)
 
         # Process named arguments
-        for name, value_expr in node.arguments.named:
-            arg_value = evaluate(value_expr, env)
-            if isinstance(arg_value, Error):
-                return arg_value
-            if arg_value is not None:
-                named_args[name.value] = arg_value
+        if hasattr(node.arguments, "named"):
+            for name, value_expr in node.arguments.named:
+                arg_value = evaluate(value_expr, env)
+                if isinstance(arg_value, Error):
+                    return arg_value
+                if arg_value is not None:
+                    named_args[name.value] = arg_value
 
     # Bind parameters
     for i, (param_name, is_required, default_value) in enumerate(func_obj.parameters):

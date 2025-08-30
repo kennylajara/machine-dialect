@@ -29,6 +29,7 @@ from .statements import (
 )
 from .program import Program
 from .literals import IntegerLiteral, FloatLiteral, StringLiteral, BooleanLiteral, EmptyLiteral, URLLiteral
+from .call_expression import CallExpression
 
 
 __all__ = [
@@ -37,6 +38,7 @@ __all__ = [
     "ASTNode",
     "BlockStatement",
     "BooleanLiteral",
+    "CallExpression",
     "CallStatement",
     "ConditionalExpression",
     "EmptyLiteral",

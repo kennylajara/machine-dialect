@@ -12,7 +12,6 @@ from machine_dialect.mir.mir_instructions import (
     Copy,
     Jump,
     LoadConst,
-    Phi,
     Return,
     StoreVar,
 )
@@ -206,13 +205,12 @@ class TestSSAConstruction(unittest.TestCase):
         # Convert to SSA
         construct_ssa(func)
 
-        # Merge block should have phi node
-        phi_nodes = [inst for inst in merge_block.instructions if isinstance(inst, Phi)]
-        self.assertGreater(len(phi_nodes), 0)
+        # Merge block should have phi node (in phi_nodes list, not instructions)
+        self.assertGreater(len(merge_block.phi_nodes), 0)
 
         # Phi should have incoming values from both predecessors
-        if phi_nodes:
-            phi = phi_nodes[0]
+        if merge_block.phi_nodes:
+            phi = merge_block.phi_nodes[0]
             self.assertEqual(len(phi.incoming), 2)
             incoming_labels = {label for _, label in phi.incoming}
             self.assertIn("then", incoming_labels)
@@ -269,13 +267,12 @@ class TestSSAConstruction(unittest.TestCase):
         # Convert to SSA
         construct_ssa(func)
 
-        # Loop header should have phi node for loop variable
-        phi_nodes = [inst for inst in loop_header.instructions if isinstance(inst, Phi)]
-        self.assertGreater(len(phi_nodes), 0)
+        # Loop header should have phi node for loop variable (in phi_nodes list)
+        self.assertGreater(len(loop_header.phi_nodes), 0)
 
         # Phi should have incoming from entry and loop_body
-        if phi_nodes:
-            phi = phi_nodes[0]
+        if loop_header.phi_nodes:
+            phi = loop_header.phi_nodes[0]
             incoming_labels = {label for _, label in phi.incoming}
             self.assertIn("entry", incoming_labels)
             self.assertIn("loop_body", incoming_labels)

@@ -198,8 +198,8 @@ class SSAConstructor:
                         phi_var = self._new_version(var)
                         phi = Phi(phi_var, [])
 
-                        # Insert phi at beginning of block
-                        df_block.instructions.insert(0, phi)
+                        # Insert phi in phi_nodes list
+                        df_block.phi_nodes.append(phi)
                         self.phi_nodes[(df_block, var)] = phi
 
                         # Phi node is also a definition
@@ -274,18 +274,18 @@ class SSAConstructor:
 
         # Update phi nodes in successors
         for succ in block.successors:
-            for inst in succ.instructions:
-                if isinstance(inst, Phi):
-                    # Find original variable for this phi
-                    for (phi_block, var), phi in self.phi_nodes.items():
-                        if phi_block == succ and phi == inst:
-                            # Add incoming value from this block
-                            if self.variable_stacks[var]:
-                                phi.add_incoming(
-                                    self.variable_stacks[var][-1],
-                                    block.label,
-                                )
-                            break
+            # Phi nodes are now in the phi_nodes list, not instructions
+            for phi in succ.phi_nodes:
+                # Find original variable for this phi
+                for (phi_block, var), stored_phi in self.phi_nodes.items():
+                    if phi_block == succ and stored_phi == phi:
+                        # Add incoming value from this block
+                        if self.variable_stacks[var]:
+                            phi.add_incoming(
+                                self.variable_stacks[var][-1],
+                                block.label,
+                            )
+                        break
 
         # Process dominated blocks
         for child in self.dominance.dominator_tree_children.get(block, set()):

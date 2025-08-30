@@ -32,6 +32,7 @@ from machine_dialect.mir.mir_instructions import (
 from machine_dialect.mir.mir_module import MIRModule
 from machine_dialect.mir.mir_types import MIRType
 from machine_dialect.mir.mir_values import Constant, MIRValue, Temp, Variable
+from machine_dialect.mir.register_allocation import RegisterAllocation, RegisterAllocator
 
 
 class StackSlot:
@@ -59,11 +60,14 @@ class BytecodeGenerator:
         self.current_chunk: Chunk | None = None
         self.current_function: MIRFunction | None = None
 
-        # Stack slot allocation
+        # Stack slot allocation with register optimization
         self.local_slots: dict[MIRValue, StackSlot] = {}
         self.next_slot_index = 0
         self.max_stack_depth = 0
         self.current_stack_depth = 0
+
+        # Register allocation result
+        self.register_allocation: RegisterAllocation | None = None
 
         # Label to offset mapping
         self.label_offsets: dict[str, int] = {}
@@ -133,6 +137,10 @@ class BytecodeGenerator:
         self.current_chunk = chunk
         self.local_slots.clear()
         self.next_slot_index = 0
+
+        # Perform register allocation
+        allocator = RegisterAllocator(mir_func)
+        self.register_allocation = allocator.allocate()
         self.max_stack_depth = 0
         self.current_stack_depth = 0
         self.label_offsets.clear()
@@ -635,13 +643,27 @@ class BytecodeGenerator:
             The allocated slot.
         """
         if value not in self.local_slots:
+            # Use register allocation result if available
+            if self.register_allocation and value in self.register_allocation.allocations:
+                slot_index = self.register_allocation.allocations[value]
+                # If spilled (negative index), use absolute value
+                if slot_index < 0:
+                    slot_index = abs(slot_index) + 255  # Spilled values start after registers
+            else:
+                slot_index = self.next_slot_index
+                self.next_slot_index += 1
+
             slot = StackSlot(
-                self.next_slot_index,
+                slot_index,
                 value.name if hasattr(value, "name") else str(value),
                 value.type if hasattr(value, "type") else MIRType.UNKNOWN,
             )
             self.local_slots[value] = slot
-            self.next_slot_index += 1
+
+            # Update max slot index if needed
+            if slot_index >= self.next_slot_index:
+                self.next_slot_index = slot_index + 1
+
         return self.local_slots[value]
 
     def _add_constant(self, value: Any) -> int:

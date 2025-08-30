@@ -37,6 +37,7 @@ from machine_dialect.ast import (
     UtilityStatement,
 )
 from machine_dialect.mir.basic_block import BasicBlock
+from machine_dialect.mir.debug_info import DebugInfoBuilder
 from machine_dialect.mir.mir_function import MIRFunction
 from machine_dialect.mir.mir_instructions import (
     Assert,
@@ -56,6 +57,8 @@ from machine_dialect.mir.mir_instructions import (
 from machine_dialect.mir.mir_module import MIRModule
 from machine_dialect.mir.mir_types import MIRType
 from machine_dialect.mir.mir_values import Constant, FunctionRef, MIRValue, Variable
+from machine_dialect.mir.ssa_construction import construct_ssa
+from machine_dialect.mir.type_inference import TypeInferencer, infer_ast_expression_type
 
 
 class HIRToMIRLowering:
@@ -68,6 +71,8 @@ class HIRToMIRLowering:
         self.current_block: BasicBlock | None = None
         self.variable_map: dict[str, Variable] = {}
         self.label_counter = 0
+        self.type_context: dict[str, MIRType] = {}  # Track variable types
+        self.debug_builder = DebugInfoBuilder()  # Debug information tracking
 
     def lower_program(self, program: Program) -> MIRModule:
         """Lower a complete program to MIR.
@@ -90,7 +95,7 @@ class HIRToMIRLowering:
         top_level_statements = []
 
         for stmt in hir.statements:
-            if isinstance(stmt, (FunctionStatement, UtilityStatement, ActionStatement, InteractionStatement)):
+            if isinstance(stmt, FunctionStatement | UtilityStatement | ActionStatement | InteractionStatement):
                 functions.append(stmt)
             else:
                 top_level_statements.append(stmt)
@@ -106,6 +111,14 @@ class HIRToMIRLowering:
         # Set main function if it exists
         if self.module.get_function("main"):
             self.module.set_main_function("main")
+
+        # Apply SSA construction to all functions
+        for func in self.module.functions.values():
+            construct_ssa(func)
+
+        # Apply type inference
+        inferencer = TypeInferencer()
+        inferencer.infer_module_types(self.module)
 
         return self.module
 
@@ -182,15 +195,23 @@ class HIRToMIRLowering:
         # Create parameter variables
         params = []
         for param in func.inputs:
-            # Infer parameter type (in a real implementation, we'd have type annotations)
+            # Infer parameter type from default value if available
             param_type = MIRType.UNKNOWN
-            # Extract name from Parameter's name attribute (which is an Identifier)
             if isinstance(param, Parameter):
                 param_name = param.name.value if isinstance(param.name, Identifier) else str(param.name)
+                # Try to infer type from default value
+                if hasattr(param, "default_value") and param.default_value:
+                    param_type = infer_ast_expression_type(param.default_value, self.type_context)
             else:
                 param_name = str(param)
+
+            # If still unknown, will be inferred later from usage
             var = Variable(param_name, param_type)
             params.append(var)
+            self.type_context[param_name] = param_type
+
+            # Track parameter for debugging
+            self.debug_builder.track_variable(param_name, var, str(param_type), is_parameter=True)
 
         # Determine return type based on function type
         # UtilityStatement = Function (returns value)
@@ -266,13 +287,26 @@ class HIRToMIRLowering:
         # Get or create variable
         var_name = stmt.name.value if isinstance(stmt.name, Identifier) else str(stmt.name)
         if var_name not in self.variable_map:
-            # Create new variable
-            var_type = value.type if hasattr(value, "type") else MIRType.UNKNOWN
+            # Create new variable with inferred type
+            var_type = (
+                value.type
+                if hasattr(value, "type")
+                else infer_ast_expression_type(stmt.value, self.type_context)
+                if stmt.value
+                else MIRType.UNKNOWN
+            )
             var = Variable(var_name, var_type)
             self.variable_map[var_name] = var
             self.current_function.add_local(var)
+            self.type_context[var_name] = var_type
+
+            # Track variable for debugging
+            self.debug_builder.track_variable(var_name, var, str(var_type), is_parameter=False)
         else:
             var = self.variable_map[var_name]
+            # Update type context if we have better type info
+            if hasattr(value, "type") and value.type != MIRType.UNKNOWN:
+                self.type_context[var_name] = value.type
 
         # If the value is a constant, load it into a temporary first
         if isinstance(value, Constant):
@@ -370,6 +404,8 @@ class HIRToMIRLowering:
 
             # Load constant into temporary if needed
             if isinstance(value, Constant):
+                if self.current_function is None:
+                    raise RuntimeError("No current function context")
                 temp = self.current_function.new_temp(value.type)
                 self.current_block.add_instruction(LoadConst(temp, value))
                 value = temp
@@ -384,37 +420,48 @@ class HIRToMIRLowering:
         Args:
             stmt: The call statement to lower.
         """
-        if not self.current_block:
+        if not self.current_block or not self.current_function:
             return
 
         # Lower arguments
         args = []
-        if stmt.arguments and isinstance(stmt.arguments, Arguments):
-            # Handle positional arguments
-            if hasattr(stmt.arguments, "positional"):
-                for arg in stmt.arguments.positional:
-                    val = self.lower_expression(arg)
-                    # Load constants into temporaries if needed
-                    if isinstance(val, Constant):
-                        temp = self.current_function.new_temp(val.type)
-                        self.current_block.add_instruction(LoadConst(temp, val))
-                        val = temp
-                    args.append(val)
-            # Handle named arguments if any
-            if hasattr(stmt.arguments, "named"):
-                for _name, arg in stmt.arguments.named:
-                    val = self.lower_expression(arg)
-                    # Load constants into temporaries if needed
-                    if isinstance(val, Constant):
-                        temp = self.current_function.new_temp(val.type)
-                        self.current_block.add_instruction(LoadConst(temp, val))
-                        val = temp
-                    args.append(val)
+        if stmt.arguments:
+            if isinstance(stmt.arguments, Arguments):
+                # Handle positional arguments
+                if hasattr(stmt.arguments, "positional") and stmt.arguments.positional:
+                    for arg in stmt.arguments.positional:
+                        val = self.lower_expression(arg)
+                        # Load constants into temporaries if needed
+                        if isinstance(val, Constant):
+                            temp = self.current_function.new_temp(val.type)
+                            self.current_block.add_instruction(LoadConst(temp, val))
+                            val = temp
+                        args.append(val)
+
+                # Handle named arguments - convert to positional for now
+                # In a full implementation, we'd need to match these with parameter names
+                if hasattr(stmt.arguments, "named") and stmt.arguments.named:
+                    for _name, arg in stmt.arguments.named:
+                        val = self.lower_expression(arg)
+                        # Load constants into temporaries if needed
+                        if isinstance(val, Constant):
+                            temp = self.current_function.new_temp(val.type)
+                            self.current_block.add_instruction(LoadConst(temp, val))
+                            val = temp
+                        args.append(val)
+            else:
+                # Single argument not wrapped in Arguments
+                val = self.lower_expression(stmt.arguments)
+                if isinstance(val, Constant):
+                    temp = self.current_function.new_temp(val.type)
+                    self.current_block.add_instruction(LoadConst(temp, val))
+                    val = temp
+                args.append(val)
 
         # Get function name from expression
         func_name = ""
         if isinstance(stmt.function_name, StringLiteral):
-            func_name = stmt.function_name.value.strip('"')
+            func_name = stmt.function_name.value.strip('"').strip("'")
         elif isinstance(stmt.function_name, Identifier):
             func_name = stmt.function_name.value
         else:
@@ -440,6 +487,8 @@ class HIRToMIRLowering:
             value = self.lower_expression(stmt.expression)
             # Load constant into temporary if needed
             if isinstance(value, Constant):
+                if self.current_function is None:
+                    raise RuntimeError("No current function context")
                 temp = self.current_function.new_temp(value.type)
                 self.current_block.add_instruction(LoadConst(temp, value))
                 value = temp
@@ -525,6 +574,9 @@ class HIRToMIRLowering:
         elif isinstance(expr, Identifier):
             if expr.value in self.variable_map:
                 var = self.variable_map[expr.value]
+                # Use type from context if available
+                if expr.value in self.type_context and var.type == MIRType.UNKNOWN:
+                    var.type = self.type_context[expr.value]
                 # Load variable into temp
                 temp = self.current_function.new_temp(var.type)
                 self.current_block.add_instruction(Copy(temp, var))
@@ -555,8 +607,14 @@ class HIRToMIRLowering:
             # Get result type
             from machine_dialect.mir.mir_types import get_binary_op_result_type
 
-            left_type = left.type if hasattr(left, "type") else MIRType.UNKNOWN
-            right_type = right.type if hasattr(right, "type") else MIRType.UNKNOWN
+            left_type = left.type if hasattr(left, "type") else infer_ast_expression_type(expr.left, self.type_context)
+            right_type = (
+                right.type
+                if hasattr(right, "type")
+                else infer_ast_expression_type(expr.right, self.type_context)
+                if expr.right
+                else MIRType.UNKNOWN
+            )
             result_type = get_binary_op_result_type(expr.operator, left_type, right_type)
 
             # Create temp for result
@@ -580,7 +638,13 @@ class HIRToMIRLowering:
             # Get result type
             from machine_dialect.mir.mir_types import get_unary_op_result_type
 
-            operand_type = operand.type if hasattr(operand, "type") else MIRType.UNKNOWN
+            operand_type = (
+                operand.type
+                if hasattr(operand, "type")
+                else infer_ast_expression_type(expr.right, self.type_context)
+                if expr.right
+                else MIRType.UNKNOWN
+            )
             result_type = get_unary_op_result_type(expr.operator, operand_type)
 
             # Create temp for result

@@ -43,7 +43,7 @@ class TestE2EPipeline(unittest.TestCase):
 
     def _create_prefix(self, op: str, right: Expression) -> PrefixExpression:
         """Helper to create PrefixExpression properly."""
-        token = Token(TokenType.OP_MINUS if op == "-" else TokenType.OP_MINUS, op, 0, 0)  # No OP_NOT in TokenType
+        token = Token(TokenType.OP_MINUS, op, 0, 0)  # No OP_NOT in TokenType
         prefix = PrefixExpression(token, op)
         prefix.right = right
         return prefix

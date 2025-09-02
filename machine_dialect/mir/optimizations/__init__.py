@@ -1,6 +1,44 @@
-"""MIR bytecode optimization passes."""
+"""MIR optimization passes."""
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+from machine_dialect.mir.optimizations.constant_propagation import ConstantPropagation
+from machine_dialect.mir.optimizations.cse import CommonSubexpressionElimination
+from machine_dialect.mir.optimizations.dce import DeadCodeElimination
 from machine_dialect.mir.optimizations.jump_threading import JumpThreadingOptimizer
 from machine_dialect.mir.optimizations.peephole_optimizer import PeepholeOptimizer
+from machine_dialect.mir.optimizations.strength_reduction import StrengthReduction
 
-__all__ = ["PeepholeOptimizer", "JumpThreadingOptimizer"]
+if TYPE_CHECKING:
+    from machine_dialect.mir.pass_manager import PassManager
+
+__all__ = [
+    "CommonSubexpressionElimination",
+    "ConstantPropagation",
+    "DeadCodeElimination",
+    "JumpThreadingOptimizer",
+    "PeepholeOptimizer",
+    "StrengthReduction",
+]
+
+
+def register_all_passes(pass_manager: PassManager) -> None:
+    """Register all optimization passes with the pass manager.
+
+    Args:
+        pass_manager: Pass manager to register with.
+    """
+    from machine_dialect.mir.analyses.loop_analysis import LoopAnalysis
+    from machine_dialect.mir.analyses.use_def_chains import UseDefChainsAnalysis
+
+    # Register analysis passes
+    pass_manager.register_pass(UseDefChainsAnalysis)
+    pass_manager.register_pass(LoopAnalysis)
+
+    # Register optimization passes
+    pass_manager.register_pass(ConstantPropagation)
+    pass_manager.register_pass(CommonSubexpressionElimination)
+    pass_manager.register_pass(DeadCodeElimination)
+    pass_manager.register_pass(StrengthReduction)

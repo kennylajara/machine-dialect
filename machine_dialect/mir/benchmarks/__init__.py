@@ -13,11 +13,11 @@ from machine_dialect.mir.benchmarks.regression_detector import (
 )
 
 __all__ = [
+    "BaselineMetrics",
     "BenchmarkResult",
     "CompilationBenchmark",
-    "run_standard_benchmarks",
     "RegressionDetector",
     "RegressionResult",
     "RegressionThresholds",
-    "BaselineMetrics",
+    "run_standard_benchmarks",
 ]

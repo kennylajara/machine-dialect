@@ -28,11 +28,14 @@ from .mir_instructions import (
 from .mir_module import MIRModule
 from .mir_types import MIRType
 from .mir_values import Constant, FunctionRef, MIRValue, Temp, Variable
+from .optimization_config import OptimizationConfig, OptimizationPipeline
+from .optimize_mir import optimize_mir, optimize_mir_simple
+from .pass_manager import PassManager
 
 __all__ = [
+    "CFG",
     "BasicBlock",
     "BinaryOp",
-    "CFG",
     "Call",
     "ConditionalJump",
     "Constant",
@@ -48,6 +51,9 @@ __all__ = [
     "MIRModule",
     "MIRType",
     "MIRValue",
+    "OptimizationConfig",
+    "OptimizationPipeline",
+    "PassManager",
     "Phi",
     "Return",
     "StoreVar",
@@ -55,4 +61,6 @@ __all__ = [
     "UnaryOp",
     "Variable",
     "lower_to_mir",
+    "optimize_mir",
+    "optimize_mir_simple",
 ]

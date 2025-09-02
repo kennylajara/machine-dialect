@@ -18,6 +18,7 @@ def optimize_mir(
     optimization_level: int = 1,
     config: OptimizationConfig | None = None,
     debug: bool = False,
+    custom_passes: list[str] | None = None,
 ) -> tuple[MIRModule, dict[str, dict[str, int]]]:
     """Optimize a MIR module using the optimization framework.
 
@@ -26,6 +27,7 @@ def optimize_mir(
         optimization_level: Optimization level (0-3).
         config: Optional custom optimization configuration.
         debug: Enable debug output.
+        custom_passes: Optional list of custom passes to run instead of default pipeline.
 
     Returns:
         Tuple of (optimized module, pass statistics).
@@ -42,7 +44,12 @@ def optimize_mir(
     register_all_passes(pass_manager)
 
     # Get optimization pipeline
-    passes = OptimizationPipeline.get_passes(config)
+    if custom_passes is not None:
+        # Use custom passes if provided
+        passes = custom_passes
+    else:
+        # Use default pipeline based on config
+        passes = OptimizationPipeline.get_passes(config)
 
     if debug:
         print(f"Running optimization level {optimization_level}")

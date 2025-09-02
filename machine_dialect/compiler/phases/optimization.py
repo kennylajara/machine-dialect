@@ -56,9 +56,10 @@ class OptimizationPhase:
 
         opt_config = OptimizationConfig.from_level(int(context.config.optimization_level))
 
-        # TODO: Apply custom pass list if provided
-        # if passes:
-        #     opt_config.passes = passes
+        # Apply custom pass list if provided
+        custom_passes = None
+        if context.config.pass_pipeline:
+            custom_passes = passes
 
         # Run optimization
         optimized_module, stats = optimize_mir(
@@ -66,6 +67,7 @@ class OptimizationPhase:
             optimization_level=int(context.config.optimization_level),
             config=opt_config,
             debug=context.config.debug,
+            custom_passes=custom_passes,
         )
 
         # Store stats in reporter if provided

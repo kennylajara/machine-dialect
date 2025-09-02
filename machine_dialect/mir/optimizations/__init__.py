@@ -36,10 +36,12 @@ def register_all_passes(pass_manager: PassManager) -> None:
     Args:
         pass_manager: Pass manager to register with.
     """
+    from machine_dialect.mir.analyses.dominance_analysis import DominanceAnalysis
     from machine_dialect.mir.analyses.loop_analysis import LoopAnalysis
     from machine_dialect.mir.analyses.use_def_chains import UseDefChainsAnalysis
 
     # Register analysis passes
+    pass_manager.register_pass(DominanceAnalysis)
     pass_manager.register_pass(UseDefChainsAnalysis)
     pass_manager.register_pass(LoopAnalysis)
 

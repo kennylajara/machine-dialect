@@ -36,16 +36,25 @@ def run_optimization_with_analyses(
     if isinstance(opt_pass, OptimizationPass):
         opt_pass.analysis_manager = pass_manager.analysis_manager
 
-        # Run required analyses
+        # Run required analyses and properly register them
         if required_analyses:
             for analysis_name in required_analyses:
                 analysis_pass = pass_manager.registry.get_pass(analysis_name)
                 if analysis_pass:
-                    # Store the analysis result
-                    result = analysis_pass.run_on_function(function)
-                    # Cache it in a simple way - just store the pass itself
-                    # which has the result
+                    # Store the analysis pass in the manager
                     pass_manager.analysis_manager._analyses[analysis_name] = analysis_pass
+                    # Run the analysis on the function to populate its cache
+                    # This will be called via get_analysis when needed
+                    if hasattr(analysis_pass, "run_on_function"):
+                        analysis_pass.run_on_function(function)
 
     # Run the optimization
-    return opt_pass.run_on_function(function)
+    result = opt_pass.run_on_function(function)
+
+    # Store the pass instance for test access (e.g., to check statistics)
+    if hasattr(pass_manager, "_last_run_pass"):
+        pass_manager._last_run_pass = opt_pass
+    else:
+        pass_manager._last_run_pass = opt_pass
+
+    return result

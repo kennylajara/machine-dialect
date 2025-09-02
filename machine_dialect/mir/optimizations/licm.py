@@ -98,7 +98,7 @@ class LoopInvariantCodeMotion(OptimizationPass):
             Ordered list of loops.
         """
         # Sort by depth (deeper loops first) to process inner loops before outer
-        return sorted(loops, key=lambda l: l.depth, reverse=True)
+        return sorted(loops, key=lambda loop: loop.depth, reverse=True)
 
     def _process_loop(self, loop: Loop, function: MIRFunction, transformer: MIRTransformer) -> bool:
         """Process a single loop for invariant code motion.
@@ -206,11 +206,26 @@ class LoopInvariantCodeMotion(OptimizationPass):
         invariant: list[tuple[MIRInstruction, BasicBlock]] = []
         invariant_values: set[MIRValue] = set()
 
-        # Values defined outside the loop are invariant
+        # First, find all variables that are modified inside the loop
+        modified_in_loop: set[str] = set()
+        for block in loop.blocks:
+            for inst in block.instructions:
+                for def_val in inst.get_defs():
+                    if isinstance(def_val, Variable):
+                        modified_in_loop.add(def_val.name)
+
+        # Values defined outside the loop are invariant ONLY if not modified inside
         for block in function.cfg.blocks.values():
             if block not in loop.blocks:
                 for inst in block.instructions:
-                    invariant_values.update(inst.get_defs())
+                    for def_val in inst.get_defs():
+                        # Only add if it's not a variable OR if it's a variable not modified in loop
+                        if isinstance(def_val, Variable):
+                            if def_val.name not in modified_in_loop:
+                                invariant_values.add(def_val)
+                        else:
+                            # Temps and other values from outside are invariant
+                            invariant_values.add(def_val)
 
         # Constants are always invariant
         for block in loop.blocks:
@@ -257,6 +272,20 @@ class LoopInvariantCodeMotion(OptimizationPass):
             # Conservative: don't hoist calls or prints
             return False
 
+        # Check if instruction defines a variable that's modified in the loop
+        # This is an additional safety check to prevent hoisting loop counters
+        for def_val in inst.get_defs():
+            if isinstance(def_val, Variable):
+                # Check if this variable is modified elsewhere in the loop
+                # If so, we can't hoist this instruction
+                for block in loop.blocks:
+                    for other_inst in block.instructions:
+                        if other_inst is not inst:
+                            for other_def in other_inst.get_defs():
+                                if isinstance(other_def, Variable) and other_def.name == def_val.name:
+                                    # This variable is modified elsewhere in loop, can't hoist
+                                    return False
+
         # Check if all operands are invariant
         for operand in inst.get_uses():
             if operand not in invariant_values:
@@ -280,15 +309,25 @@ class LoopInvariantCodeMotion(OptimizationPass):
         Returns:
             True if the instruction can be hoisted.
         """
-        # Check if the instruction dominates all loop exits
-        # This ensures the instruction would execute on all paths through the loop
+        # Check if the instruction will execute on every iteration
+        # For now, we use a simple heuristic: hoist if the block is in the loop
+        # and the instruction is safe to speculatively execute
         if not self.dominance:
             return False
 
-        # For simplicity, only hoist if the block dominates all exit blocks
-        for exit_block in loop.exits:
-            if not self.dominance.dominates(block, exit_block):
-                return False
+        # Check if this block is guaranteed to execute when the loop is entered
+        # The header always executes, and blocks dominated by the header that
+        # don't have conditional predecessors within the loop are safe
+        if block == loop.header:
+            return True
+
+        # For other blocks, check if they dominate the latch (back edge source)
+        # This ensures they execute on every iteration that continues
+        latch = loop.back_edge[0]  # Source of the back edge
+        if not self.dominance.dominates(block, latch):
+            # If it doesn't dominate the latch, it might not execute on every iteration
+            # Be conservative and don't hoist
+            return False
 
         # Don't hoist memory operations that might alias
         # (Conservative for now - could add alias analysis later)

@@ -299,6 +299,40 @@ class MIRDotExporter:
         self.node_counter = 0
         self.node_ids: dict[BasicBlock, str] = {}
 
+    def export_module(self, module: MIRModule) -> str:
+        """Export all functions in a module to DOT format.
+
+        Args:
+            module: The module to export.
+
+        Returns:
+            DOT format string with all functions.
+        """
+        lines = []
+        lines.append("digraph MIR {")
+        lines.append("  rankdir=TB;")
+        lines.append("  node [shape=box];")
+        lines.append("")
+
+        for func_name, func in module.functions.items():
+            lines.append(f"  subgraph cluster_{func_name} {{")
+            lines.append(f'    label="{func_name}";')
+
+            # Export the function and extract its body
+            func_dot = self.export_function(func)
+            func_lines = func_dot.split("\n")
+
+            # Skip the digraph header and closing brace, add indentation
+            for line in func_lines[3:-1]:  # Skip first 3 lines and last line
+                if line.strip():
+                    lines.append("    " + line)
+
+            lines.append("  }")
+            lines.append("")
+
+        lines.append("}")
+        return "\n".join(lines)
+
     def export_function(self, func: MIRFunction) -> str:
         """Export a function's CFG to DOT format.
 

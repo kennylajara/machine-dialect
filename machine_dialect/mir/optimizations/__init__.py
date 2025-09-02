@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from machine_dialect.mir.optimizations.algebraic_simplification import AlgebraicSimplification
 from machine_dialect.mir.optimizations.branch_prediction import BranchPredictionOptimization
 from machine_dialect.mir.optimizations.constant_propagation import ConstantPropagation
 from machine_dialect.mir.optimizations.cse import CommonSubexpressionElimination
@@ -21,6 +22,7 @@ if TYPE_CHECKING:
     from machine_dialect.mir.pass_manager import PassManager
 
 __all__ = [
+    "AlgebraicSimplification",
     "BranchPredictionOptimization",
     "CommonSubexpressionElimination",
     "ConstantPropagation",
@@ -64,6 +66,7 @@ def register_all_passes(pass_manager: PassManager) -> None:
     pass_manager.register_pass(CommonSubexpressionElimination)
     pass_manager.register_pass(DeadCodeElimination)
     pass_manager.register_pass(StrengthReduction)
+    pass_manager.register_pass(AlgebraicSimplification)
     pass_manager.register_pass(TailCallOptimization)
     pass_manager.register_pass(TypeSpecialization)
     pass_manager.register_pass(FunctionInlining)

@@ -6,7 +6,6 @@ Provides commands for compiling, running, and interacting with Machine Dialect p
 """
 
 import sys
-from pathlib import Path
 
 import click
 
@@ -14,14 +13,8 @@ from machine_dialect.codegen.serializer import (
     InvalidMagicError,
     SerializationError,
     deserialize_module,
-    serialize_module,
 )
-from machine_dialect.mir.hir_to_mir import lower_to_mir
-from machine_dialect.mir.mir_dumper import DumpVerbosity, MIRDumper
-from machine_dialect.mir.mir_printer import MIRDotExporter
-from machine_dialect.mir.mir_to_bytecode import generate_bytecode
-from machine_dialect.mir.optimize_mir import optimize_mir
-from machine_dialect.parser.parser import Parser
+from machine_dialect.compiler import Compiler, CompilerConfig
 from machine_dialect.repl.repl import REPL
 from machine_dialect.vm.disasm import print_disassembly
 from machine_dialect.vm.vm import VM
@@ -99,141 +92,26 @@ def compile(
     opt_level: str,
 ) -> None:
     """Compile a Machine Dialect source file to bytecode."""
-    source_path = Path(source_file)
+    # Create compiler configuration from CLI options
+    config = CompilerConfig.from_cli_options(
+        opt_level=opt_level,
+        dump_mir=dump_mir,
+        show_cfg=show_cfg,
+        opt_report=opt_report,
+        verbose=verbose or disassemble,
+        mir_phase=mir_phase,
+        output=output,
+        module_name=module_name,
+    )
 
-    # Default output file
-    if output is None:
-        output_path = source_path.with_suffix(".mdc")
-    else:
-        output_path = Path(output)
+    # Create compiler instance
+    compiler = Compiler(config)
 
-    # Read source file
-    try:
-        with open(source_path, encoding="utf-8") as f:
-            source = f.read()
-    except FileNotFoundError:
-        click.echo(f"Error: File '{source_file}' not found", err=True)
-        sys.exit(1)
-    except Exception as e:
-        click.echo(f"Error reading file: {e}", err=True)
-        sys.exit(1)
+    # Compile the file
+    success = compiler.compile_file(source_file, output)
 
-    if verbose:
-        click.echo(f"Compiling '{source_file}'...")
-
-    # Parse source
-    parser = Parser()
-    ast = parser.parse(source)
-
-    if parser.has_errors():
-        click.echo("Parsing errors:", err=True)
-        for error in parser.errors:
-            click.echo(f"  {error}", err=True)
-        click.echo("\nCompilation failed.", err=True)
-        sys.exit(1)
-
-    # Determine module name
-    if module_name is None:
-        # Use source file name (without extension) as default
-        module_name = source_path.stem
-        # TODO: Option 2 - Extract module name from YAML frontmatter if present
-        # This would require updating the parser to handle frontmatter like:
-        # ---
-        # name: MyProgram
-        # version: 1.0.0
-        # ---
-
-    # MIR-based compilation pipeline
-    try:
-        # Lower AST to MIR
-        mir_module = lower_to_mir(ast)
-        mir_module.name = module_name or "main"
-
-        # Optimize MIR
-        optimization_level = int(opt_level)
-        optimization_stats: dict[str, dict[str, int]] = {}
-        if optimization_level > 0:
-            mir_module, optimization_stats = optimize_mir(mir_module, optimization_level)
-            # Store stats on the module for later reporting
-            mir_module.optimization_stats = optimization_stats  # type: ignore[attr-defined]
-
-        # Dump MIR if requested
-        if dump_mir:
-            click.echo("\n" + "=" * 50)
-            click.echo("MIR Representation:")
-            click.echo("=" * 50)
-            dumper = MIRDumper(
-                use_color=True,
-                verbosity=DumpVerbosity.DETAILED if verbose else DumpVerbosity.NORMAL,
-                show_stats=opt_report,
-            )
-            dumper.dump_module(mir_module)
-
-        # Export CFG if requested
-        if show_cfg:
-            exporter = MIRDotExporter()
-            # Export all functions to DOT format
-            dot_content = "digraph MIR {\n"
-            dot_content += "  rankdir=TB;\n"
-            dot_content += "  node [shape=box];\n\n"
-
-            for func_name, func in mir_module.functions.items():
-                dot_content += f"  subgraph cluster_{func_name} {{\n"
-                dot_content += f'    label="{func_name}";\n'
-                func_dot = exporter.export_function(func)
-                # Extract the body of the function's graph
-                lines = func_dot.split("\n")
-                for line in lines[1:-1]:  # Skip digraph header and closing brace
-                    if line.strip() and not line.strip().startswith("digraph"):
-                        dot_content += "    " + line + "\n"
-                dot_content += "  }\n\n"
-
-            dot_content += "}\n"
-
-            with open(show_cfg, "w") as f:
-                f.write(dot_content)
-            click.echo(f"Control flow graph exported to '{show_cfg}'")
-
-        # Show optimization report if requested
-        if opt_report:
-            click.echo("\n" + "=" * 50)
-            click.echo("Optimization Report:")
-            click.echo("=" * 50)
-            if hasattr(mir_module, "optimization_stats"):
-                for pass_name, stats in mir_module.optimization_stats.items():
-                    click.echo(f"\n{pass_name}:")
-                    for stat, value in stats.items():
-                        click.echo(f"  {stat}: {value}")
-            else:
-                click.echo("No optimization statistics available")
-
-        # Stop here if MIR phase only
-        if mir_phase:
-            click.echo("\nStopping after MIR generation (--mir-phase flag)")
-            sys.exit(0)
-
-        # Generate bytecode from MIR
-        module = generate_bytecode(mir_module)
-
-        # Save compiled module using new binary format
-        with open(output_path, "wb") as f:
-            serialize_module(module, f)
-
-        click.echo(f"Successfully compiled to '{output_path}'")
-
-        if verbose:
-            click.echo(f"  Module name: {module.name}")
-            click.echo(f"  Main chunk: {module.main_chunk.size()} bytes")
-            click.echo(f"  Constants: {module.main_chunk.constants.size()}")
-
-        # Show disassembly if requested
-        if disassemble:
-            click.echo("\n" + "=" * 50)
-            print_disassembly(module.main_chunk)
-
-    except Exception as e:
-        click.echo(f"Error during compilation: {e}", err=True)
-        sys.exit(1)
+    # Exit with appropriate code
+    sys.exit(0 if success else 1)
 
 
 @cli.command()

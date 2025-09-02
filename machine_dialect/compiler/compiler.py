@@ -1,0 +1,167 @@
+"""Main compiler module.
+
+This module provides the main Compiler class that manages the entire
+compilation process.
+"""
+
+from pathlib import Path
+
+from machine_dialect.codegen.serializer import serialize_module
+from machine_dialect.compiler.config import CompilerConfig
+from machine_dialect.compiler.context import CompilationContext
+from machine_dialect.compiler.pipeline import CompilationPipeline
+from machine_dialect.vm.disasm import print_disassembly
+
+
+class Compiler:
+    """Main compiler class for Machine Dialect."""
+
+    def __init__(self, config: CompilerConfig | None = None) -> None:
+        """Initialize the compiler.
+
+        Args:
+            config: Compiler configuration.
+        """
+        self.config = config or CompilerConfig()
+        self.pipeline = CompilationPipeline(self.config)
+
+    def compile_file(
+        self,
+        source_path: str | Path,
+        output_path: str | Path | None = None,
+    ) -> bool:
+        """Compile a source file.
+
+        Args:
+            source_path: Path to source file.
+            output_path: Optional output path.
+
+        Returns:
+            True if compilation succeeded.
+        """
+        source_path = Path(source_path)
+
+        # Update output path in config if provided
+        if output_path:
+            self.config.output_path = Path(output_path)
+
+        # Run compilation pipeline
+        context = self.pipeline.compile_file(source_path)
+
+        # Print errors and warnings
+        context.print_errors_and_warnings()
+
+        # Check for errors
+        if context.has_errors():
+            return False
+
+        # Save compiled module if bytecode was generated
+        if context.bytecode_module and not self.config.mir_phase_only:
+            success = self._save_module(context)
+            if not success:
+                return False
+
+        # Show disassembly if requested
+        if self.config.verbose and context.bytecode_module:
+            self._show_disassembly(context)
+
+        # Print success message
+        if self.config.verbose:
+            self._print_success(context)
+        else:
+            # Always print basic success message
+            output_path = context.get_output_path()
+            print(f"Successfully compiled to '{output_path}'")
+
+        return True
+
+    def compile_string(self, source: str, module_name: str = "__main__") -> CompilationContext:
+        """Compile a string of source code.
+
+        Args:
+            source: Source code string.
+            module_name: Name for the module.
+
+        Returns:
+            Compilation context with results.
+        """
+        # Create a context with dummy source path
+        context = CompilationContext(
+            source_path=Path("<string>"),
+            config=self.config,
+            source_content=source,
+        )
+
+        # Set module name
+        self.config.module_name = module_name
+
+        # Run compilation pipeline
+        return self.pipeline.compile(context)
+
+    def _save_module(self, context: CompilationContext) -> bool:
+        """Save compiled bytecode module.
+
+        Args:
+            context: Compilation context.
+
+        Returns:
+            True if save succeeded.
+        """
+        if not context.bytecode_module:
+            return False
+
+        output_path = context.get_output_path()
+
+        try:
+            # Set module name
+            context.bytecode_module.name = context.get_module_name()
+
+            # Serialize and save
+            with open(output_path, "wb") as f:
+                serialize_module(context.bytecode_module, f)
+
+            if self.config.verbose:
+                print(f"Wrote compiled module to {output_path}")
+
+            return True
+
+        except Exception as e:
+            context.add_error(f"Failed to save module: {e}")
+            return False
+
+    def _show_disassembly(self, context: CompilationContext) -> None:
+        """Show disassembly of compiled module.
+
+        Args:
+            context: Compilation context.
+        """
+        if not context.bytecode_module:
+            return
+
+        print("\n=== Disassembly ===")
+        print_disassembly(context.bytecode_module.main_chunk)
+
+    def _print_success(self, context: CompilationContext) -> None:
+        """Print success message.
+
+        Args:
+            context: Compilation context.
+        """
+        stats = context.get_statistics()
+
+        print("\n=== Compilation Summary ===")
+        print(f"Source: {stats['source_file']}")
+        print(f"Module: {stats['module_name']}")
+
+        if "mir_functions" in stats:
+            print(f"Functions: {stats['mir_functions']}")
+
+        if "optimizations" in stats:
+            opt_stats = stats["optimizations"]
+            if opt_stats:
+                print(f"Optimizations applied: {opt_stats.get('total_transformations', 0)}")
+
+        if "bytecode_chunks" in stats:
+            print(f"Bytecode chunks: {stats['bytecode_chunks']}")
+
+        print("Compilation successful!")

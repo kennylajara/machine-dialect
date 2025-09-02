@@ -22,6 +22,22 @@ class DumpVerbosity(Enum):
     DETAILED = "detailed"  # Include types and metadata
     DEBUG = "debug"  # Include all available information
 
+    @classmethod
+    def from_string(cls, value: str) -> "DumpVerbosity":
+        """Create DumpVerbosity from string.
+
+        Args:
+            value: String representation of verbosity level.
+
+        Returns:
+            DumpVerbosity enum value.
+        """
+        for member in cls:
+            if member.value == value.lower():
+                return member
+        # Default to NORMAL if not found
+        return cls.NORMAL
+
 
 class ColorCode:
     """ANSI color codes for terminal output."""

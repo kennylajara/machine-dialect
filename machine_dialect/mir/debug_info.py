@@ -109,14 +109,13 @@ class DebugInfo:
         self.variable_info[var] = debug_var
         self.symbols[debug_var.name] = debug_var
 
-    def add_line_mapping(self, bytecode_offset: int, source_line: int) -> None:
+    def add_line_mapping(self, mapping: LineMapping) -> None:
         """Add a line number mapping.
 
         Args:
-            bytecode_offset: Offset in bytecode.
-            source_line: Source line number.
+            mapping: The line mapping to add.
         """
-        self.line_mappings.append(LineMapping(bytecode_offset, source_line))
+        self.line_mappings.append(mapping)
 
     def get_line_for_offset(self, offset: int) -> int | None:
         """Get source line for bytecode offset.

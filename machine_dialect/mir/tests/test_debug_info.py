@@ -82,13 +82,15 @@ class TestDebugInfoTracking:
 
     def test_line_mapping(self) -> None:
         """Test bytecode to source line mapping."""
+        from machine_dialect.mir.debug_info import LineMapping
+
         debug_info = DebugInfo()
 
         # Add some line mappings
-        debug_info.add_line_mapping(0, 1)  # Bytecode offset 0 -> line 1
-        debug_info.add_line_mapping(10, 2)  # Bytecode offset 10 -> line 2
-        debug_info.add_line_mapping(20, 5)  # Bytecode offset 20 -> line 5
-        debug_info.add_line_mapping(30, 7)  # Bytecode offset 30 -> line 7
+        debug_info.add_line_mapping(LineMapping(0, 1))  # Bytecode offset 0 -> line 1
+        debug_info.add_line_mapping(LineMapping(10, 2))  # Bytecode offset 10 -> line 2
+        debug_info.add_line_mapping(LineMapping(20, 5))  # Bytecode offset 20 -> line 5
+        debug_info.add_line_mapping(LineMapping(30, 7))  # Bytecode offset 30 -> line 7
 
         # Test lookups
         assert debug_info.get_line_for_offset(0) == 1
@@ -100,13 +102,15 @@ class TestDebugInfoTracking:
 
     def test_source_map_generation(self) -> None:
         """Test source map generation."""
+        from machine_dialect.mir.debug_info import LineMapping
+
         debug_info = DebugInfo()
         debug_info.current_file = "example.md"
 
         # Add line mappings
-        debug_info.add_line_mapping(0, 1)
-        debug_info.add_line_mapping(20, 3)
-        debug_info.add_line_mapping(40, 5)
+        debug_info.add_line_mapping(LineMapping(0, 1))
+        debug_info.add_line_mapping(LineMapping(20, 3))
+        debug_info.add_line_mapping(LineMapping(40, 5))
 
         # Add symbols
         var1 = Variable("x", MIRType.INT)

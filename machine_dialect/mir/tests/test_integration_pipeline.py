@@ -525,7 +525,7 @@ class TestIntegrationPipeline(unittest.TestCase):
         self.assertGreater(len(factorial_chunk.bytecode), 10)  # Non-trivial function
 
         # Should have CALL opcode for recursion
-        self.assertIn(Opcode.CALL, factorial_chunk.bytecode[::2])
+        self.assertIn(Opcode.CALL.value, factorial_chunk.bytecode)
 
 
 if __name__ == "__main__":

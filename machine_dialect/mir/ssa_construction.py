@@ -229,15 +229,14 @@ class SSAConstructor:
             stack_state[var] = len(self.variable_stacks[var])
 
         # Process phi nodes first
-        for inst in block.instructions:
-            if isinstance(inst, Phi):
-                # Find original variable for this phi
-                for (phi_block, var), phi in self.phi_nodes.items():
-                    if phi_block == block and phi == inst:
-                        # Push new version (inst.dest is MIRValue but should be Variable)
-                        if isinstance(inst.dest, Variable):
-                            self.variable_stacks[var].append(inst.dest)
-                        break
+        for phi in block.phi_nodes:
+            # Find original variable for this phi
+            for (phi_block, var), stored_phi in self.phi_nodes.items():
+                if phi_block == block and stored_phi == phi:
+                    # Push new version (phi.dest is MIRValue but should be Variable)
+                    if isinstance(phi.dest, Variable):
+                        self.variable_stacks[var].append(phi.dest)
+                    break
 
         # Rename uses and definitions
         for inst in block.instructions:

@@ -28,7 +28,9 @@ class MIRGenerationPhase:
             print("Lowering to MIR...")
 
         try:
-            mir_module = lower_to_mir(hir)  # type: ignore[arg-type]
+            # Pass module name if available
+            module_name = context.get_module_name()
+            mir_module = lower_to_mir(hir, module_name)  # type: ignore[arg-type]
 
             if context.config.verbose:
                 print(f"Generated MIR with {len(mir_module.functions)} functions")

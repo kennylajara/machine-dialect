@@ -74,7 +74,7 @@ class HIRToMIRLowering:
         self.type_context: dict[str, MIRType] = {}  # Track variable types
         self.debug_builder = DebugInfoBuilder()  # Debug information tracking
 
-    def lower_program(self, program: Program) -> MIRModule:
+    def lower_program(self, program: Program, module_name: str = "main") -> MIRModule:
         """Lower a complete program to MIR.
 
         Args:
@@ -88,7 +88,7 @@ class HIRToMIRLowering:
         if not isinstance(hir, Program):
             raise TypeError("Expected Program after desugaring")
 
-        self.module = MIRModule("main")  # Default module name
+        self.module = MIRModule(module_name)
 
         # Separate functions from top-level statements
         functions = []
@@ -746,14 +746,15 @@ class HIRToMIRLowering:
         return label
 
 
-def lower_to_mir(program: Program) -> MIRModule:
+def lower_to_mir(program: Program, module_name: str = "main") -> MIRModule:
     """Lower a program to MIR.
 
     Args:
         program: The program to lower.
+        module_name: Name for the MIR module.
 
     Returns:
         The MIR module.
     """
     lowerer = HIRToMIRLowering()
-    return lowerer.lower_program(program)
+    return lowerer.lower_program(program, module_name)

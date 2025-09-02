@@ -160,7 +160,12 @@ class Compiler:
         if "optimizations" in stats:
             opt_stats = stats["optimizations"]
             if opt_stats:
-                print(f"Optimizations applied: {opt_stats.get('total_transformations', 0)}")
+                # opt_stats is a string summary, not a dict
+                if isinstance(opt_stats, str):
+                    # Just show that optimizations were applied
+                    print("Optimizations applied")
+                elif isinstance(opt_stats, dict):
+                    print(f"Optimizations applied: {opt_stats.get('total_transformations', 0)}")
 
         if "bytecode_chunks" in stats:
             print(f"Bytecode chunks: {stats['bytecode_chunks']}")

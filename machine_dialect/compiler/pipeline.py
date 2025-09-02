@@ -64,6 +64,10 @@ class CompilationPipeline:
         Returns:
             Updated compilation context.
         """
+        # Print "Compiling" message if verbose
+        if context.config.verbose:
+            print(f"Compiling {context.source_path}...")
+
         # Phase 1: Syntactic Analysis (includes lexical analysis)
         if not context.has_errors():
             ast = self.parsing_phase.run(context)

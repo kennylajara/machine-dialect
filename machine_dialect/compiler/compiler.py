@@ -65,13 +65,14 @@ class Compiler:
         if self.config.verbose and context.bytecode_module:
             self._show_disassembly(context)
 
-        # Print success message
-        if self.config.verbose:
-            self._print_success(context)
-        else:
-            # Always print basic success message
-            output_path = context.get_output_path()
-            print(f"Successfully compiled to '{output_path}'")
+        # Print success message (but not for MIR-only mode)
+        if not self.config.mir_phase_only:
+            if self.config.verbose:
+                self._print_success(context)
+            else:
+                # Always print basic success message
+                output_path = context.get_output_path()
+                print(f"Successfully compiled to '{output_path}'")
 
         return True
 

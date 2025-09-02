@@ -93,6 +93,7 @@ class CompilationPipeline:
         # Check if we should stop after MIR
         if context.config.mir_phase_only:
             self._dump_final_mir(context)
+            print("Stopping after MIR generation (--mir-phase flag)")
             return context
 
         # Phase 4: Optimization

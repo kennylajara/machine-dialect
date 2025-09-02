@@ -1,0 +1,146 @@
+name: Regression Tests
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'machine_dialect/mir/**'
+      - 'machine_dialect/codegen/**'
+      - 'machine_dialect/vm/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'machine_dialect/mir/**'
+      - 'machine_dialect/codegen/**'
+      - 'machine_dialect/vm/**'
+  schedule:
+    # Run nightly at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      update_baseline:
+        description: 'Update baseline metrics'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  regression-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.12']
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Full history for git commit hash
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Cache dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cache/pip
+          ~/.cache/uv
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/pyproject.toml') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    - name: Install uv
+      run: |
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+        echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+    - name: Install dependencies
+      run: |
+        uv venv
+        source .venv/bin/activate
+        uv pip install -e .
+        uv pip install pytest pytest-cov
+
+    - name: Download baseline (if exists)
+      uses: actions/download-artifact@v4
+      with:
+        name: regression-baseline
+        path: .regression_baselines
+      continue-on-error: true
+
+    - name: Run regression tests
+      run: |
+        source .venv/bin/activate
+        chmod +x scripts/run_regression_tests.py
+
+        if [ "${{ github.event.inputs.update_baseline }}" == "true" ]; then
+          python scripts/run_regression_tests.py --update-baseline
+        else
+          python scripts/run_regression_tests.py --verbose
+        fi
+      env:
+        PYTHONPATH: ${{ github.workspace }}
+
+    - name: Upload baseline (on main branch or manual update)
+      if: github.ref == 'refs/heads/main' || github.event.inputs.update_baseline == 'true'
+      uses: actions/upload-artifact@v4
+      with:
+        name: regression-baseline
+        path: .regression_baselines
+        retention-days: 90
+
+    - name: Upload regression report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: regression-report-${{ github.sha }}
+        path: |
+          .regression_baselines/*.json
+          regression_report.txt
+        retention-days: 30
+
+    - name: Comment PR with regression results
+      if: github.event_name == 'pull_request' && always()
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          const report = fs.readFileSync('regression_report.txt', 'utf8');
+
+          // Find existing comment
+          const { data: comments } = await github.rest.issues.listComments({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: context.issue.number,
+          });
+
+          const botComment = comments.find(comment =>
+            comment.user.type === 'Bot' &&
+            comment.body.includes('## Regression Test Results')
+          );
+
+          const body = `## Regression Test Results\n\n\`\`\`\n${report}\n\`\`\``;
+
+          if (botComment) {
+            await github.rest.issues.updateComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: botComment.id,
+              body,
+            });
+          } else {
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body,
+            });
+          }
+
+    - name: Fail if regression detected
+      if: failure()
+      run: |
+        echo "❌ Regression detected! Check the report for details."
+        exit 1

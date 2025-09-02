@@ -1,0 +1,25 @@
+============================================================
+COMPREHENSIVE REGRESSION ANALYSIS REPORT
+============================================================
+
+Total Tests: 2
+Correctness Issues: 0
+Performance Issues: 1
+Git Commit: e29ebd8a
+
+
+⚠️  PERFORMANCE REGRESSIONS DETECTED
+----------------------------------------
+
+control_flow:
+  ❌ bytecode_size: +32.1%
+     Regression detected: 32.1% increase exceeds 10.0% threshold
+  ❌ instruction_count: +30.0%
+     Regression detected: 30.0% increase exceeds 10.0% threshold
+
+✅ PERFORMANCE IMPROVEMENTS
+----------------------------------------
+arithmetic - compilation_time: 23.9% faster
+arithmetic - bytecode_size: 32.1% faster
+arithmetic - instruction_count: 30.0% faster
+control_flow - compilation_time: 9.6% faster

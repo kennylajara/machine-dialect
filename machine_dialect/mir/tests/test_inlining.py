@@ -8,12 +8,13 @@ from machine_dialect.mir.mir_instructions import (
     ConditionalJump,
     Copy,
     Jump,
+    MIRInstruction,
     Return,
     UnaryOp,
 )
 from machine_dialect.mir.mir_module import MIRModule
 from machine_dialect.mir.mir_types import MIRType
-from machine_dialect.mir.mir_values import Constant, Temp, Variable
+from machine_dialect.mir.mir_values import Constant, MIRValue, Temp, Variable
 from machine_dialect.mir.optimizations.inlining import FunctionInlining, InliningCost
 
 
@@ -28,11 +29,11 @@ def create_simple_module() -> MIRModule:
     module = MIRModule("test_module")
 
     # Create add function: return a + b
-    add_func = MIRFunction("add", [])
+    add_func = MIRFunction("add", [Variable("a", MIRType.INT), Variable("b", MIRType.INT)])
     add_entry = add_func.cfg.get_or_create_block("entry")
     a_var = Variable("a", MIRType.INT)
     b_var = Variable("b", MIRType.INT)
-    result = Temp(0)
+    result = Temp(MIRType.INT, 0)
     add_entry.instructions = [
         BinaryOp(result, "+", a_var, b_var),
         Return(result),
@@ -40,11 +41,11 @@ def create_simple_module() -> MIRModule:
     module.functions["add"] = add_func
 
     # Create multiply function: return x * y
-    mul_func = MIRFunction("multiply", ["x", "y"])
+    mul_func = MIRFunction("multiply", [Variable("x", MIRType.INT), Variable("y", MIRType.INT)])
     mul_entry = mul_func.cfg.get_or_create_block("entry")
     x_var = Variable("x", MIRType.INT)
     y_var = Variable("y", MIRType.INT)
-    result2 = Temp(1)
+    result2 = Temp(MIRType.INT, 1)
     mul_entry.instructions = [
         BinaryOp(result2, "*", x_var, y_var),
         Return(result2),
@@ -52,12 +53,12 @@ def create_simple_module() -> MIRModule:
     module.functions["multiply"] = mul_func
 
     # Create compute function that calls add and multiply
-    compute_func = MIRFunction("compute", ["n"])
+    compute_func = MIRFunction("compute", [Variable("n", MIRType.INT)])
     compute_entry = compute_func.cfg.get_or_create_block("entry")
     n_var = Variable("n", MIRType.INT)
-    sum_result = Temp(10)
-    prod_result = Temp(11)
-    final_result = Temp(12)
+    sum_result = Temp(MIRType.INT, 10)
+    prod_result = Temp(MIRType.INT, 11)
+    final_result = Temp(MIRType.INT, 12)
     compute_entry.instructions = [
         Call(sum_result, "add", [n_var, Constant(10)]),
         Call(prod_result, "multiply", [sum_result, Constant(2)]),
@@ -80,21 +81,21 @@ def create_conditional_module() -> MIRModule:
     module = MIRModule("conditional_module")
 
     # Create abs function
-    abs_func = MIRFunction("abs", ["x"])
+    abs_func = MIRFunction("abs", [Variable("x", MIRType.INT)])
     entry = abs_func.cfg.get_or_create_block("entry")
     positive = abs_func.cfg.get_or_create_block("positive")
     negative = abs_func.cfg.get_or_create_block("negative")
     exit_block = abs_func.cfg.get_or_create_block("exit")
 
     x_var = Variable("x", MIRType.INT)
-    is_negative = Temp(20)
-    neg_x = Temp(21)
+    is_negative = Temp(MIRType.BOOL, 20)
+    neg_x = Temp(MIRType.INT, 21)
     result_var = Variable("result", MIRType.INT)
 
     # Entry: check if x < 0
     entry.instructions = [
         BinaryOp(is_negative, "<", x_var, Constant(0)),
-        ConditionalJump(is_negative, negative, positive),
+        ConditionalJump(is_negative, "negative", "positive"),
     ]
     abs_func.cfg.connect(entry, negative)
     abs_func.cfg.connect(entry, positive)
@@ -103,14 +104,14 @@ def create_conditional_module() -> MIRModule:
     negative.instructions = [
         UnaryOp(neg_x, "-", x_var),
         Copy(result_var, neg_x),
-        Jump(exit_block),
+        Jump("exit"),
     ]
     abs_func.cfg.connect(negative, exit_block)
 
     # Positive branch: result = x
     positive.instructions = [
         Copy(result_var, x_var),
-        Jump(exit_block),
+        Jump("exit"),
     ]
     abs_func.cfg.connect(positive, exit_block)
 
@@ -120,11 +121,11 @@ def create_conditional_module() -> MIRModule:
     module.functions["abs"] = abs_func
 
     # Create process function that calls abs
-    process_func = MIRFunction("process", ["x"])
+    process_func = MIRFunction("process", [Variable("x", MIRType.INT)])
     process_entry = process_func.cfg.get_or_create_block("entry")
     x_param = Variable("x", MIRType.INT)
-    abs_result = Temp(30)
-    doubled = Temp(31)
+    abs_result = Temp(MIRType.INT, 30)
+    doubled = Temp(MIRType.INT, 31)
     process_entry.instructions = [
         Call(abs_result, "abs", [x_param]),
         BinaryOp(doubled, "*", abs_result, Constant(2)),
@@ -140,14 +141,14 @@ def create_large_function_module() -> MIRModule:
     module = MIRModule("large_module")
 
     # Create a large function with many instructions
-    large_func = MIRFunction("large_func", ["x"])
+    large_func = MIRFunction("large_func", [Variable("x", MIRType.INT)])
     entry = large_func.cfg.get_or_create_block("entry")
     x_var = Variable("x", MIRType.INT)
 
-    instructions = []
-    current = x_var
+    instructions: list[MIRInstruction] = []
+    current: MIRValue = x_var
     for i in range(100):  # Create 100 instructions
-        temp = Temp(100 + i)
+        temp = Temp(MIRType.INT, 100 + i)
         instructions.append(BinaryOp(temp, "+", current, Constant(i)))
         current = temp
     instructions.append(Return(current))
@@ -156,10 +157,10 @@ def create_large_function_module() -> MIRModule:
     module.functions["large_func"] = large_func
 
     # Create caller
-    caller_func = MIRFunction("caller", ["n"])
+    caller_func = MIRFunction("caller", [Variable("n", MIRType.INT)])
     caller_entry = caller_func.cfg.get_or_create_block("entry")
     n_var = Variable("n", MIRType.INT)
-    result = Temp(500)
+    result = Temp(MIRType.INT, 500)
     caller_entry.instructions = [
         Call(result, "large_func", [n_var]),
         Return(result),
@@ -174,21 +175,21 @@ def create_recursive_module() -> MIRModule:
     module = MIRModule("recursive_module")
 
     # Create factorial function (recursive)
-    fact_func = MIRFunction("factorial", ["n"])
+    fact_func = MIRFunction("factorial", [Variable("n", MIRType.INT)])
     entry = fact_func.cfg.get_or_create_block("entry")
     base_case = fact_func.cfg.get_or_create_block("base_case")
     recursive_case = fact_func.cfg.get_or_create_block("recursive_case")
 
     n_var = Variable("n", MIRType.INT)
-    is_base = Temp(40)
-    n_minus_one = Temp(41)
-    recursive_result = Temp(42)
-    final_result = Temp(43)
+    is_base = Temp(MIRType.BOOL, 40)
+    n_minus_one = Temp(MIRType.INT, 41)
+    recursive_result = Temp(MIRType.INT, 42)
+    final_result = Temp(MIRType.INT, 43)
 
     # Entry: check if n <= 1
     entry.instructions = [
         BinaryOp(is_base, "<=", n_var, Constant(1)),
-        ConditionalJump(is_base, base_case, recursive_case),
+        ConditionalJump(is_base, "base_case", "recursive_case"),
     ]
     fact_func.cfg.connect(entry, base_case)
     fact_func.cfg.connect(entry, recursive_case)
@@ -351,7 +352,7 @@ class TestFunctionInlining:
         inliner = FunctionInlining(size_threshold=50)
 
         # Run inlining
-        modified = inliner.run_on_module(module)
+        inliner.run_on_module(module)
 
         # The recursive call should not be inlined into itself
         fact_func = module.functions["factorial"]
@@ -369,10 +370,10 @@ class TestFunctionInlining:
         module = MIRModule("const_module")
 
         # Create simple function
-        simple_func = MIRFunction("simple", ["x"])
+        simple_func = MIRFunction("simple", [Variable("x", MIRType.INT)])
         entry = simple_func.cfg.get_or_create_block("entry")
         x_var = Variable("x", MIRType.INT)
-        result = Temp(60)
+        result = Temp(MIRType.INT, 60)
         entry.instructions = [
             BinaryOp(result, "*", x_var, Constant(2)),
             Return(result),
@@ -382,7 +383,7 @@ class TestFunctionInlining:
         # Create caller with constant argument
         caller_func = MIRFunction("caller", [])
         caller_entry = caller_func.cfg.get_or_create_block("entry")
-        call_result = Temp(61)
+        call_result = Temp(MIRType.INT, 61)
         caller_entry.instructions = [
             Call(call_result, "simple", [Constant(5)]),  # Constant argument
             Return(call_result),
@@ -414,10 +415,10 @@ class TestFunctionInlining:
         module = MIRModule("empty_module")
 
         # Single function with no calls
-        func = MIRFunction("no_calls", ["x"])
+        func = MIRFunction("no_calls", [Variable("x", MIRType.INT)])
         entry = func.cfg.get_or_create_block("entry")
         x_var = Variable("x", MIRType.INT)
-        result = Temp(70)
+        result = Temp(MIRType.INT, 70)
         entry.instructions = [
             BinaryOp(result, "*", x_var, Constant(2)),
             Return(result),

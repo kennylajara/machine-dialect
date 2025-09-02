@@ -241,25 +241,34 @@ class StoreVar(MIRInstruction):
 class Call(MIRInstruction):
     """Function call: dest = call func(args)."""
 
-    def __init__(self, dest: MIRValue | None, func: FunctionRef | str, args: list[MIRValue]) -> None:
+    def __init__(
+        self,
+        dest: MIRValue | None,
+        func: FunctionRef | str,
+        args: list[MIRValue],
+        is_tail_call: bool = False,
+    ) -> None:
         """Initialize a function call.
 
         Args:
             dest: Optional destination for return value.
             func: Function to call (FunctionRef or name string).
             args: Arguments to pass.
+            is_tail_call: Whether this is a tail call that can be optimized.
         """
         self.dest = dest
         self.func = FunctionRef(func) if isinstance(func, str) else func
         self.args = args
+        self.is_tail_call = is_tail_call
 
     def __str__(self) -> str:
         """Return string representation."""
         args_str = ", ".join(str(arg) for arg in self.args)
+        tail_str = " [tail]" if self.is_tail_call else ""
         if self.dest:
-            return f"{self.dest} = call {self.func}({args_str})"
+            return f"{self.dest} = call {self.func}({args_str}){tail_str}"
         else:
-            return f"call {self.func}({args_str})"
+            return f"call {self.func}({args_str}){tail_str}"
 
     def get_uses(self) -> list[MIRValue]:
         """Get arguments used."""

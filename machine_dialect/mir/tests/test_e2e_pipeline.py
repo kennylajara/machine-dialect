@@ -440,7 +440,9 @@ class TestE2EPipeline(unittest.TestCase):
         vm = VM()
 
         # The VM should handle division by zero
-        with self.assertRaises(ZeroDivisionError):
+        from machine_dialect.runtime.errors import DivisionByZeroError
+
+        with self.assertRaises(DivisionByZeroError):
             vm.run(bytecode_module)
 
     def test_print_statement_output(self) -> None:

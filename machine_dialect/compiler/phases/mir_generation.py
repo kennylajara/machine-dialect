@@ -80,5 +80,5 @@ class MIRGenerationPhase:
         with open(context.config.dump_cfg, "w") as f:
             f.write(dot_content)
 
-        if context.config.verbose:
-            print(f"Exported CFG to {context.config.dump_cfg}")
+        # Always print CFG export message (not just in verbose mode)
+        print(f"Control flow graph exported to '{context.config.dump_cfg}'")

@@ -214,6 +214,19 @@ class LoopInvariantCodeMotion(OptimizationPass):
                     if isinstance(def_val, Variable):
                         modified_in_loop.add(def_val.name)
 
+        # Function parameters are invariant if not modified in the loop
+        # They are implicitly defined outside all loops
+        for param_name in function.params:
+            if param_name not in modified_in_loop:
+                # Find the Variable object for this parameter
+                # Look through loop instructions to find the Variable instance
+                for block in loop.blocks:
+                    for inst in block.instructions:
+                        for use in inst.get_uses():
+                            if isinstance(use, Variable) and use.name == param_name:
+                                invariant_values.add(use)
+                                break
+
         # Values defined outside the loop are invariant ONLY if not modified inside
         for block in function.cfg.blocks.values():
             if block not in loop.blocks:
@@ -264,11 +277,11 @@ class LoopInvariantCodeMotion(OptimizationPass):
             True if the instruction is loop-invariant.
         """
         # Control flow instructions are not invariant
-        if isinstance(inst, (ConditionalJump, Jump, Return, Phi)):
+        if isinstance(inst, ConditionalJump | Jump | Return | Phi):
             return False
 
         # Side-effect instructions need careful handling
-        if isinstance(inst, (Call, Print)):
+        if isinstance(inst, Call | Print):
             # Conservative: don't hoist calls or prints
             return False
 
@@ -292,7 +305,7 @@ class LoopInvariantCodeMotion(OptimizationPass):
                 return False
 
         # Safe arithmetic and data movement instructions
-        if isinstance(inst, (BinaryOp, UnaryOp, Copy, LoadConst, StoreVar)):
+        if isinstance(inst, BinaryOp | UnaryOp | Copy | LoadConst | StoreVar):
             return True
 
         return False

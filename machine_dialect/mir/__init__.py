@@ -28,7 +28,8 @@ from .mir_instructions import (
 from .mir_module import MIRModule
 from .mir_types import MIRType
 from .mir_values import Constant, FunctionRef, MIRValue, Temp, Variable
-from .optimization_config import OptimizationConfig, OptimizationPipeline
+from .optimization_config import OptimizationConfig
+from .optimization_pipeline import OptimizationLevel, OptimizationPipeline, PipelineBuilder
 from .optimize_mir import optimize_mir, optimize_mir_simple
 from .pass_manager import PassManager
 
@@ -52,8 +53,10 @@ __all__ = [
     "MIRType",
     "MIRValue",
     "OptimizationConfig",
+    "OptimizationLevel",
     "OptimizationPipeline",
     "PassManager",
+    "PipelineBuilder",
     "Phi",
     "Return",
     "StoreVar",

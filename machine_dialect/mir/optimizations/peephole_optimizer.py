@@ -12,6 +12,8 @@ from typing import Any
 
 from machine_dialect.codegen.isa import Opcode
 from machine_dialect.codegen.objects import Chunk
+from machine_dialect.mir.mir_module import MIRModule
+from machine_dialect.mir.optimization_pass import ModulePass, PassInfo, PassType, PreservationLevel
 
 
 @dataclass
@@ -391,3 +393,54 @@ class PeepholeOptimizer:
             "bytes_saved": 0,
             "instructions_eliminated": 0,
         }
+
+
+class PeepholePass(ModulePass):
+    """Peephole optimization pass wrapper for MIR Pass interface."""
+
+    def __init__(self) -> None:
+        """Initialize the pass."""
+        super().__init__()
+        self.optimizer = PeepholeOptimizer()
+
+    def get_info(self) -> PassInfo:
+        """Get pass information.
+
+        Returns:
+            Pass information.
+        """
+        return PassInfo(
+            name="peephole",
+            description="Apply peephole optimizations to bytecode",
+            pass_type=PassType.OPTIMIZATION,
+            requires=[],
+            preserves=PreservationLevel.NONE,
+        )
+
+    def run_on_module(self, module: MIRModule) -> bool:
+        """Run peephole optimization on a module.
+
+        Note: This is a bytecode-level optimization, not MIR-level.
+        It would typically run after MIR->bytecode generation.
+
+        Args:
+            module: The module to optimize.
+
+        Returns:
+            False as this is a bytecode-level optimization.
+        """
+        # This pass operates on bytecode, not MIR
+        # It's here for compatibility with the pass manager
+        return False
+
+    def finalize(self) -> None:
+        """Finalize the pass."""
+        pass
+
+    def get_statistics(self) -> dict[str, int]:
+        """Get optimization statistics.
+
+        Returns:
+            Dictionary of statistics.
+        """
+        return self.optimizer.get_statistics()

@@ -7,8 +7,10 @@ from typing import TYPE_CHECKING
 from machine_dialect.mir.optimizations.constant_propagation import ConstantPropagation
 from machine_dialect.mir.optimizations.cse import CommonSubexpressionElimination
 from machine_dialect.mir.optimizations.dce import DeadCodeElimination
-from machine_dialect.mir.optimizations.jump_threading import JumpThreadingOptimizer
-from machine_dialect.mir.optimizations.peephole_optimizer import PeepholeOptimizer
+from machine_dialect.mir.optimizations.inlining import FunctionInlining
+from machine_dialect.mir.optimizations.jump_threading import JumpThreadingOptimizer, JumpThreadingPass
+from machine_dialect.mir.optimizations.licm import LoopInvariantCodeMotion
+from machine_dialect.mir.optimizations.peephole_optimizer import PeepholeOptimizer, PeepholePass
 from machine_dialect.mir.optimizations.strength_reduction import StrengthReduction
 
 if TYPE_CHECKING:
@@ -18,8 +20,12 @@ __all__ = [
     "CommonSubexpressionElimination",
     "ConstantPropagation",
     "DeadCodeElimination",
+    "FunctionInlining",
     "JumpThreadingOptimizer",
+    "JumpThreadingPass",
+    "LoopInvariantCodeMotion",
     "PeepholeOptimizer",
+    "PeepholePass",
     "StrengthReduction",
 ]
 
@@ -42,3 +48,7 @@ def register_all_passes(pass_manager: PassManager) -> None:
     pass_manager.register_pass(CommonSubexpressionElimination)
     pass_manager.register_pass(DeadCodeElimination)
     pass_manager.register_pass(StrengthReduction)
+    pass_manager.register_pass(FunctionInlining)
+    pass_manager.register_pass(LoopInvariantCodeMotion)
+    pass_manager.register_pass(JumpThreadingPass)
+    pass_manager.register_pass(PeepholePass)

@@ -10,6 +10,7 @@ from machine_dialect.mir.optimizations.dce import DeadCodeElimination
 from machine_dialect.mir.optimizations.inlining import FunctionInlining
 from machine_dialect.mir.optimizations.jump_threading import JumpThreadingOptimizer, JumpThreadingPass
 from machine_dialect.mir.optimizations.licm import LoopInvariantCodeMotion
+from machine_dialect.mir.optimizations.loop_unrolling import LoopUnrolling
 from machine_dialect.mir.optimizations.peephole_optimizer import PeepholeOptimizer, PeepholePass
 from machine_dialect.mir.optimizations.strength_reduction import StrengthReduction
 
@@ -24,6 +25,7 @@ __all__ = [
     "JumpThreadingOptimizer",
     "JumpThreadingPass",
     "LoopInvariantCodeMotion",
+    "LoopUnrolling",
     "PeepholeOptimizer",
     "PeepholePass",
     "StrengthReduction",
@@ -36,7 +38,9 @@ def register_all_passes(pass_manager: PassManager) -> None:
     Args:
         pass_manager: Pass manager to register with.
     """
+    from machine_dialect.mir.analyses.alias_analysis import AliasAnalysis
     from machine_dialect.mir.analyses.dominance_analysis import DominanceAnalysis
+    from machine_dialect.mir.analyses.escape_analysis import EscapeAnalysis
     from machine_dialect.mir.analyses.loop_analysis import LoopAnalysis
     from machine_dialect.mir.analyses.use_def_chains import UseDefChainsAnalysis
 
@@ -44,6 +48,8 @@ def register_all_passes(pass_manager: PassManager) -> None:
     pass_manager.register_pass(DominanceAnalysis)
     pass_manager.register_pass(UseDefChainsAnalysis)
     pass_manager.register_pass(LoopAnalysis)
+    pass_manager.register_pass(AliasAnalysis)
+    pass_manager.register_pass(EscapeAnalysis)
 
     # Register optimization passes
     pass_manager.register_pass(ConstantPropagation)
@@ -52,5 +58,6 @@ def register_all_passes(pass_manager: PassManager) -> None:
     pass_manager.register_pass(StrengthReduction)
     pass_manager.register_pass(FunctionInlining)
     pass_manager.register_pass(LoopInvariantCodeMotion)
+    pass_manager.register_pass(LoopUnrolling)
     pass_manager.register_pass(JumpThreadingPass)
     pass_manager.register_pass(PeepholePass)

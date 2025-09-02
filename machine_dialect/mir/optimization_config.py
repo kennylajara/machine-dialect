@@ -127,9 +127,14 @@ class OptimizationPipeline:
             )
 
             if config.enable_loop_opts:
-                passes.append("loop-analysis")
-                # LICM would go here if implemented
-                # passes.append("licm")
+                passes.extend(
+                    [
+                        "dominance",  # Required for loop analysis
+                        "loop-analysis",
+                        "licm",  # Loop invariant code motion
+                        "loop-unrolling",  # Unroll small loops
+                    ]
+                )
 
             # Run another DCE pass after other optimizations
             passes.append("dce")
@@ -137,14 +142,19 @@ class OptimizationPipeline:
         if config.level >= 3:
             # Aggressive optimizations
             if config.enable_aggressive_opts:
+                # Advanced analyses
+                passes.extend(
+                    [
+                        "alias-analysis",  # Alias analysis
+                        "escape-analysis",  # Escape analysis for stack allocation
+                    ]
+                )
                 # More aggressive versions of passes
                 passes.append("constant-propagation")  # Run again
                 passes.append("cse")  # Run again
 
             if config.enable_inlining:
-                # Inlining would go here if implemented
-                # passes.append("inline")
-                pass
+                passes.append("inlining")  # Function inlining
 
             # Final cleanup
             passes.extend(

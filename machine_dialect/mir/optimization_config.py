@@ -5,6 +5,10 @@ for the MIR optimization pipeline.
 """
 
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    pass
 
 
 @dataclass
@@ -129,7 +133,7 @@ class OptimizationPipeline:
             if config.enable_loop_opts:
                 passes.extend(
                     [
-                        "dominance",  # Required for loop analysis
+                        "dominance",  # Required for loop analysis (also available via DominanceInfo)
                         "loop-analysis",
                         "licm",  # Loop invariant code motion
                         "loop-unrolling",  # Unroll small loops
@@ -154,7 +158,7 @@ class OptimizationPipeline:
                 passes.append("cse")  # Run again
 
             if config.enable_inlining:
-                passes.append("inlining")  # Function inlining
+                passes.append("inline")  # Function inlining
 
             # Final cleanup
             passes.extend(
@@ -168,44 +172,55 @@ class OptimizationPipeline:
 
     @staticmethod
     def get_analysis_passes() -> list[str]:
-        """Get list of analysis passes.
+        """Get list of available analysis passes.
+
+        Note: This function provides a catalog of available passes but is not
+        currently used in the optimization pipeline. The main entry point is
+        get_passes() which selects passes based on optimization level.
 
         Returns:
             List of analysis pass names.
         """
-        return [
-            "use-def-chains",
-            "loop-analysis",
-            # "dominance" is computed internally by SSA construction
-        ]
+        from machine_dialect.mir.optimization_pass import PassType
+        from machine_dialect.mir.optimizations import register_all_passes
+        from machine_dialect.mir.pass_manager import PassManager
+
+        pm = PassManager()
+        register_all_passes(pm)
+        return pm.registry.list_passes(PassType.ANALYSIS)
 
     @staticmethod
     def get_optimization_passes() -> list[str]:
-        """Get list of optimization passes.
+        """Get list of available optimization passes.
 
         Returns:
             List of optimization pass names.
         """
-        return [
-            "constant-propagation",
-            "cse",
-            "dce",
-            "strength-reduction",
-            # "licm",  # When implemented
-            # "inline",  # When implemented
-        ]
+        from machine_dialect.mir.optimization_pass import PassType
+        from machine_dialect.mir.optimizations import register_all_passes
+        from machine_dialect.mir.pass_manager import PassManager
+
+        pm = PassManager()
+        register_all_passes(pm)
+        return pm.registry.list_passes(PassType.OPTIMIZATION)
 
     @staticmethod
     def get_cleanup_passes() -> list[str]:
-        """Get list of cleanup passes to run after optimizations.
+        """Get list of cleanup passes.
+
+        Cleanup passes are lightweight optimizations safe to run at the end
+        of the optimization pipeline. Passes can be both optimization and cleanup.
 
         Returns:
             List of cleanup pass names.
         """
-        return [
-            "dce",  # Remove dead code
-            # "simplify-cfg",  # Simplify control flow
-        ]
+        from machine_dialect.mir.optimization_pass import PassType
+        from machine_dialect.mir.optimizations import register_all_passes
+        from machine_dialect.mir.pass_manager import PassManager
+
+        pm = PassManager()
+        register_all_passes(pm)
+        return pm.registry.list_passes(PassType.CLEANUP)
 
 
 # Predefined configurations

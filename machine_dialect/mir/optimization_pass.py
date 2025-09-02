@@ -19,6 +19,7 @@ class PassType(Enum):
 
     ANALYSIS = "analysis"
     OPTIMIZATION = "optimization"
+    CLEANUP = "cleanup"  # Cleanup passes that can run after optimizations
     UTILITY = "utility"
 
 
@@ -38,14 +39,14 @@ class PassInfo:
     Attributes:
         name: Pass name.
         description: Pass description.
-        pass_type: Type of pass.
+        pass_type: Type(s) of pass - can be single type or list of types.
         requires: List of required analysis passes.
         preserves: What analyses this pass preserves.
     """
 
     name: str
     description: str
-    pass_type: PassType
+    pass_type: PassType | list[PassType]
     requires: list[str]
     preserves: PreservationLevel
 

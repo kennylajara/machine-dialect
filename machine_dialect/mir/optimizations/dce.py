@@ -40,7 +40,7 @@ class DeadCodeElimination(OptimizationPass):
         return PassInfo(
             name="dce",
             description="Eliminate dead code and unreachable blocks",
-            pass_type=PassType.OPTIMIZATION,
+            pass_type=[PassType.OPTIMIZATION, PassType.CLEANUP],
             requires=["use-def-chains"],
             preserves=PreservationLevel.CFG,
         )

@@ -78,7 +78,16 @@ class PassRegistry:
         """
         if pass_type is None:
             return list(self._passes.keys())
-        return [name for name, info in self._pass_info.items() if info.pass_type == pass_type]
+
+        result = []
+        for name, info in self._pass_info.items():
+            # Handle both single PassType and list of PassTypes
+            if isinstance(info.pass_type, list):
+                if pass_type in info.pass_type:
+                    result.append(name)
+            elif info.pass_type == pass_type:
+                result.append(name)
+        return result
 
 
 class AnalysisManager:

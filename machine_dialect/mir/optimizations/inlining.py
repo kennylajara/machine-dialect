@@ -114,7 +114,7 @@ class FunctionInlining(ModulePass):
         modified = False
 
         # Process each function
-        for func_name, function in module.functions.items():
+        for _, function in module.functions.items():
             if self._inline_calls_in_function(function, module):
                 modified = True
 
@@ -277,7 +277,7 @@ class FunctionInlining(ModulePass):
                     else:
                         param_names.append(str(p))
 
-        for param_name, arg in zip(param_names, call_inst.args):
+        for param_name, arg in zip(param_names, call_inst.args, strict=True):
             param_var = Variable(param_name, MIRType.INT)  # Assume INT for now
             value_map[param_var] = arg
 
@@ -301,7 +301,7 @@ class FunctionInlining(ModulePass):
             succ.predecessors.append(cont_block)
 
         # Modify call block to jump to inlined entry
-        call_block.instructions = pre_call + [Jump(entry_block.label)]
+        call_block.instructions = [*pre_call, Jump(entry_block.label)]
         call_block.successors = [entry_block]
         entry_block.predecessors.append(call_block)
 

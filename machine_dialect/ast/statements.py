@@ -51,14 +51,6 @@ class Statement(ASTNode):
         """
         return self
 
-    def canonicalize(self) -> "Statement":
-        """Default canonicalize for statements returns self.
-
-        Returns:
-            Self unchanged.
-        """
-        return self
-
 
 class ExpressionStatement(Statement):
     """A statement that wraps an expression.
@@ -99,19 +91,6 @@ class ExpressionStatement(Statement):
         if self.expression:
             desugared.expression = self.expression.desugar()
         return desugared
-
-    def canonicalize(self) -> "ExpressionStatement":
-        """Canonicalize expression statement by recursively canonicalizing the expression.
-
-        Returns:
-            A new ExpressionStatement with canonicalized expression.
-        """
-        canonicalized = ExpressionStatement(self.token, None)
-        if self.expression:
-            expr_canon = self.expression.canonicalize()
-            assert isinstance(expr_canon, Expression)
-            canonicalized.expression = expr_canon
-        return canonicalized
 
 
 class ReturnStatement(Statement):
@@ -166,19 +145,6 @@ class ReturnStatement(Statement):
             desugared.return_value = self.return_value.desugar()
         return desugared
 
-    def canonicalize(self) -> "ReturnStatement":
-        """Canonicalize return statement by recursively canonicalizing return value.
-
-        Returns:
-            A new ReturnStatement with canonicalized return value.
-        """
-        canonicalized = ReturnStatement(self.token)
-        if self.return_value:
-            return_canon = self.return_value.canonicalize()
-            assert isinstance(return_canon, Expression)
-            canonicalized.return_value = return_canon
-        return canonicalized
-
 
 class SetStatement(Statement):
     """A statement that assigns a value to a variable.
@@ -229,23 +195,6 @@ class SetStatement(Statement):
         if self.value:
             desugared.value = self.value.desugar()
         return desugared
-
-    def canonicalize(self) -> "SetStatement":
-        """Canonicalize set statement by recursively canonicalizing name and value.
-
-        Returns:
-            A new SetStatement with canonicalized components.
-        """
-        canonicalized = SetStatement(self.token)
-        if self.name:
-            name_canon = self.name.canonicalize()
-            assert isinstance(name_canon, Identifier)
-            canonicalized.name = name_canon
-        if self.value:
-            value_canon = self.value.canonicalize()
-            assert isinstance(value_canon, Expression)
-            canonicalized.value = value_canon
-        return canonicalized
 
 
 class CallStatement(Statement):
@@ -355,17 +304,6 @@ class BlockStatement(Statement):
         desugared.statements = desugared_statements
         return desugared
 
-    def canonicalize(self) -> "BlockStatement":
-        """Canonicalize block statement by recursively canonicalizing all statements.
-
-        Returns:
-            A new BlockStatement with canonicalized statements.
-        """
-        canonicalized_statements = [stmt.canonicalize() for stmt in self.statements]
-        canonicalized = BlockStatement(self.token, self.depth)
-        canonicalized.statements = canonicalized_statements
-        return canonicalized
-
 
 class IfStatement(Statement):
     """A conditional statement with if-then-else structure.
@@ -435,27 +373,6 @@ class IfStatement(Statement):
                 block.statements = [alternative_desugared]
                 desugared.alternative = block
         return desugared
-
-    def canonicalize(self) -> "IfStatement":
-        """Canonicalize if statement by recursively canonicalizing all components.
-
-        Returns:
-            A new IfStatement with canonicalized condition, consequence, and alternative.
-        """
-        canonicalized = IfStatement(self.token)
-        if self.condition:
-            condition_canon = self.condition.canonicalize()
-            assert isinstance(condition_canon, Expression)
-            canonicalized.condition = condition_canon
-        if self.consequence:
-            consequence_canon = self.consequence.canonicalize()
-            assert isinstance(consequence_canon, BlockStatement)
-            canonicalized.consequence = consequence_canon
-        if self.alternative:
-            alternative_canon = self.alternative.canonicalize()
-            assert isinstance(alternative_canon, BlockStatement)
-            canonicalized.alternative = alternative_canon
-        return canonicalized
 
 
 class ErrorStatement(Statement):

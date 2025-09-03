@@ -17,15 +17,3 @@ class ASTNode(ABC):
             A simplified version of this node or self if no simplification needed.
         """
         return self
-
-    def canonicalize(self) -> "ASTNode":
-        """Canonicalize the literal representation of the node and its children.
-
-        This method normalizes the literal representation of nodes to their canonical
-        forms (e.g., natural language operators to symbolic forms). The default
-        implementation returns the node unchanged.
-
-        Returns:
-            A canonicalized version of this node or self if no canonicalization needed.
-        """
-        return self

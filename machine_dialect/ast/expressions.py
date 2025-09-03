@@ -161,6 +161,7 @@ class InfixExpression(Expression):
                 TokenType.OP_GT: ">",
                 TokenType.OP_LTE: "<=",
                 TokenType.OP_GTE: ">=",
+                TokenType.OP_CARET: "^",
             }
         return cls._OPERATOR_MAP
 
@@ -204,30 +205,6 @@ class InfixExpression(Expression):
         if self.right:
             desugared.right = self.right.desugar()
         return desugared
-
-    def canonicalize(self) -> "InfixExpression":
-        """Canonicalize infix expression by normalizing operators and recursively canonicalizing operands.
-
-        This method normalizes operators based on their token type to canonical symbolic forms.
-
-        Returns:
-            A new InfixExpression with canonical operator and canonicalized operands.
-        """
-        # Get the shared operator mapping
-        operator_map = self._get_operator_map()
-
-        # Get canonical operator based on token type
-        canonical_op = operator_map.get(self.token.type, self.operator)
-
-        # Create new expression with canonical operator
-        left_canon = self.left.canonicalize()
-        assert isinstance(left_canon, Expression)
-        canonicalized = InfixExpression(self.token, canonical_op, left_canon)
-        if self.right:
-            right_canon = self.right.canonicalize()
-            assert isinstance(right_canon, Expression)
-            canonicalized.right = right_canon
-        return canonicalized
 
 
 class Arguments(Expression):

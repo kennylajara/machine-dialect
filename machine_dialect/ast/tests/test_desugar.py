@@ -79,28 +79,28 @@ class TestExpressionDesugaring(unittest.TestCase):
         left = Identifier(Token(TokenType.MISC_IDENT, "x", 1, 1), "x")
         right = IntegerLiteral(Token(TokenType.LIT_INT, "5", 1, 10), 5)
 
-        # Test equality operators
+        # Test equality operators - include correct token types
         test_cases = [
-            ("equals", "=="),
-            ("is equal to", "=="),
-            ("is the same as", "=="),
-            ("is not equal to", "!="),
-            ("does not equal", "!="),
-            ("is different from", "!="),
-            ("is strictly equal to", "==="),
-            ("is exactly equal to", "==="),
-            ("is identical to", "==="),
-            ("is not strictly equal to", "!=="),
-            ("is not exactly equal to", "!=="),
-            ("is not identical to", "!=="),
-            ("is greater than", ">"),
-            ("is less than", "<"),
-            ("is greater than or equal to", ">="),
-            ("is less than or equal to", "<="),
+            (TokenType.OP_EQ, "equals", "=="),
+            (TokenType.OP_EQ, "is equal to", "=="),
+            (TokenType.OP_EQ, "is the same as", "=="),
+            (TokenType.OP_NOT_EQ, "is not equal to", "!="),
+            (TokenType.OP_NOT_EQ, "does not equal", "!="),
+            (TokenType.OP_NOT_EQ, "is different from", "!="),
+            (TokenType.OP_STRICT_EQ, "is strictly equal to", "==="),
+            (TokenType.OP_STRICT_EQ, "is exactly equal to", "==="),
+            (TokenType.OP_STRICT_EQ, "is identical to", "==="),
+            (TokenType.OP_STRICT_NOT_EQ, "is not strictly equal to", "!=="),
+            (TokenType.OP_STRICT_NOT_EQ, "is not exactly equal to", "!=="),
+            (TokenType.OP_STRICT_NOT_EQ, "is not identical to", "!=="),
+            (TokenType.OP_GT, "is greater than", ">"),
+            (TokenType.OP_LT, "is less than", "<"),
+            (TokenType.OP_GTE, "is greater than or equal to", ">="),
+            (TokenType.OP_LTE, "is less than or equal to", "<="),
         ]
 
-        for natural, normalized in test_cases:
-            token = Token(TokenType.OP_EQ, natural, 1, 5)  # Token type doesn't matter for test
+        for token_type, natural, normalized in test_cases:
+            token = Token(token_type, natural, 1, 5)
             infix = InfixExpression(token, natural, left)
             infix.right = right
 
@@ -117,10 +117,25 @@ class TestExpressionDesugaring(unittest.TestCase):
         left = Identifier(Token(TokenType.MISC_IDENT, "x", 1, 1), "x")
         right = IntegerLiteral(Token(TokenType.LIT_INT, "5", 1, 5), 5)
 
-        operators = ["+", "-", "*", "/", "==", "!=", "===", "!==", ">", "<", ">=", "<=", "^"]
+        # Use correct token types for each operator
+        operators = [
+            (TokenType.OP_PLUS, "+"),
+            (TokenType.OP_MINUS, "-"),
+            (TokenType.OP_STAR, "*"),
+            (TokenType.OP_DIVISION, "/"),
+            (TokenType.OP_EQ, "=="),
+            (TokenType.OP_NOT_EQ, "!="),
+            (TokenType.OP_STRICT_EQ, "==="),
+            (TokenType.OP_STRICT_NOT_EQ, "!=="),
+            (TokenType.OP_GT, ">"),
+            (TokenType.OP_LT, "<"),
+            (TokenType.OP_GTE, ">="),
+            (TokenType.OP_LTE, "<="),
+            (TokenType.OP_CARET, "^"),
+        ]
 
-        for op in operators:
-            token = Token(TokenType.OP_PLUS, op, 1, 3)  # Token type doesn't matter
+        for token_type, op in operators:
+            token = Token(token_type, op, 1, 3)
             infix = InfixExpression(token, op, left)
             infix.right = right
 

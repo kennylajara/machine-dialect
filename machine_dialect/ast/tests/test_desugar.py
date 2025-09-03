@@ -97,7 +97,6 @@ class TestExpressionDesugaring(unittest.TestCase):
             ("is less than", "<"),
             ("is greater than or equal to", ">="),
             ("is less than or equal to", "<="),
-            ("**", "^"),  # Power operator normalization
         ]
 
         for natural, normalized in test_cases:

@@ -85,9 +85,13 @@ class StrengthReduction(OptimizationPass):
         """
         # Check for multiplication by power of 2
         if inst.op == "*":
-            if self._is_power_of_two_constant(inst.right):
+            # Check for x * 1 or 1 * x first (special cases)
+            if self._is_one(inst.right) or self._is_one(inst.left):
+                # Don't convert to shift, let algebraic simplifications handle it
+                pass
+            elif self._is_power_of_two_constant(inst.right):
                 shift = self._get_power_of_two(inst.right)
-                if shift is not None:
+                if shift is not None and shift > 0:  # Only optimize for shift > 0
                     # Replace multiplication with left shift
                     shift_const = Constant(shift, MIRType.INT)
                     new_inst = BinaryOp(inst.dest, "<<", inst.left, shift_const)
@@ -96,7 +100,7 @@ class StrengthReduction(OptimizationPass):
                     return
             elif self._is_power_of_two_constant(inst.left):
                 shift = self._get_power_of_two(inst.left)
-                if shift is not None:
+                if shift is not None and shift > 0:  # Only optimize for shift > 0
                     # Replace multiplication with left shift (commutative)
                     shift_const = Constant(shift, MIRType.INT)
                     new_inst = BinaryOp(inst.dest, "<<", inst.right, shift_const)
@@ -106,9 +110,13 @@ class StrengthReduction(OptimizationPass):
 
         # Check for division by power of 2
         elif inst.op in ["/", "//"]:
-            if self._is_power_of_two_constant(inst.right):
+            # Check for x / 1 first (special case)
+            if self._is_one(inst.right):
+                # Don't convert to shift, let algebraic simplifications handle it
+                pass
+            elif self._is_power_of_two_constant(inst.right):
                 shift = self._get_power_of_two(inst.right)
-                if shift is not None:
+                if shift is not None and shift > 0:  # Only optimize for shift > 0
                     # Replace division with right shift (for integers)
                     shift_const = Constant(shift, MIRType.INT)
                     new_inst = BinaryOp(inst.dest, ">>", inst.left, shift_const)
@@ -246,8 +254,15 @@ class StrengthReduction(OptimizationPass):
 
         # Boolean operations
         elif inst.op == "and":
+            # x and False = False (check this first as it's stronger)
+            if self._is_false(inst.right) or self._is_false(inst.left):
+                false = Constant(False, MIRType.BOOL)
+                new_inst = LoadConst(inst.dest, false)
+                transformer.replace_instruction(block, inst, new_inst)
+                self.stats["algebraic_simplified"] = self.stats.get("algebraic_simplified", 0) + 1
+                return
             # x and True = x
-            if self._is_true(inst.right):
+            elif self._is_true(inst.right):
                 new_inst = Copy(inst.dest, inst.left)
                 transformer.replace_instruction(block, inst, new_inst)
                 self.stats["algebraic_simplified"] = self.stats.get("algebraic_simplified", 0) + 1
@@ -257,30 +272,23 @@ class StrengthReduction(OptimizationPass):
                 transformer.replace_instruction(block, inst, new_inst)
                 self.stats["algebraic_simplified"] = self.stats.get("algebraic_simplified", 0) + 1
                 return
-            # x and False = False
-            elif self._is_false(inst.right) or self._is_false(inst.left):
-                false = Constant(False, MIRType.BOOL)
-                new_inst = LoadConst(inst.dest, false)
+
+        elif inst.op == "or":
+            # x or True = True (check this first as it's stronger)
+            if self._is_true(inst.right) or self._is_true(inst.left):
+                true = Constant(True, MIRType.BOOL)
+                new_inst = LoadConst(inst.dest, true)
                 transformer.replace_instruction(block, inst, new_inst)
                 self.stats["algebraic_simplified"] = self.stats.get("algebraic_simplified", 0) + 1
                 return
-
-        elif inst.op == "or":
             # x or False = x
-            if self._is_false(inst.right):
+            elif self._is_false(inst.right):
                 new_inst = Copy(inst.dest, inst.left)
                 transformer.replace_instruction(block, inst, new_inst)
                 self.stats["algebraic_simplified"] = self.stats.get("algebraic_simplified", 0) + 1
                 return
             elif self._is_false(inst.left):
                 new_inst = Copy(inst.dest, inst.right)
-                transformer.replace_instruction(block, inst, new_inst)
-                self.stats["algebraic_simplified"] = self.stats.get("algebraic_simplified", 0) + 1
-                return
-            # x or True = True
-            elif self._is_true(inst.right) or self._is_true(inst.left):
-                true = Constant(True, MIRType.BOOL)
-                new_inst = LoadConst(inst.dest, true)
                 transformer.replace_instruction(block, inst, new_inst)
                 self.stats["algebraic_simplified"] = self.stats.get("algebraic_simplified", 0) + 1
                 return

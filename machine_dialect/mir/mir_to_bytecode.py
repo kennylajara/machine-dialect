@@ -738,13 +738,17 @@ class BytecodeGenerator:
         if not self.current_chunk:
             return 0
 
+        # Use (type, value) tuple as key to distinguish between e.g. 5 and 5.0
+        # This prevents Python's dictionary from treating 5 and 5.0 as the same key
+        key = (type(value).__name__, value)
+
         # Check if already in pool
-        if value in self.constant_indices:
-            return self.constant_indices[value]
+        if key in self.constant_indices:
+            return self.constant_indices[key]
 
         # Add to pool
         idx = self.current_chunk.add_constant(value)
-        self.constant_indices[value] = idx
+        self.constant_indices[key] = idx
         return idx
 
     def _resolve_jumps(self) -> None:

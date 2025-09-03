@@ -23,6 +23,7 @@ from machine_dialect.mir.mir_instructions import (
     MIRInstruction,
     Nop,
     Phi,
+    Pop,
     Print,
     Return,
     Scope,
@@ -283,6 +284,8 @@ class BytecodeGenerator:
             self._gen_return(inst)
         elif isinstance(inst, Print):
             self._gen_print(inst)
+        elif isinstance(inst, Pop):
+            self._gen_pop(inst)
         elif isinstance(inst, Select):
             self._gen_select(inst)
         elif isinstance(inst, Assert):
@@ -559,6 +562,22 @@ class BytecodeGenerator:
         self._pop_stack()
         self._pop_stack()
         self.current_chunk.write_byte(Opcode.POP)
+
+    def _gen_pop(self, inst: Pop) -> None:
+        """Generate code for Pop instruction.
+
+        Args:
+            inst: The Pop instruction.
+        """
+        if not self.current_chunk:
+            return
+
+        # Load the value onto the stack
+        self._load_from_value(inst.value)
+
+        # Generate POP to discard it
+        self.current_chunk.write_byte(Opcode.POP)
+        self._pop_stack()
 
     def _gen_select(self, inst: Select) -> None:
         """Generate code for Select (ternary).

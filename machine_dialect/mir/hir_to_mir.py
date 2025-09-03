@@ -47,6 +47,7 @@ from machine_dialect.mir.mir_instructions import (
     Copy,
     Jump,
     LoadConst,
+    Pop,
     Print,
     Return,
     Scope,
@@ -526,8 +527,10 @@ class HIRToMIRLowering:
 
         # Lower the expression and discard the result
         if stmt.expression:
-            self.lower_expression(stmt.expression)
-            # Result is not used, no need to store it
+            result = self.lower_expression(stmt.expression)
+            # Generate a Pop instruction to discard the unused result
+            if result is not None:
+                self.current_block.add_instruction(Pop(result))
 
     def lower_error_statement(self, stmt: ErrorStatement) -> None:
         """Lower an error statement to MIR.

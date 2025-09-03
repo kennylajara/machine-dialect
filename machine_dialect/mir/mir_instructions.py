@@ -650,3 +650,37 @@ class SetAttr(MIRInstruction):
             self.obj = new_value
         if self.value == old_value:
             self.value = new_value
+
+
+class Pop(MIRInstruction):
+    """Pop instruction to discard a value from the stack.
+
+    This instruction is used when an expression result is not needed,
+    such as in expression statements where the value is computed but
+    then discarded.
+    """
+
+    def __init__(self, value: MIRValue) -> None:
+        """Initialize a pop instruction.
+
+        Args:
+            value: The value to pop/discard.
+        """
+        self.value = value
+
+    def __str__(self) -> str:
+        """Return string representation."""
+        return f"pop {self.value}"
+
+    def get_uses(self) -> list[MIRValue]:
+        """Get values used by this instruction."""
+        return [self.value]
+
+    def get_defs(self) -> list[MIRValue]:
+        """Get values defined by this instruction."""
+        return []  # Pop doesn't define any values
+
+    def replace_use(self, old: MIRValue, new: MIRValue) -> None:
+        """Replace a used value."""
+        if self.value == old:
+            self.value = new

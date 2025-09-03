@@ -123,7 +123,7 @@ class TestConditionalExpressions:
 
         # Check consequence is a string
         assert isinstance(conditional.consequence, StringLiteral)
-        assert conditional.consequence.value == '"yes"'  # StringLiteral includes quotes
+        assert conditional.consequence.value == "yes"
 
         # Check condition is an identifier
         assert isinstance(conditional.condition, Identifier)
@@ -131,7 +131,7 @@ class TestConditionalExpressions:
 
         # Check alternative is a string
         assert isinstance(conditional.alternative, StringLiteral)
-        assert conditional.alternative.value == '"no"'  # StringLiteral includes quotes
+        assert conditional.alternative.value == "no"
 
     def test_conditional_with_complex_condition(self) -> None:
         """Test conditional with complex boolean condition."""

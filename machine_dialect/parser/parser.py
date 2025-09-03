@@ -511,9 +511,19 @@ class Parser:
         """
         assert self._current_token is not None
 
+        # Extract the actual string value without quotes
+        literal = self._current_token.literal
+        if literal.startswith('"') and literal.endswith('"'):
+            value = literal[1:-1]
+        elif literal.startswith("'") and literal.endswith("'"):
+            value = literal[1:-1]
+        else:
+            # Fallback if no quotes found
+            value = literal
+
         return StringLiteral(
             token=self._current_token,
-            value=self._current_token.literal,
+            value=value,
         )
 
     def _parse_url_literal(self) -> URLLiteral:

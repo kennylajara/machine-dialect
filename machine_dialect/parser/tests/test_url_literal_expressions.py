@@ -158,7 +158,7 @@ class TestURLLiteralExpressions:
         stmt3 = program.statements[2]
         assert isinstance(stmt3, ast.SetStatement)
         assert isinstance(stmt3.value, ast.StringLiteral)
-        assert stmt3.value.value == '"Hello, World!"'
+        assert stmt3.value.value == "Hello, World!"
 
     def test_url_string_representation(self) -> None:
         """Test the string representation of URL literals."""
@@ -206,4 +206,4 @@ class TestURLLiteralExpressions:
         assert isinstance(stmt, ast.ExpressionStatement)
         # Without a scheme, it should be a StringLiteral, not URLLiteral
         assert isinstance(stmt.expression, ast.StringLiteral)
-        assert stmt.expression.value == '"example.com"'
+        assert stmt.expression.value == "example.com"

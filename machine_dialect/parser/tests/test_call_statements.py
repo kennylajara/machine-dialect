@@ -84,7 +84,7 @@ class TestCallStatements:
         assert isinstance(name0, Identifier)
         assert name0.value == "sound"
         assert isinstance(val0, StringLiteral)
-        assert val0.value == '"WEE-OO WEE-OO WEE-OO"'
+        assert val0.value == "WEE-OO WEE-OO WEE-OO"
 
         # Second named argument: volume
         name1, val1 = call_stmt.arguments.named[1]

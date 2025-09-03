@@ -196,13 +196,29 @@ class BytecodeGenerator:
         # Set the number of locals in the chunk for Frame initialization
         chunk.num_locals = self.next_slot_index
 
-        # Generate code for each block
+        # Generate code only for reachable blocks
+        # Unreachable blocks (e.g., merge blocks after branches that both return)
+        # should not generate bytecode as they would corrupt the instruction stream
         if mir_func.cfg.entry_block:
+            # Find all reachable blocks using breadth-first search from entry
+            reachable: set[BasicBlock] = set()
+            to_visit = [mir_func.cfg.entry_block]
+
+            while to_visit:
+                block = to_visit.pop(0)
+                if block in reachable:
+                    continue
+                reachable.add(block)
+                to_visit.extend(block.successors)
+
+            # Generate entry block first
             self._generate_block(mir_func.cfg.entry_block)
 
-            # Generate other blocks in order
+            # Generate other reachable blocks
+            # Skip unreachable blocks to avoid generating dead code that could
+            # be misinterpreted as operands for other instructions
             for block in mir_func.cfg.blocks.values():
-                if block != mir_func.cfg.entry_block:
+                if block != mir_func.cfg.entry_block and block in reachable:
                     self._generate_block(block)
 
         # Resolve pending jumps

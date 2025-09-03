@@ -301,7 +301,7 @@ class TestActionStatements:
         from machine_dialect.ast import StringLiteral
 
         assert isinstance(format_param.default_value, StringLiteral)
-        assert format_param.default_value.value == '"json"'
+        assert format_param.default_value.value == "json"
 
         # Check outputs
         assert len(action_stmt.outputs) == 2

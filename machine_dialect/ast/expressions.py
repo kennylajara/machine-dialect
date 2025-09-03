@@ -196,8 +196,6 @@ class InfixExpression(Expression):
             "is less than": "<",
             "is greater than or equal to": ">=",
             "is less than or equal to": "<=",
-            # Power operator (** is for markdown keywords)
-            "**": "^",
         }
 
         # Normalize the operator

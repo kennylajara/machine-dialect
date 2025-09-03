@@ -604,6 +604,12 @@ class HIRToMIRLowering:
                 self.current_block.add_instruction(LoadConst(temp_right, right))
                 right = temp_right
 
+            # Map AST operators to MIR operators
+            # In MIR: ^ is XOR (bitwise), ** is power (arithmetic)
+            mir_operator = expr.operator
+            if expr.operator == "^":
+                mir_operator = "**"  # Power operator in MIR
+
             # Get result type
             from machine_dialect.mir.mir_types import get_binary_op_result_type
 
@@ -615,11 +621,11 @@ class HIRToMIRLowering:
                 if expr.right
                 else MIRType.UNKNOWN
             )
-            result_type = get_binary_op_result_type(expr.operator, left_type, right_type)
+            result_type = get_binary_op_result_type(mir_operator, left_type, right_type)
 
             # Create temp for result
             result = self.current_function.new_temp(result_type)
-            self.current_block.add_instruction(BinaryOp(result, expr.operator, left, right))
+            self.current_block.add_instruction(BinaryOp(result, mir_operator, left, right))
             return result
 
         # Handle prefix expression

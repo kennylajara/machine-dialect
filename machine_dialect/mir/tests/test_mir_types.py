@@ -97,7 +97,7 @@ class TestMIRTypes(unittest.TestCase):
         self.assertEqual(get_binary_op_result_type("-", MIRType.FLOAT, MIRType.FLOAT), MIRType.FLOAT)
         self.assertEqual(get_binary_op_result_type("*", MIRType.INT, MIRType.FLOAT), MIRType.FLOAT)
         self.assertEqual(get_binary_op_result_type("/", MIRType.INT, MIRType.INT), MIRType.INT)
-        self.assertEqual(get_binary_op_result_type("^", MIRType.FLOAT, MIRType.INT), MIRType.FLOAT)
+        self.assertEqual(get_binary_op_result_type("**", MIRType.FLOAT, MIRType.INT), MIRType.FLOAT)
 
         # String concatenation
         self.assertEqual(get_binary_op_result_type("+", MIRType.STRING, MIRType.INT), MIRType.STRING)

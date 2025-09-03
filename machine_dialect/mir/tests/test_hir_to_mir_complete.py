@@ -355,7 +355,9 @@ class TestHIRToMIRComplete(unittest.TestCase):
                 entry = main.cfg.entry_block
                 assert entry is not None
                 binops = [inst for inst in entry.instructions if isinstance(inst, BinaryOp)]
-                self.assertTrue(any(inst.op == op for inst in binops))
+                # ^ in AST becomes ** in MIR
+                expected_op = "**" if op == "^" else op
+                self.assertTrue(any(inst.op == expected_op for inst in binops))
 
     def test_unary_operators(self) -> None:
         """Test unary operators are properly lowered."""

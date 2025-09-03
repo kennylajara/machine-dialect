@@ -127,7 +127,7 @@ def get_binary_op_result_type(op: str, left: MIRType, right: MIRType) -> MIRType
         return MIRType.BOOL
 
     # Arithmetic operators
-    if op in ("+", "-", "*", "/", "%", "^"):
+    if op in ("+", "-", "*", "/", "%", "**"):
         coerced = coerce_types(left, right)
         return coerced if coerced else MIRType.ERROR
 

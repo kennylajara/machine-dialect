@@ -1,5 +1,6 @@
 """Tests for the Virtual Machine."""
 
+from pathlib import Path
 from typing import Any
 
 from machine_dialect.ast import (
@@ -11,10 +12,47 @@ from machine_dialect.ast import (
     Program,
     SetStatement,
 )
-from machine_dialect.codegen.codegen import CodeGenerator
+from machine_dialect.codegen.objects import Module
+from machine_dialect.compiler.config import CompilerConfig
+from machine_dialect.compiler.context import CompilationContext
+from machine_dialect.compiler.phases.codegen import CodeGenerationPhase
+from machine_dialect.compiler.phases.hir_generation import HIRGenerationPhase
+from machine_dialect.compiler.phases.mir_generation import MIRGenerationPhase
 from machine_dialect.lexer import Token, TokenType
 from machine_dialect.vm.disasm import disassemble_chunk
 from machine_dialect.vm.vm import VM
+
+
+def compile_program(program: Program) -> Module:
+    """Compile an AST program to bytecode using MIR pipeline.
+
+    Args:
+        program: AST program to compile.
+
+    Returns:
+        Compiled bytecode module.
+    """
+    # Create compilation context
+    config = CompilerConfig()
+    context = CompilationContext(source_path=Path("test.md"), config=config)
+    context.ast = program
+
+    # Run compilation phases
+    hir_phase = HIRGenerationPhase()
+    mir_phase = MIRGenerationPhase()
+    codegen_phase = CodeGenerationPhase()
+
+    # Convert AST -> HIR -> MIR -> Bytecode
+    hir = hir_phase.run(context, program)
+    mir_module = mir_phase.run(context, hir)
+    if mir_module is None:
+        raise RuntimeError("Failed to generate MIR module")
+    context.mir_module = mir_module
+    module = codegen_phase.run(context, mir_module)
+    if module is None:
+        raise RuntimeError("Failed to generate bytecode module")
+
+    return module
 
 
 def compile_and_run(program: Program) -> Any:
@@ -26,8 +64,7 @@ def compile_and_run(program: Program) -> Any:
     Returns:
         The result of execution.
     """
-    gen = CodeGenerator()
-    module = gen.compile(program)
+    module = compile_program(program)
     vm = VM()
     return vm.run(module)
 
@@ -58,8 +95,7 @@ def test_addition() -> None:
     program = Program([stmt])
 
     vm = VM()
-    gen = CodeGenerator()
-    module = gen.compile(program)
+    module = compile_program(program)
     vm.run(module)
 
     # Check global variable
@@ -80,8 +116,7 @@ def test_subtraction() -> None:
     program = Program([stmt])
 
     vm = VM()
-    gen = CodeGenerator()
-    module = gen.compile(program)
+    module = compile_program(program)
     vm.run(module)
 
     assert vm.globals["result"] == 7
@@ -101,8 +136,7 @@ def test_multiplication() -> None:
     program = Program([stmt])
 
     vm = VM()
-    gen = CodeGenerator()
-    module = gen.compile(program)
+    module = compile_program(program)
     vm.run(module)
 
     assert vm.globals["result"] == 20
@@ -122,8 +156,7 @@ def test_division() -> None:
     program = Program([stmt])
 
     vm = VM()
-    gen = CodeGenerator()
-    module = gen.compile(program)
+    module = compile_program(program)
     vm.run(module)
 
     assert vm.globals["result"] == 5.0
@@ -147,8 +180,7 @@ def test_complex_arithmetic() -> None:
     program = Program([stmt])
 
     vm = VM()
-    gen = CodeGenerator()
-    module = gen.compile(program)
+    module = compile_program(program)
     vm.run(module)
 
     assert vm.globals["result"] == 20
@@ -168,8 +200,7 @@ def test_float_operations() -> None:
     program = Program([stmt])
 
     vm = VM()
-    gen = CodeGenerator()
-    module = gen.compile(program)
+    module = compile_program(program)
     vm.run(module)
 
     assert abs(vm.globals["result"] - 6.0) < 0.001
@@ -189,8 +220,7 @@ def test_comparison_gt() -> None:
     program = Program([stmt])
 
     vm = VM()
-    gen = CodeGenerator()
-    module = gen.compile(program)
+    module = compile_program(program)
     vm.run(module)
 
     assert vm.globals["result"] is True
@@ -210,8 +240,7 @@ def test_comparison_lt() -> None:
     program = Program([stmt])
 
     vm = VM()
-    gen = CodeGenerator()
-    module = gen.compile(program)
+    module = compile_program(program)
     vm.run(module)
 
     assert vm.globals["result"] is True
@@ -242,8 +271,7 @@ def test_strict_equality() -> None:
     program = Program([stmt, stmt2])
 
     vm = VM()
-    gen = CodeGenerator()
-    module = gen.compile(program)
+    module = compile_program(program)
     vm.run(module)
 
     assert vm.globals["result1"] is True, "5 should be strictly equal to 5"
@@ -279,8 +307,7 @@ def test_strict_inequality() -> None:
     program = Program([stmt, stmt2])
 
     vm = VM()
-    gen = CodeGenerator()
-    module = gen.compile(program)
+    module = compile_program(program)
     vm.run(module)
 
     assert vm.globals["result1"] is True, "5 should not be strictly equal to 5.0"
@@ -309,8 +336,7 @@ def test_variable_assignment_and_reference() -> None:
     program = Program([set_stmt, set_y])
 
     vm = VM()
-    gen = CodeGenerator()
-    module = gen.compile(program)
+    module = compile_program(program)
     vm.run(module)
 
     assert vm.globals["x"] == 10
@@ -327,8 +353,7 @@ def test_disassembler() -> None:
     stmt = ExpressionStatement(Token(TokenType.LIT_INT, "2", 1, 0), expr)
     program = Program([stmt])
 
-    gen = CodeGenerator()
-    module = gen.compile(program)
+    module = compile_program(program)
 
     # Disassemble and check output
     output = disassemble_chunk(module.main_chunk)

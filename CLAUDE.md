@@ -100,6 +100,14 @@ python -m machine_dialect --debug-tokens
 
 ## Architecture & Key Components
 
+### Compilation Pipeline
+
+Machine Dialect uses a modern 5-phase compilation pipeline:
+
+```text
+Source (.md) → Lexer → Parser → AST → HIR → MIR → Optimization → Bytecode → VM
+```
+
 ### Core Language Implementation
 
 1. **Lexer** (`machine_dialect/lexer/`)
@@ -123,6 +131,33 @@ python -m machine_dialect --debug-tokens
    - `literals.py`: Literal nodes (integer, float, string, boolean, empty)
    - `statements.py`: Statement nodes (set, give back, if, action, interaction, call)
    - All nodes implement string representation for debugging
+
+1. **HIR (High-level IR)** (`machine_dialect/compiler/phases/hir_generation.py`)
+
+   - Desugars complex AST constructs
+   - Simplifies control flow
+   - Prepares for MIR generation
+
+1. **MIR (Mid-level IR)** (`machine_dialect/mir/`)
+
+   - SSA (Static Single Assignment) form
+   - Control flow graph representation
+   - Optimization-friendly intermediate representation
+   - Supports multiple optimization passes
+
+1. **Optimization** (`machine_dialect/mir/optimizations/`)
+
+   - Constant folding and propagation
+   - Dead code elimination
+   - Common subexpression elimination
+   - Algebraic simplifications
+   - Inlining and strength reduction
+
+1. **Bytecode Generation** (`machine_dialect/compiler/phases/codegen.py`)
+
+   - Transforms optimized MIR to VM bytecode
+   - Stack-based instruction generation
+   - Constant pool management
 
 1. **Error Handling** (`machine_dialect/errors/`)
 

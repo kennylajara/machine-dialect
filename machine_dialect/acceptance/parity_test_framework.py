@@ -7,10 +7,15 @@ This framework ensures 100% feature parity between:
 
 from dataclasses import dataclass
 from enum import Enum, auto
+from pathlib import Path
 from typing import Any
 
 from machine_dialect.cfg.parser import CFGParser
-from machine_dialect.codegen.codegen import CodeGenerator
+from machine_dialect.compiler.config import CompilerConfig
+from machine_dialect.compiler.context import CompilationContext
+from machine_dialect.compiler.phases.codegen import CodeGenerationPhase
+from machine_dialect.compiler.phases.hir_generation import HIRGenerationPhase
+from machine_dialect.compiler.phases.mir_generation import MIRGenerationPhase
 from machine_dialect.interpreter.evaluator import evaluate
 from machine_dialect.interpreter.objects import Environment
 from machine_dialect.parser.parser import Parser
@@ -60,6 +65,10 @@ class ParityTestRunner:
             verbose: Enable verbose output.
         """
         self.verbose = verbose
+        # Initialize MIR compilation phases
+        self.hir_phase = HIRGenerationPhase()
+        self.mir_phase = MIRGenerationPhase()
+        self.codegen_phase = CodeGenerationPhase()
         self.main_parser = Parser()
         self.cfg_parser = CFGParser()
 
@@ -151,10 +160,22 @@ class ParityTestRunner:
             except Exception as e:
                 errors.append(f"Interpreter: {e}")
 
-            # Test VM
+            # Test VM using MIR pipeline
             try:
-                gen = CodeGenerator()
-                module = gen.compile(main_ast)
+                config = CompilerConfig()
+                context = CompilationContext(source_path=Path("test.md"), config=config)
+                context.ast = main_ast
+
+                # Convert AST -> HIR -> MIR -> Bytecode
+                hir = self.hir_phase.run(context, main_ast)
+                mir_module = self.mir_phase.run(context, hir)
+                if mir_module is None:
+                    raise RuntimeError("Failed to generate MIR module")
+                context.mir_module = mir_module
+                module = self.codegen_phase.run(context, mir_module)
+                if module is None:
+                    raise RuntimeError("Failed to generate bytecode module")
+
                 vm = VM()
                 vm_result = vm.run(module)
             except Exception as e:

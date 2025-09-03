@@ -26,7 +26,9 @@ class TestIntegration:
         """Test that all components are properly initialized."""
         assert runner.parser is not None
         assert runner.cfg_parser is not None
-        assert runner.code_generator is not None
+        assert runner.hir_phase is not None
+        assert runner.mir_phase is not None
+        assert runner.codegen_phase is not None
         assert runner.vm is not None
         assert len(runner.test_cases) > 0
 

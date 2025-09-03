@@ -6,10 +6,15 @@ NO WORKAROUNDS - all components are tested equally.
 """
 
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 from machine_dialect.cfg.parser import CFGParser
-from machine_dialect.codegen.codegen import CodeGenerator
+from machine_dialect.compiler.config import CompilerConfig
+from machine_dialect.compiler.context import CompilationContext
+from machine_dialect.compiler.phases.codegen import CodeGenerationPhase
+from machine_dialect.compiler.phases.hir_generation import HIRGenerationPhase
+from machine_dialect.compiler.phases.mir_generation import MIRGenerationPhase
 from machine_dialect.interpreter.evaluator import evaluate
 from machine_dialect.interpreter.objects import Object
 from machine_dialect.parser.parser import Parser
@@ -45,7 +50,10 @@ class IntegrationTestRunner:
         self.test_cases: list[IntegrationTestCase] = []
         self.parser = Parser()
         self.cfg_parser = CFGParser()
-        self.code_generator = CodeGenerator()
+        # Initialize MIR compilation phases
+        self.hir_phase = HIRGenerationPhase()
+        self.mir_phase = MIRGenerationPhase()
+        self.codegen_phase = CodeGenerationPhase()
         self.vm = VM()
         self._setup_test_cases()
 
@@ -865,15 +873,37 @@ Use `get_pi`.
                     error=f"Parser errors: {parser.errors}",
                 )
 
-            # Compile to bytecode
-            code_generator = CodeGenerator()
-            module = code_generator.compile(ast)
-            if code_generator.errors:
+            # Compile to bytecode using MIR pipeline
+            config = CompilerConfig()
+            context = CompilationContext(source_path=Path("test.md"), config=config)
+            context.ast = ast
+
+            # Convert AST -> HIR -> MIR -> Bytecode
+            hir = self.hir_phase.run(context, ast)
+            mir_module = self.mir_phase.run(context, hir)
+            if mir_module is None:
                 return TestResult(
                     component="VM",
                     success=False,
                     output=None,
-                    error=f"Compiler errors: {code_generator.errors}",
+                    error="Failed to generate MIR module",
+                )
+            context.mir_module = mir_module
+            module = self.codegen_phase.run(context, mir_module)
+            if module is None:
+                return TestResult(
+                    component="VM",
+                    success=False,
+                    output=None,
+                    error="Failed to generate bytecode module",
+                )
+
+            if context.has_errors():
+                return TestResult(
+                    component="VM",
+                    success=False,
+                    output=None,
+                    error=f"Compiler errors: {context.errors}",
                 )
 
             # Execute in VM

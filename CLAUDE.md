@@ -132,7 +132,7 @@ python -m machine_dialect --debug-tokens
 ### Language Syntax Features
 
 - **Markdown-based**: Source files are `.md` with YAML frontmatter
-- **Variables**: Bold text (`**variable**`)
+- **Variables**: Backticks (`` `variable` ``)
 - **Literals**: Italic text (`_value_`), including `empty` for null values
 - **Blocks**: Indented with '>' markers for if/else bodies
 - **Math**: LaTeX syntax in `$$...$$` blocks
@@ -142,9 +142,9 @@ python -m machine_dialect --debug-tokens
   - Strict equality: `is strictly equal to`, `is exactly equal to`, `is identical to`
   - Strict inequality: `is not strictly equal to`, `is not exactly equal to`, `is not identical to`
 - **Statements**:
-  - Set: `Set **variable** to _value_.`
+  - Set: `` Set `variable` to _value_. ``
   - Return: `Give back _value_.` or `Gives back _value_.`
-  - Call: `Call \`function\` \[with arguments\].\`
+  - Call: `` Call `function` [with arguments]. ``
   - Actions/Interactions: Support parameters with types and default values
 
 ### Testing Structure

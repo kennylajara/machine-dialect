@@ -500,7 +500,7 @@ Blocks are marked with `>` prefix for each line:
 if condition then
 > Set `x` to 1.
 > Set `y` to 2.
-> give back **x** + **y**.
+> give back `x` + `y`.
 ```
 
 **Rules:**

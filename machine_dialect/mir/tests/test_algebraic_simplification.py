@@ -13,6 +13,469 @@ from machine_dialect.mir.optimizations.algebraic_simplification import Algebraic
 from machine_dialect.mir.optimizations.strength_reduction import StrengthReduction
 
 
+class TestAlgebraicSimplificationComparison(unittest.TestCase):
+    """Test comparison operation simplifications in AlgebraicSimplification."""
+
+    def setUp(self) -> None:
+        """Set up test fixtures."""
+        self.module = MIRModule("test")
+        self.func = MIRFunction("test_func", [], MIRType.BOOL)
+        self.block = BasicBlock("entry")
+        self.func.cfg.add_block(self.block)
+        self.func.cfg.entry_block = self.block
+        self.module.add_function(self.func)
+        self.transformer = MIRTransformer(self.func)
+        self.opt = AlgebraicSimplification()
+
+    def test_equal_same_value(self) -> None:
+        """Test x == x → true."""
+        t0 = Temp(MIRType.INT)
+        t1 = Temp(MIRType.BOOL)
+        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT)))
+        self.block.add_instruction(BinaryOp(t1, "==", t0, t0))
+
+        changed = self.opt.run_on_function(self.func)
+
+        self.assertTrue(changed)
+        self.assertEqual(self.opt.stats.get("comparison_simplified", 0), 1)
+        instructions = list(self.block.instructions)
+        self.assertIsInstance(instructions[1], LoadConst)
+        load_inst = instructions[1]
+        assert isinstance(load_inst, LoadConst)
+        self.assertEqual(load_inst.constant.value, True)
+
+    def test_not_equal_same_value(self) -> None:
+        """Test x != x → false."""
+        t0 = Temp(MIRType.INT)
+        t1 = Temp(MIRType.BOOL)
+        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT)))
+        self.block.add_instruction(BinaryOp(t1, "!=", t0, t0))
+
+        changed = self.opt.run_on_function(self.func)
+
+        self.assertTrue(changed)
+        self.assertEqual(self.opt.stats.get("comparison_simplified", 0), 1)
+        instructions = list(self.block.instructions)
+        self.assertIsInstance(instructions[1], LoadConst)
+        load_inst = instructions[1]
+        assert isinstance(load_inst, LoadConst)
+        self.assertEqual(load_inst.constant.value, False)
+
+    def test_less_than_same_value(self) -> None:
+        """Test x < x → false."""
+        t0 = Temp(MIRType.INT)
+        t1 = Temp(MIRType.BOOL)
+        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT)))
+        self.block.add_instruction(BinaryOp(t1, "<", t0, t0))
+
+        changed = self.opt.run_on_function(self.func)
+
+        self.assertTrue(changed)
+        self.assertEqual(self.opt.stats.get("comparison_simplified", 0), 1)
+        instructions = list(self.block.instructions)
+        self.assertIsInstance(instructions[1], LoadConst)
+        load_inst = instructions[1]
+        assert isinstance(load_inst, LoadConst)
+        self.assertEqual(load_inst.constant.value, False)
+
+    def test_greater_than_same_value(self) -> None:
+        """Test x > x → false."""
+        t0 = Temp(MIRType.INT)
+        t1 = Temp(MIRType.BOOL)
+        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT)))
+        self.block.add_instruction(BinaryOp(t1, ">", t0, t0))
+
+        changed = self.opt.run_on_function(self.func)
+
+        self.assertTrue(changed)
+        self.assertEqual(self.opt.stats.get("comparison_simplified", 0), 1)
+        instructions = list(self.block.instructions)
+        self.assertIsInstance(instructions[1], LoadConst)
+        load_inst = instructions[1]
+        assert isinstance(load_inst, LoadConst)
+        self.assertEqual(load_inst.constant.value, False)
+
+    def test_less_equal_same_value(self) -> None:
+        """Test x <= x → true."""
+        t0 = Temp(MIRType.INT)
+        t1 = Temp(MIRType.BOOL)
+        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT)))
+        self.block.add_instruction(BinaryOp(t1, "<=", t0, t0))
+
+        changed = self.opt.run_on_function(self.func)
+
+        self.assertTrue(changed)
+        self.assertEqual(self.opt.stats.get("comparison_simplified", 0), 1)
+        instructions = list(self.block.instructions)
+        self.assertIsInstance(instructions[1], LoadConst)
+        load_inst = instructions[1]
+        assert isinstance(load_inst, LoadConst)
+        self.assertEqual(load_inst.constant.value, True)
+
+    def test_greater_equal_same_value(self) -> None:
+        """Test x >= x → true."""
+        t0 = Temp(MIRType.INT)
+        t1 = Temp(MIRType.BOOL)
+        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT)))
+        self.block.add_instruction(BinaryOp(t1, ">=", t0, t0))
+
+        changed = self.opt.run_on_function(self.func)
+
+        self.assertTrue(changed)
+        self.assertEqual(self.opt.stats.get("comparison_simplified", 0), 1)
+        instructions = list(self.block.instructions)
+        self.assertIsInstance(instructions[1], LoadConst)
+        load_inst = instructions[1]
+        assert isinstance(load_inst, LoadConst)
+        self.assertEqual(load_inst.constant.value, True)
+
+    def test_comparison_different_values_no_change(self) -> None:
+        """Test that comparisons with different values are not simplified."""
+        t0 = Temp(MIRType.INT)
+        t1 = Temp(MIRType.INT)
+        t2 = Temp(MIRType.BOOL)
+        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT)))
+        self.block.add_instruction(LoadConst(t1, Constant(43, MIRType.INT)))
+        self.block.add_instruction(BinaryOp(t2, "==", t0, t1))
+
+        changed = self.opt.run_on_function(self.func)
+
+        self.assertFalse(changed)
+        self.assertEqual(self.opt.stats.get("comparison_simplified", 0), 0)
+        instructions = list(self.block.instructions)
+        self.assertIsInstance(instructions[2], BinaryOp)
+
+
+class TestAlgebraicSimplificationBitwise(unittest.TestCase):
+    """Test bitwise operation simplifications in AlgebraicSimplification."""
+
+    def setUp(self) -> None:
+        """Set up test fixtures."""
+        self.module = MIRModule("test")
+        self.func = MIRFunction("test_func", [], MIRType.INT)
+        self.block = BasicBlock("entry")
+        self.func.cfg.add_block(self.block)
+        self.func.cfg.entry_block = self.block
+        self.module.add_function(self.func)
+        self.transformer = MIRTransformer(self.func)
+        self.opt = AlgebraicSimplification()
+
+    def test_and_with_zero(self) -> None:
+        """Test x & 0 → 0."""
+        t0 = Temp(MIRType.INT)
+        t1 = Temp(MIRType.INT)
+        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT)))
+        self.block.add_instruction(BinaryOp(t1, "&", t0, Constant(0, MIRType.INT)))
+
+        changed = self.opt.run_on_function(self.func)
+
+        self.assertTrue(changed)
+        self.assertEqual(self.opt.stats.get("bitwise_simplified", 0), 1)
+        instructions = list(self.block.instructions)
+        self.assertIsInstance(instructions[1], LoadConst)
+        load_inst = instructions[1]
+        assert isinstance(load_inst, LoadConst)
+        self.assertEqual(load_inst.constant.value, 0)
+
+    def test_and_with_self(self) -> None:
+        """Test x & x → x."""
+        t0 = Temp(MIRType.INT)
+        t1 = Temp(MIRType.INT)
+        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT)))
+        self.block.add_instruction(BinaryOp(t1, "&", t0, t0))
+
+        changed = self.opt.run_on_function(self.func)
+
+        self.assertTrue(changed)
+        self.assertEqual(self.opt.stats.get("bitwise_simplified", 0), 1)
+        instructions = list(self.block.instructions)
+        self.assertIsInstance(instructions[1], Copy)
+        copy_inst = instructions[1]
+        assert isinstance(copy_inst, Copy)
+        self.assertEqual(copy_inst.source, t0)
+
+    def test_and_with_all_ones(self) -> None:
+        """Test x & -1 → x (all ones)."""
+        t0 = Temp(MIRType.INT)
+        t1 = Temp(MIRType.INT)
+        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT)))
+        self.block.add_instruction(BinaryOp(t1, "&", t0, Constant(-1, MIRType.INT)))
+
+        changed = self.opt.run_on_function(self.func)
+
+        self.assertTrue(changed)
+        self.assertEqual(self.opt.stats.get("bitwise_simplified", 0), 1)
+        instructions = list(self.block.instructions)
+        self.assertIsInstance(instructions[1], Copy)
+        copy_inst = instructions[1]
+        assert isinstance(copy_inst, Copy)
+        self.assertEqual(copy_inst.source, t0)
+
+    def test_or_with_zero(self) -> None:
+        """Test x | 0 → x."""
+        t0 = Temp(MIRType.INT)
+        t1 = Temp(MIRType.INT)
+        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT)))
+        self.block.add_instruction(BinaryOp(t1, "|", t0, Constant(0, MIRType.INT)))
+
+        changed = self.opt.run_on_function(self.func)
+
+        self.assertTrue(changed)
+        self.assertEqual(self.opt.stats.get("bitwise_simplified", 0), 1)
+        instructions = list(self.block.instructions)
+        self.assertIsInstance(instructions[1], Copy)
+        copy_inst = instructions[1]
+        assert isinstance(copy_inst, Copy)
+        self.assertEqual(copy_inst.source, t0)
+
+    def test_or_with_self(self) -> None:
+        """Test x | x → x."""
+        t0 = Temp(MIRType.INT)
+        t1 = Temp(MIRType.INT)
+        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT)))
+        self.block.add_instruction(BinaryOp(t1, "|", t0, t0))
+
+        changed = self.opt.run_on_function(self.func)
+
+        self.assertTrue(changed)
+        self.assertEqual(self.opt.stats.get("bitwise_simplified", 0), 1)
+        instructions = list(self.block.instructions)
+        self.assertIsInstance(instructions[1], Copy)
+        copy_inst = instructions[1]
+        assert isinstance(copy_inst, Copy)
+        self.assertEqual(copy_inst.source, t0)
+
+    def test_or_with_all_ones(self) -> None:
+        """Test x | -1 → -1 (all ones)."""
+        t0 = Temp(MIRType.INT)
+        t1 = Temp(MIRType.INT)
+        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT)))
+        self.block.add_instruction(BinaryOp(t1, "|", t0, Constant(-1, MIRType.INT)))
+
+        changed = self.opt.run_on_function(self.func)
+
+        self.assertTrue(changed)
+        self.assertEqual(self.opt.stats.get("bitwise_simplified", 0), 1)
+        instructions = list(self.block.instructions)
+        self.assertIsInstance(instructions[1], LoadConst)
+        load_inst = instructions[1]
+        assert isinstance(load_inst, LoadConst)
+        self.assertEqual(load_inst.constant.value, -1)
+
+    def test_xor_with_zero(self) -> None:
+        """Test x ^ 0 → x."""
+        t0 = Temp(MIRType.INT)
+        t1 = Temp(MIRType.INT)
+        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT)))
+        self.block.add_instruction(BinaryOp(t1, "^", t0, Constant(0, MIRType.INT)))
+
+        changed = self.opt.run_on_function(self.func)
+
+        self.assertTrue(changed)
+        self.assertEqual(self.opt.stats.get("bitwise_simplified", 0), 1)
+        instructions = list(self.block.instructions)
+        self.assertIsInstance(instructions[1], Copy)
+        copy_inst = instructions[1]
+        assert isinstance(copy_inst, Copy)
+        self.assertEqual(copy_inst.source, t0)
+
+    def test_xor_with_self(self) -> None:
+        """Test x ^ x → 0."""
+        t0 = Temp(MIRType.INT)
+        t1 = Temp(MIRType.INT)
+        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT)))
+        self.block.add_instruction(BinaryOp(t1, "^", t0, t0))
+
+        changed = self.opt.run_on_function(self.func)
+
+        self.assertTrue(changed)
+        self.assertEqual(self.opt.stats.get("bitwise_simplified", 0), 1)
+        instructions = list(self.block.instructions)
+        self.assertIsInstance(instructions[1], LoadConst)
+        load_inst = instructions[1]
+        assert isinstance(load_inst, LoadConst)
+        self.assertEqual(load_inst.constant.value, 0)
+
+    def test_left_shift_zero(self) -> None:
+        """Test x << 0 → x."""
+        t0 = Temp(MIRType.INT)
+        t1 = Temp(MIRType.INT)
+        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT)))
+        self.block.add_instruction(BinaryOp(t1, "<<", t0, Constant(0, MIRType.INT)))
+
+        changed = self.opt.run_on_function(self.func)
+
+        self.assertTrue(changed)
+        self.assertEqual(self.opt.stats.get("shift_simplified", 0), 1)
+        instructions = list(self.block.instructions)
+        self.assertIsInstance(instructions[1], Copy)
+        copy_inst = instructions[1]
+        assert isinstance(copy_inst, Copy)
+        self.assertEqual(copy_inst.source, t0)
+
+    def test_right_shift_zero(self) -> None:
+        """Test x >> 0 → x."""
+        t0 = Temp(MIRType.INT)
+        t1 = Temp(MIRType.INT)
+        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT)))
+        self.block.add_instruction(BinaryOp(t1, ">>", t0, Constant(0, MIRType.INT)))
+
+        changed = self.opt.run_on_function(self.func)
+
+        self.assertTrue(changed)
+        self.assertEqual(self.opt.stats.get("shift_simplified", 0), 1)
+        instructions = list(self.block.instructions)
+        self.assertIsInstance(instructions[1], Copy)
+        copy_inst = instructions[1]
+        assert isinstance(copy_inst, Copy)
+        self.assertEqual(copy_inst.source, t0)
+
+
+class TestAlgebraicSimplificationModulo(unittest.TestCase):
+    """Test modulo operation simplifications in AlgebraicSimplification."""
+
+    def setUp(self) -> None:
+        """Set up test fixtures."""
+        self.module = MIRModule("test")
+        self.func = MIRFunction("test_func", [], MIRType.INT)
+        self.block = BasicBlock("entry")
+        self.func.cfg.add_block(self.block)
+        self.func.cfg.entry_block = self.block
+        self.module.add_function(self.func)
+        self.transformer = MIRTransformer(self.func)
+        self.opt = AlgebraicSimplification()
+
+    def test_modulo_one(self) -> None:
+        """Test x % 1 → 0."""
+        t0 = Temp(MIRType.INT)
+        t1 = Temp(MIRType.INT)
+        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT)))
+        self.block.add_instruction(BinaryOp(t1, "%", t0, Constant(1, MIRType.INT)))
+
+        changed = self.opt.run_on_function(self.func)
+
+        self.assertTrue(changed)
+        self.assertEqual(self.opt.stats.get("modulo_simplified", 0), 1)
+        instructions = list(self.block.instructions)
+        self.assertIsInstance(instructions[1], LoadConst)
+        load_inst = instructions[1]
+        assert isinstance(load_inst, LoadConst)
+        self.assertEqual(load_inst.constant.value, 0)
+
+    def test_modulo_self(self) -> None:
+        """Test x % x → 0."""
+        t0 = Temp(MIRType.INT)
+        t1 = Temp(MIRType.INT)
+        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT)))
+        self.block.add_instruction(BinaryOp(t1, "%", t0, t0))
+
+        changed = self.opt.run_on_function(self.func)
+
+        self.assertTrue(changed)
+        self.assertEqual(self.opt.stats.get("modulo_simplified", 0), 1)
+        instructions = list(self.block.instructions)
+        self.assertIsInstance(instructions[1], LoadConst)
+        load_inst = instructions[1]
+        assert isinstance(load_inst, LoadConst)
+        self.assertEqual(load_inst.constant.value, 0)
+
+    def test_zero_modulo(self) -> None:
+        """Test 0 % x → 0."""
+        t0 = Temp(MIRType.INT)
+        self.block.add_instruction(BinaryOp(t0, "%", Constant(0, MIRType.INT), Constant(42, MIRType.INT)))
+
+        changed = self.opt.run_on_function(self.func)
+
+        self.assertTrue(changed)
+        self.assertEqual(self.opt.stats.get("modulo_simplified", 0), 1)
+        instructions = list(self.block.instructions)
+        self.assertIsInstance(instructions[0], LoadConst)
+        load_inst = instructions[0]
+        assert isinstance(load_inst, LoadConst)
+        self.assertEqual(load_inst.constant.value, 0)
+
+    def test_modulo_no_simplification(self) -> None:
+        """Test that x % y with different values is not simplified."""
+        t0 = Temp(MIRType.INT)
+        t1 = Temp(MIRType.INT)
+        t2 = Temp(MIRType.INT)
+        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT)))
+        self.block.add_instruction(LoadConst(t1, Constant(5, MIRType.INT)))
+        self.block.add_instruction(BinaryOp(t2, "%", t0, t1))
+
+        changed = self.opt.run_on_function(self.func)
+
+        self.assertFalse(changed)
+        self.assertEqual(self.opt.stats.get("modulo_simplified", 0), 0)
+        instructions = list(self.block.instructions)
+        self.assertIsInstance(instructions[2], BinaryOp)
+
+
+class TestAlgebraicSimplificationUnary(unittest.TestCase):
+    """Test unary operation simplifications in AlgebraicSimplification."""
+
+    def setUp(self) -> None:
+        """Set up test fixtures."""
+        self.module = MIRModule("test")
+        self.func = MIRFunction("test_func", [], MIRType.INT)
+        self.block = BasicBlock("entry")
+        self.func.cfg.add_block(self.block)
+        self.func.cfg.entry_block = self.block
+        self.module.add_function(self.func)
+        self.transformer = MIRTransformer(self.func)
+        self.opt = AlgebraicSimplification()
+
+    def test_double_negation(self) -> None:
+        """Test -(-x) → x."""
+        from machine_dialect.mir.mir_instructions import UnaryOp
+
+        t0 = Temp(MIRType.INT)
+        t1 = Temp(MIRType.INT)
+        t2 = Temp(MIRType.INT)
+
+        # Create x = 42, t1 = -x, t2 = -t1
+        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT)))
+        self.block.add_instruction(UnaryOp(t1, "-", t0))
+        self.block.add_instruction(UnaryOp(t2, "-", t1))
+
+        changed = self.opt.run_on_function(self.func)
+
+        self.assertTrue(changed)
+        self.assertEqual(self.opt.stats.get("double_negation_eliminated", 0), 1)
+        instructions = list(self.block.instructions)
+        # The last instruction should be Copy(t2, t0)
+        self.assertIsInstance(instructions[2], Copy)
+        copy_inst = instructions[2]
+        assert isinstance(copy_inst, Copy)
+        self.assertEqual(copy_inst.source, t0)
+        self.assertEqual(copy_inst.dest, t2)
+
+    def test_double_not(self) -> None:
+        """Test not(not(x)) → x."""
+        from machine_dialect.mir.mir_instructions import UnaryOp
+
+        t0 = Temp(MIRType.BOOL)
+        t1 = Temp(MIRType.BOOL)
+        t2 = Temp(MIRType.BOOL)
+
+        # Create x = true, t1 = not x, t2 = not t1
+        self.block.add_instruction(LoadConst(t0, Constant(True, MIRType.BOOL)))
+        self.block.add_instruction(UnaryOp(t1, "not", t0))
+        self.block.add_instruction(UnaryOp(t2, "not", t1))
+
+        changed = self.opt.run_on_function(self.func)
+
+        self.assertTrue(changed)
+        self.assertEqual(self.opt.stats.get("double_not_eliminated", 0), 1)
+        instructions = list(self.block.instructions)
+        # The last instruction should be Copy(t2, t0)
+        self.assertIsInstance(instructions[2], Copy)
+        copy_inst = instructions[2]
+        assert isinstance(copy_inst, Copy)
+        self.assertEqual(copy_inst.source, t0)
+        self.assertEqual(copy_inst.dest, t2)
+
+
 class TestAlgebraicSimplificationPower(unittest.TestCase):
     """Test power operation simplifications in AlgebraicSimplification."""
 

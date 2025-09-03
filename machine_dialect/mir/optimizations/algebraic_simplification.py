@@ -103,10 +103,19 @@ class AlgebraicSimplification(OptimizationPass):
             if self._simplify_modulo(inst, block, transformer):
                 return
 
+        # Division simplifications
+        if inst.op in ["/", "//"]:
+            if self._simplify_division(inst, block, transformer):
+                return
+
         # Advanced arithmetic simplifications
         if inst.op in ["+", "-", "*", "/"]:
             if self._simplify_advanced_arithmetic(inst, block, transformer):
                 return
+
+        # Complex pattern matching
+        if self._simplify_complex_patterns(inst, block, transformer):
+            return
 
     def _simplify_unary_op(
         self,
@@ -390,6 +399,159 @@ class AlgebraicSimplification(OptimizationPass):
 
         return False
 
+    def _simplify_division(
+        self,
+        inst: BinaryOp,
+        block: BasicBlock,
+        transformer: MIRTransformer,
+    ) -> bool:
+        """Simplify division operations.
+
+        Args:
+            inst: Division operation instruction.
+            block: Containing block.
+            transformer: MIR transformer.
+
+        Returns:
+            True if simplified.
+        """
+        new_inst: MIRInstruction
+
+        # x / 1 → x
+        if self._is_one(inst.right):
+            new_inst = Copy(inst.dest, inst.left)
+            transformer.replace_instruction(block, inst, new_inst)
+            self.stats["division_simplified"] = self.stats.get("division_simplified", 0) + 1
+            return True
+
+        # x / x → 1 (assuming x != 0)
+        elif self._values_equal(inst.left, inst.right):
+            one = Constant(1, inst.dest.type if hasattr(inst.dest, "type") else MIRType.INT)
+            new_inst = LoadConst(inst.dest, one)
+            transformer.replace_instruction(block, inst, new_inst)
+            self.stats["division_simplified"] = self.stats.get("division_simplified", 0) + 1
+            return True
+
+        # 0 / x → 0 (assuming x != 0)
+        elif self._is_zero(inst.left):
+            zero = Constant(0, inst.dest.type if hasattr(inst.dest, "type") else MIRType.INT)
+            new_inst = LoadConst(inst.dest, zero)
+            transformer.replace_instruction(block, inst, new_inst)
+            self.stats["division_simplified"] = self.stats.get("division_simplified", 0) + 1
+            return True
+
+        # x / -1 → -x
+        elif self._is_constant_value(inst.right, -1):
+            new_inst = UnaryOp(inst.dest, "-", inst.left)
+            transformer.replace_instruction(block, inst, new_inst)
+            self.stats["division_simplified"] = self.stats.get("division_simplified", 0) + 1
+            return True
+
+        return False
+
+    def _simplify_complex_patterns(
+        self,
+        inst: BinaryOp,
+        block: BasicBlock,
+        transformer: MIRTransformer,
+    ) -> bool:
+        """Apply complex pattern matching across instructions.
+
+        Args:
+            inst: Binary operation instruction.
+            block: Containing block.
+            transformer: MIR transformer.
+
+        Returns:
+            True if simplified.
+        """
+        # Pattern: (a + b) - b → a
+        if inst.op == "-":
+            left_def = self._get_defining_instruction(inst.left, block)
+            if isinstance(left_def, BinaryOp) and left_def.op == "+":
+                if self._values_equal(left_def.right, inst.right):
+                    new_inst = Copy(inst.dest, left_def.left)
+                    transformer.replace_instruction(block, inst, new_inst)
+                    self.stats["complex_pattern_matched"] = self.stats.get("complex_pattern_matched", 0) + 1
+                    return True
+                elif self._values_equal(left_def.left, inst.right):
+                    new_inst = Copy(inst.dest, left_def.right)
+                    transformer.replace_instruction(block, inst, new_inst)
+                    self.stats["complex_pattern_matched"] = self.stats.get("complex_pattern_matched", 0) + 1
+                    return True
+
+            # Pattern: (a - b) - c → a - (b + c) when b and c are constants
+            if isinstance(left_def, BinaryOp) and left_def.op == "-":
+                if isinstance(left_def.right, Constant) and isinstance(inst.right, Constant):
+                    new_const_val = left_def.right.value + inst.right.value
+                    new_const = Constant(new_const_val, inst.right.type)
+                    binary_inst: MIRInstruction = BinaryOp(inst.dest, "-", left_def.left, new_const)
+                    transformer.replace_instruction(block, inst, binary_inst)
+                    self.stats["complex_pattern_matched"] = self.stats.get("complex_pattern_matched", 0) + 1
+                    return True
+
+        # Pattern: (a - b) + b → a
+        elif inst.op == "+":
+            left_def = self._get_defining_instruction(inst.left, block)
+            if isinstance(left_def, BinaryOp) and left_def.op == "-":
+                if self._values_equal(left_def.right, inst.right):
+                    new_inst = Copy(inst.dest, left_def.left)
+                    transformer.replace_instruction(block, inst, new_inst)
+                    self.stats["complex_pattern_matched"] = self.stats.get("complex_pattern_matched", 0) + 1
+                    return True
+
+            # Check right side: b + (a - b) → a
+            right_def = self._get_defining_instruction(inst.right, block)
+            if isinstance(right_def, BinaryOp) and right_def.op == "-":
+                if self._values_equal(right_def.right, inst.left):
+                    copy_inst: MIRInstruction = Copy(inst.dest, right_def.left)
+                    transformer.replace_instruction(block, inst, copy_inst)
+                    self.stats["complex_pattern_matched"] = self.stats.get("complex_pattern_matched", 0) + 1
+                    return True
+
+        # Pattern: (a * b) / b → a
+        elif inst.op in ["/", "//"]:
+            left_def = self._get_defining_instruction(inst.left, block)
+            if isinstance(left_def, BinaryOp) and left_def.op == "*":
+                if self._values_equal(left_def.right, inst.right):
+                    new_inst = Copy(inst.dest, left_def.left)
+                    transformer.replace_instruction(block, inst, new_inst)
+                    self.stats["complex_pattern_matched"] = self.stats.get("complex_pattern_matched", 0) + 1
+                    return True
+                elif self._values_equal(left_def.left, inst.right):
+                    new_inst = Copy(inst.dest, left_def.right)
+                    transformer.replace_instruction(block, inst, new_inst)
+                    self.stats["complex_pattern_matched"] = self.stats.get("complex_pattern_matched", 0) + 1
+                    return True
+
+        # Pattern: (a / b) * b → a
+        elif inst.op == "*":
+            left_def = self._get_defining_instruction(inst.left, block)
+            if isinstance(left_def, BinaryOp) and left_def.op in ["/", "//"]:
+                if self._values_equal(left_def.right, inst.right):
+                    new_inst = Copy(inst.dest, left_def.left)
+                    transformer.replace_instruction(block, inst, new_inst)
+                    self.stats["complex_pattern_matched"] = self.stats.get("complex_pattern_matched", 0) + 1
+                    return True
+
+            # Check right side: b * (a / b) → a
+            right_def = self._get_defining_instruction(inst.right, block)
+            if isinstance(right_def, BinaryOp) and right_def.op in ["/", "//"]:
+                if self._values_equal(right_def.right, inst.left):
+                    new_inst = Copy(inst.dest, right_def.left)
+                    transformer.replace_instruction(block, inst, new_inst)
+                    self.stats["complex_pattern_matched"] = self.stats.get("complex_pattern_matched", 0) + 1
+                    return True
+
+        # Pattern: 0 - x → -x
+        if inst.op == "-" and self._is_zero(inst.left):
+            unary_inst: MIRInstruction = UnaryOp(inst.dest, "-", inst.right)
+            transformer.replace_instruction(block, inst, unary_inst)
+            self.stats["complex_pattern_matched"] = self.stats.get("complex_pattern_matched", 0) + 1
+            return True
+
+        return False
+
     def _simplify_advanced_arithmetic(
         self,
         inst: BinaryOp,
@@ -428,9 +590,57 @@ class AlgebraicSimplification(OptimizationPass):
                 self.stats["associativity_applied"] = self.stats.get("associativity_applied", 0) + 1
                 return True
 
-        # Distributive law: a * (b + c) → (a * b) + (a * c) when beneficial
-        # This is beneficial when 'a' is a constant and simplifications can occur
-        # For now, we'll skip this as it can increase instruction count
+            # Also check right side for commutativity: c + (a + b) → (c + b) + a when b and c are constants
+            right_def = self._get_defining_instruction(inst.right, block)
+            if (
+                isinstance(right_def, BinaryOp)
+                and right_def.op == inst.op
+                and isinstance(inst.left, Constant)
+                and isinstance(right_def.right, Constant)
+            ):
+                # Compute (c op b)
+                if inst.op == "+":
+                    new_const_val = inst.left.value + right_def.right.value
+                else:  # "*"
+                    new_const_val = inst.left.value * right_def.right.value
+
+                new_const = Constant(new_const_val, inst.left.type)
+                new_inst = BinaryOp(inst.dest, inst.op, new_const, right_def.left)
+                transformer.replace_instruction(block, inst, new_inst)
+                self.stats["associativity_applied"] = self.stats.get("associativity_applied", 0) + 1
+                return True
+
+        # Check for subtraction associativity: (a - b) - c → a - (b + c) when b and c are constants
+        # This is already handled in _simplify_complex_patterns
+
+        # Apply De Morgan's laws for bitwise operations
+        if self._apply_demorgan_laws(inst, block, transformer):
+            return True
+
+        return False
+
+    def _apply_demorgan_laws(
+        self,
+        inst: BinaryOp,
+        block: BasicBlock,
+        transformer: MIRTransformer,
+    ) -> bool:
+        """Apply De Morgan's laws for bitwise operations.
+
+        Args:
+            inst: Binary operation instruction.
+            block: Containing block.
+            transformer: MIR transformer.
+
+        Returns:
+            True if transformed.
+        """
+        # De Morgan's Law: ~(a & b) = ~a | ~b
+        # De Morgan's Law: ~(a | b) = ~a & ~b
+        # We look for patterns where the result of AND/OR is negated
+
+        # For now, we'll skip this as it requires tracking how the result is used
+        # This would be better implemented with a pattern matching framework
 
         return False
 

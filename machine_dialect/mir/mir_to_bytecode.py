@@ -159,9 +159,10 @@ class BytecodeGenerator:
         for param in mir_func.params:
             self._allocate_slot(param)
 
-        # Allocate slots for locals
-        for local_var in mir_func.locals.values():
-            self._allocate_slot(local_var)
+        # Allocate slots for locals (skip in main function - they're globals)
+        if mir_func.name != "main":
+            for local_var in mir_func.locals.values():
+                self._allocate_slot(local_var)
 
         # Allocate slots for temporaries
         for temp in mir_func.temporaries:
@@ -182,10 +183,14 @@ class BytecodeGenerator:
                 # Check all uses and defs
                 for val in inst.get_uses():
                     if isinstance(val, Variable | Temp):
-                        self._allocate_slot(val)
+                        # Skip variables in main function (they're globals)
+                        if not (mir_func.name == "main" and isinstance(val, Variable)):
+                            self._allocate_slot(val)
                 for val in inst.get_defs():
                     if isinstance(val, Variable | Temp):
-                        self._allocate_slot(val)
+                        # Skip variables in main function (they're globals)
+                        if not (mir_func.name == "main" and isinstance(val, Variable)):
+                            self._allocate_slot(val)
 
         # Set the number of locals in the chunk for Frame initialization
         chunk.num_locals = self.next_slot_index
@@ -380,6 +385,8 @@ class BytecodeGenerator:
             "^": Opcode.POW,
             "==": Opcode.EQ,
             "!=": Opcode.NEQ,
+            "===": Opcode.STRICT_EQ,
+            "!==": Opcode.STRICT_NEQ,
             "<": Opcode.LT,
             ">": Opcode.GT,
             "<=": Opcode.LTE,
@@ -659,8 +666,11 @@ class BytecodeGenerator:
                 self.current_chunk.write_u16(slot.index)
                 self._push_stack()
             else:
-                # Global variable
+                # Global variable - strip SSA suffix if present
                 var_name = value.name if hasattr(value, "name") else str(value)
+                # Strip SSA suffix (e.g., "result.0" -> "result")
+                if "." in var_name and var_name.split(".")[-1].isdigit():
+                    var_name = var_name.rsplit(".", 1)[0]
                 name_idx = self._add_constant(var_name)
                 self.current_chunk.write_byte(Opcode.LOAD_GLOBAL)
                 self.current_chunk.write_u16(name_idx)
@@ -682,8 +692,11 @@ class BytecodeGenerator:
                 self.current_chunk.write_u16(slot.index)
                 self._pop_stack()
             else:
-                # Global variable
+                # Global variable - strip SSA suffix if present
                 var_name = value.name if hasattr(value, "name") else str(value)
+                # Strip SSA suffix (e.g., "result.0" -> "result")
+                if "." in var_name and var_name.split(".")[-1].isdigit():
+                    var_name = var_name.rsplit(".", 1)[0]
                 name_idx = self._add_constant(var_name)
                 self.current_chunk.write_byte(Opcode.STORE_GLOBAL)
                 self.current_chunk.write_u16(name_idx)

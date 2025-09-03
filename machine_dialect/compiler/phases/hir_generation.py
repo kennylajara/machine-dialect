@@ -13,23 +13,25 @@ class HIRGenerationPhase:
     def run(self, context: CompilationContext, ast: ASTNode) -> ASTNode:
         """Run HIR generation phase.
 
-        Currently, this is a pass-through as we don't have a separate
-        HIR representation. In the future, this would handle desugaring
-        of complex AST constructs into simpler forms.
+        Converts AST to HIR by applying desugaring and canonicalization
+        transformations using the to_hir method.
 
         Args:
             context: Compilation context.
             ast: Abstract syntax tree.
 
         Returns:
-            HIR representation (currently just the AST).
+            HIR representation with desugared and canonicalized nodes.
         """
         if context.config.verbose:
-            print("Generating HIR (desugaring)...")
+            print("Generating HIR")
 
-        # TODO: Implement actual desugaring transformations
-        # For now, HIR is the same as AST
-        hir = ast
+        # Use to_hir to convert AST to HIR
+        # The ast should be a Program which has to_hir method
+        from machine_dialect.ast.program import Program
+
+        assert isinstance(ast, Program), "HIR generation expects a Program node"
+        hir = ast.to_hir()
 
         if context.config.verbose:
             print("HIR generation complete")

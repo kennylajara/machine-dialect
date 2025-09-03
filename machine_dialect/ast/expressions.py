@@ -10,6 +10,8 @@ Expressions include:
 - Operations: Mathematical, logical, and other operations (to be added)
 """
 
+from typing import Any
+
 from machine_dialect.ast import ASTNode
 from machine_dialect.lexer import Token
 
@@ -136,6 +138,32 @@ class InfixExpression(Expression):
         right: The right operand expression.
     """
 
+    # Map token types to canonical operator strings
+    # Used by both desugar and canonicalize to normalize operators
+    _OPERATOR_MAP = None
+
+    @classmethod
+    def _get_operator_map(cls) -> dict[Any, str]:
+        """Get the operator mapping, creating it lazily if needed."""
+        if cls._OPERATOR_MAP is None:
+            from machine_dialect.lexer import TokenType
+
+            cls._OPERATOR_MAP = {
+                TokenType.OP_PLUS: "+",
+                TokenType.OP_MINUS: "-",
+                TokenType.OP_STAR: "*",
+                TokenType.OP_DIVISION: "/",
+                TokenType.OP_EQ: "==",
+                TokenType.OP_NOT_EQ: "!=",
+                TokenType.OP_STRICT_EQ: "===",
+                TokenType.OP_STRICT_NOT_EQ: "!==",
+                TokenType.OP_LT: "<",
+                TokenType.OP_GT: ">",
+                TokenType.OP_LTE: "<=",
+                TokenType.OP_GTE: ">=",
+            }
+        return cls._OPERATOR_MAP
+
     def __init__(self, token: Token, operator: str, left: Expression) -> None:
         """Initialize an InfixExpression node.
 
@@ -160,52 +188,46 @@ class InfixExpression(Expression):
     def desugar(self) -> "InfixExpression":
         """Desugar infix expression by normalizing operators and recursively desugaring operands.
 
-        Normalizes natural language operators to their symbolic equivalents:
-        - Equality: equals, is equal to, is the same as → ==
-        - Inequality: is not equal to, does not equal, is different from → !=
-        - Strict equality: is strictly equal to, is exactly equal to, is identical to → ===
-        - Strict inequality: is not strictly equal to, is not exactly equal to → !==
-        - Comparisons: is greater than → >, is less than → <, etc.
-        - Power: ** → ^ (** is reserved for markdown keywords)
+        Normalizes operators based on their token type to symbolic equivalents.
 
         Returns:
             A new InfixExpression with normalized operator and desugared operands.
         """
-        # Map of natural language operators to normalized forms
-        operator_map = {
-            # Equality operators
-            "equals": "==",
-            "is equal to": "==",
-            "is the same as": "==",
-            # Inequality operators
-            "is not equal to": "!=",
-            "does not equal": "!=",
-            "doesn't equal": "!=",
-            "is different from": "!=",
-            "isn't": "!=",
-            # Strict equality
-            "is strictly equal to": "===",
-            "is exactly equal to": "===",
-            "is identical to": "===",
-            # Strict inequality
-            "is not strictly equal to": "!==",
-            "is not exactly equal to": "!==",
-            "is not identical to": "!==",
-            # Comparison operators
-            "is greater than": ">",
-            "is less than": "<",
-            "is greater than or equal to": ">=",
-            "is less than or equal to": "<=",
-        }
+        # Get the shared operator mapping
+        operator_map = self._get_operator_map()
 
-        # Normalize the operator
-        normalized_op = operator_map.get(self.operator, self.operator)
+        # Normalize the operator based on token type
+        normalized_op = operator_map.get(self.token.type, self.operator)
 
         # Create new expression with normalized operator
         desugared = InfixExpression(self.token, normalized_op, self.left.desugar())
         if self.right:
             desugared.right = self.right.desugar()
         return desugared
+
+    def canonicalize(self) -> "InfixExpression":
+        """Canonicalize infix expression by normalizing operators and recursively canonicalizing operands.
+
+        This method normalizes operators based on their token type to canonical symbolic forms.
+
+        Returns:
+            A new InfixExpression with canonical operator and canonicalized operands.
+        """
+        # Get the shared operator mapping
+        operator_map = self._get_operator_map()
+
+        # Get canonical operator based on token type
+        canonical_op = operator_map.get(self.token.type, self.operator)
+
+        # Create new expression with canonical operator
+        left_canon = self.left.canonicalize()
+        assert isinstance(left_canon, Expression)
+        canonicalized = InfixExpression(self.token, canonical_op, left_canon)
+        if self.right:
+            right_canon = self.right.canonicalize()
+            assert isinstance(right_canon, Expression)
+            canonicalized.right = right_canon
+        return canonicalized
 
 
 class Arguments(Expression):

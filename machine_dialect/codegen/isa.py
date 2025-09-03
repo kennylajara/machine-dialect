@@ -49,6 +49,14 @@ class Opcode(IntEnum):
     AND = auto()  # Logical AND
     OR = auto()  # Logical OR
 
+    # Bitwise operations
+    XOR = auto()  # Bitwise XOR
+    BIT_AND = auto()  # Bitwise AND
+    BIT_OR = auto()  # Bitwise OR
+    BIT_NOT = auto()  # Bitwise NOT
+    SHL = auto()  # Shift left
+    SHR = auto()  # Shift right
+
     # Control flow
     JUMP = auto()  # Unconditional jump [i16 offset]
     JUMP_IF_FALSE = auto()  # Jump if top is falsy [i16 offset]
@@ -115,6 +123,13 @@ INSTRUCTIONS: dict[Opcode, InstructionSpec] = {
     # Logical
     Opcode.AND: InstructionSpec(Opcode.AND, "AND", [], -1),
     Opcode.OR: InstructionSpec(Opcode.OR, "OR", [], -1),
+    # Bitwise
+    Opcode.XOR: InstructionSpec(Opcode.XOR, "XOR", [], -1),
+    Opcode.BIT_AND: InstructionSpec(Opcode.BIT_AND, "BIT_AND", [], -1),
+    Opcode.BIT_OR: InstructionSpec(Opcode.BIT_OR, "BIT_OR", [], -1),
+    Opcode.BIT_NOT: InstructionSpec(Opcode.BIT_NOT, "BIT_NOT", [], 0),
+    Opcode.SHL: InstructionSpec(Opcode.SHL, "SHL", [], -1),
+    Opcode.SHR: InstructionSpec(Opcode.SHR, "SHR", [], -1),
     # Control
     Opcode.JUMP: InstructionSpec(Opcode.JUMP, "JUMP", [OperandType.I16], 0),
     Opcode.JUMP_IF_FALSE: InstructionSpec(Opcode.JUMP_IF_FALSE, "JUMP_IF_FALSE", [OperandType.I16], -1),

@@ -385,7 +385,12 @@ class BytecodeGenerator:
             "*": Opcode.MUL,
             "/": Opcode.DIV,
             "%": Opcode.MOD,
-            "^": Opcode.POW,
+            "**": Opcode.POW,  # Power operator
+            "^": Opcode.XOR,  # Bitwise XOR
+            "&": Opcode.BIT_AND,  # Bitwise AND
+            "|": Opcode.BIT_OR,  # Bitwise OR
+            "<<": Opcode.SHL,  # Shift left
+            ">>": Opcode.SHR,  # Shift right
             "==": Opcode.EQ,
             "!=": Opcode.NEQ,
             "===": Opcode.STRICT_EQ,
@@ -427,6 +432,8 @@ class BytecodeGenerator:
             self.current_chunk.write_byte(Opcode.NEG)
         elif inst.op == "not" or inst.op == "!":
             self.current_chunk.write_byte(Opcode.NOT)
+        elif inst.op == "~":
+            self.current_chunk.write_byte(Opcode.BIT_NOT)
         else:
             raise ValueError(f"Unknown unary operator: {inst.op}")
 

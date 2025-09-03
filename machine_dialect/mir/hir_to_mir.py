@@ -608,10 +608,10 @@ class HIRToMIRLowering:
                 right = temp_right
 
             # Map AST operators to MIR operators
-            # In MIR: ^ is XOR (bitwise), ** is power (arithmetic)
+            # AST uses ^ for power, but MIR/bytecode use ** for power and ^ for XOR
             mir_operator = expr.operator
             if expr.operator == "^":
-                mir_operator = "**"  # Power operator in MIR
+                mir_operator = "**"  # In AST, ^ means power; convert to ** for MIR
 
             # Get result type
             from machine_dialect.mir.mir_types import get_binary_op_result_type

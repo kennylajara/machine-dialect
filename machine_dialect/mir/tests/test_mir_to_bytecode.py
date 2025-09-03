@@ -373,23 +373,24 @@ class TestBytecodeGeneration(unittest.TestCase):
     def test_slot_allocation(self) -> None:
         """Test stack slot allocation for locals and temporaries."""
         mir_module = MIRModule("test")
-        main = MIRFunction("main", [], MIRType.EMPTY)
+        # Use a function name other than "main" to test local slot allocation
+        func = MIRFunction("test_func", [], MIRType.EMPTY)
         entry = BasicBlock("entry")
-        main.cfg.add_block(entry)
-        main.cfg.set_entry_block(entry)
+        func.cfg.add_block(entry)
+        func.cfg.set_entry_block(entry)
 
         # Create multiple locals and temporaries
         x = Variable("x", MIRType.INT)
         y = Variable("y", MIRType.INT)
         z = Variable("z", MIRType.INT)
 
-        main.add_local(x)
-        main.add_local(y)
-        main.add_local(z)
+        func.add_local(x)
+        func.add_local(y)
+        func.add_local(z)
 
         # Also create temporaries
-        t1 = main.new_temp(MIRType.INT)
-        main.new_temp(MIRType.INT)
+        t1 = func.new_temp(MIRType.INT)
+        func.new_temp(MIRType.INT)
 
         # Use them
         entry.add_instruction(StoreVar(x, Constant(1, MIRType.INT)))
@@ -398,13 +399,23 @@ class TestBytecodeGeneration(unittest.TestCase):
         entry.add_instruction(StoreVar(z, t1))
         entry.add_instruction(Return())
 
+        mir_module.add_function(func)
+
+        # Also add a main function that calls this
+        main = MIRFunction("main", [], MIRType.EMPTY)
+        main_entry = BasicBlock("entry")
+        main.cfg.add_block(main_entry)
+        main.cfg.set_entry_block(main_entry)
+        main_entry.add_instruction(Return())
         mir_module.add_function(main)
         mir_module.set_main_function("main")
 
         bytecode_module = generate_bytecode(mir_module)
 
         # Should have multiple STORE_LOCAL instructions with different slots
-        bytecode = bytecode_module.main_chunk.bytecode
+        # Check the test_func chunk, not main
+        test_func_chunk = bytecode_module.functions["test_func"]
+        bytecode = test_func_chunk.bytecode
         store_count = bytecode.count(Opcode.STORE_LOCAL)
         self.assertGreaterEqual(store_count, 3)  # At least 3 stores
 

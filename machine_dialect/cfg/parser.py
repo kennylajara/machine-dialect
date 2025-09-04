@@ -30,10 +30,18 @@ class CFGParser:
         Raises:
             LarkError: If the code cannot be parsed.
         """
+        # Handle empty or whitespace-only input
+        if not code or not code.strip():
+            # Return an empty tree for empty programs
+            from lark import Tree
+
+            return Tree("program", [Tree("statement_list", [])])
+
         try:
             return self.parser.parse(code)
         except LarkError as e:
-            raise ValueError(f"Failed to parse code: {e}") from e
+            # Convert Lark errors to match main parser behavior
+            raise ValueError(f"Syntax error: {e}") from e
 
     def validate(self, code: str) -> bool:
         """Validate if the code conforms to the grammar.

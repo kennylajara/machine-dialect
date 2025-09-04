@@ -4,7 +4,10 @@
 
 start: program
 
+// Allow empty programs (just whitespace/comments)
 program: utility_def* statement_list
+       | utility_def+  // Just utility definitions
+       |               // Completely empty program
 
 // Utility definitions (markdown style) - parsed but treated as metadata
 utility_def: MARKDOWN_HEADER HTML_BLOCK? INPUTS_SECTION? OUTPUTS_SECTION?
@@ -14,7 +17,10 @@ HTML_BLOCK: /<details>[\s\S]*?<\/details>/
 INPUTS_SECTION: /####\s+Inputs:[^\n]*(\n-[^\n]*)*/
 OUTPUTS_SECTION: /####\s+Outputs:[^\n]*(\n-[^\n]*)*/
 
-statement_list: (statement ".")* statement "."?
+// Allow statements with or without periods, or single expressions
+statement_list: (statement ".")+
+              | statement        // Single statement without period
+              | expression       // Bare expression
 
 statement: set_stmt
          | give_back_stmt
@@ -27,10 +33,14 @@ statement: set_stmt
          | action_stmt
          | interaction_stmt
 
-// Statements
+// Statements - includes type annotations
 set_stmt: "Set"i identifier "to"i expression
+        | "Set"i identifier "as"i type_name "to"i expression                   // Type annotations
         | "Set"i identifier "using"i identifier ("with"i expression_list)?     // Set using with positional args
         | "Set"i identifier "using"i identifier ("where"i named_args)?         // Set using with named args
+
+// Type names for type annotations
+type_name: "Integer"i | "Float"i | "Number"i | "Text"i | "String"i | "Boolean"i | "Bool"i | "URL"i | IDENTIFIER
 give_back_stmt: ("Give"i "back"i | "Gives"i "back"i) expression
 say_stmt: "Say"i expression
 tell_stmt: "Tell"i expression  // Alias for Say
@@ -83,6 +93,7 @@ comp_op: "<=" | ">=" | "<" | ">"
        | "is"i "not"i "equal"i "to"i
        | "does"i "not"i "equal"i
        | "is"i "different"i "from"i
+       | "is"i "not"i type_name        // Type checking (negated)
        | "is"i "not"i
        | "is"i "strictly"i "equal"i "to"i
        | "is"i "exactly"i "equal"i "to"i
@@ -98,6 +109,7 @@ comp_op: "<=" | ">=" | "<" | ">"
        | "is"i "under"i                // Natural language <
        | "is"i "at"i "least"i          // Natural language >=
        | "is"i "at"i "most"i           // Natural language <=
+       | "is"i type_name                // Type checking
 
 arith_expr: term (("+"|"-") term)*
 
@@ -129,9 +141,11 @@ literal: LITERAL_FLOAT
 
 // Literal patterns - these are complete tokens including underscores
 // Higher priority than IDENT to ensure they match first
-LITERAL_FLOAT.3: /_-?\d+\.\d+_/
+// Support scientific notation for floats
+LITERAL_FLOAT.3: /_-?\d+\.\d+([eE][+-]?\d+)?_/ | /_-?\d+[eE][+-]?\d+_/
 LITERAL_INT.3: /_-?\d+_/
-LITERAL_STRING.3: /_"(?:[^"\\]|\\.)*"_|_'(?:[^'\\]|\\.)*'_/
+// Support single, double, and triple-quoted strings
+LITERAL_STRING.3: /_"""[\s\S]*?"""_|_'''[\s\S]*?'''_|_"(?:[^"\\]|\\.)*"_|_'(?:[^'\\]|\\.)*'_/
 LITERAL_TRUE.3: /_true_/i
 LITERAL_FALSE.3: /_false_/i
 LITERAL_YES.3: /_yes_/i       // Yes literal

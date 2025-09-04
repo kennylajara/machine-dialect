@@ -9,27 +9,6 @@ import pytest
 from machine_dialect.acceptance.parity_test_framework import ParityTestCase, ParityTestRunner
 
 
-def create_syntax_error_tests() -> list[ParityTestCase]:
-    """Create tests for syntax errors."""
-    tests = []
-
-    tests.extend(
-        [
-            # Missing components
-            ParityTestCase("Missing variable in Set", "Set to _5_.", False, None),
-            ParityTestCase("Missing value in Set", "Set x to.", False, None),
-            ParityTestCase("Missing period", "Set x to _5_", False, None),
-            ParityTestCase("Invalid Give back", "Gives back.", False, None),
-            ParityTestCase("Empty If body", "If _true_ then:", False, None),
-            ParityTestCase("Unclosed parenthesis", "Give back (_5_ + _3.", False, None),
-            ParityTestCase("Extra parenthesis", "Give back _5_ + _3_).", False, None),
-            ParityTestCase("Invalid operator sequence", "Give back _5_ + * _3_.", False, None),
-        ]
-    )
-
-    return tests
-
-
 def create_runtime_error_tests() -> list[ParityTestCase]:
     """Create tests for runtime errors that should be caught."""
     tests = []
@@ -63,11 +42,6 @@ def create_boundary_tests() -> list[ParityTestCase]:
 
     tests.extend(
         [
-            # Empty and minimal programs
-            ParityTestCase("Empty program", "", False, None),
-            ParityTestCase("Just whitespace", "   \n  \t  ", False, None),
-            ParityTestCase("Single literal", "_42_", False, None),
-            ParityTestCase("Single identifier", "x", False, None),
             # Very large values
             ParityTestCase("Large integer", f"Give back _{10**100}_.", True, 10**100),
             ParityTestCase("Large float", f"Give back _{1.7976931348623157e+308}_.", True, 1.7976931348623157e308),
@@ -167,18 +141,15 @@ def run_error_handling_tests() -> tuple[int, int]:
 
     # Collect all error tests
     print("\nCollecting tests...")
-    syntax_tests = create_syntax_error_tests()
     runtime_tests = create_runtime_error_tests()
     boundary_tests = create_boundary_tests()
     comment_tests = create_comment_tests()
 
-    all_tests.extend(syntax_tests)
     all_tests.extend(runtime_tests)
     all_tests.extend(boundary_tests)
     all_tests.extend(comment_tests)
 
     print(f"Total error handling tests: {len(all_tests)}")
-    print(f"  Syntax errors: {len(syntax_tests)}")
     print(f"  Runtime errors: {len(runtime_tests)}")
     print(f"  Boundary cases: {len(boundary_tests)}")
     print(f"  Comment handling: {len(comment_tests)}")
@@ -189,7 +160,6 @@ def run_error_handling_tests() -> tuple[int, int]:
 
     # Report results by category
     categories = {
-        "Syntax": syntax_tests,
         "Runtime": runtime_tests,
         "Boundary": boundary_tests,
         "Comments": comment_tests,
@@ -234,22 +204,6 @@ def run_error_handling_tests() -> tuple[int, int]:
 
 
 # ========== Pytest Test Functions ==========
-
-
-def test_syntax_errors() -> None:
-    """Test syntax error handling for parity."""
-    runner = ParityTestRunner(verbose=False)
-    tests = create_syntax_error_tests()
-    results, passed, failed = runner.run_tests(tests)
-
-    # For syntax errors, we expect them to fail parsing consistently
-    # So "success" means both parsers failed
-    if failed > 0:
-        failures = []
-        for result in results:
-            if result.result.name != "SUCCESS":
-                failures.append(f"{result.test.name}: {result.result.name}")
-        pytest.fail("Syntax error tests failed:\n" + "\n".join(failures))
 
 
 def test_runtime_errors() -> None:

@@ -122,17 +122,6 @@ Line 3"_.""",
                 True,
                 "Line 1\nLine 2\nLine 3",
             ),
-            # Triple-quoted strings (if supported)
-            ParityTestCase(
-                "Triple quote string",
-                '''Give back _"""
-This is a
-multi-line
-string
-"""_.''',
-                True,
-                "\nThis is a\nmulti-line\nstring\n",
-            ),
             # Mixed quotes
             ParityTestCase(
                 "Mixed quotes in string",

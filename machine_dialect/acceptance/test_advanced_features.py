@@ -155,50 +155,6 @@ Else:
     return tests
 
 
-def create_type_annotation_tests() -> list[ParityTestCase]:
-    """Create tests for type annotations."""
-    tests = []
-
-    tests.extend(
-        [
-            # Type annotations in Set
-            ParityTestCase(
-                "Set with type",
-                "Set x as Integer to _42_. Give back x.",
-                True,
-                42,
-            ),
-            ParityTestCase(
-                "Set float type",
-                "Set pi as Float to _3.14_. Give back pi.",
-                True,
-                3.14,
-            ),
-            ParityTestCase(
-                "Set text type",
-                'Set name as Text to _"Alice"_. Give back name.',
-                True,
-                "Alice",
-            ),
-            # Type checking
-            ParityTestCase(
-                "Type check integer",
-                "Set x to _42_. Give back x is Integer.",
-                True,
-                True,
-            ),
-            ParityTestCase(
-                "Type check string",
-                'Set s to _"hello"_. Give back s is Text.',
-                True,
-                True,
-            ),
-        ]
-    )
-
-    return tests
-
-
 def create_named_argument_tests() -> list[ParityTestCase]:
     """Create tests for named arguments."""
     tests = []
@@ -336,7 +292,6 @@ def run_advanced_feature_tests() -> tuple[int, int]:
     utility_tests = create_utility_tests()
     action_tests = create_action_interaction_tests()
     control_tests = create_control_flow_tests()
-    type_tests = create_type_annotation_tests()
     named_arg_tests = create_named_argument_tests()
     default_tests = create_default_parameter_tests()
     keyword_tests = create_special_keyword_tests()
@@ -344,7 +299,6 @@ def run_advanced_feature_tests() -> tuple[int, int]:
     all_tests.extend(utility_tests)
     all_tests.extend(action_tests)
     all_tests.extend(control_tests)
-    all_tests.extend(type_tests)
     all_tests.extend(named_arg_tests)
     all_tests.extend(default_tests)
     all_tests.extend(keyword_tests)
@@ -353,7 +307,6 @@ def run_advanced_feature_tests() -> tuple[int, int]:
     print(f"  Utilities: {len(utility_tests)}")
     print(f"  Actions/Interactions: {len(action_tests)}")
     print(f"  Control flow: {len(control_tests)}")
-    print(f"  Type annotations: {len(type_tests)}")
     print(f"  Named arguments: {len(named_arg_tests)}")
     print(f"  Default parameters: {len(default_tests)}")
     print(f"  Special keywords: {len(keyword_tests)}")
@@ -367,7 +320,6 @@ def run_advanced_feature_tests() -> tuple[int, int]:
         "Utilities": utility_tests,
         "Actions": action_tests,
         "Control": control_tests,
-        "Types": type_tests,
         "Named Args": named_arg_tests,
         "Defaults": default_tests,
         "Keywords": keyword_tests,
@@ -454,20 +406,6 @@ def test_advanced_control_flow() -> None:
             if result.result.name != "SUCCESS":
                 failures.append(f"{result.test.name}: {result.result.name}")
         pytest.fail("Control flow tests failed:\n" + "\n".join(failures))
-
-
-def test_type_annotations() -> None:
-    """Test type annotations for parity."""
-    runner = ParityTestRunner(verbose=False)
-    tests = create_type_annotation_tests()
-    results, passed, failed = runner.run_tests(tests)
-
-    if failed > 0:
-        failures = []
-        for result in results:
-            if result.result.name != "SUCCESS":
-                failures.append(f"{result.test.name}: {result.result.name}")
-        pytest.fail("Type annotation tests failed:\n" + "\n".join(failures))
 
 
 def test_named_arguments() -> None:

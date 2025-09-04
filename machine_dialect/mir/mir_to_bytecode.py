@@ -436,8 +436,13 @@ class BytecodeGenerator:
         # Load source
         self._load_from_value(inst.source)
 
-        # Store to destination
-        self._store_to_value(inst.dest)
+        # Store to destination only if used multiple times
+        if self._is_single_use(inst.dest):
+            # Keep value on stack for single use
+            self.values_on_stack.append(inst.dest)
+        else:
+            # Store to destination for multiple uses
+            self._store_to_value(inst.dest)
 
     def _gen_binary_op(self, inst: BinaryOp) -> None:
         """Generate code for BinaryOp.
@@ -486,8 +491,13 @@ class BytecodeGenerator:
             # Unknown operator, generate error
             raise ValueError(f"Unknown binary operator: {inst.op}")
 
-        # Store result
-        self._store_to_value(inst.dest)
+        # Store result only if used multiple times
+        if self._is_single_use(inst.dest):
+            # Keep result on stack for single use
+            self.values_on_stack.append(inst.dest)
+        else:
+            # Store result for multiple uses
+            self._store_to_value(inst.dest)
 
     def _gen_unary_op(self, inst: UnaryOp) -> None:
         """Generate code for UnaryOp.
@@ -511,8 +521,13 @@ class BytecodeGenerator:
         else:
             raise ValueError(f"Unknown unary operator: {inst.op}")
 
-        # Store result
-        self._store_to_value(inst.dest)
+        # Store result only if used multiple times
+        if self._is_single_use(inst.dest):
+            # Keep result on stack for single use
+            self.values_on_stack.append(inst.dest)
+        else:
+            # Store result for multiple uses
+            self._store_to_value(inst.dest)
 
     def _gen_jump(self, inst: Jump) -> None:
         """Generate code for Jump.
@@ -653,12 +668,19 @@ class BytecodeGenerator:
         if not self.current_chunk:
             return
 
-        # Load the value onto the stack
-        self._load_from_value(inst.value)
-
-        # Generate POP to discard it
-        self.current_chunk.write_byte(Opcode.POP)
-        self._pop_stack()
+        # Special case: if value is already on stack (from single-use optimization),
+        # it's already there and we can pop it directly
+        if inst.value in self.values_on_stack:
+            # Remove from tracking and generate POP
+            self.values_on_stack.remove(inst.value)
+            self.current_chunk.write_byte(Opcode.POP)
+            self._pop_stack()
+        else:
+            # Load the value onto the stack normally
+            self._load_from_value(inst.value)
+            # Generate POP to discard it
+            self.current_chunk.write_byte(Opcode.POP)
+            self._pop_stack()
 
     def _gen_select(self, inst: Select) -> None:
         """Generate code for Select (ternary).

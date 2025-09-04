@@ -11,6 +11,9 @@ import readline  # noqa
 import argparse
 import sys
 
+from machine_dialect.compiler.config import CompilerConfig
+from machine_dialect.compiler.context import CompilationContext
+from machine_dialect.compiler.phases.hir_generation import HIRGenerationPhase
 from machine_dialect.interpreter.evaluator import evaluate
 from machine_dialect.interpreter.objects import Environment
 from machine_dialect.lexer.lexer import Lexer
@@ -46,6 +49,7 @@ class REPL:
         self.multiline_buffer = ""
         self.in_multiline_mode = False
         self.env = Environment()  # Persistent environment for variables
+        self.hir_phase = HIRGenerationPhase()  # HIR generation phase for desugaring
 
     def print_welcome(self) -> None:
         """Print the welcome message when REPL starts."""
@@ -53,7 +57,7 @@ class REPL:
         if self.debug_tokens:
             mode = "Token Debug Mode"
         elif self.show_ast:
-            mode = "AST Mode"
+            mode = "HIR Mode (desugared AST)"
         else:
             mode = "Evaluation Mode"
         print(f"Mode: {mode}")
@@ -72,7 +76,7 @@ class REPL:
         if self.debug_tokens:
             print("\nEnter any text to see its tokens.")
         elif self.show_ast:
-            print("\nEnter Machine Dialect code to see its AST.")
+            print("\nEnter Machine Dialect code to see its HIR (desugared AST).")
             print("Source is accumulated across lines until an error occurs.")
         else:
             print("\nEnter Machine Dialect code to see its evaluation result.")
@@ -218,20 +222,30 @@ class REPL:
             # If successful, update accumulated source
             self.accumulated_source = test_source
 
+            # Generate HIR by desugaring the AST
+            # Create a minimal compilation context for HIR generation
+            from pathlib import Path
+
+            from machine_dialect.ast.program import Program
+
+            config = CompilerConfig(verbose=False)
+            context = CompilationContext(source_path=Path("<repl>"), source_content=test_source, config=config)
+            hir = self.hir_phase.run(context, ast)
+
             if self.show_ast:
-                # Show AST
-                print("\nAST:")
+                # Show HIR (desugared AST)
+                print("\nHIR (desugared AST):")
                 print("-" * 50)
-                if ast and ast.statements:
-                    for node in ast.statements:
+                if isinstance(hir, Program) and hir.statements:
+                    for node in hir.statements:
                         print(f"  {node}")
                 else:
                     print("  (empty)")
                 print("-" * 50)
                 print()
             else:
-                # Evaluate and show result
-                result = evaluate(ast, self.env)
+                # Evaluate the HIR and show result
+                result = evaluate(hir, self.env)
 
                 if result is not None:
                     print(result.inspect())

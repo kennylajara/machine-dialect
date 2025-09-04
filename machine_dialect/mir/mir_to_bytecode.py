@@ -83,6 +83,54 @@ class BytecodeGenerator:
         self.debug_info: DebugInfo | None = None
         self.current_source_line: int = 0
 
+        # Usage analysis for temporaries
+        self.temp_usage_counts: dict[MIRValue, int] = {}
+        self.values_on_stack: list[MIRValue] = []  # Track what's currently on the stack
+
+    def _analyze_usage(self, function: MIRFunction) -> None:
+        """Analyze how many times each temporary is used.
+
+        Args:
+            function: The MIR function to analyze.
+        """
+        self.temp_usage_counts.clear()
+
+        # Count uses in all reachable blocks
+        visited = set()
+        to_visit = [function.cfg.entry_block] if function.cfg.entry_block else []
+
+        while to_visit:
+            block = to_visit.pop(0)
+            if block in visited:
+                continue
+            visited.add(block)
+
+            # Count uses in instructions
+            for inst in block.instructions:
+                for used_value in inst.get_uses():
+                    if isinstance(used_value, Temp | Variable):
+                        self.temp_usage_counts[used_value] = self.temp_usage_counts.get(used_value, 0) + 1
+
+            # Count uses in phi nodes
+            for phi in block.phi_nodes:
+                for incoming_val, _ in phi.incoming:
+                    if isinstance(incoming_val, Temp | Variable):
+                        self.temp_usage_counts[incoming_val] = self.temp_usage_counts.get(incoming_val, 0) + 1
+
+            # Add successors to visit
+            to_visit.extend(block.successors)
+
+    def _is_single_use(self, value: MIRValue) -> bool:
+        """Check if a value is used exactly once.
+
+        Args:
+            value: The MIR value to check.
+
+        Returns:
+            True if the value is used exactly once.
+        """
+        return self.temp_usage_counts.get(value, 0) == 1
+
     def generate_module(self, mir_module: MIRModule, debug_info: DebugInfo | None = None) -> Module:
         """Generate bytecode module from MIR module.
 
@@ -148,6 +196,9 @@ class BytecodeGenerator:
         self.local_slots.clear()
         self.next_slot_index = 0
 
+        # Analyze usage of temporaries FIRST
+        self._analyze_usage(mir_func)
+
         # Perform register allocation
         allocator = RegisterAllocator(mir_func)
         self.register_allocation = allocator.allocate()
@@ -155,6 +206,7 @@ class BytecodeGenerator:
         self.current_stack_depth = 0
         self.label_offsets.clear()
         self.pending_jumps.clear()
+        self.values_on_stack.clear()
 
         # Allocate slots for parameters
         for param in mir_func.params:
@@ -333,8 +385,14 @@ class BytecodeGenerator:
         self.current_chunk.write_u16(const_idx)
         self._push_stack()
 
-        # Store to destination
-        self._store_to_value(inst.dest)
+        # Only store to destination if used multiple times
+        # Single-use values stay on stack for immediate consumption
+        if self._is_single_use(inst.dest):
+            # Track that this value is on the stack
+            self.values_on_stack.append(inst.dest)
+        else:
+            # Store to destination for multiple uses
+            self._store_to_value(inst.dest)
 
     def _gen_load_var(self, inst: LoadVar) -> None:
         """Generate code for LoadVar.
@@ -694,6 +752,13 @@ class BytecodeGenerator:
             value: The value to load.
         """
         if not self.current_chunk:
+            return
+
+        # Check if value is already on the stack (single-use optimization)
+        if value in self.values_on_stack:
+            # Value is already on stack, just remove from tracking
+            self.values_on_stack.remove(value)
+            # Stack already has the value, no need to load
             return
 
         if isinstance(value, Constant):

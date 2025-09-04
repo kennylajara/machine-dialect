@@ -4,7 +4,6 @@ from machine_dialect.ast import (
     ActionStatement,
     Arguments,
     BlockStatement,
-    BooleanLiteral,
     CallExpression,
     CallStatement,
     ConditionalExpression,
@@ -30,6 +29,7 @@ from machine_dialect.ast import (
     StringLiteral,
     URLLiteral,
     UtilityStatement,
+    YesNoLiteral,
 )
 from machine_dialect.errors.exceptions import MDBaseException, MDNameError, MDSyntaxError
 from machine_dialect.errors.messages import (
@@ -471,11 +471,11 @@ class Parser:
             value=value,
         )
 
-    def _parse_boolean_literal(self) -> BooleanLiteral:
+    def _parse_boolean_literal(self) -> YesNoLiteral:
         """Parse a boolean literal.
 
         Returns:
-            A BooleanLiteral AST node.
+            A YesNoLiteral AST node.
 
         Note:
             The lexer has already validated and provided the canonical
@@ -484,9 +484,9 @@ class Parser:
         assert self._current_token is not None
 
         # Determine the boolean value based on the token type
-        value = self._current_token.type == TokenType.LIT_TRUE
+        value = self._current_token.type == TokenType.LIT_YES
 
-        return BooleanLiteral(
+        return YesNoLiteral(
             token=self._current_token,
             value=value,
         )
@@ -1001,7 +1001,7 @@ class Parser:
             url_value = self._parse_url_literal()
             self._advance_tokens()
             return url_value
-        elif token.type in (TokenType.LIT_TRUE, TokenType.LIT_FALSE):
+        elif token.type in (TokenType.LIT_YES, TokenType.LIT_NO):
             # Boolean literal
             bool_value = self._parse_boolean_literal()
             self._advance_tokens()
@@ -1060,8 +1060,8 @@ class Parser:
                     TokenType.LIT_INT,
                     TokenType.LIT_FLOAT,
                     TokenType.LIT_TEXT,
-                    TokenType.LIT_TRUE,
-                    TokenType.LIT_FALSE,
+                    TokenType.LIT_YES,
+                    TokenType.LIT_NO,
                     TokenType.KW_EMPTY,
                 ):
                     # Report error but continue parsing (error recovery)
@@ -1603,8 +1603,8 @@ class Parser:
             TokenType.LIT_FLOAT: self._parse_float_literal,
             TokenType.LIT_TEXT: self._parse_string_literal,
             TokenType.LIT_URL: self._parse_url_literal,
-            TokenType.LIT_TRUE: self._parse_boolean_literal,
-            TokenType.LIT_FALSE: self._parse_boolean_literal,
+            TokenType.LIT_YES: self._parse_boolean_literal,
+            TokenType.LIT_NO: self._parse_boolean_literal,
             TokenType.KW_EMPTY: self._parse_empty_literal,
             TokenType.OP_MINUS: self._parse_prefix_expression,
             TokenType.KW_NEGATION: self._parse_prefix_expression,
@@ -1966,8 +1966,7 @@ class Parser:
             TokenType.KW_TEXT: "Text",
             TokenType.KW_NUMBER: "Number",
             TokenType.KW_WHOLE_NUMBER: "Whole Number",
-            TokenType.KW_STATUS: "Status",
-            TokenType.KW_BOOL: "Boolean",
+            TokenType.KW_YES_NO: "Yes/No",  # Yes/No is the canonical type
             TokenType.KW_INT: "Integer",
             TokenType.KW_FLOAT: "Float",
             TokenType.KW_URL: "URL",

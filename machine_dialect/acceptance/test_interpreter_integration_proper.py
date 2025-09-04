@@ -292,7 +292,7 @@ def test_comprehensive_integration() -> None:
         ),
         IntegrationTestCase(
             name="if_statement",
-            code="If _true_ then:\n> Give back _1_.\nElse:\n> Give back _0_.",
+            code="If _yes_ then:\n> Give back _1_.\nElse:\n> Give back _0_.",
             expected_output=1,
             description="Control flow - all components support",
         ),

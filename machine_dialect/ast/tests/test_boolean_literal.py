@@ -1,29 +1,29 @@
-from machine_dialect.ast import BooleanLiteral
+from machine_dialect.ast import YesNoLiteral
 from machine_dialect.lexer import Token, TokenType
 
 
 class TestBooleanLiteral:
     def test_boolean_literal_true_display(self) -> None:
-        """Test that BooleanLiteral displays True with underscores."""
-        token = Token(TokenType.LIT_TRUE, "True", 1, 0)
-        literal = BooleanLiteral(token, True)
+        """Test that YesNoLiteral displays Yes with underscores."""
+        token = Token(TokenType.LIT_YES, "Yes", 1, 0)
+        literal = YesNoLiteral(token, True)
 
-        assert str(literal) == "_True_"
+        assert str(literal) == "_Yes_"
 
     def test_boolean_literal_false_display(self) -> None:
-        """Test that BooleanLiteral displays False with underscores."""
-        token = Token(TokenType.LIT_FALSE, "False", 1, 0)
-        literal = BooleanLiteral(token, False)
+        """Test that YesNoLiteral displays No with underscores."""
+        token = Token(TokenType.LIT_NO, "No", 1, 0)
+        literal = YesNoLiteral(token, False)
 
-        assert str(literal) == "_False_"
+        assert str(literal) == "_No_"
 
     def test_boolean_literal_value(self) -> None:
-        """Test that BooleanLiteral stores the correct boolean value."""
-        true_token = Token(TokenType.LIT_TRUE, "True", 1, 0)
-        true_literal = BooleanLiteral(true_token, True)
+        """Test that YesNoLiteral stores the correct boolean value."""
+        true_token = Token(TokenType.LIT_YES, "Yes", 1, 0)
+        true_literal = YesNoLiteral(true_token, True)
 
-        false_token = Token(TokenType.LIT_FALSE, "False", 1, 0)
-        false_literal = BooleanLiteral(false_token, False)
+        false_token = Token(TokenType.LIT_NO, "No", 1, 0)
+        false_literal = YesNoLiteral(false_token, False)
 
         assert true_literal.value is True
         assert false_literal.value is False

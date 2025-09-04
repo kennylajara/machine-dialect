@@ -121,26 +121,26 @@ class TestPrefixExpressions:
         "source,operator,value",
         [
             # Boolean negation
-            ("not True", "not", True),
-            ("not False", "not", False),
+            ("not Yes", "not", True),
+            ("not No", "not", False),
             # Boolean negation with underscores
-            ("not _True_", "not", True),
-            ("not _False_", "not", False),
+            ("not _Yes_", "not", True),
+            ("not _No_", "not", False),
             # Underscore-wrapped entire negation expression
             # ("_not True_", "not", True),
             # ("_not False_", "not", False),
             # Case insensitive NOT
-            ("NOT True", "not", True),
-            ("NOT False", "not", False),
-            ("Not True", "not", True),
-            ("Not False", "not", False),
-            ("nOt True", "not", True),
-            ("nOt False", "not", False),
+            ("NOT Yes", "not", True),
+            ("NOT No", "not", False),
+            ("Not Yes", "not", True),
+            ("Not No", "not", False),
+            ("nOt Yes", "not", True),
+            ("nOt No", "not", False),
             # Case insensitive boolean values with negation
-            ("not true", "not", True),
-            ("not false", "not", False),
-            ("NOT TRUE", "not", True),
-            ("NOT FALSE", "not", False),
+            ("not yes", "not", True),
+            ("not no", "not", False),
+            ("NOT YES", "not", True),
+            ("NOT NO", "not", False),
         ],
     )
     def test_boolean_negation_expressions(self, source: str, operator: str, value: bool) -> None:
@@ -175,7 +175,7 @@ class TestPrefixExpressions:
 
     def test_multiple_prefix_expressions(self) -> None:
         """Test parsing multiple prefix expressions in sequence."""
-        source = "-42. not True. -3.14. not False."
+        source = "-42. not Yes. -3.14. not No."
         parser = Parser()
 
         program = parser.parse(source)
@@ -249,7 +249,7 @@ class TestPrefixExpressions:
 
     def test_double_negation(self) -> None:
         """Test parsing double negation expressions."""
-        source = "--42. not not True."
+        source = "--42. not not Yes."
         parser = Parser()
 
         program = parser.parse(source)
@@ -393,11 +393,11 @@ class TestPrefixExpressions:
         # Test cases with expected string representations
         test_cases = [
             ("-42", "(-_42_)"),
-            ("not True", "(not _True_)"),
+            ("not Yes", "(not _Yes_)"),
             ("-3.14", "(-_3.14_)"),
-            ("not False", "(not _False_)"),
+            ("not No", "(not _No_)"),
             ("--5", "(-(-_5_))"),
-            ("not not True", "(not (not _True_))"),
+            ("not not Yes", "(not (not _Yes_))"),
         ]
 
         for source, expected in test_cases:

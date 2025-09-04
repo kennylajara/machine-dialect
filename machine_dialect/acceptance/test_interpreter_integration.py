@@ -75,8 +75,8 @@ Set `url` to _"https://example.com"_.
     def test_boolean_operations(self) -> None:
         """Test boolean values and comparisons."""
         source = """
-Set `is_true` to _true_.
-Set `is_false` to _false_.
+Set `is_true` to _yes_.
+Set `is_false` to _No_.
 Set `a` to _10_.
 Set `b` to _5_.
 Set `greater` to `a` > `b`.
@@ -554,7 +554,7 @@ Say `message`.
 Set `int_val` to _42_.
 Set `float_val` to _3.14_.
 Set `string_val` to _"test"_.
-Set `bool_val` to _true_.
+Set `bool_val` to _yes_.
 Set `url_val` to _"https://example.com"_.
 Set `empty_val` to _empty_.
 """

@@ -225,7 +225,7 @@ class TestActionStatements:
 
 #### Outputs:
 - `result` **as** Number
-- `success` **as** Status"""
+- `success` **as** Yes/No"""
 
         parser = Parser()
         program = parser.parse(source)
@@ -253,7 +253,7 @@ class TestActionStatements:
         success_param = action_stmt.outputs[1]
         assert isinstance(success_param, Output)
         assert success_param.name.value == "success"
-        assert success_param.type_name == "Status"
+        assert success_param.type_name == "Yes/No"
 
     def test_action_with_both_inputs_and_outputs(self) -> None:
         """Test parsing an action with both input and output parameters."""

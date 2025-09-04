@@ -65,26 +65,6 @@ class StringLiteral(Expression):
         return self
 
 
-class BooleanLiteral(Expression):
-    """Represents a boolean literal expression."""
-
-    def __init__(self, token: Token, value: bool) -> None:
-        super().__init__(token)
-        self.value = value
-
-    def __str__(self) -> str:
-        # Display with underscores for the new syntax
-        return f"_{self.value}_"
-
-    def desugar(self) -> "BooleanLiteral":
-        """Boolean literals are already normalized by lexer.
-
-        Returns:
-            Self unchanged.
-        """
-        return self
-
-
 class EmptyLiteral(Expression):
     """Represents an empty/null literal expression."""
 
@@ -118,6 +98,26 @@ class URLLiteral(Expression):
 
     def desugar(self) -> "URLLiteral":
         """URL literals are already in simplest form.
+
+        Returns:
+            Self unchanged.
+        """
+        return self
+
+
+class YesNoLiteral(Expression):
+    """Represents a boolean literal expression."""
+
+    def __init__(self, token: Token, value: bool) -> None:
+        super().__init__(token)
+        self.value = value
+
+    def __str__(self) -> str:
+        # Display with underscores for the new syntax using canonical Yes/No
+        return f"_{'Yes' if self.value else 'No'}_"
+
+    def desugar(self) -> "YesNoLiteral":
+        """Boolean literals are already normalized by lexer.
 
         Returns:
             Self unchanged.

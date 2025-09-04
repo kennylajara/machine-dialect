@@ -28,7 +28,7 @@ def create_runtime_error_tests() -> list[ParityTestCase]:
             ParityTestCase("String division", 'Give back _"hello"_ / _"world"_.', True, None),
             # Invalid operations
             ParityTestCase("String minus string", 'Give back _"a"_ - _"b"_.', True, None),
-            ParityTestCase("Bool arithmetic", "Give back _true_ * _false_.", True, None),
+            ParityTestCase("Bool arithmetic", "Give back _yes_ * _yes_.", True, None),
             ParityTestCase("Empty arithmetic", "Give back _empty_ + _5_.", True, None),
         ]
     )

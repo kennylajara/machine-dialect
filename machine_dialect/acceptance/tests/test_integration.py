@@ -100,7 +100,7 @@ class TestIntegration:
         # Test true
         test_case_true = IntegrationTestCase(
             name="boolean_true",
-            code="Give back _true_.",
+            code="Give back _yes_.",
             expected_output=True,
             description="Test boolean true",
         )
@@ -115,7 +115,7 @@ class TestIntegration:
         # Test false
         test_case_false = IntegrationTestCase(
             name="boolean_false",
-            code="Give back _false_.",
+            code="Give back _No_.",
             expected_output=False,
             description="Test boolean false",
         )
@@ -176,9 +176,9 @@ class TestIntegration:
     def test_logical_operations(self, runner: IntegrationTestRunner) -> None:
         """Test logical operations across components."""
         test_cases = [
-            IntegrationTestCase("logical_and", "Give back _true_ and _true_.", True),
-            IntegrationTestCase("logical_or", "Give back _false_ or _true_.", True),
-            IntegrationTestCase("logical_not", "Give back not _true_.", False),
+            IntegrationTestCase("logical_and", "Give back _yes_ and _yes_.", True),
+            IntegrationTestCase("logical_or", "Give back _yes_ or _yes_.", True),
+            IntegrationTestCase("logical_not", "Give back not _yes_.", False),
         ]
 
         for test_case in test_cases:
@@ -200,12 +200,12 @@ class TestIntegration:
         test_cases = [
             IntegrationTestCase(
                 "if_true",
-                "If _true_ then:\n> Give back _1_.\nElse:\n> Give back _0_.",
+                "If _yes_ then:\n> Give back _1_.\nElse:\n> Give back _0_.",
                 1,
             ),
             IntegrationTestCase(
                 "if_false",
-                "If _false_ then:\n> Give back _1_.\nElse:\n> Give back _0_.",
+                "If _No_ then:\n> Give back _1_.\nElse:\n> Give back _0_.",
                 0,
             ),
         ]
@@ -249,7 +249,7 @@ class TestIntegration:
         """Test prefix operations across components."""
         test_cases = [
             IntegrationTestCase("negation", "Give back -_5_.", -5),
-            IntegrationTestCase("logical_not", "Give back not _true_.", False),
+            IntegrationTestCase("logical_not", "Give back not _yes_.", False),
         ]
 
         for test_case in test_cases:

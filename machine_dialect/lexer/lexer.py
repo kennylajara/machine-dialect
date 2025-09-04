@@ -331,8 +331,8 @@ class Lexer:
                 TokenType.MISC_ILLEGAL,
                 TokenType.MISC_IDENT,
                 TokenType.MISC_STOPWORD,
-                TokenType.LIT_TRUE,
-                TokenType.LIT_FALSE,
+                TokenType.LIT_YES,
+                TokenType.LIT_NO,
             ):
                 return canonical, token_type, start_line, start_column
 
@@ -581,8 +581,8 @@ class Lexer:
                     else:
                         # Map Yes/No to True/False
                         is_true = literal.lower() in ("true", "yes")
-                        canonical_literal = "True" if is_true else "False"
-                        token_type = TokenType.LIT_TRUE if is_true else TokenType.LIT_FALSE
+                        canonical_literal = "Yes" if is_true else "No"
+                        token_type = TokenType.LIT_YES if is_true else TokenType.LIT_NO
                         return canonical_literal, token_type, start_line, literal_column
 
         # Not a valid underscore-wrapped literal, restore position
@@ -737,6 +737,23 @@ class Lexer:
             # Read identifier
             literal, _, _ = self.read_identifier()
 
+            # Special check for "Yes/No" type keyword
+            if (
+                literal is not None
+                and literal.lower() == "yes"
+                and self.current_char == "/"
+                and self.peek() is not None
+                and self.peek().lower() == "n"  # type: ignore[union-attr]
+                and self.peek(2) is not None
+                and self.peek(2).lower() == "o"  # type: ignore[union-attr]
+            ):
+                # Consume "/No"
+                self.advance()  # Skip '/'
+                self.advance()  # Skip 'N' or 'n'
+                self.advance()  # Skip 'o' or 'O'
+                # Return the Yes/No keyword token
+                return Token(TokenType.KW_YES_NO, "Yes/No", token_line, token_column)
+
             # Check for multi-word keywords
             multi_word, _ = self.check_multi_word_keyword(literal, token_line, token_column)
             if multi_word:
@@ -791,7 +808,7 @@ class Lexer:
                     if (
                         token_type == TokenType.MISC_STOPWORD
                         or token_type.meta_type == TokenMetaType.KW
-                        or token_type in (TokenType.LIT_TRUE, TokenType.LIT_FALSE)
+                        or token_type in (TokenType.LIT_YES, TokenType.LIT_NO)
                     ):
                         token_type = TokenType.MISC_IDENT
                         canonical_literal = identifier

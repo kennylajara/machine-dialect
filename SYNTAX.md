@@ -67,7 +67,7 @@ Identifiers name variables, functions, and other entities.
 
 - True values: `True`, `Yes` (case-insensitive)
 - False values: `False`, `No` (case-insensitive)
-- Underscore-wrapped: `_True_`, `_False_`
+- Underscore-wrapped: `_Yes_`, `_No_`
 
 ##### Empty Literal
 
@@ -378,7 +378,7 @@ Defines a public method that can be called from outside the scope.
 <summary>Turns off the alarm when it is on.</summary>
 
 > if `alarm is on` then
-> > Set `alarm is on` to _False_.
+> > Set `alarm is on` to _No_.
 > > Say _"Alarm has been turned off"_.
 
 </details>

@@ -121,7 +121,7 @@ def create_control_flow_tests() -> list[ParityTestCase]:
             # When statement (alias for If)
             ParityTestCase(
                 "When statement",
-                """When _true_ then:
+                """When _yes_ then:
 > Give back _"yes"_.
 Otherwise:
 > Give back _"no"_.""",

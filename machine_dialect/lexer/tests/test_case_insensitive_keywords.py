@@ -39,9 +39,16 @@ class TestCaseInsensitiveKeywords:
                 tokens = collect_all_tokens(lexer)
                 assert len(tokens) == 1, f"Expected 1 token for '{variant}', got {len(tokens)}"
                 assert tokens[0].type == token_type, f"Expected {token_type} for '{variant}', got {tokens[0].type}"
-                assert (
-                    tokens[0].literal == canonical_form
-                ), f"Expected literal '{canonical_form}' for '{variant}', got '{tokens[0].literal}'"
+                # Special case for boolean literals which canonicalize to Yes/No
+                if token_type in (TokenType.LIT_YES, TokenType.LIT_NO):
+                    expected = "Yes" if token_type == TokenType.LIT_YES else "No"
+                    assert (
+                        tokens[0].literal == expected
+                    ), f"Expected literal '{expected}' for '{variant}', got '{tokens[0].literal}'"
+                else:
+                    assert (
+                        tokens[0].literal == canonical_form
+                    ), f"Expected literal '{canonical_form}' for '{variant}', got '{tokens[0].literal}'"
 
     def test_double_asterisk_keywords_all_cases(self) -> None:
         """Test that all keywords work with double-asterisk wrapping in different cases."""
@@ -64,7 +71,12 @@ class TestCaseInsensitiveKeywords:
                 tokens = collect_all_tokens(lexer)
                 assert len(tokens) == 1
                 assert tokens[0].type == token_type
-                assert tokens[0].literal == keyword
+                # Special handling for boolean literals
+                if token_type in (TokenType.LIT_YES, TokenType.LIT_NO):
+                    expected = "Yes" if token_type == TokenType.LIT_YES else "No"
+                    assert tokens[0].literal == expected
+                else:
+                    assert tokens[0].literal == keyword
 
     def test_backtick_keywords_all_cases(self) -> None:
         """Test that keywords in backticks become identifiers (case-insensitive)."""
@@ -92,16 +104,19 @@ class TestCaseInsensitiveKeywords:
 
     def test_underscore_wrapped_booleans_all_cases(self) -> None:
         """Test underscore-wrapped boolean literals in different cases."""
-        boolean_keywords = [
-            ("True", TokenType.LIT_TRUE),
-            ("False", TokenType.LIT_FALSE),
+        # Test both True/False and Yes/No inputs
+        test_inputs = [
+            ("True", TokenType.LIT_YES, "Yes"),
+            ("False", TokenType.LIT_NO, "No"),
+            ("Yes", TokenType.LIT_YES, "Yes"),
+            ("No", TokenType.LIT_NO, "No"),
         ]
 
-        for canonical_form, token_type in boolean_keywords:
+        for input_form, token_type, expected_literal in test_inputs:
             test_cases = [
-                f"_{canonical_form}_",
-                f"_{canonical_form.lower()}_",
-                f"_{canonical_form.upper()}_",
+                f"_{input_form}_",
+                f"_{input_form.lower()}_",
+                f"_{input_form.upper()}_",
             ]
 
             for source in test_cases:
@@ -109,7 +124,7 @@ class TestCaseInsensitiveKeywords:
                 tokens = collect_all_tokens(lexer)
                 assert len(tokens) == 1
                 assert tokens[0].type == token_type
-                assert tokens[0].literal == canonical_form
+                assert tokens[0].literal == expected_literal
 
     def test_identifiers_preserve_case(self) -> None:
         """Test that non-keyword identifiers preserve their case."""
@@ -137,7 +152,7 @@ class TestCaseInsensitiveKeywords:
             ("set X as INTEGER", ["Set", "X", "as", "Integer"]),
             ("define RULE myFunc", ["define", "rule", "myFunc"]),
             ("DEFINE rule MyFunc", ["define", "rule", "MyFunc"]),
-            ("if TRUE then GIVE BACK false", ["if", "True", "then", "give back", "False"]),
+            ("if YES then GIVE BACK no", ["if", "Yes", "then", "give back", "No"]),
         ]
 
         for source, expected_literals in test_cases:

@@ -81,13 +81,13 @@ class IntegrationTestRunner:
             ),
             IntegrationTestCase(
                 name="boolean_true",
-                code="Give back _true_.",
+                code="Give back _yes_.",
                 expected_output=True,
                 description="Boolean true literal",
             ),
             IntegrationTestCase(
                 name="boolean_false",
-                code="Give back _false_.",
+                code="Give back _yes_.",
                 expected_output=False,
                 description="Boolean false literal",
             ),
@@ -136,7 +136,7 @@ class IntegrationTestRunner:
             ),
             IntegrationTestCase(
                 name="set_boolean",
-                code="Set x to _true_. Give back x.",
+                code="Set x to _yes_. Give back x.",
                 expected_output=True,
                 description="Set and retrieve boolean variable",
             ),
@@ -303,44 +303,44 @@ class IntegrationTestRunner:
             # ========== LOGICAL OPERATIONS ==========
             IntegrationTestCase(
                 name="logical_and",
-                code="Give back _true_ and _true_.",
+                code="Give back _yes_ and _yes_.",
                 expected_output=True,
                 description="Logical AND operation",
             ),
             IntegrationTestCase(
                 name="logical_or",
-                code="Give back _false_ or _true_.",
+                code="Give back _yes_ or _yes_.",
                 expected_output=True,
                 description="Logical OR operation",
             ),
             IntegrationTestCase(
                 name="logical_not",
-                code="Give back not _true_.",
+                code="Give back not _yes_.",
                 expected_output=False,
                 description="Logical NOT operation",
             ),
             # ========== CONTROL FLOW ==========
             IntegrationTestCase(
                 name="if_statement_true",
-                code="If _true_ then:\n> Give back _1_.\nElse:\n> Give back _0_.",
+                code="If _yes_ then:\n> Give back _1_.\nElse:\n> Give back _0_.",
                 expected_output=1,
                 description="If statement with true condition",
             ),
             IntegrationTestCase(
                 name="if_statement_false",
-                code="If _false_ then:\n> Give back _1_.\nElse:\n> Give back _0_.",
+                code="If _yes_ then:\n> Give back _1_.\nElse:\n> Give back _0_.",
                 expected_output=0,
                 description="If statement with false condition",
             ),
             IntegrationTestCase(
                 name="if_expression",
-                code="Give back _'yes'_ if _true_ else _'no'_.",
+                code="Give back _'yes'_ if _yes_ else _'no'_.",
                 expected_output="yes",
                 description="Conditional expression",
             ),
             IntegrationTestCase(
                 name="when_statement",
-                code="When _true_ then:\n> Give back _1_.\nOtherwise:\n> Give back _0_.",
+                code="When _yes_ then:\n> Give back _1_.\nOtherwise:\n> Give back _0_.",
                 expected_output=1,
                 description="When/Otherwise alternative syntax",
             ),
@@ -644,7 +644,7 @@ Use `process` with _3.14_.
 #### Inputs:
 - `x` **as** Boolean (required)
 
-Use `process` with _true_.
+Use `process` with _yes_.
 """,
                 expected_output=True,
                 description="Boolean type annotation",

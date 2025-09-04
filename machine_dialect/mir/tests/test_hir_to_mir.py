@@ -7,7 +7,6 @@ import unittest
 from machine_dialect.ast import (
     Arguments,
     BlockStatement,
-    BooleanLiteral,
     CallStatement,
     EmptyLiteral,
     Expression,
@@ -25,6 +24,7 @@ from machine_dialect.ast import (
     SetStatement,
     Statement,
     StringLiteral,
+    YesNoLiteral,
 )
 from machine_dialect.lexer import Token, TokenType
 from machine_dialect.mir.hir_to_mir import lower_to_mir
@@ -189,7 +189,7 @@ class TestHIRToMIRLowering(unittest.TestCase):
 
         if_stmt = IfStatement(
             token=self._dummy_token("if", TokenType.KW_IF),
-            condition=BooleanLiteral(token=self._dummy_token("true", TokenType.LIT_TRUE), value=True),
+            condition=YesNoLiteral(token=self._dummy_token("true", TokenType.LIT_YES), value=True),
         )
         if_stmt.consequence = consequence_block
         if_stmt.alternative = alternative_block
@@ -328,7 +328,7 @@ class TestHIRToMIRLowering(unittest.TestCase):
             SetStatement(
                 token=self._dummy_token("set", TokenType.KW_SET),
                 name=Identifier(self._dummy_token("b"), "b"),
-                value=BooleanLiteral(token=self._dummy_token("true", TokenType.LIT_TRUE), value=True),
+                value=YesNoLiteral(token=self._dummy_token("true", TokenType.LIT_YES), value=True),
             ),
             SetStatement(
                 token=self._dummy_token("set", TokenType.KW_SET),

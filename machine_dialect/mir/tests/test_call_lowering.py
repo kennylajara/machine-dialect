@@ -3,12 +3,12 @@
 
 from machine_dialect.ast import (
     Arguments,
-    BooleanLiteral,
     CallStatement,
     Identifier,
     IntegerLiteral,
     Program,
     StringLiteral,
+    YesNoLiteral,
 )
 from machine_dialect.lexer.tokens import Token, TokenType
 from machine_dialect.mir.hir_to_mir import lower_to_mir
@@ -96,7 +96,7 @@ class TestCallStatementLowering:
         args.named = [
             (
                 Identifier(Token(TokenType.MISC_IDENT, "verbose", 0, 0), "verbose"),
-                BooleanLiteral(Token(TokenType.LIT_TRUE, "true", 0, 0), True),
+                YesNoLiteral(Token(TokenType.LIT_YES, "true", 0, 0), True),
             )
         ]
 

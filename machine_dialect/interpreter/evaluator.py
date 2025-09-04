@@ -42,8 +42,8 @@ def evaluate(node: ast.ASTNode, env: Environment | None = None) -> Object | None
             node = cast(ast.BlockStatement, node)
             return _evaluate_block_statement(node, env)
 
-        case ast.BooleanLiteral:
-            node = cast(ast.BooleanLiteral, node)
+        case ast.YesNoLiteral:
+            node = cast(ast.YesNoLiteral, node)
             assert node.value is not None
             return Boolean(node.value)
 

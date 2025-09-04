@@ -145,8 +145,8 @@ LITERAL_FLOAT.3: /_-?\d+\.\d+([eE][+-]?\d+)?_/ | /_-?\d+[eE][+-]?\d+_/
 LITERAL_INT.3: /_-?\d+_/
 // Support single, double, and triple-quoted strings
 LITERAL_STRING.3: /_"""[\s\S]*?"""_|_'''[\s\S]*?'''_|_"(?:[^"\\]|\\.)*"_|_'(?:[^'\\]|\\.)*'_/
-LITERAL_TRUE.3: /_true_/i
-LITERAL_FALSE.3: /_false_/i
+LITERAL_TRUE.3: /_yes_/i
+LITERAL_FALSE.3: /_yes_/i
 LITERAL_YES.3: /_yes_/i       // Yes literal
 LITERAL_NO.3: /_no_/i         // No literal
 LITERAL_EMPTY.3: /_empty_/i

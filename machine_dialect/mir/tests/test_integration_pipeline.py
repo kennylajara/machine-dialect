@@ -7,7 +7,6 @@ import unittest
 from machine_dialect.ast import (
     Arguments,
     BlockStatement,
-    BooleanLiteral,
     CallExpression,
     CallStatement,
     ConditionalExpression,
@@ -27,6 +26,7 @@ from machine_dialect.ast import (
     Statement,
     StringLiteral,
     UtilityStatement,
+    YesNoLiteral,
 )
 from machine_dialect.codegen.isa import Opcode
 from machine_dialect.lexer import Token, TokenType
@@ -261,7 +261,7 @@ class TestIntegrationPipeline(unittest.TestCase):
             SetStatement(
                 self._dummy_token("set"),
                 Identifier(self._dummy_token("bool_var"), "bool_var"),
-                BooleanLiteral(self._dummy_token("true"), True),
+                YesNoLiteral(self._dummy_token("true"), True),
             ),
         ]
 
@@ -333,7 +333,7 @@ class TestIntegrationPipeline(unittest.TestCase):
         """Test conditional expression (ternary) through pipeline."""
         # Create: x = true ? 10 : 20
         cond_expr = ConditionalExpression(self._dummy_token(), IntegerLiteral(self._dummy_token("10"), 10))
-        cond_expr.condition = BooleanLiteral(self._dummy_token("true"), True)
+        cond_expr.condition = YesNoLiteral(self._dummy_token("true"), True)
         cond_expr.alternative = IntegerLiteral(self._dummy_token("20"), 20)
 
         set_stmt = SetStatement(self._dummy_token("set"), Identifier(self._dummy_token("x"), "x"), cond_expr)
@@ -362,7 +362,7 @@ class TestIntegrationPipeline(unittest.TestCase):
         neg_stmt = SetStatement(self._dummy_token("set"), Identifier(self._dummy_token("x"), "x"), neg_expr)
 
         not_expr = PrefixExpression(self._dummy_token("not"), "not")
-        not_expr.right = BooleanLiteral(self._dummy_token("true"), True)
+        not_expr.right = YesNoLiteral(self._dummy_token("true"), True)
         not_stmt = SetStatement(self._dummy_token("set"), Identifier(self._dummy_token("y"), "y"), not_expr)
 
         program = Program([neg_stmt, not_stmt])

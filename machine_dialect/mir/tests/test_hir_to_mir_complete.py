@@ -7,7 +7,6 @@ import unittest
 from machine_dialect.ast import (
     ActionStatement,
     BlockStatement,
-    BooleanLiteral,
     ConditionalExpression,
     ErrorExpression,
     ErrorStatement,
@@ -26,6 +25,7 @@ from machine_dialect.ast import (
     StringLiteral,
     URLLiteral,
     UtilityStatement,
+    YesNoLiteral,
 )
 from machine_dialect.lexer import Token, TokenType
 from machine_dialect.mir.hir_to_mir import HIRToMIRLowering, lower_to_mir
@@ -118,7 +118,7 @@ class TestHIRToMIRComplete(unittest.TestCase):
     def test_conditional_expression_lowering(self) -> None:
         """Test lowering of ConditionalExpression (ternary)."""
         # Create: x = true ? 1 : 2
-        condition = BooleanLiteral(self._dummy_token("true"), True)
+        condition = YesNoLiteral(self._dummy_token("true"), True)
         true_val = IntegerLiteral(self._dummy_token("1"), 1)
         false_val = IntegerLiteral(self._dummy_token("2"), 2)
 
@@ -367,7 +367,7 @@ class TestHIRToMIRComplete(unittest.TestCase):
 
         # Test not: not true
         not_expr = PrefixExpression(self._dummy_token("not"), "not")
-        not_expr.right = BooleanLiteral(self._dummy_token("true"), True)
+        not_expr.right = YesNoLiteral(self._dummy_token("true"), True)
 
         program = Program(
             [

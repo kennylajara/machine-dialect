@@ -174,14 +174,14 @@ All literals inherit from `Expression` and represent constant values.
 
 **Example:** `_"hello"_` → `StringLiteral(value="hello")`
 
-#### `BooleanLiteral`
+#### `YesNoLiteral`
 
 **Properties:**
 
 - `token: Token` - The BOOL token
 - `value: bool` - The boolean value
 
-**Example:** `_True_` → `BooleanLiteral(value=True)`
+**Example:** `_Yes_` → `YesNoLiteral(value=True)`
 
 #### `EmptyLiteral`
 
@@ -402,7 +402,7 @@ def evaluate_literal(node: ASTNode) -> Any:
             return v
         case StringLiteral(value=v):
             return v
-        case BooleanLiteral(value=v):
+        case YesNoLiteral(value=v):
             return v
         case EmptyLiteral():
             return None

@@ -123,7 +123,7 @@ True
 not False"""
 
         # Test line 2 (True without period)
-        token = Token(TokenType.LIT_TRUE, "True", line=2, position=0)
+        token = Token(TokenType.LIT_YES, "True", line=2, position=0)
         node = ExpressionStatement(token=token, expression=None)
         context = Context("test.md", source)
         violations = rule.check(node, context)

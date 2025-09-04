@@ -48,8 +48,8 @@ class TestEvaluatorLiterals:
 
     def test_evaluate_boolean_literal_true(self) -> None:
         """Test evaluating a true boolean literal."""
-        token = Token(TokenType.LIT_TRUE, "True", 1, 0)
-        node = ast.BooleanLiteral(token, True)
+        token = Token(TokenType.LIT_YES, "True", 1, 0)
+        node = ast.YesNoLiteral(token, True)
 
         result = evaluate(node)
 
@@ -60,8 +60,8 @@ class TestEvaluatorLiterals:
 
     def test_evaluate_boolean_literal_false(self) -> None:
         """Test evaluating a false boolean literal."""
-        token = Token(TokenType.LIT_FALSE, "False", 1, 0)
-        node = ast.BooleanLiteral(token, False)
+        token = Token(TokenType.LIT_NO, "False", 1, 0)
+        node = ast.YesNoLiteral(token, False)
 
         result = evaluate(node)
 
@@ -145,7 +145,7 @@ class TestEvaluatorStatements:
             ast.StringLiteral(Token(TokenType.LIT_TEXT, '"hello"', 2, 0), '"hello"'),
         )
         stmt3 = ast.ExpressionStatement(
-            Token(TokenType.LIT_TRUE, "True", 3, 0), ast.BooleanLiteral(Token(TokenType.LIT_TRUE, "True", 3, 0), True)
+            Token(TokenType.LIT_YES, "True", 3, 0), ast.YesNoLiteral(Token(TokenType.LIT_YES, "True", 3, 0), True)
         )
         program = ast.Program([stmt1, stmt2, stmt3])
 
@@ -279,9 +279,9 @@ class TestEvaluatorIntegration:
 
     def test_integrate_boolean_singleton(self) -> None:
         """Test that boolean singletons work through the full pipeline."""
-        # Parse and evaluate two True values
+        # Parse and evaluate two Yes values (case-insensitive)
         result1 = self._parse_and_evaluate("Yes.")
-        result2 = self._parse_and_evaluate("True.")
+        result2 = self._parse_and_evaluate("yes.")
 
         assert result1 is not None
         assert result2 is not None
@@ -329,17 +329,17 @@ class TestEvaluatorBooleanVariants:
         assert isinstance(result, Boolean)
         assert result.inspect() == "No"
 
-    def test_evaluate_true_keyword(self) -> None:
-        """Test evaluating 'True' as boolean true."""
-        result = self._parse_and_evaluate("True.")
+    def test_evaluate_yes_case_insensitive(self) -> None:
+        """Test evaluating case-insensitive 'yes' as boolean true."""
+        result = self._parse_and_evaluate("yes.")
 
         assert result is not None
         assert isinstance(result, Boolean)
         assert result.inspect() == "Yes"
 
-    def test_evaluate_false_keyword(self) -> None:
-        """Test evaluating 'False' as boolean false."""
-        result = self._parse_and_evaluate("False.")
+    def test_evaluate_no_case_insensitive(self) -> None:
+        """Test evaluating case-insensitive 'NO' as boolean false."""
+        result = self._parse_and_evaluate("NO.")
 
         assert result is not None
         assert isinstance(result, Boolean)

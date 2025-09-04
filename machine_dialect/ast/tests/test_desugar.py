@@ -6,7 +6,6 @@ from machine_dialect.ast import (
     ActionStatement,
     Arguments,
     BlockStatement,
-    BooleanLiteral,
     CallStatement,
     ConditionalExpression,
     EmptyLiteral,
@@ -24,6 +23,7 @@ from machine_dialect.ast import (
     SetStatement,
     StringLiteral,
     UtilityStatement,
+    YesNoLiteral,
 )
 from machine_dialect.lexer import Token, TokenType
 
@@ -46,7 +46,7 @@ class TestExpressionDesugaring(unittest.TestCase):
         self.assertIs(str_lit.desugar(), str_lit)
 
         # Boolean literal
-        bool_lit = BooleanLiteral(Token(TokenType.LIT_TRUE, "True", 1, 1), True)
+        bool_lit = YesNoLiteral(Token(TokenType.LIT_YES, "True", 1, 1), True)
         self.assertIs(bool_lit.desugar(), bool_lit)
 
         # Empty literal
@@ -147,7 +147,7 @@ class TestExpressionDesugaring(unittest.TestCase):
     def test_conditional_expression_desugaring(self) -> None:
         """Test desugaring of conditional expressions."""
         consequence = IntegerLiteral(Token(TokenType.LIT_INT, "1", 1, 1), 1)
-        condition = BooleanLiteral(Token(TokenType.LIT_TRUE, "True", 1, 5), True)
+        condition = YesNoLiteral(Token(TokenType.LIT_YES, "True", 1, 5), True)
         alternative = IntegerLiteral(Token(TokenType.LIT_INT, "2", 1, 15), 2)
 
         token = Token(TokenType.KW_IF, "if", 1, 3)
@@ -175,7 +175,7 @@ class TestExpressionDesugaring(unittest.TestCase):
 
         # Add named arguments
         name = Identifier(Token(TokenType.MISC_IDENT, "x", 1, 25), "x")
-        value = BooleanLiteral(Token(TokenType.LIT_TRUE, "True", 1, 28), True)
+        value = YesNoLiteral(Token(TokenType.LIT_YES, "True", 1, 28), True)
         args.named.append((name, value))
 
         desugared = args.desugar()
@@ -293,7 +293,7 @@ class TestStatementDesugaring(unittest.TestCase):
     def test_if_statement_desugaring(self) -> None:
         """Test desugaring of if statements."""
         token = Token(TokenType.KW_IF, "if", 1, 1)
-        condition = BooleanLiteral(Token(TokenType.LIT_TRUE, "True", 1, 4), True)
+        condition = YesNoLiteral(Token(TokenType.LIT_YES, "True", 1, 4), True)
 
         # Create consequence block
         consequence = BlockStatement(Token(TokenType.PUNCT_COLON, ":", 1, 9), depth=1)

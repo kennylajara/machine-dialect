@@ -91,12 +91,12 @@ class TestParseErrors:
         valid_sources = [
             "42",
             "-42",
-            "not True",
+            "not Yes",
             "x",
             "`my variable`",
             "_123_",
-            "True",
-            "False",
+            "Yes",
+            "No",
         ]
 
         for source in valid_sources:

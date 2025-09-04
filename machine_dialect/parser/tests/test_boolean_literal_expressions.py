@@ -1,7 +1,7 @@
 """Tests for parsing boolean literal expressions.
 
 This module tests the parser's ability to handle boolean literal expressions
-including True and False in both regular and underscore-wrapped forms.
+including Yes and No in both regular and underscore-wrapped forms.
 """
 
 import pytest
@@ -21,11 +21,11 @@ class TestBooleanLiteralExpressions:
         "source,expected_value",
         [
             # Simple boolean literals
-            ("True", True),
-            ("False", False),
+            ("Yes", True),
+            ("No", False),
             # Underscore-wrapped boolean literals
-            ("_True_", True),
-            ("_False_", False),
+            ("_Yes_", True),
+            ("_No_", False),
         ],
     )
     def test_boolean_literal_expression(self, source: str, expected_value: bool) -> None:
@@ -50,7 +50,7 @@ class TestBooleanLiteralExpressions:
 
     def test_boolean_with_period(self) -> None:
         """Test parsing boolean literal with explicit statement terminator."""
-        source = "True."
+        source = "Yes."
         parser = Parser()
 
         program = parser.parse(source)
@@ -66,7 +66,7 @@ class TestBooleanLiteralExpressions:
 
     def test_multiple_boolean_statements(self) -> None:
         """Test parsing multiple boolean literal statements."""
-        source = "True. False. True. False."
+        source = "Yes. No. Yes. No."
         parser = Parser()
 
         program = parser.parse(source)
@@ -84,7 +84,7 @@ class TestBooleanLiteralExpressions:
 
     def test_mixed_literals_with_booleans(self) -> None:
         """Test parsing mixed literal types including booleans."""
-        source = "True. 42. False. 3.14. _True_."
+        source = "Yes. 42. No. 3.14. _Yes_."
         parser = Parser()
 
         program = parser.parse(source)
@@ -112,20 +112,20 @@ class TestBooleanLiteralExpressions:
         "source,expected_value",
         [
             # Case insensitive variations should all parse as True
-            ("true", True),
-            ("TRUE", True),
-            ("TrUe", True),
-            ("tRuE", True),
+            ("yes", True),
+            ("YES", True),
+            ("YeS", True),
+            ("yEs", True),
             # Case insensitive variations should all parse as False
-            ("false", False),
-            ("FALSE", False),
-            ("FaLsE", False),
-            ("fAlSe", False),
+            ("no", False),
+            ("NO", False),
+            ("No", False),
+            ("nO", False),
             # Underscore-wrapped case variations
-            ("_true_", True),
-            ("_TRUE_", True),
-            ("_false_", False),
-            ("_FALSE_", False),
+            ("_yes_", True),
+            ("_YES_", True),
+            ("_no_", False),
+            ("_NO_", False),
         ],
     )
     def test_case_insensitive_boolean_literals(self, source: str, expected_value: bool) -> None:

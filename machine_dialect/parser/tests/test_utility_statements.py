@@ -54,7 +54,7 @@ class TestUtilityStatements:
 - `addend 2` **as** Whole Number (required)
 
 #### Outputs:
-- `result` **as** Status (default: _Empty_)"""
+- `result` **as** Yes/No (default: _Empty_)"""
 
         parser = Parser()
         program = parser.parse(source)
@@ -83,7 +83,7 @@ class TestUtilityStatements:
         assert len(utility_stmt.outputs) == 1
         assert isinstance(utility_stmt.outputs[0], Output)
         assert utility_stmt.outputs[0].name.value == "result"
-        assert utility_stmt.outputs[0].type_name == "Status"
+        assert utility_stmt.outputs[0].type_name == "Yes/No"
         # Check that it has a default value of Empty
         assert utility_stmt.outputs[0].default_value is not None
         assert isinstance(utility_stmt.outputs[0].default_value, EmptyLiteral)

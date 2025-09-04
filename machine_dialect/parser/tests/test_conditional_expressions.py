@@ -7,7 +7,6 @@ This module tests the parsing of conditional expressions which follow the patter
 import pytest
 
 from machine_dialect.ast import (
-    BooleanLiteral,
     ConditionalExpression,
     ExpressionStatement,
     Identifier,
@@ -15,6 +14,7 @@ from machine_dialect.ast import (
     IntegerLiteral,
     PrefixExpression,
     StringLiteral,
+    YesNoLiteral,
 )
 from machine_dialect.parser import Parser
 
@@ -26,19 +26,19 @@ class TestConditionalExpressions:
         "source,expected_consequence,expected_condition,expected_alternative",
         [
             # Basic integer literals
-            ("1 if True, else 0", "1", "True", "0"),
-            ("1 if True, otherwise 0", "1", "True", "0"),
-            ("1 when True, else 0", "1", "True", "0"),
-            ("1 when True, otherwise 0", "1", "True", "0"),
-            ("1 whenever True, else 0", "1", "True", "0"),
-            ("1 whenever True, otherwise 0", "1", "True", "0"),
+            ("1 if Yes, else 0", "1", "Yes", "0"),
+            ("1 if Yes, otherwise 0", "1", "Yes", "0"),
+            ("1 when Yes, else 0", "1", "Yes", "0"),
+            ("1 when Yes, otherwise 0", "1", "Yes", "0"),
+            ("1 whenever Yes, else 0", "1", "Yes", "0"),
+            ("1 whenever Yes, otherwise 0", "1", "Yes", "0"),
             # Semicolon separator
-            ("1 if True; else 0", "1", "True", "0"),
-            ("1 if True; otherwise 0", "1", "True", "0"),
-            ("1 when True; else 0", "1", "True", "0"),
-            ("1 when True; otherwise 0", "1", "True", "0"),
-            ("1 whenever True; else 0", "1", "True", "0"),
-            ("1 whenever True; otherwise 0", "1", "True", "0"),
+            ("1 if Yes; else 0", "1", "Yes", "0"),
+            ("1 if Yes; otherwise 0", "1", "Yes", "0"),
+            ("1 when Yes; else 0", "1", "Yes", "0"),
+            ("1 when Yes; otherwise 0", "1", "Yes", "0"),
+            ("1 whenever Yes; else 0", "1", "Yes", "0"),
+            ("1 whenever Yes; otherwise 0", "1", "Yes", "0"),
         ],
     )
     def test_parse_basic_conditional_expression(
@@ -60,8 +60,9 @@ class TestConditionalExpressions:
 
         # Check consequence
         assert conditional.consequence is not None
-        if expected_consequence in ["True", "False"]:
-            assert isinstance(conditional.consequence, BooleanLiteral)
+        if expected_consequence in ["Yes", "No"]:
+            assert isinstance(conditional.consequence, YesNoLiteral)
+            # Already in canonical Yes/No representation
             assert str(conditional.consequence) == f"_{expected_consequence}_"
         else:
             assert isinstance(conditional.consequence, IntegerLiteral)
@@ -69,13 +70,15 @@ class TestConditionalExpressions:
 
         # Check condition
         assert conditional.condition is not None
-        assert isinstance(conditional.condition, BooleanLiteral)
+        assert isinstance(conditional.condition, YesNoLiteral)
+        # Already in canonical Yes/No representation
         assert str(conditional.condition) == f"_{expected_condition}_"
 
         # Check alternative
         assert conditional.alternative is not None
-        if expected_alternative in ["True", "False"]:
-            assert isinstance(conditional.alternative, BooleanLiteral)
+        if expected_alternative in ["Yes", "No"]:
+            assert isinstance(conditional.alternative, YesNoLiteral)
+            # Already in canonical Yes/No representation
             assert str(conditional.alternative) == f"_{expected_alternative}_"
         else:
             assert isinstance(conditional.alternative, IntegerLiteral)
@@ -236,7 +239,7 @@ class TestConditionalExpressions:
 
     def test_conditional_string_representation(self) -> None:
         """Test the string representation of conditional expressions."""
-        source = "1 if True, else 0"
+        source = "1 if Yes, else 0"
         parser = Parser()
         program = parser.parse(source)
 
@@ -246,7 +249,7 @@ class TestConditionalExpressions:
         conditional = statement.expression
 
         # Check string representation
-        assert str(conditional) == "(_1_ if _True_ else _0_)"
+        assert str(conditional) == "(_1_ if _Yes_ else _0_)"
 
     def test_conditional_with_logical_operators(self) -> None:
         """Test conditional with logical operators in condition."""
@@ -295,7 +298,7 @@ class TestConditionalExpressions:
     )
     def test_all_condition_keywords(self, keyword: str) -> None:
         """Test that all condition keywords work correctly."""
-        source = f"1 {keyword} True, else 0"
+        source = f"1 {keyword} Yes, else 0"
         parser = Parser()
         program = parser.parse(source)
 
@@ -310,7 +313,7 @@ class TestConditionalExpressions:
         # Verify the expression was parsed correctly
         assert isinstance(conditional.consequence, IntegerLiteral)
         assert conditional.consequence.value == 1
-        assert isinstance(conditional.condition, BooleanLiteral)
+        assert isinstance(conditional.condition, YesNoLiteral)
         assert isinstance(conditional.alternative, IntegerLiteral)
         assert conditional.alternative.value == 0
 
@@ -320,7 +323,7 @@ class TestConditionalExpressions:
     )
     def test_all_else_keywords(self, else_keyword: str) -> None:
         """Test that all else keywords work correctly."""
-        source = f"1 if True, {else_keyword} 0"
+        source = f"1 if Yes, {else_keyword} 0"
         parser = Parser()
         program = parser.parse(source)
 
@@ -335,6 +338,6 @@ class TestConditionalExpressions:
         # Verify the expression was parsed correctly
         assert isinstance(conditional.consequence, IntegerLiteral)
         assert conditional.consequence.value == 1
-        assert isinstance(conditional.condition, BooleanLiteral)
+        assert isinstance(conditional.condition, YesNoLiteral)
         assert isinstance(conditional.alternative, IntegerLiteral)
         assert conditional.alternative.value == 0

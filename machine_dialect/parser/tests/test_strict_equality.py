@@ -33,15 +33,15 @@ class TestStrictEqualityExpressions:
             ("3.14 is strictly equal to 3.14", 3.14, "is strictly equal to", 3.14),
             ("2.5 is exactly equal to 2.5", 2.5, "is strictly equal to", 2.5),
             # Strict equality with booleans
-            ("True is strictly equal to True", True, "is strictly equal to", True),
-            ("False is identical to False", False, "is strictly equal to", False),
+            ("Yes is strictly equal to Yes", True, "is strictly equal to", True),
+            ("No is identical to No", False, "is strictly equal to", False),
             # Strict equality with identifiers
             ("x is strictly equal to y", "x", "is strictly equal to", "y"),
             ("foo is exactly equal to bar", "foo", "is strictly equal to", "bar"),
             ("value is identical to expected", "value", "is strictly equal to", "expected"),
             # Mixed types (would fail at runtime for strict equality)
             ("5 is strictly equal to 5.0", 5, "is strictly equal to", 5.0),
-            ("True is strictly equal to 1", True, "is strictly equal to", 1),
+            ("Yes is strictly equal to 1", True, "is strictly equal to", 1),
         ],
     )
     def test_strict_equality_expressions(
@@ -149,7 +149,7 @@ class TestStrictEqualityExpressions:
             (
                 """
                 if x is strictly equal to 5 then:
-                > give back _true_.
+                > give back _yes_.
                 """,
                 "x",
                 "is strictly equal to",
@@ -181,7 +181,7 @@ class TestStrictEqualityExpressions:
             (
                 """
                 if x is identical to 0 or y is not identical to 0 then:
-                > set flag to _true_.
+                > set flag to _yes_.
                 """,
                 None,  # Complex condition, skip simple checks
                 None,

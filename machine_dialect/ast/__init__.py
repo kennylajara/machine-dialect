@@ -28,7 +28,7 @@ from .statements import (
     UtilityStatement,
 )
 from .program import Program
-from .literals import IntegerLiteral, FloatLiteral, StringLiteral, BooleanLiteral, EmptyLiteral, URLLiteral
+from .literals import IntegerLiteral, FloatLiteral, StringLiteral, YesNoLiteral, EmptyLiteral, URLLiteral
 from .call_expression import CallExpression
 
 
@@ -37,7 +37,7 @@ __all__ = [
     "ActionStatement",
     "Arguments",
     "BlockStatement",
-    "BooleanLiteral",
+    "YesNoLiteral",
     "CallExpression",
     "CallStatement",
     "ConditionalExpression",

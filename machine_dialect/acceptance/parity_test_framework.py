@@ -282,12 +282,12 @@ def create_operator_tests() -> list[ParityTestCase]:
     # Boolean operators
     tests.extend(
         [
-            ParityTestCase("AND true", "Give back _true_ and _true_.", True, True),
-            ParityTestCase("AND false", "Give back _true_ and _false_.", True, False),
-            ParityTestCase("OR true", "Give back _false_ or _true_.", True, True),
-            ParityTestCase("OR false", "Give back _false_ or _false_.", True, False),
-            ParityTestCase("NOT true", "Give back not _true_.", True, False),
-            ParityTestCase("NOT false", "Give back not _false_.", True, True),
+            ParityTestCase("AND true", "Give back _yes_ and _yes_.", True, True),
+            ParityTestCase("AND false", "Give back _yes_ and _No_.", True, False),
+            ParityTestCase("OR true", "Give back _yes_ or _yes_.", True, True),
+            ParityTestCase("OR false", "Give back _yes_ or _No_.", True, False),
+            ParityTestCase("NOT true", "Give back not _yes_.", True, False),
+            ParityTestCase("NOT false", "Give back not _No_.", True, True),
         ]
     )
 
@@ -303,8 +303,8 @@ def create_literal_tests() -> list[ParityTestCase]:
             ParityTestCase("Integer", "Give back _42_.", True, 42),
             ParityTestCase("Float", "Give back _3.14_.", True, 3.14),
             ParityTestCase("String", 'Give back _"hello"_.', True, "hello"),
-            ParityTestCase("Boolean true", "Give back _true_.", True, True),
-            ParityTestCase("Boolean false", "Give back _false_.", True, False),
+            ParityTestCase("Boolean true", "Give back _yes_.", True, True),
+            ParityTestCase("Boolean false", "Give back _No_.", True, False),
             ParityTestCase("Yes literal", "Give back _Yes_.", True, True),
             ParityTestCase("No literal", "Give back _No_.", True, False),
             ParityTestCase("Empty literal", "Give back _empty_.", True, None),
@@ -332,19 +332,19 @@ def create_statement_tests() -> list[ParityTestCase]:
         [
             ParityTestCase(
                 "If true",
-                "If _true_ then:\n> Give back _1_.\nElse:\n> Give back _2_.",
+                "If _yes_ then:\n> Give back _1_.\nElse:\n> Give back _2_.",
                 True,
                 1,
             ),
             ParityTestCase(
                 "If false",
-                "If _false_ then:\n> Give back _1_.\nElse:\n> Give back _2_.",
+                "If _yes_ then:\n> Give back _1_.\nElse:\n> Give back _2_.",
                 True,
                 2,
             ),
             ParityTestCase(
                 "When statement",
-                "When _true_ then:\n> Give back _10_.\nOtherwise:\n> Give back _20_.",
+                "When _yes_ then:\n> Give back _10_.\nOtherwise:\n> Give back _20_.",
                 True,
                 10,
             ),

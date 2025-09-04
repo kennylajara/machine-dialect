@@ -150,10 +150,10 @@ def create_boolean_operator_tests() -> list[ParityTestCase]:
     # AND operator
     tests.extend(
         [
-            ParityTestCase("AND true true", "Give back _true_ and _true_.", True, True),
-            ParityTestCase("AND true false", "Give back _true_ and _false_.", True, False),
-            ParityTestCase("AND false true", "Give back _false_ and _true_.", True, False),
-            ParityTestCase("AND false false", "Give back _false_ and _false_.", True, False),
+            ParityTestCase("AND true true", "Give back _yes_ and _yes_.", True, True),
+            ParityTestCase("AND true false", "Give back _yes_ and _No_.", True, False),
+            ParityTestCase("AND false true", "Give back _No_ and _yes_.", True, False),
+            ParityTestCase("AND false false", "Give back _No_ and _No_.", True, False),
             ParityTestCase("AND with Yes/No", "Give back _Yes_ and _No_.", True, False),
         ]
     )
@@ -161,10 +161,10 @@ def create_boolean_operator_tests() -> list[ParityTestCase]:
     # OR operator
     tests.extend(
         [
-            ParityTestCase("OR true true", "Give back _true_ or _true_.", True, True),
-            ParityTestCase("OR true false", "Give back _true_ or _false_.", True, True),
-            ParityTestCase("OR false true", "Give back _false_ or _true_.", True, True),
-            ParityTestCase("OR false false", "Give back _false_ or _false_.", True, False),
+            ParityTestCase("OR true true", "Give back _yes_ or _yes_.", True, True),
+            ParityTestCase("OR true false", "Give back _yes_ or _No_.", True, True),
+            ParityTestCase("OR false true", "Give back _No_ or _yes_.", True, True),
+            ParityTestCase("OR false false", "Give back _No_ or _No_.", True, False),
             ParityTestCase("OR with Yes/No", "Give back _No_ or _Yes_.", True, True),
         ]
     )
@@ -172,23 +172,23 @@ def create_boolean_operator_tests() -> list[ParityTestCase]:
     # NOT operator
     tests.extend(
         [
-            ParityTestCase("NOT true", "Give back not _true_.", True, False),
-            ParityTestCase("NOT false", "Give back not _false_.", True, True),
+            ParityTestCase("NOT true", "Give back not _yes_.", True, False),
+            ParityTestCase("NOT false", "Give back not _No_.", True, True),
             ParityTestCase("NOT Yes", "Give back not _Yes_.", True, False),
             ParityTestCase("NOT No", "Give back not _No_.", True, True),
-            ParityTestCase("Double NOT", "Give back not not _true_.", True, True),
+            ParityTestCase("Double NOT", "Give back not not _yes_.", True, True),
         ]
     )
 
     # Complex boolean expressions
     tests.extend(
         [
-            ParityTestCase("AND OR precedence", "Give back _true_ or _false_ and _false_.", True, True),
-            ParityTestCase("OR AND with parens", "Give back (_true_ or _false_) and _true_.", True, True),
-            ParityTestCase("NOT in expression", "Give back not _false_ and _true_.", True, True),
+            ParityTestCase("AND OR precedence", "Give back _yes_ or _yes_ and _yes_.", True, True),
+            ParityTestCase("OR AND with parens", "Give back (_yes_ or _yes_) and _yes_.", True, True),
+            ParityTestCase("NOT in expression", "Give back not _yes_ and _yes_.", True, True),
             ParityTestCase(
                 "Complex boolean",
-                "Give back (_true_ and _false_) or (not _false_ and _true_).",
+                "Give back (_yes_ and _yes_) or (not _yes_ and _yes_).",
                 True,
                 True,
             ),
@@ -205,7 +205,7 @@ def create_mixed_operator_tests() -> list[ParityTestCase]:
     tests.extend(
         [
             ParityTestCase("Compare arithmetic", "Give back (_5_ + _3_) > _7_.", True, True),
-            ParityTestCase("Boolean from compare", "Give back (_3_ < _5_) and _true_.", True, True),
+            ParityTestCase("Boolean from compare", "Give back (_3_ < _5_) and _yes_.", True, True),
             ParityTestCase(
                 "Complex mixed",
                 "Give back (_2_ * _3_ equals _6_) and (_10_ / _2_ > _4_).",
@@ -214,7 +214,7 @@ def create_mixed_operator_tests() -> list[ParityTestCase]:
             ),
             ParityTestCase(
                 "Conditional expression",
-                "Give back _10_ if _true_ else _20_.",
+                "Give back _10_ if _yes_ else _20_.",
                 True,
                 10,
             ),

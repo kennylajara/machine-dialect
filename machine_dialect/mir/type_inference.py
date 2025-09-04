@@ -6,7 +6,6 @@ This module implements type inference and propagation for MIR values.
 
 from machine_dialect.ast import (
     ASTNode,
-    BooleanLiteral,
     EmptyLiteral,
     FloatLiteral,
     Identifier,
@@ -15,6 +14,7 @@ from machine_dialect.ast import (
     PrefixExpression,
     StringLiteral,
     URLLiteral,
+    YesNoLiteral,
 )
 from machine_dialect.mir.mir_function import MIRFunction
 from machine_dialect.mir.mir_instructions import (
@@ -315,7 +315,7 @@ def infer_ast_literal_type(literal: ASTNode) -> MIRType:
         return MIRType.FLOAT
     elif isinstance(literal, StringLiteral):
         return MIRType.STRING
-    elif isinstance(literal, BooleanLiteral):
+    elif isinstance(literal, YesNoLiteral):
         return MIRType.BOOL
     elif isinstance(literal, EmptyLiteral):
         return MIRType.EMPTY
@@ -335,7 +335,7 @@ def infer_ast_expression_type(expr: ASTNode, context: dict[str, MIRType]) -> MIR
     Returns:
         The inferred MIR type.
     """
-    if isinstance(expr, IntegerLiteral | FloatLiteral | StringLiteral | BooleanLiteral | EmptyLiteral | URLLiteral):
+    if isinstance(expr, IntegerLiteral | FloatLiteral | StringLiteral | YesNoLiteral | EmptyLiteral | URLLiteral):
         return infer_ast_literal_type(expr)
 
     elif isinstance(expr, Identifier):

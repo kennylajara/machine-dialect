@@ -115,13 +115,13 @@ class TestDoubleAsteriskKeywords:
 
     def test_boolean_literal_wrapped(self) -> None:
         """Test boolean literals wrapped in double asterisks (should not be recognized as keyword)."""
-        source = "**True**"
+        source = "**Yes**"
         lexer = Lexer(source)
         tokens = collect_all_tokens(lexer)
         assert len(tokens) == 3
         assert tokens[0].type == TokenType.OP_TWO_STARS
         assert tokens[0].literal == "**"
-        assert tokens[1].type == TokenType.LIT_TRUE
-        assert tokens[1].literal == "True"
+        assert tokens[1].type == TokenType.LIT_YES
+        assert tokens[1].literal == "Yes"
         assert tokens[2].type == TokenType.OP_TWO_STARS
         assert tokens[2].literal == "**"

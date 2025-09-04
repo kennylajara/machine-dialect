@@ -148,7 +148,7 @@ md shell --tokens
 ## Machine Dialect Syntax Reminder
 
 - **Variables**: Use backticks: `` `variable` ``
-- **Literals**: Use underscores: `_10_`, `_"text"_`, `_True_`
+- **Literals**: Use underscores: `_10_`, `_"text"_`, `_Yes_`
 - **Statements**: Must end with periods (`.`)
 - **Comments**: Not supported in parser (yet)
 

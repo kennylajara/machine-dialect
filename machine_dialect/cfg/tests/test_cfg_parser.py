@@ -33,7 +33,7 @@ class TestCFGParser:
 
     def test_parse_logical_expression(self) -> None:
         """Test parsing logical expressions."""
-        code = "Set flag to _true_ and not _false_ or _false_."
+        code = "Set flag to _yes_ and not _yes_ or _yes_."
         tree = self.parser.parse(code)
         assert tree is not None
 
@@ -96,8 +96,8 @@ Give back sum."""
     def test_parse_boolean_literals(self) -> None:
         """Test parsing boolean literals."""
         test_cases = [
-            "Set flag to _true_.",
-            "Set flag to _false_.",
+            "Set flag to _yes_.",
+            "Set flag to _yes_.",
         ]
 
         for code in test_cases:
@@ -233,7 +233,7 @@ Else:
         """Test parsing Interaction statements."""
         code = """Interaction turn_alarm_off:
 > If alarm_is_on then:
-> > Set alarm_is_on to _false_.
+> > Set alarm_is_on to _yes_.
 > > Say _"Alarm has been turned off"_."""
         tree = self.parser.parse(code)
         assert tree is not None

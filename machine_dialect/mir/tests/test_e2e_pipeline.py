@@ -9,7 +9,6 @@ from __future__ import annotations
 import unittest
 
 from machine_dialect.ast import (
-    BooleanLiteral,
     Expression,
     FloatLiteral,
     Identifier,
@@ -23,6 +22,7 @@ from machine_dialect.ast import (
     SetStatement,
     Statement,
     StringLiteral,
+    YesNoLiteral,
 )
 from machine_dialect.lexer.tokens import Token, TokenType
 from machine_dialect.mir.benchmarks import CompilationBenchmark
@@ -481,12 +481,12 @@ class TestE2EPipeline(unittest.TestCase):
                 SetStatement(
                     self._token(TokenType.KW_SET, "set"),
                     Identifier(self._token(TokenType.MISC_IDENT, "a"), "a"),
-                    BooleanLiteral(self._token(TokenType.KW_BOOL, "true"), True),
+                    YesNoLiteral(self._token(TokenType.KW_YES_NO, "true"), True),
                 ),
                 SetStatement(
                     self._token(TokenType.KW_SET, "set"),
                     Identifier(self._token(TokenType.MISC_IDENT, "b"), "b"),
-                    BooleanLiteral(self._token(TokenType.KW_BOOL, "false"), False),
+                    YesNoLiteral(self._token(TokenType.KW_YES_NO, "false"), False),
                 ),
                 SetStatement(
                     self._token(TokenType.KW_SET, "set"),

@@ -8,7 +8,6 @@ duplication and make tests more readable.
 from typing import Any, cast
 
 from machine_dialect.ast import (
-    BooleanLiteral,
     Expression,
     ExpressionStatement,
     FloatLiteral,
@@ -16,6 +15,7 @@ from machine_dialect.ast import (
     InfixExpression,
     IntegerLiteral,
     Program,
+    YesNoLiteral,
 )
 from machine_dialect.parser import Parser
 
@@ -138,21 +138,21 @@ def _assert_boolean_literal(expression: Expression, expected_value: bool) -> Non
 
     Verifies both the boolean literal's value attribute and its token's literal
     match the expected value. The token literal should be in canonical form
-    ("True" or "False") regardless of the original case in the source.
+    ("Yes" or "No") regardless of the original case in the source.
 
     Args:
-        expression: The expression to test (must be a BooleanLiteral).
+        expression: The expression to test (must be a YesNoLiteral).
         expected_value: The expected boolean value.
 
     Raises:
-        AssertionError: If the expression is not a BooleanLiteral or if
+        AssertionError: If the expression is not a YesNoLiteral or if
             the value doesn't match the expected value.
     """
-    assert isinstance(expression, BooleanLiteral), f"Expected BooleanLiteral, got {type(expression).__name__}"
+    assert isinstance(expression, YesNoLiteral), f"Expected YesNoLiteral, got {type(expression).__name__}"
     boolean_literal = expression
     assert boolean_literal.value == expected_value, f"Boolean value={boolean_literal.value} != {expected_value}"
-    # Check that the token literal is in canonical form
-    expected_literal = "True" if expected_value else "False"
+    # Check that the token literal is in canonical form (Yes/No)
+    expected_literal = "Yes" if expected_value else "No"
     actual_literal = boolean_literal.token.literal
     assert actual_literal == expected_literal, f"Boolean token literal={actual_literal} != {expected_literal}"
 

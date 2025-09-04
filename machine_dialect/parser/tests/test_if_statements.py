@@ -8,12 +8,12 @@ import pytest
 
 from machine_dialect.ast import (
     BlockStatement,
-    BooleanLiteral,
     Identifier,
     IfStatement,
     InfixExpression,
     IntegerLiteral,
     SetStatement,
+    YesNoLiteral,
 )
 from machine_dialect.parser import Parser
 
@@ -24,7 +24,7 @@ class TestIfStatements:
     def test_parse_basic_if_statement(self) -> None:
         """Test parsing of basic if statement with single statement in block."""
         source = """
-        if True then:
+        if Yes then:
         > Set x to 1.
         """
         parser = Parser()
@@ -34,7 +34,7 @@ class TestIfStatements:
         assert isinstance(program.statements[0], IfStatement)
 
         if_stmt = program.statements[0]
-        assert isinstance(if_stmt.condition, BooleanLiteral)
+        assert isinstance(if_stmt.condition, YesNoLiteral)
         assert if_stmt.condition.value is True
 
         assert isinstance(if_stmt.consequence, BlockStatement)
@@ -53,7 +53,7 @@ class TestIfStatements:
     def test_parse_if_else_statement(self) -> None:
         """Test parsing of if-else statement with blocks."""
         source = """
-        if True then:
+        if Yes then:
         > Set x to 1.
         > Set y to 2.
         else:
@@ -67,7 +67,7 @@ class TestIfStatements:
         assert isinstance(program.statements[0], IfStatement)
 
         if_stmt = program.statements[0]
-        assert isinstance(if_stmt.condition, BooleanLiteral)
+        assert isinstance(if_stmt.condition, YesNoLiteral)
         assert if_stmt.condition.value is True
 
         # Check consequence block
@@ -84,11 +84,11 @@ class TestIfStatements:
     def test_parse_nested_if_statements(self) -> None:
         """Test parsing of nested if statements with proper depth."""
         source = """
-        if True then:
+        if Yes then:
         >
         > Set foo to 1.
         >
-        > if False then:
+        > if No then:
         > >
         > > Set bar to 2.
         > > Set baz to 3.
@@ -133,7 +133,7 @@ class TestIfStatements:
     def test_parse_if_keywords_variations(self, keyword: str, else_keyword: str) -> None:
         """Test parsing of if statements with different keyword variations."""
         source = f"""
-        {keyword} True then:
+        {keyword} Yes then:
         > Set x to 1.
         {else_keyword}:
         > Set x to 2.
@@ -145,7 +145,7 @@ class TestIfStatements:
         assert isinstance(program.statements[0], IfStatement)
 
         if_stmt = program.statements[0]
-        assert isinstance(if_stmt.condition, BooleanLiteral)
+        assert isinstance(if_stmt.condition, YesNoLiteral)
         assert if_stmt.condition.value is True
 
         assert isinstance(if_stmt.consequence, BlockStatement)
@@ -177,7 +177,7 @@ class TestIfStatements:
     def test_parse_empty_blocks(self) -> None:
         """Test parsing of if statement with empty blocks."""
         source = """
-        if True then:
+        if Yes then:
         >
         else:
         >
@@ -199,7 +199,7 @@ class TestIfStatements:
     def test_parse_if_without_then_keyword(self) -> None:
         """Test parsing of if statement with colon directly after condition."""
         source = """
-        if True:
+        if Yes:
         > Set x to 1.
         """
         parser = Parser()
@@ -209,14 +209,14 @@ class TestIfStatements:
         assert isinstance(program.statements[0], IfStatement)
 
         if_stmt = program.statements[0]
-        assert isinstance(if_stmt.condition, BooleanLiteral)
+        assert isinstance(if_stmt.condition, YesNoLiteral)
         assert isinstance(if_stmt.consequence, BlockStatement)
         assert len(if_stmt.consequence.statements) == 1
 
     def test_block_depth_tracking(self) -> None:
         """Test that block depth is properly tracked and validated."""
         source = """
-        if True then:
+        if Yes then:
         > Set x to 1.
         > > Set y to 2.
         """
@@ -230,7 +230,7 @@ class TestIfStatements:
     def test_missing_period_error(self) -> None:
         """Test that missing periods generate appropriate errors."""
         source = """
-        if True then:
+        if Yes then:
         > Set x to 1
 
         x
@@ -245,10 +245,10 @@ class TestIfStatements:
     def test_multiple_if_statements(self) -> None:
         """Test parsing multiple if statements in sequence."""
         source = """
-        if True then:
+        if Yes then:
         > Set x to 1.
 
-        if False then:
+        if No then:
         > Set y to 2.
         else:
         > Set y to 3.
@@ -262,13 +262,13 @@ class TestIfStatements:
         # First if statement
         if_stmt1 = program.statements[0]
         assert isinstance(if_stmt1, IfStatement)
-        assert isinstance(if_stmt1.condition, BooleanLiteral)
+        assert isinstance(if_stmt1.condition, YesNoLiteral)
         assert if_stmt1.condition.value is True
         assert if_stmt1.alternative is None
 
         # Second if statement
         if_stmt2 = program.statements[1]
         assert isinstance(if_stmt2, IfStatement)
-        assert isinstance(if_stmt2.condition, BooleanLiteral)
+        assert isinstance(if_stmt2.condition, YesNoLiteral)
         assert if_stmt2.condition.value is False
         assert if_stmt2.alternative is not None

@@ -1,5 +1,18 @@
 # Machine Dialect (.md)
 
+> ⚠️ **ALPHA VERSION WARNING** ⚠️
+>
+> Machine Dialect is currently in **ALPHA** stage. We are rapidly iterating on the language
+> design and implementation. During this phase:
+>
+> - **Breaking changes will be frequent** and without deprecation warnings
+> - The syntax and semantics are still evolving based on user feedback
+> - APIs and compiler behavior may change between any versions
+> - No backward compatibility is maintained during alpha
+>
+> We encourage experimentation and feedback, but please be aware that code written today
+> may require updates to work with future versions.
+
 **Machine Dialect** is a programming language designed to look like natural language and feel
 like structured documentation. It is written in Markdown and intended to be both human-friendly
 and AI-native — readable by people, generatable and parsable by machines.
@@ -55,7 +68,7 @@ Machine Dialect is for a future where:
 | Element       | Syntax         | Example                                               |
 | ------------- | -------------- | ----------------------------------------------------- |
 | **Variables** | Bold text      | `**total**`, `**user_name**`                          |
-| **Literals**  | Italic text    | `_42_`, `_"hello"_`, `_true_`, `empty`                |
+| **Literals**  | Italic text    | `_42_`, `_"hello"_`, `_yes_`, `empty`                 |
 | **Keywords**  | Plain text     | `set`, `if`, `then`, `else`, `give back`/`gives back` |
 | **Blocks**    | `>` prefix     | `> Set **x** to _10_.`                                |
 | **Math**      | LaTeX blocks   | `$$\text{result} = x^2 + y$$`                         |
@@ -104,7 +117,7 @@ exec: true
 
 Set **total** to _0_.
 Set **name** to _"Alice"_.
-Set **is_active** to _true_.
+Set **is_active** to _yes_.
 Set **result** to empty.
 ```
 
@@ -244,12 +257,12 @@ AST:
   Set `x` to _42_
 --------------------------------------------------
 
-md> if **user** equals _"admin"_ then give back _true_.
+md> if **user** equals _"admin"_ then give back _yes_.
 
 AST:
 --------------------------------------------------
   if `user` equals _"admin"_ then:
-> Give back _true_
+> Give back _yes_
 --------------------------------------------------
 ```
 

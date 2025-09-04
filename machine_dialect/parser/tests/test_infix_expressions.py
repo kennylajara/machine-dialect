@@ -10,10 +10,10 @@ This module tests the parser's ability to handle infix expressions including:
 import pytest
 
 from machine_dialect.ast import (
-    BooleanLiteral,
     ExpressionStatement,
     InfixExpression,
     IntegerLiteral,
+    YesNoLiteral,
 )
 from machine_dialect.parser import Parser
 from machine_dialect.parser.tests.helper_functions import (
@@ -158,10 +158,10 @@ class TestInfixExpressions:
             ("1.5 < 2.5", 1.5, "<", 2.5),
             ("3.5 > 2.5", 3.5, ">", 2.5),
             # Boolean comparisons
-            ("True equals True", True, "equals", True),
-            ("True equals False", True, "equals", False),
-            ("False is not True", False, "is not", True),
-            ("False is not False", False, "is not", False),
+            ("Yes equals Yes", True, "equals", True),
+            ("Yes equals No", True, "equals", False),
+            ("No is not Yes", False, "is not", True),
+            ("No is not No", False, "is not", False),
             # Mixed type comparisons (will be type-checked at runtime)
             ("5 equals 5.0", 5, "equals", 5.0),
             ("10 is not 10.5", 10, "is not", 10.5),
@@ -214,7 +214,7 @@ class TestInfixExpressions:
             # Backtick identifiers
             ("`first name` + `last name`", "first name", "+", "last name"),
             ("`total cost` * `tax rate`", "total cost", "*", "tax rate"),
-            ("`is valid` equals True", "is valid", "equals", True),
+            ("`is valid` equals Yes", "is valid", "equals", True),
         ],
     )
     def test_identifier_expressions(
@@ -245,29 +245,29 @@ class TestInfixExpressions:
         "source,left,operator,right",
         [
             # Logical AND
-            ("True and True", True, "and", True),
-            ("True and False", True, "and", False),
-            ("False and True", False, "and", True),
-            ("False and False", False, "and", False),
+            ("Yes and Yes", True, "and", True),
+            ("Yes and No", True, "and", False),
+            ("No and Yes", False, "and", True),
+            ("No and No", False, "and", False),
             # Logical OR
-            ("True or True", True, "or", True),
-            ("True or False", True, "or", False),
-            ("False or True", False, "or", True),
-            ("False or False", False, "or", False),
+            ("Yes or Yes", True, "or", True),
+            ("Yes or No", True, "or", False),
+            ("No or Yes", False, "or", True),
+            ("No or No", False, "or", False),
             # Case variations
-            ("true AND false", True, "and", False),
-            ("TRUE And FALSE", True, "and", False),
-            ("true OR false", True, "or", False),
-            ("TRUE Or FALSE", True, "or", False),
+            ("yes AND no", True, "and", False),
+            ("YES And NO", True, "and", False),
+            ("yes OR no", True, "or", False),
+            ("YES Or NO", True, "or", False),
             # With identifiers
             ("x and z", "x", "and", "z"),
             ("foo or bar", "foo", "or", "bar"),
             ("`is valid` and `has permission`", "is valid", "and", "has permission"),
             # Mixed with literals
-            ("x and True", "x", "and", True),
-            ("False or z", False, "or", "z"),
+            ("x and Yes", "x", "and", True),
+            ("No or z", False, "or", "z"),
             # With underscores
-            ("_True_ and _False_", True, "and", False),
+            ("_Yes_ and _No_", True, "and", False),
             ("_x_ or _y_", "_x_", "or", "_y_"),
         ],
     )
@@ -343,7 +343,7 @@ class TestInfixExpressions:
             # Mixed with identifiers and literals
             ("`total cost` is equal to 100.50", "total cost", "equals", 100.50),
             ("`error count` is less than 5", "error count", "<", 5),
-            ("True is not False", True, "is not", False),
+            ("Yes is not No", True, "is not", False),
             ("_42_ equals _42_", 42, "equals", 42),
         ]
 
@@ -418,8 +418,8 @@ class TestInfixExpressions:
             ("3 + 2 <= 5", "((_3_ + _2_) <= _5_)"),
             ("8 - 3 >= 5", "((_8_ - _3_) >= _5_)"),
             # Logical operators have lowest precedence
-            ("True and False or True", "((_True_ and _False_) or _True_)"),
-            ("True or False and True", "(_True_ or (_False_ and _True_))"),
+            ("Yes and No or Yes", "((_Yes_ and _No_) or _Yes_)"),
+            ("Yes or No and Yes", "(_Yes_ or (_No_ and _Yes_))"),
             ("5 > 3 and 10 < 20", "((_5_ > _3_) and (_10_ < _20_))"),
             ("x equals z or p is not q", "((`x` equals `z`) or (`p` is not `q`))"),
             # Mixed precedence with logical operators
@@ -458,10 +458,10 @@ class TestInfixExpressions:
             ("(2 + 3) * (4 + 5)", "((_2_ + _3_) * (_4_ + _5_))"),
             ("((1 + 2) * 3) / (4 - 2)", "(((_1_ + _2_) * _3_) / (_4_ - _2_))"),
             # Logical operators with parentheses
-            ("(True or False) and True", "((_True_ or _False_) and _True_)"),
-            ("True and (False or True)", "(_True_ and (_False_ or _True_))"),
-            ("(False and True) or False", "((_False_ and _True_) or _False_)"),
-            ("False or (True and False)", "(_False_ or (_True_ and _False_))"),
+            ("(Yes or No) and Yes", "((_Yes_ or _No_) and _Yes_)"),
+            ("Yes and (No or Yes)", "(_Yes_ and (_No_ or _Yes_))"),
+            ("(No and Yes) or No", "((_No_ and _Yes_) or _No_)"),
+            ("No or (Yes and No)", "(_No_ or (_Yes_ and _No_))"),
             # Complex logical expressions with parentheses
             ("(x or z) and (p or q)", "((`x` or `z`) and (`p` or `q`))"),
             ("(foo and bar) or (baz and qux)", "((`foo` and `bar`) or (`baz` and `qux`))"),
@@ -475,8 +475,8 @@ class TestInfixExpressions:
             ("((x or z) and p) or q", "(((`x` or `z`) and `p`) or `q`)"),
             ("x or (z and (p or q))", "(`x` or (`z` and (`p` or `q`)))"),
             (
-                "((True or False) and (False or True)) or False",
-                "(((_True_ or _False_) and (_False_ or _True_)) or _False_)",
+                "((Yes or No) and (No or Yes)) or No",
+                "(((_Yes_ or _No_) and (_No_ or _Yes_)) or _No_)",
             ),
         ]
 
@@ -497,7 +497,7 @@ class TestInfixExpressions:
 
     def test_complex_logical_with_comparison(self) -> None:
         """Test parsing complex expressions with comparison and logical operators."""
-        source = "5 > 3 and True"
+        source = "5 > 3 and Yes"
         parser = Parser()
 
         program = parser.parse(source)
@@ -531,11 +531,11 @@ class TestInfixExpressions:
 
         # The right side should be True
         assert expr.right is not None
-        assert isinstance(expr.right, BooleanLiteral)
+        assert isinstance(expr.right, YesNoLiteral)
         assert expr.right.value is True
 
         # Check the string representation
-        assert str(statement.expression) == "((_5_ > _3_) and _True_)"
+        assert str(statement.expression) == "((_5_ > _3_) and _Yes_)"
 
     def test_mixed_prefix_and_infix_expressions(self) -> None:
         """Test parsing expressions that combine prefix and infix operators."""
@@ -548,7 +548,7 @@ class TestInfixExpressions:
             # Boolean negation with comparisons
             ("not x equals z", "((not `x`) equals `z`)"),
             ("not 5 < 10", "((not _5_) < _10_)"),
-            ("not True equals False", "((not _True_) equals _False_)"),
+            ("not Yes equals No", "((not _Yes_) equals _No_)"),
             # Complex mixed expressions
             ("-x + z * -w", "((-`x`) + (`z` * (-`w`)))"),
             ("not p equals q and r > v", "(((not `p`) equals `q`) and (`r` > `v`))"),

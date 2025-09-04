@@ -57,13 +57,13 @@ class TokenType(Enum):
     PUNCT_HASH_QUAD = auto()
 
     # Literals
-    LIT_FALSE = auto()
     LIT_FLOAT = auto()
     LIT_INT = auto()
+    LIT_NO = auto()
     LIT_TEXT = auto()
     LIT_TRIPLE_BACKTICK = auto()
-    LIT_TRUE = auto()
     LIT_URL = auto()
+    LIT_YES = auto()
 
     # Special
     MISC_EOF = auto()
@@ -77,7 +77,6 @@ class TokenType(Enum):
     KW_AND = auto()
     KW_AS = auto()
     KW_BEHAVIOR = auto()
-    KW_BOOL = auto()
     KW_DATATYPE = auto()
     KW_DATE = auto()
     KW_DATETIME = auto()
@@ -106,7 +105,6 @@ class TokenType(Enum):
     KW_RULE = auto()
     KW_SAY = auto()
     KW_SET = auto()
-    KW_STATUS = auto()
     KW_TAKE = auto()
     KW_TELL = auto()
     KW_TEMPLATE = auto()
@@ -122,6 +120,7 @@ class TokenType(Enum):
     KW_WHERE = auto()
     KW_WHOLE_NUMBER = auto()
     KW_WITH = auto()
+    KW_YES_NO = auto()
 
     # Tags
     TAG_SUMMARY_START = auto()
@@ -208,8 +207,6 @@ keywords_mapping: dict[str, TokenType] = {
     "behaviors": TokenType.KW_BEHAVIOR,
     "behaviour": TokenType.KW_BEHAVIOR,
     "behaviours": TokenType.KW_BEHAVIOR,
-    # boolean:
-    "Boolean": TokenType.KW_BOOL,
     # default value indicator
     "default": TokenType.KW_DEFAULT,
     # declare function: define a `sum` as function
@@ -221,8 +218,7 @@ keywords_mapping: dict[str, TokenType] = {
     # entrypoint for execution
     "entrypoint": TokenType.KW_ENTRYPOINT,
     # boolean primitive: false
-    "False": TokenType.LIT_FALSE,
-    "No": TokenType.LIT_FALSE,
+    "No": TokenType.LIT_NO,
     # filter mini-programs that act as proxy to decide on AI code execution
     "filter": TokenType.KW_FILTER,
     # float typing: set `a` as float | set `a` to float 3.14
@@ -302,7 +298,7 @@ keywords_mapping: dict[str, TokenType] = {
     # declare variable: set `a` as integer.
     "Set": TokenType.KW_SET,
     # status type
-    "Status": TokenType.KW_STATUS,
+    "Yes/No": TokenType.KW_YES_NO,
     # classes' properties:
     # Define a blueprint called Person with these traits
     "take": TokenType.KW_TAKE,
@@ -320,8 +316,7 @@ keywords_mapping: dict[str, TokenType] = {
     # Define a blueprint called Person with these traits
     "trait": TokenType.KW_TRAIT,
     # boolean primitive: true
-    "True": TokenType.LIT_TRUE,
-    "Yes": TokenType.LIT_TRUE,
+    "Yes": TokenType.LIT_YES,
     # using - for capturing function return values in Set statements
     "using": TokenType.KW_USING,
     # Utility (equivalent to function in other languages)

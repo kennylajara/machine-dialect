@@ -10,7 +10,6 @@ from machine_dialect.ast import (
     Arguments,
     ASTNode,
     BlockStatement,
-    BooleanLiteral,
     CallStatement,
     ConditionalExpression,
     EmptyLiteral,
@@ -35,6 +34,7 @@ from machine_dialect.ast import (
     StringLiteral,
     URLLiteral,
     UtilityStatement,
+    YesNoLiteral,
 )
 from machine_dialect.mir.basic_block import BasicBlock
 from machine_dialect.mir.debug_info import DebugInfoBuilder
@@ -566,7 +566,7 @@ class HIRToMIRLowering:
             return Constant(expr.value, MIRType.FLOAT)
         elif isinstance(expr, StringLiteral):
             return Constant(expr.value, MIRType.STRING)
-        elif isinstance(expr, BooleanLiteral):
+        elif isinstance(expr, YesNoLiteral):
             return Constant(expr.value, MIRType.BOOL)
         elif isinstance(expr, EmptyLiteral):
             return Constant(None, MIRType.EMPTY)

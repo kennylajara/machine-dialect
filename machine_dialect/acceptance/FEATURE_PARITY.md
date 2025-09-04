@@ -50,7 +50,7 @@ These features work consistently across all components:
 - Integer literals: `_42_`, `_-5_` (including negative)
 - Float literals: `_3.14_`, `_-2.5_`
 - String literals: `_"hello"_`, `_'world'_`
-- Boolean literals: `_true_`, `_false_`, `_Yes_`, `_No_`
+- Boolean literals: `_yes_`, `_yes_`, `_Yes_`, `_No_`
 - Empty literal: `_empty_`
 - URL literals: `_https://example.com_`
 
@@ -82,7 +82,7 @@ These features work consistently across all components:
 
 - If/Else statements
 - When/Otherwise (aliases)
-- Conditional expressions: `_'yes'_ if _true_ else _'no'_`
+- Conditional expressions: `_'yes'_ if _yes_ else _'no'_`
 - Nested conditions
 
 #### Functions
@@ -210,7 +210,7 @@ operators_to_test = [
     ("Exponentiation", "_2_ ** _3_", OP_TWO_STARS),
     ("Strict Equality", "_5_ === _5_", OP_STRICT_EQ),
     ("Strict Inequality", "_5_ !== _5.0_", OP_STRICT_NOT_EQ),
-    ("Logical Negation", "!_true_", OP_NEGATION),
+    ("Logical Negation", "!_yes_", OP_NEGATION),
 ]
 ```
 
@@ -233,7 +233,7 @@ keywords_to_test = [
 complex_expressions = [
     "(((_1_ + _2_) * _3_) - _4_) / _5_",  # Deep nesting
     "_1_ + _2_ * _3_ - _4_ / _5_",  # Precedence
-    "not (_true_ and (_false_ or _true_))",  # Boolean complexity
+    "not (_yes_ and (_yes_ or _yes_))",  # Boolean complexity
     "_\"hello\"_ + _\" \"_ + _\"world\"_",  # String concatenation
 ]
 ```

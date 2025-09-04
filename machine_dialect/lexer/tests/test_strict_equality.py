@@ -52,7 +52,7 @@ class TestStrictEqualityOperators:
 
     def test_strict_equality_in_expression(self) -> None:
         """Test strict equality operators in complete expressions."""
-        source = "if x is strictly equal to 5 then give back true"
+        source = "if x is strictly equal to 5 then give back Yes"
         lexer = Lexer(source)
 
         expected_tokens = [
@@ -62,7 +62,7 @@ class TestStrictEqualityOperators:
             (TokenType.LIT_INT, "5"),
             (TokenType.KW_THEN, "then"),
             (TokenType.KW_RETURN, "give back"),
-            (TokenType.LIT_TRUE, "True"),
+            (TokenType.LIT_YES, "Yes"),
             (TokenType.MISC_EOF, ""),
         ]
 

@@ -10,8 +10,8 @@ class TestLexer:
         "input_text,expected_tokens",
         [
             # Boolean
-            ("True", [Token(TokenType.LIT_TRUE, "True", line=1, position=1)]),
-            ("False", [Token(TokenType.LIT_FALSE, "False", line=1, position=1)]),
+            ("Yes", [Token(TokenType.LIT_YES, "Yes", line=1, position=1)]),
+            ("No", [Token(TokenType.LIT_NO, "No", line=1, position=1)]),
             # Numbers
             ("123", [Token(TokenType.LIT_INT, "123", line=1, position=1)]),
             ("3.14", [Token(TokenType.LIT_FLOAT, "3.14", line=1, position=1)]),
@@ -81,7 +81,7 @@ class TestLexer:
             ("behaviors", [Token(TokenType.KW_BEHAVIOR, "behaviors", line=1, position=1)]),
             ("behaviour", [Token(TokenType.KW_BEHAVIOR, "behaviour", line=1, position=1)]),
             ("behaviours", [Token(TokenType.KW_BEHAVIOR, "behaviours", line=1, position=1)]),
-            ("Boolean", [Token(TokenType.KW_BOOL, "Boolean", line=1, position=1)]),
+            ("Yes/No", [Token(TokenType.KW_YES_NO, "Yes/No", line=1, position=1)]),
             ("Float", [Token(TokenType.KW_FLOAT, "Float", line=1, position=1)]),
             ("Floats", [Token(TokenType.KW_FLOAT, "Floats", line=1, position=1)]),
             ("from", [Token(TokenType.KW_FROM, "from", line=1, position=1)]),
@@ -174,7 +174,7 @@ class TestLexer:
                 ],
             ),
             (
-                "if **x** is greater than 0, then give back _True_",
+                "if **x** is greater than 0, then give back _Yes_",
                 [
                     Token(TokenType.KW_IF, "if", line=1, position=1),
                     Token(TokenType.OP_TWO_STARS, "**", line=1, position=4),
@@ -185,11 +185,11 @@ class TestLexer:
                     Token(TokenType.PUNCT_COMMA, ",", line=1, position=27),
                     Token(TokenType.KW_THEN, "then", line=1, position=29),
                     Token(TokenType.KW_RETURN, "give back", line=1, position=34),
-                    Token(TokenType.LIT_TRUE, "True", line=1, position=44),
+                    Token(TokenType.LIT_YES, "Yes", line=1, position=44),
                 ],
             ),
             (
-                "if x > 0 then gives back True",
+                "if x > 0 then gives back Yes",
                 [
                     Token(TokenType.KW_IF, "if", line=1, position=1),
                     Token(TokenType.MISC_IDENT, "x", line=1, position=4),
@@ -197,7 +197,7 @@ class TestLexer:
                     Token(TokenType.LIT_INT, "0", line=1, position=8),
                     Token(TokenType.KW_THEN, "then", line=1, position=10),
                     Token(TokenType.KW_RETURN, "gives back", line=1, position=15),
-                    Token(TokenType.LIT_TRUE, "True", line=1, position=26),
+                    Token(TokenType.LIT_YES, "Yes", line=1, position=26),
                 ],
             ),
             (

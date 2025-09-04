@@ -2,6 +2,18 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## ⚠️ ALPHA PROJECT - BREAKING CHANGES EXPECTED ⚠️
+
+**CRITICAL**: Machine Dialect is in ALPHA stage. When making changes:
+
+- **DO NOT worry about backward compatibility** - break things if it improves the design
+- **Prioritize correctness over compatibility** - make the right choice, not the safe choice
+- **Feel free to refactor aggressively** - the codebase should evolve rapidly
+- **Breaking changes are EXPECTED and ENCOURAGED** during this phase
+- If a better approach exists, implement it even if it breaks existing code
+
+We are iterating fast to find the best design. Stability will come later.
+
 ## Project Overview
 
 Machine Dialect is a natural language programming language that allows writing code using

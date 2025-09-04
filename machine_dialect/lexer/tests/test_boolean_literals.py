@@ -7,57 +7,57 @@ def is_literal_token(token: Token) -> bool:
 
 
 class TestBooleanLiterals:
-    def test_wrapped_true(self) -> None:
-        """Test underscore-wrapped True literal."""
-        source = "_True_"
+    def test_wrapped_yes(self) -> None:
+        """Test underscore-wrapped Yes literal."""
+        source = "_Yes_"
         lexer = Lexer(source)
 
         token = lexer.next_token()
-        assert token.type == TokenType.LIT_TRUE
-        assert token.literal == "True"  # Canonical form without underscores
+        assert token.type == TokenType.LIT_YES
+        assert token.literal == "Yes"  # Canonical form without underscores
         assert is_literal_token(token)
 
         assert_eof(lexer.next_token())
 
-    def test_wrapped_false(self) -> None:
-        """Test underscore-wrapped False literal."""
-        source = "_False_"
+    def test_wrapped_no(self) -> None:
+        """Test underscore-wrapped No literal."""
+        source = "_No_"
         lexer = Lexer(source)
 
         token = lexer.next_token()
-        assert token.type == TokenType.LIT_FALSE
-        assert token.literal == "False"  # Canonical form without underscores
+        assert token.type == TokenType.LIT_NO
+        assert token.literal == "No"  # Canonical form without underscores
         assert is_literal_token(token)
 
         assert_eof(lexer.next_token())
 
-    def test_unwrapped_true(self) -> None:
-        """Test unwrapped True literal (backward compatibility)."""
-        source = "True"
+    def test_unwrapped_yes(self) -> None:
+        """Test unwrapped Yes literal."""
+        source = "Yes"
         lexer = Lexer(source)
 
         token = lexer.next_token()
-        assert token.type == TokenType.LIT_TRUE
-        assert token.literal == "True"  # Canonical form without underscores
+        assert token.type == TokenType.LIT_YES
+        assert token.literal == "Yes"
         assert is_literal_token(token)
 
         assert_eof(lexer.next_token())
 
-    def test_unwrapped_false(self) -> None:
-        """Test unwrapped False literal (backward compatibility)."""
-        source = "False"
+    def test_unwrapped_no(self) -> None:
+        """Test unwrapped No literal."""
+        source = "No"
         lexer = Lexer(source)
 
         token = lexer.next_token()
-        assert token.type == TokenType.LIT_FALSE
-        assert token.literal == "False"  # Canonical form without underscores
+        assert token.type == TokenType.LIT_NO
+        assert token.literal == "No"
         assert is_literal_token(token)
 
         assert_eof(lexer.next_token())
 
     def test_boolean_in_expression(self) -> None:
         """Test boolean literals in expressions."""
-        source = "if x > 0 then give back _True_ else give back False"
+        source = "if x > 0 then give back _Yes_ else give back No"
         lexer = Lexer(source)
 
         # Collect all tokens
@@ -69,40 +69,40 @@ class TestBooleanLiterals:
             tokens.append(token)
 
         # Find the boolean tokens
-        boolean_tokens = [t for t in tokens if t.type in (TokenType.LIT_TRUE, TokenType.LIT_FALSE)]
+        boolean_tokens = [t for t in tokens if t.type in (TokenType.LIT_YES, TokenType.LIT_NO)]
         assert len(boolean_tokens) == 2
 
         # Both booleans are stored in canonical form
-        assert boolean_tokens[0].type == TokenType.LIT_TRUE
-        assert boolean_tokens[0].literal == "True"
+        assert boolean_tokens[0].type == TokenType.LIT_YES
+        assert boolean_tokens[0].literal == "Yes"
 
-        assert boolean_tokens[1].type == TokenType.LIT_FALSE
-        assert boolean_tokens[1].literal == "False"
+        assert boolean_tokens[1].type == TokenType.LIT_NO
+        assert boolean_tokens[1].literal == "No"
 
-    def test_lowercase_not_boolean(self) -> None:
-        """Test that lowercase true/false are now recognized as boolean literals."""
-        source = "true false"
+    def test_lowercase_yes_no(self) -> None:
+        """Test that lowercase yes/no are recognized as boolean literals."""
+        source = "yes no"
         lexer = Lexer(source)
 
-        # Now lowercase booleans are recognized as boolean literals
+        # Lowercase yes/no are recognized as boolean literals
         token1 = lexer.next_token()
-        assert token1.type == TokenType.LIT_TRUE
-        assert token1.literal == "True"  # Canonical form
+        assert token1.type == TokenType.LIT_YES
+        assert token1.literal == "Yes"  # Canonical form
 
         token2 = lexer.next_token()
-        assert token2.type == TokenType.LIT_FALSE
-        assert token2.literal == "False"  # Canonical form
+        assert token2.type == TokenType.LIT_NO
+        assert token2.literal == "No"  # Canonical form
 
         assert_eof(lexer.next_token())
 
     def test_incomplete_wrapped_boolean(self) -> None:
         """Test incomplete wrapped boolean falls back to identifier."""
-        source = "_True"  # Missing closing underscore
+        source = "_Yes"  # Missing closing underscore
         lexer = Lexer(source)
 
         token = lexer.next_token()
         assert token.type == TokenType.MISC_IDENT
-        assert token.literal == "_True"
+        assert token.literal == "_Yes"
         assert not is_literal_token(token)
 
         assert_eof(lexer.next_token())

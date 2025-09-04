@@ -23,17 +23,20 @@ from machine_dialect.vm.disasm import disassemble_chunk
 from machine_dialect.vm.vm import VM
 
 
-def compile_program(program: Program) -> Module:
+def compile_program(program: Program, optimize: bool = True) -> Module:
     """Compile an AST program to bytecode using MIR pipeline.
 
     Args:
         program: AST program to compile.
+        optimize: Whether to enable optimization (default True).
 
     Returns:
         Compiled bytecode module.
     """
     # Create compilation context
-    config = CompilerConfig()
+    from machine_dialect.compiler.config import OptimizationLevel
+
+    config = CompilerConfig(optimization_level=OptimizationLevel.STANDARD if optimize else OptimizationLevel.NONE)
     context = CompilationContext(source_path=Path("test.md"), config=config)
     context.ast = program
 
@@ -353,7 +356,8 @@ def test_disassembler() -> None:
     stmt = ExpressionStatement(Token(TokenType.LIT_INT, "2", 1, 0), expr)
     program = Program([stmt])
 
-    module = compile_program(program)
+    # Compile without optimization to ensure ADD instruction is generated
+    module = compile_program(program, optimize=False)
 
     # Disassemble and check output
     output = disassemble_chunk(module.main_chunk)

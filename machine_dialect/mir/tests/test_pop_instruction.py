@@ -12,7 +12,7 @@ from machine_dialect.ast import (
     SetStatement,
 )
 from machine_dialect.codegen.isa import Opcode
-from machine_dialect.compiler.config import CompilerConfig
+from machine_dialect.compiler.config import CompilerConfig, OptimizationLevel
 from machine_dialect.compiler.context import CompilationContext
 from machine_dialect.compiler.phases.codegen import CodeGenerationPhase
 from machine_dialect.compiler.phases.hir_generation import HIRGenerationPhase
@@ -26,6 +26,48 @@ from machine_dialect.mir.mir_module import MIRModule
 from machine_dialect.mir.mir_to_bytecode import generate_bytecode
 from machine_dialect.mir.mir_types import MIRType
 from machine_dialect.mir.mir_values import Constant, Temp
+
+
+def count_opcode(bytecode: bytearray, opcode: Opcode) -> int:
+    """Count occurrences of an opcode in bytecode, skipping operands.
+
+    TODO: This is a temporary workaround. The proper fix is to implement
+    a method on the bytecode or Opcode class that correctly counts opcodes
+    while understanding the bytecode structure (skipping operands).
+    See: bytecode.count(Opcode.POP) incorrectly counts operand bytes.
+
+    Args:
+        bytecode: The bytecode to search.
+        opcode: The opcode to count.
+
+    Returns:
+        Number of times the opcode appears as an instruction (not as an operand).
+    """
+    count = 0
+    i = 0
+    while i < len(bytecode):
+        if bytecode[i] == opcode:
+            count += 1
+
+        # Skip operands based on current opcode
+        current_op = Opcode(bytecode[i])
+        if current_op in [
+            Opcode.LOAD_CONST,
+            Opcode.LOAD_LOCAL,
+            Opcode.STORE_LOCAL,
+            Opcode.LOAD_GLOBAL,
+            Opcode.STORE_GLOBAL,
+            Opcode.JUMP,
+            Opcode.JUMP_IF_FALSE,
+            Opcode.LOAD_FUNCTION,
+        ]:
+            i += 3  # These have 2-byte operands
+        elif current_op == Opcode.CALL:
+            i += 2  # This has a 1-byte operand
+        else:
+            i += 1  # No operand
+
+    return count
 
 
 class TestPopInstruction(unittest.TestCase):
@@ -149,8 +191,8 @@ class TestPopBytecodeGeneration(unittest.TestCase):
 
         program = Program([expr_stmt])
 
-        # Run through the compilation pipeline
-        config = CompilerConfig()
+        # Run through the compilation pipeline with NO optimization to ensure MUL is generated
+        config = CompilerConfig(optimization_level=OptimizationLevel.NONE)
         context = CompilationContext(source_path=Path("test.md"), config=config)
         context.ast = program
 
@@ -197,8 +239,8 @@ class TestPopBytecodeGeneration(unittest.TestCase):
 
         program = Program([set_stmt, expr_stmt])
 
-        # Run through the pipeline
-        config = CompilerConfig()
+        # Run through the pipeline with NO optimization to test actual ADD instruction
+        config = CompilerConfig(optimization_level=OptimizationLevel.NONE)
         context = CompilationContext(source_path=Path("test.md"), config=config)
         context.ast = program
 
@@ -220,7 +262,7 @@ class TestPopBytecodeGeneration(unittest.TestCase):
         bytecode = bytecode_module.main_chunk.bytecode
 
         # Should have exactly one POP (for the expression statement)
-        pop_count = bytecode.count(Opcode.POP)
+        pop_count = count_opcode(bytecode, Opcode.POP)
         self.assertEqual(pop_count, 1, "Should have exactly one POP for the expression statement")
 
         # Should have STORE_GLOBAL for the assignment

@@ -316,3 +316,9 @@ http-client.private.env.json
 .idea/.cache/.Apifox_Helper
 .idea/ApifoxUploaderProjectSetting.xml
 .regression_baselines/
+
+
+### Custom
+
+BUSINESS_ROADMAP.md
+TECH_SPEC_RUST_VM.md

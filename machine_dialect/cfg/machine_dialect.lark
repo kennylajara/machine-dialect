@@ -18,8 +18,7 @@ INPUTS_SECTION: /####\s+Inputs:[^\n]*(\n-[^\n]*)*/
 OUTPUTS_SECTION: /####\s+Outputs:[^\n]*(\n-[^\n]*)*/
 
 // Allow statements with or without periods, or single expressions
-statement_list: (statement ".")+
-              | statement        // Single statement without period
+statement_list: (statement ("." statement)* "."?)
               | expression       // Bare expression
 
 statement: set_stmt

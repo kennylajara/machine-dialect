@@ -534,9 +534,19 @@ class Parser:
         """
         assert self._current_token is not None
 
+        # Extract the actual URL value without quotes (like string literals)
+        literal = self._current_token.literal
+        if literal.startswith('"') and literal.endswith('"'):
+            value = literal[1:-1]
+        elif literal.startswith("'") and literal.endswith("'"):
+            value = literal[1:-1]
+        else:
+            # Fallback if no quotes found
+            value = literal
+
         return URLLiteral(
             token=self._current_token,
-            value=self._current_token.literal,
+            value=value,
         )
 
     def _parse_prefix_expression(self) -> PrefixExpression:

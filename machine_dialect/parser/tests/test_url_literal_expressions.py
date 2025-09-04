@@ -19,7 +19,7 @@ class TestURLLiteralExpressions:
         stmt = program.statements[0]
         assert isinstance(stmt, ast.ExpressionStatement)
         assert isinstance(stmt.expression, ast.URLLiteral)
-        assert stmt.expression.value == '"https://example.com"'
+        assert stmt.expression.value == "https://example.com"
 
     def test_parse_complex_url_literal(self) -> None:
         """Test parsing a complex URL with query parameters."""
@@ -33,7 +33,7 @@ class TestURLLiteralExpressions:
         stmt = program.statements[0]
         assert isinstance(stmt, ast.ExpressionStatement)
         assert isinstance(stmt.expression, ast.URLLiteral)
-        assert stmt.expression.value == '"https://api.example.com/v1/users?id=123&active=true#profile"'
+        assert stmt.expression.value == "https://api.example.com/v1/users?id=123&active=true#profile"
 
     def test_parse_ftp_url_literal(self) -> None:
         """Test parsing an FTP URL literal."""
@@ -47,7 +47,7 @@ class TestURLLiteralExpressions:
         stmt = program.statements[0]
         assert isinstance(stmt, ast.ExpressionStatement)
         assert isinstance(stmt.expression, ast.URLLiteral)
-        assert stmt.expression.value == '"ftp://files.example.com/data.zip"'
+        assert stmt.expression.value == "ftp://files.example.com/data.zip"
 
     def test_parse_mailto_url_literal(self) -> None:
         """Test parsing a mailto URL literal."""
@@ -61,7 +61,7 @@ class TestURLLiteralExpressions:
         stmt = program.statements[0]
         assert isinstance(stmt, ast.ExpressionStatement)
         assert isinstance(stmt.expression, ast.URLLiteral)
-        assert stmt.expression.value == '"mailto:user@example.com"'
+        assert stmt.expression.value == "mailto:user@example.com"
 
     def test_url_vs_string_distinction(self) -> None:
         """Test that URLs and regular strings are parsed as different types."""
@@ -99,7 +99,7 @@ class TestURLLiteralExpressions:
         assert stmt.name is not None
         assert stmt.name.value == "api_endpoint"
         assert isinstance(stmt.value, ast.URLLiteral)
-        assert stmt.value.value == '"https://api.example.com/v1"'
+        assert stmt.value.value == "https://api.example.com/v1"
 
     def test_url_with_port(self) -> None:
         """Test parsing URL with port number."""
@@ -113,7 +113,7 @@ class TestURLLiteralExpressions:
         stmt = program.statements[0]
         assert isinstance(stmt, ast.ExpressionStatement)
         assert isinstance(stmt.expression, ast.URLLiteral)
-        assert stmt.expression.value == '"http://localhost:8080/api"'
+        assert stmt.expression.value == "http://localhost:8080/api"
 
     def test_data_url(self) -> None:
         """Test parsing data URL."""
@@ -127,7 +127,7 @@ class TestURLLiteralExpressions:
         stmt = program.statements[0]
         assert isinstance(stmt, ast.ExpressionStatement)
         assert isinstance(stmt.expression, ast.URLLiteral)
-        assert stmt.expression.value == '"data:text/plain;base64,SGVsbG8="'
+        assert stmt.expression.value == "data:text/plain;base64,SGVsbG8="
 
     def test_multiple_urls_in_program(self) -> None:
         """Test parsing multiple URLs in a program."""
@@ -146,13 +146,13 @@ class TestURLLiteralExpressions:
         stmt1 = program.statements[0]
         assert isinstance(stmt1, ast.SetStatement)
         assert isinstance(stmt1.value, ast.URLLiteral)
-        assert stmt1.value.value == '"https://primary.example.com"'
+        assert stmt1.value.value == "https://primary.example.com"
 
         # Second statement - URL
         stmt2 = program.statements[1]
         assert isinstance(stmt2, ast.SetStatement)
         assert isinstance(stmt2.value, ast.URLLiteral)
-        assert stmt2.value.value == '"https://secondary.example.com"'
+        assert stmt2.value.value == "https://secondary.example.com"
 
         # Third statement - Regular string
         stmt3 = program.statements[2]
@@ -191,7 +191,7 @@ class TestURLLiteralExpressions:
         assert isinstance(stmt.arguments, ast.Arguments)
         assert len(stmt.arguments.positional) == 1
         assert isinstance(stmt.arguments.positional[0], ast.URLLiteral)
-        assert stmt.arguments.positional[0].value == '"https://api.example.com/data"'
+        assert stmt.arguments.positional[0].value == "https://api.example.com/data"
 
     def test_url_without_scheme_is_string(self) -> None:
         """Test that URLs without schemes are parsed as regular strings."""

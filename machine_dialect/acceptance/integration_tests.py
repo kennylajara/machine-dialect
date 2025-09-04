@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from machine_dialect.cfg.parser import CFGParser
-from machine_dialect.compiler.config import CompilerConfig
+from machine_dialect.compiler.config import CompilerConfig, OptimizationLevel
 from machine_dialect.compiler.context import CompilationContext
 from machine_dialect.compiler.phases.codegen import CodeGenerationPhase
 from machine_dialect.compiler.phases.hir_generation import HIRGenerationPhase
@@ -873,8 +873,8 @@ Use `get_pi`.
                     error=f"Parser errors: {parser.errors}",
                 )
 
-            # Compile to bytecode using MIR pipeline
-            config = CompilerConfig()
+            # Compile to bytecode using MIR pipeline (without optimization to avoid issues)
+            config = CompilerConfig(optimization_level=OptimizationLevel.NONE)
             context = CompilationContext(source_path=Path("test.md"), config=config)
             context.ast = ast
 

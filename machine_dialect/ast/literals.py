@@ -112,9 +112,9 @@ class URLLiteral(Expression):
         self.value = value
 
     def __str__(self) -> str:
-        # Display with underscores for the new syntax
-        # The value includes the quotes
-        return f"_{self.value}_"
+        # Display with underscores and quotes for the new syntax
+        # Add quotes for display even though the value doesn't include them
+        return f'_"{self.value}"_'
 
     def desugar(self) -> "URLLiteral":
         """URL literals are already in simplest form.

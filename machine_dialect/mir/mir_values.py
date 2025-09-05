@@ -134,7 +134,7 @@ class Constant(MIRValue):
     Constants represent literal values from the source program.
     """
 
-    def __init__(self, value: Any, mir_type: MIRType | None = None) -> None:
+    def __init__(self, value: Any, mir_type: MIRType | MIRUnionType | None = None) -> None:
         """Initialize a constant.
 
         Args:

@@ -216,7 +216,8 @@ class LoopInvariantCodeMotion(OptimizationPass):
 
         # Function parameters are invariant if not modified in the loop
         # They are implicitly defined outside all loops
-        for param_name in function.params:
+        for param in function.params:
+            param_name = param.name if isinstance(param, Variable) else str(param)
             if param_name not in modified_in_loop:
                 # Find the Variable object for this parameter
                 # Look through loop instructions to find the Variable instance

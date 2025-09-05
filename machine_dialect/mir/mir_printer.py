@@ -32,7 +32,24 @@ from machine_dialect.mir.mir_instructions import (
     UnaryOp,
 )
 from machine_dialect.mir.mir_module import MIRModule
+from machine_dialect.mir.mir_types import MIRType, MIRUnionType
 from machine_dialect.mir.mir_values import Constant, FunctionRef, MIRValue, Temp, Variable
+
+
+def format_type(mir_type: MIRType | MIRUnionType) -> str:
+    """Format a MIR type for display.
+
+    Args:
+        mir_type: The type to format.
+
+    Returns:
+        String representation of the type.
+    """
+    if isinstance(mir_type, MIRUnionType):
+        return f"Union[{', '.join(t.name for t in mir_type.types)}]"
+    elif isinstance(mir_type, MIRType):
+        return mir_type.name
+    return str(mir_type)
 
 
 class MIRPrinter:
@@ -93,9 +110,10 @@ class MIRPrinter:
         """
         # Function signature
         params = ", ".join(
-            f"{p.name}: {p.type.name}" if hasattr(p, "name") and hasattr(p, "type") else str(p) for p in func.params
+            f"{p.name}: {format_type(p.type)}" if hasattr(p, "name") and hasattr(p, "type") else str(p)
+            for p in func.params
         )
-        self._write(f"Function {func.name}({params}) -> {func.return_type.name} {{")
+        self._write(f"Function {func.name}({params}) -> {format_type(func.return_type)} {{")
         self._indent()
 
         # Print locals
@@ -104,7 +122,7 @@ class MIRPrinter:
             self._indent()
             for local in func.locals.values():
                 if hasattr(local, "name") and hasattr(local, "type"):
-                    self._write(f"{local.name}: {local.type.name}")
+                    self._write(f"{local.name}: {format_type(local.type)}")
                 else:
                     self._write(str(local))
             self._dedent()
@@ -116,7 +134,7 @@ class MIRPrinter:
             self._indent()
             for temp in func.temporaries:
                 if hasattr(temp, "name") and hasattr(temp, "type"):
-                    self._write(f"{temp.name}: {temp.type.name}")
+                    self._write(f"{temp.name}: {format_type(temp.type)}")
                 else:
                     self._write(str(temp))
             self._dedent()

@@ -2,7 +2,7 @@
 
 from machine_dialect.mir.mir_function import MIRFunction
 from machine_dialect.mir.mir_module import MIRModule
-from machine_dialect.mir.optimization_pass import OptimizationPass
+from machine_dialect.mir.optimization_pass import FunctionAnalysisPass, OptimizationPass
 from machine_dialect.mir.pass_manager import PassManager
 
 
@@ -40,21 +40,21 @@ def run_optimization_with_analyses(
         if required_analyses:
             for analysis_name in required_analyses:
                 analysis_pass = pass_manager.registry.get_pass(analysis_name)
-                if analysis_pass:
+                if analysis_pass and isinstance(analysis_pass, FunctionAnalysisPass):
                     # Store the analysis pass in the manager
                     pass_manager.analysis_manager._analyses[analysis_name] = analysis_pass
                     # Run the analysis on the function to populate its cache
                     # This will be called via get_analysis when needed
-                    if hasattr(analysis_pass, "run_on_function"):
-                        analysis_pass.run_on_function(function)
+                    analysis_pass.run_on_function(function)
 
     # Run the optimization
-    result = opt_pass.run_on_function(function)
+    if isinstance(opt_pass, OptimizationPass):
+        result = opt_pass.run_on_function(function)
+    else:
+        result = False
 
     # Store the pass instance for test access (e.g., to check statistics)
-    if hasattr(pass_manager, "_last_run_pass"):
-        pass_manager._last_run_pass = opt_pass
-    else:
-        pass_manager._last_run_pass = opt_pass
+    # Using setattr to avoid type checking issues
+    pass_manager._last_run_pass = opt_pass  # type: ignore[attr-defined]
 
-    return result
+    return bool(result)

@@ -4,6 +4,8 @@ This module defines the type system used in the MIR, including type
 representations, inference, and checking utilities.
 """
 
+from __future__ import annotations
+
 from dataclasses import dataclass
 from enum import Enum, auto
 from typing import Any
@@ -87,7 +89,7 @@ def infer_type(value: Any) -> MIRType:
         return MIRType.UNKNOWN
 
 
-def is_numeric_type(mir_type: MIRType) -> bool:
+def is_numeric_type(mir_type: MIRType | MIRUnionType) -> bool:
     """Check if a type is numeric (int or float).
 
     Args:
@@ -96,10 +98,13 @@ def is_numeric_type(mir_type: MIRType) -> bool:
     Returns:
         True if the type is numeric, False otherwise.
     """
+    if isinstance(mir_type, MIRUnionType):
+        # Union is numeric if all its types are numeric
+        return all(is_numeric_type(t) for t in mir_type.types)
     return mir_type in (MIRType.INT, MIRType.FLOAT)
 
 
-def is_comparable_type(mir_type: MIRType) -> bool:
+def is_comparable_type(mir_type: MIRType | MIRUnionType) -> bool:
     """Check if a type supports comparison operations.
 
     Args:
@@ -108,6 +113,9 @@ def is_comparable_type(mir_type: MIRType) -> bool:
     Returns:
         True if the type is comparable, False otherwise.
     """
+    if isinstance(mir_type, MIRUnionType):
+        # Union is comparable if all its types are comparable
+        return all(is_comparable_type(t) for t in mir_type.types)
     return mir_type in (MIRType.INT, MIRType.FLOAT, MIRType.STRING, MIRType.BOOL)
 
 
@@ -209,7 +217,7 @@ def ast_type_to_mir_type(type_spec: list[str]) -> MIRType | MIRUnionType:
         return MIRUnionType(mir_types)
 
 
-def coerce_types(left: MIRType, right: MIRType) -> MIRType | None:
+def coerce_types(left: MIRType | MIRUnionType, right: MIRType | MIRUnionType) -> MIRType | MIRUnionType | None:
     """Determine the result type when coercing two types.
 
     Args:
@@ -219,6 +227,12 @@ def coerce_types(left: MIRType, right: MIRType) -> MIRType | None:
     Returns:
         The coerced type, or None if types cannot be coerced.
     """
+    # Handle union types
+    if isinstance(left, MIRUnionType) or isinstance(right, MIRUnionType):
+        # For now, return UNKNOWN for union type operations
+        # This could be improved to compute the union of result types
+        return MIRType.UNKNOWN
+
     # Same types - no coercion needed
     if left == right:
         return left
@@ -235,7 +249,9 @@ def coerce_types(left: MIRType, right: MIRType) -> MIRType | None:
     return None
 
 
-def get_binary_op_result_type(op: str, left: MIRType, right: MIRType) -> MIRType:
+def get_binary_op_result_type(
+    op: str, left: MIRType | MIRUnionType, right: MIRType | MIRUnionType
+) -> MIRType | MIRUnionType:
     """Get the result type of a binary operation.
 
     Args:
@@ -326,7 +342,7 @@ def is_assignable(value_type: MIRType | MIRUnionType, target_type: MIRType | MIR
     return can_cast(value_type, target_type)
 
 
-def get_unary_op_result_type(op: str, operand: MIRType) -> MIRType:
+def get_unary_op_result_type(op: str, operand: MIRType | MIRUnionType) -> MIRType | MIRUnionType:
     """Get the result type of a unary operation.
 
     Args:

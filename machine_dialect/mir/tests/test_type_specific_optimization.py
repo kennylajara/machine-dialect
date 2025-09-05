@@ -216,7 +216,7 @@ class TestTypeSpecificOptimization:
 
         # Add variable with union type metadata
         x = Variable("x", MIRType.UNKNOWN)
-        x.union_type = MIRUnionType([MIRType.INT, MIRType.STRING])  # type: ignore[attr-defined]
+        x.union_type = MIRUnionType([MIRType.INT, MIRType.STRING])
         func.add_local(x)
 
         # Create a basic block
@@ -343,6 +343,7 @@ class TestTypeSpecificOptimization:
 
         assert isinstance(block.instructions[0], ShiftOp)
         assert block.instructions[0].op == "<<"
+        assert isinstance(block.instructions[0].right, Constant)
         assert block.instructions[0].right.value == 3  # 8 = 2^3
 
     def test_strength_reduction_divide_power_of_two(self) -> None:
@@ -373,6 +374,7 @@ class TestTypeSpecificOptimization:
 
         assert isinstance(block.instructions[0], ShiftOp)
         assert block.instructions[0].op == ">>"
+        assert isinstance(block.instructions[0].right, Constant)
         assert block.instructions[0].right.value == 4  # 16 = 2^4
 
     def test_modulo_power_of_two(self) -> None:
@@ -401,6 +403,7 @@ class TestTypeSpecificOptimization:
         assert len(block.instructions) == 1
         assert isinstance(block.instructions[0], BinaryOp)
         assert block.instructions[0].op == "&"
+        assert isinstance(block.instructions[0].right, Constant)
         assert block.instructions[0].right.value == 31  # 32 - 1
 
     def test_self_subtraction(self) -> None:

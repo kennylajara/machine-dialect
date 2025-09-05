@@ -32,7 +32,7 @@ from machine_dialect.mir.mir_instructions import (
     UnaryOp,
 )
 from machine_dialect.mir.mir_module import MIRModule
-from machine_dialect.mir.mir_types import MIRType
+from machine_dialect.mir.mir_types import MIRType, MIRUnionType
 from machine_dialect.mir.mir_values import Constant, MIRValue, Temp, Variable
 from machine_dialect.mir.register_allocation import RegisterAllocation, RegisterAllocator
 
@@ -40,7 +40,7 @@ from machine_dialect.mir.register_allocation import RegisterAllocation, Register
 class StackSlot:
     """Represents a stack slot for locals."""
 
-    def __init__(self, index: int, name: str, mir_type: MIRType) -> None:
+    def __init__(self, index: int, name: str, mir_type: MIRType | MIRUnionType) -> None:
         """Initialize a stack slot.
 
         Args:
@@ -849,7 +849,9 @@ class BytecodeGenerator:
             slot = StackSlot(
                 slot_index,
                 value.name if hasattr(value, "name") else str(value),
-                value.type if hasattr(value, "type") else MIRType.UNKNOWN,
+                value.type
+                if hasattr(value, "type") and isinstance(value.type, (MIRType, MIRUnionType))  # noqa: UP038
+                else MIRType.UNKNOWN,
             )
             self.local_slots[value] = slot
 

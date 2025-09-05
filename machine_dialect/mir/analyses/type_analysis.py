@@ -19,7 +19,7 @@ from machine_dialect.mir.mir_instructions import (
     Phi,
     UnaryOp,
 )
-from machine_dialect.mir.mir_types import MIRType
+from machine_dialect.mir.mir_types import MIRType, MIRUnionType
 from machine_dialect.mir.mir_values import Constant, MIRValue, Temp, Variable
 from machine_dialect.mir.optimization_pass import (
     FunctionAnalysisPass,
@@ -109,13 +109,13 @@ class TypeInfo:
         constant_value: Known constant value if any.
     """
 
-    base_type: MIRType
+    base_type: MIRType | MIRUnionType
     is_generic: bool = False
     generic_type: GenericType | None = None
     nullable: bool = False
     constant_value: Any = None
 
-    def get_concrete_type(self) -> MIRType:
+    def get_concrete_type(self) -> MIRType | MIRUnionType:
         """Get the concrete type.
 
         Returns:

@@ -14,7 +14,7 @@ from machine_dialect.mir.mir_instructions import (
     Call,
 )
 from machine_dialect.mir.mir_module import MIRModule
-from machine_dialect.mir.mir_types import MIRType
+from machine_dialect.mir.mir_types import MIRType, MIRUnionType
 from machine_dialect.mir.mir_values import Constant, MIRValue, Variable
 from machine_dialect.mir.optimization_pass import (
     ModulePass,
@@ -34,8 +34,8 @@ class TypeSignature:
         return_type: Return type of the function.
     """
 
-    param_types: tuple[MIRType, ...]
-    return_type: MIRType
+    param_types: tuple[MIRType | MIRUnionType, ...]
+    return_type: MIRType | MIRUnionType
 
     def __hash__(self) -> int:
         """Hash for use in dictionaries."""
@@ -65,7 +65,15 @@ class SpecializationCandidate:
 
     def specialized_name(self) -> str:
         """Generate specialized function name."""
-        type_suffix = "_".join(t.name.lower() for t in self.signature.param_types)
+        type_names = []
+        for t in self.signature.param_types:
+            if isinstance(t, MIRUnionType):
+                # Format union types as "union_type1_type2"
+                union_name = "union_" + "_".join(ut.name.lower() for ut in t.types)
+                type_names.append(union_name)
+            else:
+                type_names.append(t.name.lower())
+        type_suffix = "_".join(type_names)
         return f"{self.function_name}__{type_suffix}"
 
 
@@ -173,7 +181,7 @@ class TypeSpecialization(ModulePass):
                             else:
                                 self.type_signatures[func_name][signature] += 1
 
-    def _infer_arg_types(self, args: list[MIRValue]) -> tuple[MIRType, ...] | None:
+    def _infer_arg_types(self, args: list[MIRValue]) -> tuple[MIRType | MIRUnionType, ...] | None:
         """Infer types of function arguments.
 
         Args:
@@ -196,7 +204,7 @@ class TypeSpecialization(ModulePass):
 
         return tuple(types)
 
-    def _infer_return_type(self, call: Call) -> MIRType:
+    def _infer_return_type(self, call: Call) -> MIRType | MIRUnionType:
         """Infer return type of a call.
 
         Args:

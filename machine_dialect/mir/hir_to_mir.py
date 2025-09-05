@@ -73,7 +73,7 @@ class HIRToMIRLowering:
         self.current_block: BasicBlock | None = None
         self.variable_map: dict[str, Variable] = {}
         self.label_counter = 0
-        self.type_context: dict[str, MIRType] = {}  # Track variable types
+        self.type_context: dict[str, MIRType | MIRUnionType] = {}  # Track variable types
         self.union_type_context: dict[str, MIRUnionType] = {}  # Track union types separately
         self.debug_builder = DebugInfoBuilder()  # Debug information tracking
 
@@ -201,7 +201,7 @@ class HIRToMIRLowering:
         params = []
         for param in func.inputs:
             # Infer parameter type from default value if available
-            param_type = MIRType.UNKNOWN
+            param_type: MIRType | MIRUnionType = MIRType.UNKNOWN
             if isinstance(param, Parameter):
                 param_name = param.name.value if isinstance(param.name, Identifier) else str(param.name)
                 # Try to infer type from default value
@@ -317,7 +317,7 @@ class HIRToMIRLowering:
                     # This assignment narrows the type for flow-sensitive analysis
                     # Store this info for optimization passes
                     if hasattr(var, "runtime_type"):
-                        var.runtime_type = value.type  # type: ignore[attr-defined]
+                        var.runtime_type = value.type
             else:
                 # Update type context if we have better type info
                 if hasattr(value, "type") and value.type != MIRType.UNKNOWN:
@@ -359,7 +359,7 @@ class HIRToMIRLowering:
             self.type_context[var_name] = MIRType.UNKNOWN
 
             # Add metadata to the variable for optimization passes
-            var.union_type = mir_type  # type: ignore[attr-defined]
+            var.union_type = mir_type
         else:
             # Single type - use it directly
             var = Variable(var_name, mir_type)

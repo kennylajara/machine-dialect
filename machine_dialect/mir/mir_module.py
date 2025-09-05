@@ -7,7 +7,7 @@ compilation unit in the MIR.
 from typing import Any
 
 from .mir_function import MIRFunction
-from .mir_types import MIRType
+from .mir_types import MIRType, MIRUnionType
 from .mir_values import Constant, Variable
 
 
@@ -17,7 +17,7 @@ class ConstantPool:
     def __init__(self) -> None:
         """Initialize the constant pool."""
         self.constants: list[Constant] = []
-        self._value_to_index: dict[tuple[Any, MIRType], int] = {}
+        self._value_to_index: dict[tuple[Any, MIRType | MIRUnionType], int] = {}
 
     def add(self, constant: Constant) -> int:
         """Add a constant to the pool.

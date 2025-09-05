@@ -5,7 +5,7 @@ in the MIR, including its parameters, locals, temporaries, and CFG.
 """
 
 from .basic_block import CFG
-from .mir_types import MIRType
+from .mir_types import MIRType, MIRUnionType
 from .mir_values import Temp, Variable
 
 
@@ -58,7 +58,7 @@ class MIRFunction:
         """
         return self.locals.get(name)
 
-    def new_temp(self, mir_type: MIRType) -> Temp:
+    def new_temp(self, mir_type: MIRType | MIRUnionType) -> Temp:
         """Create a new temporary.
 
         Args:

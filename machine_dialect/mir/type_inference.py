@@ -30,7 +30,7 @@ from machine_dialect.mir.mir_instructions import (
     UnaryOp,
 )
 from machine_dialect.mir.mir_module import MIRModule
-from machine_dialect.mir.mir_types import MIRType, get_binary_op_result_type, get_unary_op_result_type
+from machine_dialect.mir.mir_types import MIRType, MIRUnionType, get_binary_op_result_type, get_unary_op_result_type
 from machine_dialect.mir.mir_values import Constant, MIRValue, Variable
 
 
@@ -39,7 +39,7 @@ class TypeInferencer:
 
     def __init__(self) -> None:
         """Initialize the type inferencer."""
-        self.type_map: dict[MIRValue, MIRType] = {}
+        self.type_map: dict[MIRValue, MIRType | MIRUnionType] = {}
         self.constraints: list[tuple[MIRValue, MIRValue]] = []
 
     def infer_module_types(self, module: MIRModule) -> None:
@@ -87,7 +87,7 @@ class TypeInferencer:
         # Apply inferred types back to values
         self._apply_inferred_types(function)
 
-    def _infer_parameter_type(self, param: Variable, function: MIRFunction) -> MIRType:
+    def _infer_parameter_type(self, param: Variable, function: MIRFunction) -> MIRType | MIRUnionType:
         """Infer parameter type from its usage in the function.
 
         Args:
@@ -257,7 +257,7 @@ class TypeInferencer:
                         if hasattr(inst.right, "type"):
                             inst.right.type = result_type
 
-    def _get_type(self, value: MIRValue) -> MIRType:
+    def _get_type(self, value: MIRValue) -> MIRType | MIRUnionType:
         """Get the type of a MIR value.
 
         Args:
@@ -325,7 +325,7 @@ def infer_ast_literal_type(literal: ASTNode) -> MIRType:
         return MIRType.UNKNOWN
 
 
-def infer_ast_expression_type(expr: ASTNode, context: dict[str, MIRType]) -> MIRType:
+def infer_ast_expression_type(expr: ASTNode, context: dict[str, MIRType | MIRUnionType]) -> MIRType | MIRUnionType:
     """Infer MIR type from AST expression.
 
     Args:

@@ -14,6 +14,7 @@ class TestActionStatements:
 <details>
 <summary>Emits the sound of the alarm.</summary>
 
+> Define `noise` as Text.
 > Set `noise` to _"WEE-OO WEE-OO WEE-OO"_.
 > Say `noise`.
 
@@ -31,15 +32,22 @@ class TestActionStatements:
         assert len(action_stmt.inputs) == 0
         assert len(action_stmt.outputs) == 0
         assert isinstance(action_stmt.body, BlockStatement)
-        assert len(action_stmt.body.statements) == 2
+        assert len(action_stmt.body.statements) == 3
 
-        # Check first statement: Set `noise` to _"WEE-OO WEE-OO WEE-OO"_.
-        set_stmt = action_stmt.body.statements[0]
+        # Check first statement: Define `noise` as Text.
+        from machine_dialect.ast import DefineStatement
+
+        define_stmt = action_stmt.body.statements[0]
+        assert isinstance(define_stmt, DefineStatement)
+        assert define_stmt.name.value == "noise"
+
+        # Check second statement: Set `noise` to _"WEE-OO WEE-OO WEE-OO"_.
+        set_stmt = action_stmt.body.statements[1]
         assert isinstance(set_stmt, SetStatement)
         assert set_stmt.name and set_stmt.name.value == "noise"
 
-        # Check second statement: Say `noise`.
-        say_stmt = action_stmt.body.statements[1]
+        # Check third statement: Say `noise`.
+        say_stmt = action_stmt.body.statements[2]
         from machine_dialect.ast import SayStatement
 
         assert isinstance(say_stmt, SayStatement)
@@ -51,6 +59,7 @@ class TestActionStatements:
 <details>
 <summary>Performs a calculation.</summary>
 
+> Define `result` as Integer.
 > Set `result` to _42_.
 
 </details>"""
@@ -134,6 +143,7 @@ class TestActionStatements:
 <details>
 <summary>First action.</summary>
 
+> Define `x` as Integer.
 > Set `x` to _1_.
 
 </details>
@@ -143,6 +153,7 @@ class TestActionStatements:
 <details>
 <summary>Second action.</summary>
 
+> Define `y` as Integer.
 > Set `y` to _2_.
 
 </details>"""
@@ -168,6 +179,7 @@ class TestActionStatements:
 <details>
 <summary>Emits the sound of the alarm.</summary>
 
+> Define `noise` as Text.
 > Set `noise` to `sound`.
 > Say `noise`.
 
@@ -218,6 +230,7 @@ class TestActionStatements:
 <details>
 <summary>Performs a calculation.</summary>
 
+> Define `result` as Number.
 > Set `result` to _42_.
 > Give back `result`.
 
@@ -262,6 +275,7 @@ class TestActionStatements:
 <details>
 <summary>Processes input data.</summary>
 
+> Define `result` as Text.
 > Set `result` to `input`.
 > Give back `result`.
 

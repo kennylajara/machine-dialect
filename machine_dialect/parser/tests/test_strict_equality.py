@@ -158,8 +158,9 @@ class TestStrictEqualityExpressions:
             # If with strict inequality
             (
                 """
+                Define `result` as Text or Empty.
                 if value is not strictly equal to empty then:
-                > set result to value.
+                > set `result` to value.
                 """,
                 "value",
                 "is not strictly equal to",
@@ -180,8 +181,9 @@ class TestStrictEqualityExpressions:
             # Complex condition with strict equality
             (
                 """
+                Define `flag` as Yes/No.
                 if x is identical to 0 or y is not identical to 0 then:
-                > set flag to _yes_.
+                > set `flag` to _yes_.
                 """,
                 None,  # Complex condition, skip simple checks
                 None,
@@ -199,10 +201,17 @@ class TestStrictEqualityExpressions:
             program = parser.parse(source)
 
             assert len(parser.errors) == 0, f"Parser errors: {parser.errors}"
-            assert len(program.statements) == 1
+
+            # Skip Define statement if present
+            stmt_idx = 0
+            if "Define" in source:
+                stmt_idx = 1
+                assert len(program.statements) == 2
+            else:
+                assert len(program.statements) == 1
 
             # Check it's an if statement
-            if_stmt = program.statements[0]
+            if_stmt = program.statements[stmt_idx]
             assert isinstance(if_stmt, IfStatement)
 
             # Check the condition is parsed correctly

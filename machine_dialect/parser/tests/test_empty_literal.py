@@ -26,16 +26,21 @@ class TestEmptyLiteral:
 
     def test_empty_in_set_statement(self) -> None:
         """Test using empty in a set statement."""
-        source = "Set result to empty."
+        source = """Define `result` as Empty.
+Set `result` to empty."""
         parser = Parser()
         program = parser.parse(source)
 
         assert len(parser.errors) == 0, f"Parser errors: {parser.errors}"
-        assert len(program.statements) == 1
+        assert len(program.statements) == 2
 
-        from machine_dialect.ast import SetStatement
+        from machine_dialect.ast import DefineStatement, SetStatement
 
-        statement = program.statements[0]
+        # Check Define statement
+        assert isinstance(program.statements[0], DefineStatement)
+
+        # Check Set statement
+        statement = program.statements[1]
         assert isinstance(statement, SetStatement)
         assert isinstance(statement.value, EmptyLiteral)
 
@@ -68,18 +73,25 @@ class TestEmptyLiteral:
     def test_empty_in_if_condition(self) -> None:
         """Test using empty in if statement conditions."""
         source = """
-        if value equals empty then:
-        > Set result to 0.
+        Define `value` as Integer or Empty.
+        Define `result` as Integer.
+        if `value` equals empty then:
+        > Set `result` to _0_.
         """
         parser = Parser()
         program = parser.parse(source)
 
         assert len(parser.errors) == 0, f"Parser errors: {parser.errors}"
-        assert len(program.statements) == 1
+        assert len(program.statements) == 3
 
-        from machine_dialect.ast import IfStatement, InfixExpression
+        from machine_dialect.ast import DefineStatement, IfStatement, InfixExpression
 
-        if_stmt = program.statements[0]
+        # Check Define statements
+        assert isinstance(program.statements[0], DefineStatement)
+        assert isinstance(program.statements[1], DefineStatement)
+
+        # Check If statement
+        if_stmt = program.statements[2]
         assert isinstance(if_stmt, IfStatement)
         assert isinstance(if_stmt.condition, InfixExpression)
         assert str(if_stmt.condition.right) == "empty"

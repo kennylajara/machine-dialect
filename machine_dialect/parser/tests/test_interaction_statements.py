@@ -20,6 +20,8 @@ class TestInteractionStatements:
 <details>
 <summary>Turns off the alarm when it is on.</summary>
 
+> Define `alarm is on` as Yes/No.
+> Set `alarm is on` to _Yes_.
 > **if** `alarm is on` **then**:
 > >
 > > **Set** `alarm is on` **to** _No_.
@@ -40,9 +42,9 @@ class TestInteractionStatements:
         assert len(interaction_stmt.outputs) == 0
         assert isinstance(interaction_stmt.body, BlockStatement)
 
-        # The body should contain an if statement
-        assert len(interaction_stmt.body.statements) == 1
-        if_stmt = interaction_stmt.body.statements[0]
+        # The body should contain define + set + if statement
+        assert len(interaction_stmt.body.statements) == 3
+        if_stmt = interaction_stmt.body.statements[2]
         assert isinstance(if_stmt, IfStatement)
 
         # The if statement should have a consequence block with 2 statements
@@ -77,6 +79,7 @@ class TestInteractionStatements:
 <details>
 <summary>Checks if the system is healthy.</summary>
 
+> Define `health` as Text.
 > Set `health` to _"Good"_.
 > Say `health`.
 
@@ -140,6 +143,7 @@ class TestInteractionStatements:
 <details>
 <summary>Starts the process.</summary>
 
+> Define `running` as Yes/No.
 > Set `running` to _Yes_.
 
 </details>
@@ -149,7 +153,8 @@ class TestInteractionStatements:
 <details>
 <summary>Stops the process.</summary>
 
-> Set `running` to _No_.
+> Define `is_running` as Yes/No.
+> Set `is_running` to _No_.
 
 </details>"""
 
@@ -174,6 +179,8 @@ class TestInteractionStatements:
 <details>
 <summary>Gets user information.</summary>
 
+> Define `user` as Text.
+> Define `age` as Number.
 > Set `user` to _"John Doe"_.
 > Set `age` to _25_.
 > Give back `user`.
@@ -228,6 +235,7 @@ class TestInteractionStatements:
 <details>
 <summary>Internal processing.</summary>
 
+> Define `data` as Text.
 > Set `data` to _"processed"_.
 
 </details>
@@ -237,7 +245,8 @@ class TestInteractionStatements:
 <details>
 <summary>Returns processed data.</summary>
 
-> Say `data`.
+> Define `current_data` as Text.
+> Say `current_data`.
 
 </details>"""
 

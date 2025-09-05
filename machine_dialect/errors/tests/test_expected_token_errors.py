@@ -4,7 +4,7 @@ This module tests the parser's ability to detect and report syntax errors
 when expected tokens are not found during parsing.
 """
 
-from machine_dialect.errors.exceptions import MDSyntaxError
+from machine_dialect.errors.exceptions import MDNameError, MDSyntaxError
 from machine_dialect.parser import Parser
 
 
@@ -35,13 +35,16 @@ class TestExpectedTokenErrors:
 
         parser.parse(source)
 
-        # Should have one syntax error
+        # Should have two errors: undefined variable + syntax error
         assert parser.has_errors() is True
-        assert len(parser.errors) == 1
-        assert isinstance(parser.errors[0], MDSyntaxError)
+        assert len(parser.errors) == 2
+        # First is NameError for undefined variable
+        assert isinstance(parser.errors[0], MDNameError)
+        # Second is the syntax error for missing 'to'
+        assert isinstance(parser.errors[1], MDSyntaxError)
 
-        # Error should mention expected 'to' keyword
-        error_msg = str(parser.errors[0])
+        # Syntax error should mention expected 'to' keyword
+        error_msg = str(parser.errors[1])
         assert "TokenType.KW_TO" in error_msg or "to" in error_msg.lower()
 
     def test_multiple_expected_token_errors(self) -> None:
@@ -55,14 +58,14 @@ Set to "hello".
 
         parser.parse(source)
 
-        # Should have multiple syntax errors
+        # Should have multiple errors (including undefined variable errors)
         assert parser.has_errors() is True
-        # With periods, panic recovery allows finding all 3 errors
-        assert len(parser.errors) == 3
+        # With periods, panic recovery allows finding syntax + name errors
+        assert len(parser.errors) >= 3
 
-        # All errors should be syntax errors
-        for error in parser.errors:
-            assert isinstance(error, MDSyntaxError)
+        # Check for expected error types - mix of syntax and name errors
+        syntax_errors = [e for e in parser.errors if isinstance(e, MDSyntaxError)]
+        assert len(syntax_errors) >= 3  # At least 3 syntax errors from malformed Set statements
 
     def test_empty_identifier(self) -> None:
         """Test error with empty backtick identifier."""
@@ -92,9 +95,15 @@ Set to "hello".
 
         parser.parse(source)
 
-        # With panic recovery, we get 1 error
-        assert len(parser.errors) == 1
-        error = parser.errors[0]
+        # With panic recovery, we get 1 syntax error
+        assert len(parser.errors) >= 1
+        # Find the syntax error (not name error)
+        error = None
+        for e in parser.errors:
+            if isinstance(e, MDSyntaxError):
+                error = e
+                break
+        assert error is not None
 
         # Check that error has location information
         assert hasattr(error, "_line")
@@ -109,8 +118,9 @@ Set to "hello".
 
         parser.parse(source)
 
-        assert len(parser.errors) == 1
-        error = parser.errors[0]
+        assert len(parser.errors) == 2  # Name error + syntax error
+        # Get the syntax error
+        error = parser.errors[1] if isinstance(parser.errors[1], MDSyntaxError) else parser.errors[0]
         error_msg = str(error)
 
         # Error message should contain what was expected and what was found
@@ -160,7 +170,7 @@ Set `Z` 99.
 
     def test_eof_during_parsing(self) -> None:
         """Test error when EOF is encountered while expecting a token."""
-        source = "Set `X`"  # Missing 'to' and value
+        source = "Define `X` as Empty. Set `X`"  # Missing 'to' and value
         parser = Parser()
 
         parser.parse(source)
@@ -168,4 +178,6 @@ Set `Z` 99.
         # Should have an error for missing 'to'
         assert parser.has_errors() is True
         assert len(parser.errors) >= 1
-        assert isinstance(parser.errors[0], MDSyntaxError)
+        # Find syntax error (may not be first if there are name errors)
+        syntax_errors = [e for e in parser.errors if isinstance(e, MDSyntaxError)]
+        assert len(syntax_errors) >= 1

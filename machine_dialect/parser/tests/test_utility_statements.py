@@ -14,6 +14,7 @@ class TestUtilityStatements:
 <details>
 <summary>Calculates the value of pi.</summary>
 
+> Define `result` as Number.
 > Set `result` to _3.14159_.
 > Give back `result`.
 
@@ -31,10 +32,17 @@ class TestUtilityStatements:
         assert len(utility_stmt.inputs) == 0
         assert len(utility_stmt.outputs) == 0
         assert isinstance(utility_stmt.body, BlockStatement)
-        assert len(utility_stmt.body.statements) == 2
+        assert len(utility_stmt.body.statements) == 3  # Define + Set + Give back
 
-        # Check first statement: Set `result` to _3.14159_.
-        set_stmt = utility_stmt.body.statements[0]
+        from machine_dialect.ast import DefineStatement
+
+        # Check first statement: Define `result` as Number.
+        define_stmt = utility_stmt.body.statements[0]
+        assert isinstance(define_stmt, DefineStatement)
+        assert define_stmt.name.value == "result"
+
+        # Check second statement: Set `result` to _3.14159_.
+        set_stmt = utility_stmt.body.statements[1]
         assert isinstance(set_stmt, SetStatement)
         assert set_stmt.name and set_stmt.name.value == "result"
 
@@ -45,6 +53,7 @@ class TestUtilityStatements:
 <details>
 <summary>Adds two numbers and returns the result</summary>
 
+> Define `result` as Whole Number.
 > Set `result` to `addend 1` + `addend 2`.
 
 </details>
@@ -95,6 +104,7 @@ class TestUtilityStatements:
 <details>
 <summary>Doubles the input value.</summary>
 
+> Define `result` as Number.
 > Set `result` to `value` * _2_.
 
 </details>"""
@@ -116,6 +126,7 @@ class TestUtilityStatements:
 <details>
 <summary>Calculates compound interest.</summary>
 
+> Define `amount` as Number.
 > Set `amount` to _1000_.
 
 </details>"""
@@ -157,6 +168,7 @@ class TestUtilityStatements:
 <details>
 <summary>First utility.</summary>
 
+> Define `x` as Number.
 > Set `x` to _1_.
 
 </details>
@@ -166,7 +178,8 @@ class TestUtilityStatements:
 <details>
 <summary>Second utility.</summary>
 
-> Set `y` to _2_.
+> Define `second_y` as Number.
+> Set `second_y` to _2_.
 
 </details>"""
 
@@ -180,13 +193,13 @@ class TestUtilityStatements:
         first_utility = program.statements[0]
         assert isinstance(first_utility, UtilityStatement)
         assert first_utility.name.value == "first utility"
-        assert len(first_utility.body.statements) == 1
+        assert len(first_utility.body.statements) == 2  # Define + Set
 
         # Check second utility
         second_utility = program.statements[1]
         assert isinstance(second_utility, UtilityStatement)
         assert second_utility.name.value == "second utility"
-        assert len(second_utility.body.statements) == 1
+        assert len(second_utility.body.statements) == 2  # Define + Set
 
     def test_utility_with_complex_body(self) -> None:
         """Test utility with complex body including conditionals."""
@@ -195,6 +208,7 @@ class TestUtilityStatements:
 <details>
 <summary>Returns the absolute value of a number.</summary>
 
+> Define `result` as Number.
 > If `number` < _0_ then:
 > > Set `result` to -`number`.
 > Else:
@@ -214,7 +228,7 @@ class TestUtilityStatements:
         assert isinstance(utility_stmt, UtilityStatement)
         assert utility_stmt.name.value == "absolute value"
         assert utility_stmt.description == "Returns the absolute value of a number."
-        assert len(utility_stmt.body.statements) == 2  # If statement and Give back statement
+        assert len(utility_stmt.body.statements) == 3  # Define + If statement + Give back statement
 
     def test_mixed_statements_with_utility(self) -> None:
         """Test that utilities can coexist with actions and interactions."""
@@ -223,6 +237,7 @@ class TestUtilityStatements:
 <details>
 <summary>A private action.</summary>
 
+> Define `x` as Number.
 > Set `x` to _1_.
 
 </details>
@@ -241,6 +256,7 @@ class TestUtilityStatements:
 <details>
 <summary>A public interaction.</summary>
 
+> Define `y` as Number.
 > Set `y` to _2_.
 
 </details>"""

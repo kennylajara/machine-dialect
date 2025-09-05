@@ -13,7 +13,7 @@ class TestPanicModeRecovery:
 
     def test_recovery_at_period_boundary(self) -> None:
         """Test that panic mode stops at period boundaries."""
-        source = "Set @ to 42. Set x to 5."
+        source = "Define `x` as Integer. Set @ to 42. Set `x` to 5."
         parser = Parser()
 
         program = parser.parse(source)
@@ -23,12 +23,14 @@ class TestPanicModeRecovery:
         assert isinstance(parser.errors[0], MDNameError)
         assert "@" in str(parser.errors[0])
 
-        # Should have parsed the second statement successfully
-        assert len(program.statements) == 2
-        # First statement should be incomplete (None due to error)
-        assert program.statements[0] is not None  # Statement exists but may be incomplete
-        # Second statement should be complete
+        # Should have parsed the statements successfully
+        assert len(program.statements) == 3  # Define + 2 Sets
+        # First statement should be Define
+        assert program.statements[0] is not None
+        # Second statement should be incomplete (error due to @)
         assert program.statements[1] is not None
+        # Third statement should be complete
+        assert program.statements[2] is not None
 
     def test_recovery_at_eof_boundary(self) -> None:
         """Test that panic mode stops at EOF."""
@@ -46,7 +48,7 @@ class TestPanicModeRecovery:
 
     def test_multiple_errors_with_recovery(self) -> None:
         """Test that multiple errors are collected with recovery between them."""
-        source = "Set @ to 42. Set # to 10. Set x to 5."
+        source = "Define `x` as Integer. Set @ to 42. Set # to 10. Set `x` to 5."
         parser = Parser()
 
         program = parser.parse(source)
@@ -56,12 +58,12 @@ class TestPanicModeRecovery:
         assert "@" in str(parser.errors[0])
         assert "#" in str(parser.errors[1])
 
-        # Should have three statements (first two incomplete, third complete)
-        assert len(program.statements) == 3
+        # Should have four statements (Define + 3 Sets)
+        assert len(program.statements) == 4
 
     def test_recovery_in_expression_context(self) -> None:
         """Test panic recovery when error occurs in expression parsing."""
-        source = "Set x to @ + 5. Set y to 10."
+        source = "Define `x` as Integer. Define `y` as Integer. Set `x` to @ + 5. Set `y` to 10."
         parser = Parser()
 
         program = parser.parse(source)
@@ -70,12 +72,12 @@ class TestPanicModeRecovery:
         assert len(parser.errors) == 1
         assert isinstance(parser.errors[0], MDNameError)
 
-        # Should have two statements
-        assert len(program.statements) == 2
+        # Should have four statements (2 defines + 2 sets)
+        assert len(program.statements) == 4
 
     def test_recovery_with_missing_keyword(self) -> None:
         """Test panic recovery when 'to' keyword is missing."""
-        source = "Set x 42. Set y to 10."
+        source = "Define `x` as Integer. Define `y` as Integer. Set `x` 42. Set `y` to 10."
         parser = Parser()
 
         program = parser.parse(source)
@@ -84,8 +86,8 @@ class TestPanicModeRecovery:
         assert len(parser.errors) == 1
         assert isinstance(parser.errors[0], MDSyntaxError)
 
-        # Should have two statements (first incomplete, second complete)
-        assert len(program.statements) == 2
+        # Should have four statements (2 defines + 2 sets)
+        assert len(program.statements) == 4
 
     def test_recovery_with_consecutive_errors(self) -> None:
         """Test panic recovery with errors in consecutive statements."""
@@ -136,7 +138,11 @@ class TestPanicModeRecovery:
 
     def test_no_recovery_for_valid_code(self) -> None:
         """Test that valid code doesn't trigger panic recovery."""
-        source = "Set x to 42. Set y to 10. give back x."
+        source = """Define `x` as Integer.
+Define `y` as Integer.
+Set `x` to _42_.
+Set `y` to _10_.
+give back `x`."""
         parser = Parser()
 
         program = parser.parse(source)
@@ -144,18 +150,21 @@ class TestPanicModeRecovery:
         # Should have no errors
         assert len(parser.errors) == 0
 
-        # Should have three complete statements
-        assert len(program.statements) == 3
+        # Should have five complete statements (2 defines + 2 sets + 1 return)
+        assert len(program.statements) == 5
 
     def test_recovery_with_mixed_statement_types(self) -> None:
         """Test panic recovery across different statement types."""
-        source = "Set @ to 42. give back #. Set x to 5."
+        source = """Define `x` as Integer.
+Set @ to 42.
+give back #.
+Set `x` to _5_."""
         parser = Parser()
 
         program = parser.parse(source)
 
-        # Should have two errors
+        # Should have two errors (@ is illegal, # is illegal)
         assert len(parser.errors) == 2
 
-        # Should have three statements
-        assert len(program.statements) == 3
+        # Should have four statements (1 define + 3 attempts)
+        assert len(program.statements) == 4

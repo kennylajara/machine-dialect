@@ -71,13 +71,14 @@ class TestStopwords:
         from machine_dialect.parser import Parser
 
         # Test that parser skips stopwords correctly
-        input_text = "Set the `x` to 5"
+        input_text = "Define `x` as Integer. Set the `x` to 5"
         parser = Parser()
         program = parser.parse(input_text)
 
         # The parser should skip "the" stopword and parse correctly
-        assert len(program.statements) == 1
-        assert program.statements[0].token.type == TokenType.KW_SET
+        assert len(program.statements) == 2  # Define + Set
+        # First statement is Define, second is Set
+        assert program.statements[1].token.type == TokenType.KW_SET
 
         # Check no parsing errors
         assert len(parser.errors) == 0

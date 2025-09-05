@@ -61,6 +61,7 @@ class TestReturnStatements:
     def test_return_with_set_statement(self) -> None:
         """Test parsing return statement followed by set statement."""
         source = """
+            Define `x` as Integer.
             give back 42.
             Set `x` to 10
         """
@@ -69,16 +70,20 @@ class TestReturnStatements:
         program = parser.parse(source)
 
         assert len(parser.errors) == 0, f"Parser had errors: {parser.errors}"
-        assert len(program.statements) == 2
+        assert len(program.statements) == 3
 
-        # First statement should be return
+        # First statement should be define
+        from machine_dialect.ast import DefineStatement, SetStatement
+
         statement1 = program.statements[0]
-        assert isinstance(statement1, ReturnStatement)
-        assert statement1.token.literal == "give back"
+        assert isinstance(statement1, DefineStatement)
 
-        # Second statement should be set
-        from machine_dialect.ast import SetStatement
-
+        # Second statement should be return
         statement2 = program.statements[1]
-        assert isinstance(statement2, SetStatement)
-        assert statement2.token.literal == "Set"
+        assert isinstance(statement2, ReturnStatement)
+        assert statement2.token.literal == "give back"
+
+        # Third statement should be set
+        statement3 = program.statements[2]
+        assert isinstance(statement3, SetStatement)
+        assert statement3.token.literal == "Set"

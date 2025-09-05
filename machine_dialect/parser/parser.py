@@ -1,3 +1,4 @@
+import re
 from collections.abc import Callable
 
 from machine_dialect.ast import (
@@ -49,6 +50,8 @@ from machine_dialect.errors.messages import (
     UNEXPECTED_BLOCK_DEPTH,
     UNEXPECTED_TOKEN,
     UNEXPECTED_TOKEN_AT_START,
+    VARIABLE_ALREADY_DEFINED,
+    VARIABLE_NOT_DEFINED,
 )
 from machine_dialect.lexer import Lexer
 from machine_dialect.lexer.tokens import Token, TokenType
@@ -58,6 +61,7 @@ from machine_dialect.parser.protocols import (
     PostfixParseFuncs,
     PrefixParseFuncs,
 )
+from machine_dialect.parser.symbol_table import SymbolTable
 from machine_dialect.parser.token_buffer import TokenBuffer
 
 PRECEDENCES: dict[TokenType, Precedence] = {
@@ -104,6 +108,7 @@ class Parser:
         self._errors: list[MDBaseException] = []
         self._panic_count = 0  # Track panic-mode recoveries
         self._block_depth = 0  # Track if we're inside block statements
+        self._symbol_table: SymbolTable = SymbolTable()  # Track variable definitions
 
         self._prefix_parse_funcs: PrefixParseFuncs = self._register_prefix_funcs()
         self._infix_parse_funcs: InfixParseFuncs = self._register_infix_funcs()
@@ -169,6 +174,7 @@ class Parser:
         self._errors = []
         self._panic_count = 0
         self._block_depth = 0
+        self._symbol_table = SymbolTable()  # Reset symbol table for new parse
 
     def has_errors(self) -> bool:
         """Check if any errors were encountered during parsing.
@@ -737,7 +743,15 @@ class Parser:
                 column=self._current_token.position if self._current_token else 0,
             )
             self.errors.append(error)
-            skipped = self._panic_mode_recovery()
+            # Try to recover at 'as' keyword if present
+            skipped = self._panic_until_tokens([TokenType.KW_AS, TokenType.PUNCT_PERIOD, TokenType.MISC_EOF])
+            if self._current_token and self._current_token.type == TokenType.KW_AS:
+                # Found 'as', try to continue parsing from here
+                name = Identifier(statement_token, "<error>")  # Placeholder name
+                self._advance_tokens()  # Skip 'as'
+                type_spec = self._parse_type_spec()
+                if type_spec:
+                    return DefineStatement(statement_token, name, type_spec, None)
             return ErrorStatement(
                 token=statement_token, skipped_tokens=skipped, message="Expected variable name after 'Define'"
             )
@@ -764,6 +778,17 @@ class Parser:
                 column=self._current_token.position if self._current_token else 0,
             )
             self.errors.append(error)
+            # Try to recover at next type keyword
+            skipped = self._panic_until_type_or_period()
+            if self._current_token and self._is_type_token(self._current_token.type):
+                # Found a type, try to continue parsing
+                type_spec = self._parse_type_spec()
+                if type_spec:
+                    # Still register the variable even with syntax error
+                    self._register_variable_definition(
+                        name.value, type_spec, statement_token.line, statement_token.position
+                    )
+                    return DefineStatement(statement_token, name, type_spec, None)
             skipped = self._panic_mode_recovery()
             return ErrorStatement(
                 token=statement_token, skipped_tokens=skipped, message="Expected 'as' after variable name"
@@ -866,6 +891,9 @@ class Parser:
         # Check for period at statement end (optional for now)
         if self._peek_token and self._peek_token.type == TokenType.PUNCT_PERIOD:
             self._advance_tokens()  # Move to period
+
+        # Register the variable definition in the symbol table
+        self._register_variable_definition(name.value, type_spec, statement_token.line, statement_token.position)
 
         return DefineStatement(statement_token, name, type_spec, initial_value)
 
@@ -1008,6 +1036,13 @@ class Parser:
 
         # Use the identifier value directly (backticks already stripped by lexer)
         let_statement.name = self._parse_identifier()
+
+        # Variables MUST be defined before use - no exceptions
+        if not self._check_variable_defined(
+            let_statement.name.value, let_statement.name.token.line, let_statement.name.token.position
+        ):
+            # Continue parsing despite the error to find more issues
+            pass
 
         # Check for "to" or "using" keyword
         assert self._peek_token is not None
@@ -2233,3 +2268,105 @@ class Parser:
             type_name=type_name,
             default_value=default_value,
         )
+
+    def _register_variable_definition(self, name: str, type_spec: list[str], line: int, position: int) -> None:
+        """Register a variable definition in the symbol table.
+
+        Args:
+            name: Variable name
+            type_spec: List of allowed types
+            line: Line number
+            position: Column position
+        """
+        try:
+            self._symbol_table.define(name, type_spec, line, position)
+        except NameError as e:
+            # The error message contains info about redefinition
+            if "already defined" in str(e):
+                # Extract the original definition line from error message
+                match = re.search(r"line (\d+)", str(e))
+                original_line = int(match.group(1)) if match else line
+                self.errors.append(
+                    MDNameError(
+                        message=VARIABLE_ALREADY_DEFINED,
+                        line=line,  # Current line where redefinition happened
+                        column=position,
+                        # Pass template substitution params as kwargs
+                        name=name,
+                        original_line=original_line,  # Template now expects 'original_line'
+                    )
+                )
+            else:
+                # Fallback for other NameError cases
+                self.errors.append(MDNameError(message=NAME_UNDEFINED, name=name, line=line, column=position))
+
+    def _check_variable_defined(self, name: str, line: int, position: int) -> bool:
+        """Check if a variable is defined.
+
+        Args:
+            name: Variable name
+            line: Line number for error reporting
+            position: Column position for error reporting
+
+        Returns:
+            True if defined, False otherwise
+        """
+        info = self._symbol_table.lookup(name)
+        if not info:
+            self.errors.append(MDNameError(message=VARIABLE_NOT_DEFINED, name=name, line=line, column=position))
+            return False
+        return True
+
+    def _panic_until_tokens(self, token_types: list[TokenType]) -> list[Token]:
+        """Skip tokens until finding one of the specified token types.
+
+        Args:
+            token_types: List of token types to stop at
+
+        Returns:
+            List of tokens that were skipped
+        """
+        skipped_tokens = []
+        while self._current_token and self._current_token.type not in token_types:
+            skipped_tokens.append(self._current_token)
+            self._advance_tokens()
+        return skipped_tokens
+
+    def _panic_until_type_or_period(self) -> list[Token]:
+        """Skip tokens until finding a type keyword or period.
+
+        Returns:
+            List of tokens that were skipped
+        """
+        skipped_tokens = []
+        while self._current_token:
+            if self._current_token.type in (TokenType.PUNCT_PERIOD, TokenType.MISC_EOF):
+                break
+            if self._is_type_token(self._current_token.type):
+                break
+            skipped_tokens.append(self._current_token)
+            self._advance_tokens()
+        return skipped_tokens
+
+    def _is_type_token(self, token_type: TokenType) -> bool:
+        """Check if a token type represents a type keyword.
+
+        Args:
+            token_type: The token type to check
+
+        Returns:
+            True if it's a type keyword, False otherwise
+        """
+        return token_type in {
+            TokenType.KW_TEXT,
+            TokenType.KW_INT,
+            TokenType.KW_FLOAT,
+            TokenType.KW_NUMBER,
+            TokenType.KW_YES_NO,
+            TokenType.KW_URL,
+            TokenType.KW_DATE,
+            TokenType.KW_DATETIME,
+            TokenType.KW_TIME,
+            TokenType.KW_LIST,
+            TokenType.KW_EMPTY,
+        }

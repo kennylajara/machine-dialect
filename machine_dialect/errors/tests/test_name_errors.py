@@ -14,14 +14,14 @@ class TestParserErrors:
     def test_parser_collects_lexer_errors(self) -> None:
         """Test that parser reports errors for illegal tokens during parsing."""
         # Source with illegal character
-        source = "Set `X` to @."
+        source = "Define `X` as Empty. Set `X` to @."
         # Lexer instantiation moved to Parser.parse()
         parser = Parser()
 
         # Errors are reported during parsing, not before
         parser.parse(source)
 
-        # Parser should have reported the error
+        # Parser should have reported the error for @
         assert len(parser.errors) == 1
         assert isinstance(parser.errors[0], MDNameError)
         assert "@" in str(parser.errors[0])
@@ -29,7 +29,7 @@ class TestParserErrors:
     def test_parser_has_errors_method(self) -> None:
         """Test the has_errors() method."""
         # Valid source - no errors
-        source = "Set `X` to 42."
+        source = "Define `X` as Integer. Set `X` to 42."
         parser = Parser()
         parser.parse(source)
 
@@ -37,7 +37,7 @@ class TestParserErrors:
         assert len(parser.errors) == 0
 
         # Invalid source - with illegal character
-        source_with_error = "Set `Y` to §."  # § is not a valid token
+        source_with_error = "Define `Y` as Empty. Set `Y` to §."  # § is not a valid token
         parser_with_error = Parser()
         parser_with_error.parse(source_with_error)
 
@@ -47,7 +47,9 @@ class TestParserErrors:
     def test_parser_collects_multiple_errors(self) -> None:
         """Test that parser reports multiple errors through panic recovery."""
         # Source with multiple illegal characters - periods are mandatory
-        source = "Set `A` to @. Set `B` to $. Set `C` to %."
+        source = (
+            "Define `A` as Empty. Define `B` as Empty. Define `C` as Empty. Set `A` to @. Set `B` to $. Set `C` to %."
+        )
         parser = Parser()
         parser.parse(source)
 
@@ -64,7 +66,7 @@ class TestParserErrors:
     def test_parser_continues_after_lexer_errors(self) -> None:
         """Test that parser continues parsing despite lexer errors."""
         # Source with an error but valid structure
-        source = "Set `X` to @. Set `result` to 123."
+        source = "Define `X` as Empty. Define `result` as Integer. Set `X` to @. Set `result` to 123."
         # Lexer instantiation moved to Parser.parse()
         parser = Parser()
 
@@ -76,16 +78,18 @@ class TestParserErrors:
         assert len(parser.errors) == 1
 
         # But should still parse the valid statements
-        assert len(program.statements) == 2
+        assert len(program.statements) == 4  # 2 defines + 2 sets
         # Type assertions to help mypy
-        from machine_dialect.ast import SetStatement
+        from machine_dialect.ast import DefineStatement, SetStatement
 
-        assert isinstance(program.statements[0], SetStatement)
-        assert isinstance(program.statements[1], SetStatement)
-        assert program.statements[0].name is not None
-        assert program.statements[0].name.value == "X"
-        assert program.statements[1].name is not None
-        assert program.statements[1].name.value == "result"
+        assert isinstance(program.statements[0], DefineStatement)
+        assert isinstance(program.statements[1], DefineStatement)
+        assert isinstance(program.statements[2], SetStatement)
+        assert isinstance(program.statements[3], SetStatement)
+        assert program.statements[2].name is not None
+        assert program.statements[2].name.value == "X"
+        assert program.statements[3].name is not None
+        assert program.statements[3].name.value == "result"
 
     def test_empty_source_no_errors(self) -> None:
         """Test that empty source produces no errors."""
@@ -100,7 +104,7 @@ class TestParserErrors:
 
     def test_parser_error_details(self) -> None:
         """Test that parser errors contain correct location information."""
-        source = "Set `X` to &."
+        source = "Define `X` as Empty. Set `X` to &."
         parser = Parser()
         parser.parse(source)
 

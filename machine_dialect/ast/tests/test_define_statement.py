@@ -29,7 +29,7 @@ class TestDefineStatement:
         token = Token(TokenType.KW_DEFINE, "Define", 1, 1)
         name = Identifier(Token(TokenType.MISC_IDENT, "message", 1, 8), "message")
         type_spec = ["Text"]
-        default = StringLiteral(Token(TokenType.LIT_TEXT, '"Hello"', 1, 30), '"Hello"')
+        default = StringLiteral(Token(TokenType.LIT_TEXT, '"Hello"', 1, 30), "Hello")
 
         stmt = DefineStatement(token, name, type_spec, default)
 
@@ -124,7 +124,7 @@ class TestDefineStatement:
         token = Token(TokenType.KW_DEFINE, "Define", 1, 1)
         name = Identifier(Token(TokenType.MISC_IDENT, "test", 1, 8), "test")
         type_spec = ["Text"]
-        default = StringLiteral(Token(TokenType.LIT_TEXT, '"value"', 1, 30), '"value"')
+        default = StringLiteral(Token(TokenType.LIT_TEXT, '"value"', 1, 30), "value")
 
         stmt = DefineStatement(token, name, type_spec, default)
         desugared = stmt.desugar()

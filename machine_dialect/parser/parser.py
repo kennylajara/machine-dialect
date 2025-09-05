@@ -755,6 +755,15 @@ class Parser:
         # Expect "as" keyword - we should be at "as" now
         # Re-check current_token to help MyPy's type narrowing
         if self._current_token is None or self._current_token.type != TokenType.KW_AS:  # type: ignore[comparison-overlap]
+            error = MDSyntaxError(
+                message=UNEXPECTED_TOKEN,
+                token_literal=self._current_token.literal if self._current_token else "EOF",
+                expected_token_type=TokenType.KW_AS,
+                received_token_type=self._current_token.type if self._current_token else TokenType.MISC_EOF,
+                line=self._current_token.line if self._current_token else 0,
+                column=self._current_token.position if self._current_token else 0,
+            )
+            self.errors.append(error)
             skipped = self._panic_mode_recovery()
             return ErrorStatement(
                 token=statement_token, skipped_tokens=skipped, message="Expected 'as' after variable name"
@@ -787,6 +796,15 @@ class Parser:
 
             # Expect "default" - we should be at "default" now
             if not self._current_token or self._current_token.type != TokenType.KW_DEFAULT:
+                error = MDSyntaxError(
+                    message=UNEXPECTED_TOKEN,
+                    token_literal=self._current_token.literal if self._current_token else "EOF",
+                    expected_token_type=TokenType.KW_DEFAULT,
+                    received_token_type=self._current_token.type if self._current_token else TokenType.MISC_EOF,
+                    line=self._current_token.line if self._current_token else 0,
+                    column=self._current_token.position if self._current_token else 0,
+                )
+                self.errors.append(error)
                 # Try to recover by finding the closing paren
                 while self._current_token and self._current_token.type not in (
                     TokenType.DELIM_RPAREN,
@@ -803,6 +821,15 @@ class Parser:
 
             # Expect ":" - we should be at ":"
             if not self._current_token or self._current_token.type != TokenType.PUNCT_COLON:
+                error = MDSyntaxError(
+                    message=UNEXPECTED_TOKEN,
+                    token_literal=self._current_token.literal if self._current_token else "EOF",
+                    expected_token_type=TokenType.PUNCT_COLON,
+                    received_token_type=self._current_token.type if self._current_token else TokenType.MISC_EOF,
+                    line=self._current_token.line if self._current_token else 0,
+                    column=self._current_token.position if self._current_token else 0,
+                )
+                self.errors.append(error)
                 # Try to recover
                 while self._current_token and self._current_token.type not in (
                     TokenType.DELIM_RPAREN,

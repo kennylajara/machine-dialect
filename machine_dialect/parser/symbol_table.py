@@ -18,6 +18,7 @@ class VariableInfo:
         initialized: Whether the variable has been assigned a value
         definition_line: Line number where variable was defined
         definition_pos: Column position where variable was defined
+        return_type: For functions, the return type (optional)
     """
 
     type_spec: list[str]
@@ -25,6 +26,7 @@ class VariableInfo:
     initialized: bool = False
     definition_line: int = 0
     definition_pos: int = 0
+    return_type: str | None = None
 
     def allows_type(self, type_name: str) -> bool:
         """Check if this variable allows the given type.

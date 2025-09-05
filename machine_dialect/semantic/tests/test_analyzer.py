@@ -281,18 +281,64 @@ class TestSemanticAnalyzer:
 
         # Manually add a function to the symbol table with return type
         analyzer.symbol_table.define("my_func", ["Function"], 1, 1)
-        # Would need VariableInfo extension to store return types
-        # func_info = analyzer.symbol_table.lookup("my_func")
-        # if func_info:
-        #     func_info.return_type = "Text"
+        func_info = analyzer.symbol_table.lookup("my_func")
+        if func_info:
+            func_info.return_type = "Text"  # Set return type
 
         # Create a call expression
         func_name = Identifier(Token(TokenType.MISC_IDENT, "my_func", 1, 1), "my_func")
         call_expr = CallExpression(Token(TokenType.KW_USE, "use", 1, 1), func_name, None)
 
-        # Type inference should return None (function support not complete)
+        # Type inference should return Text
         type_info = analyzer._infer_expression_type(call_expr)
-        assert type_info is None
+        assert type_info is not None
+        assert type_info.type_name == "Text"
+
+    def test_function_definition_with_return_type(self) -> None:
+        """Test that function definitions store return type information."""
+        from machine_dialect.ast import Identifier
+        from machine_dialect.ast.program import Program
+        from machine_dialect.ast.statements import (
+            ActionStatement,
+            BlockStatement,
+        )
+        from machine_dialect.lexer import Token, TokenType
+
+        # Create an AST for: Action "add_one" with input `x` as Whole Number, output `result` as Whole Number
+        name = Identifier(Token(TokenType.MISC_IDENT, "add_one", 1, 8), "add_one")
+        action = ActionStatement(Token(TokenType.KW_ACTION, "action", 1, 1), name)
+
+        # Create input parameter
+        from machine_dialect.ast.statements import Output, Parameter
+
+        param_name = Identifier(Token(TokenType.MISC_IDENT, "x", 1, 20), "x")
+        input_param = Parameter(Token(TokenType.MISC_IDENT, "x", 1, 20), param_name, type_name="Whole Number")
+        action.inputs = [input_param]
+
+        # Create output parameter
+        output_name = Identifier(Token(TokenType.MISC_IDENT, "result", 1, 40), "result")
+        output_param = Output(Token(TokenType.MISC_IDENT, "result", 1, 40), output_name, type_name="Whole Number")
+        action.outputs = [output_param]
+
+        # Create body (empty for simplicity)
+        action.body = BlockStatement(Token(TokenType.DELIM_LBRACE, "{", 2, 1))
+        action.body.statements = []
+
+        # Create program
+        program = Program([action])
+
+        # Analyze
+        analyzer = SemanticAnalyzer()
+        _, errors = analyzer.analyze(program)
+
+        # Should have no errors
+        assert len(errors) == 0
+
+        # Function should be defined with return type
+        func_info = analyzer.symbol_table.lookup("add_one")
+        assert func_info is not None
+        assert func_info.type_spec == ["Function"]
+        assert func_info.return_type == "Whole Number"
 
     def test_scoped_definitions(self) -> None:
         """Test variable scoping - variables defined in inner scope not accessible in outer scope."""

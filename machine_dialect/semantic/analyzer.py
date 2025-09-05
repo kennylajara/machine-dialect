@@ -265,9 +265,7 @@ class SemanticAnalyzer:
             # Then add return type info if available
             func_info = self.symbol_table.lookup(func_name)
             if func_info and return_type:
-                # TODO: Store return type information (would need VariableInfo extension)
-                # func_info.return_type = return_type
-                pass
+                func_info.return_type = return_type
             # Mark as initialized since functions are defined with their body
             self.symbol_table.mark_initialized(func_name)
         except NameError as e:
@@ -523,14 +521,16 @@ class SemanticAnalyzer:
         # Call expressions - check user-defined and built-in functions
         elif isinstance(expr, CallExpression):
             # Check if it's a user-defined function by looking it up
-            if hasattr(expr, "function") and isinstance(expr.function, Identifier):
-                func_name = expr.function.value
+            if expr.function_name and isinstance(expr.function_name, Identifier):
+                func_name = expr.function_name.value
 
                 # Try to find the function in the symbol table
                 func_info = self.symbol_table.lookup(func_name)
-                if func_info:
-                    # User-defined function - for now return None
-                    # Would need VariableInfo extension to store return types
+                if func_info and func_info.return_type:
+                    # User-defined function with known return type
+                    return TypeInfo(func_info.return_type)
+                elif func_info:
+                    # Function without return type
                     return None
 
                 # TODO: Check if it's a built-in function from runtime/builtins.py

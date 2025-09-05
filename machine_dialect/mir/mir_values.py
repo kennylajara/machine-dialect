@@ -11,10 +11,10 @@ from .mir_types import MIRType, MIRUnionType, infer_type
 
 
 class MIRValue(ABC):
-    """Base class for all MIR values."""
+    """Base class for all MIR values with rich metadata."""
 
     def __init__(self, mir_type: MIRType | MIRUnionType) -> None:
-        """Initialize a MIR value.
+        """Initialize a MIR value with rich metadata.
 
         Args:
             mir_type: The type of the value (can be union type).
@@ -25,6 +25,17 @@ class MIRValue(ABC):
         if isinstance(mir_type, MIRUnionType):
             self.union_type = mir_type
             self.type = MIRType.UNKNOWN  # Base type is unknown for unions
+
+        # Rich metadata fields
+        from machine_dialect.mir.dataflow import Range
+
+        self.known_range: Range | None = None  # Value range for numeric types
+        self.is_non_null: bool = False  # Guaranteed non-null/non-empty
+        self.is_non_zero: bool = False  # Guaranteed non-zero
+        self.alignment: int | None = None  # Memory alignment in bytes
+        self.provenance: str | None = None  # Source of this value (e.g., "user_input", "constant")
+        self.is_loop_invariant: bool = False  # True if value doesn't change in loops
+        self.is_pure: bool = True  # True if computing this value has no side effects
 
     @abstractmethod
     def __str__(self) -> str:

@@ -159,12 +159,8 @@ class TestAdvancedTypeSpecificOptimization:
         func.cfg.add_block(block)
         func.cfg.set_entry_block(block)
 
-        # Initialize ranges
-        self.optimizer._initialize_value_ranges(func)
-        self.optimizer._update_value_range(x, 5, 5)
-        self.optimizer._update_value_range(y, 10, 10)
-
-        # Run optimization
+        # Run optimization - the dataflow analysis will automatically compute ranges
+        # from the LoadConst instructions
         self.optimizer.run_on_function(func)
 
         # Check that comparison was optimized based on ranges

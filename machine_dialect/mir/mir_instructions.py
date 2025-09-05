@@ -12,7 +12,18 @@ from .mir_values import Constant, FunctionRef, MIRValue, Variable
 
 
 class MIRInstruction(ABC):
-    """Base class for all MIR instructions."""
+    """Base class for all MIR instructions with rich metadata."""
+
+    def __init__(self) -> None:
+        """Initialize instruction with metadata."""
+        # Rich metadata for optimization
+        self.result_type: MIRType | None = None  # Inferred type of result
+        self.is_pure: bool = False  # No side effects
+        self.can_throw: bool = False  # Can raise exceptions
+        self.cost: int = 1  # Estimated execution cost
+        self.is_commutative: bool = False  # Operands can be swapped
+        self.is_associative: bool = False  # Can be regrouped
+        self.memory_effects: set[str] = set()  # Memory locations affected
 
     @abstractmethod
     def __str__(self) -> str:
@@ -62,10 +73,29 @@ class BinaryOp(MIRInstruction):
             left: Left operand.
             right: Right operand.
         """
+        super().__init__()
         self.dest = dest
         self.op = op
         self.left = left
         self.right = right
+
+        # Set metadata based on operator
+        if op in ["+", "*", "==", "!=", "and", "or"]:
+            self.is_commutative = True
+        if op in ["+", "*", "and", "or"]:
+            self.is_associative = True
+        if op in ["+", "-", "*", "==", "!=", "<", ">", "<=", ">="]:
+            self.is_pure = True
+        if op == "/":
+            self.can_throw = True  # Division by zero
+
+        # Set cost estimates
+        if op in ["*", "/", "%", "**"]:
+            self.cost = 3
+        elif op in ["+", "-"]:
+            self.cost = 1
+        else:
+            self.cost = 2
 
     def __str__(self) -> str:
         """Return string representation."""
@@ -95,12 +125,17 @@ class UnaryOp(MIRInstruction):
 
         Args:
             dest: Destination to store result.
-            op: Operator (-, not).
+            op: Operator (-, not, abs).
             operand: Operand.
         """
+        super().__init__()
         self.dest = dest
         self.op = op
         self.operand = operand
+
+        # All unary ops are pure
+        self.is_pure = True
+        self.cost = 1
 
     def __str__(self) -> str:
         """Return string representation."""
@@ -136,6 +171,7 @@ class ShiftOp(MIRInstruction):
             right: Shift amount.
             op: Shift operator ('<<' for left shift, '>>' for right shift).
         """
+        super().__init__()
         self.dest = dest
         self.left = left
         self.right = right
@@ -171,6 +207,7 @@ class Copy(MIRInstruction):
             dest: Destination.
             source: Source value.
         """
+        super().__init__()
         self.dest = dest
         self.source = source
 
@@ -202,6 +239,7 @@ class LoadConst(MIRInstruction):
             dest: Destination.
             value: Constant value to load.
         """
+        super().__init__()
         self.dest = dest
         self.constant = Constant(value) if not isinstance(value, Constant) else value
 
@@ -228,6 +266,7 @@ class LoadVar(MIRInstruction):
             dest: Destination temporary.
             var: Variable to load from.
         """
+        super().__init__()
         self.dest = dest
         self.var = var
 
@@ -259,6 +298,7 @@ class StoreVar(MIRInstruction):
             var: Variable to store to.
             source: Source value.
         """
+        super().__init__()
         self.var = var
         self.source = source
 
@@ -298,6 +338,7 @@ class Call(MIRInstruction):
             args: Arguments to pass.
             is_tail_call: Whether this is a tail call that can be optimized.
         """
+        super().__init__()
         self.dest = dest
         self.func = FunctionRef(func) if isinstance(func, str) else func
         self.args = args
@@ -334,6 +375,7 @@ class Return(MIRInstruction):
         Args:
             value: Optional value to return.
         """
+        super().__init__()
         self.value = value
 
     def __str__(self) -> str:
@@ -366,6 +408,7 @@ class Jump(MIRInstruction):
         Args:
             label: Target label.
         """
+        super().__init__()
         self.label = label
 
     def __str__(self) -> str:
@@ -392,6 +435,7 @@ class ConditionalJump(MIRInstruction):
             true_label: Label to jump to if true.
             false_label: Optional label to jump to if false (falls through if None).
         """
+        super().__init__()
         self.condition = condition
         self.true_label = true_label
         self.false_label = false_label
@@ -431,6 +475,7 @@ class Phi(MIRInstruction):
             dest: Destination to store merged value.
             incoming: List of (value, predecessor_label) pairs.
         """
+        super().__init__()
         self.dest = dest
         self.incoming = incoming
 
@@ -470,6 +515,7 @@ class Label(MIRInstruction):
         Args:
             name: Label name.
         """
+        super().__init__()
         self.name = name
 
     def __str__(self) -> str:
@@ -494,6 +540,7 @@ class Print(MIRInstruction):
         Args:
             value: Value to print.
         """
+        super().__init__()
         self.value = value
 
     def __str__(self) -> str:
@@ -540,6 +587,7 @@ class Assert(MIRInstruction):
             condition: Condition to check.
             message: Optional error message.
         """
+        super().__init__()
         self.condition = condition
         self.message = message
 
@@ -575,6 +623,7 @@ class Select(MIRInstruction):
             true_val: Value when condition is true.
             false_val: Value when condition is false.
         """
+        super().__init__()
         self.dest = dest
         self.condition = condition
         self.true_val = true_val
@@ -611,6 +660,7 @@ class Scope(MIRInstruction):
         Args:
             is_begin: True for begin_scope, False for end_scope.
         """
+        super().__init__()
         self.is_begin = is_begin
 
     def __str__(self) -> str:
@@ -637,6 +687,7 @@ class GetAttr(MIRInstruction):
             obj: Object to get attribute from.
             attr: Attribute name.
         """
+        super().__init__()
         self.dest = dest
         self.obj = obj
         self.attr = attr
@@ -670,6 +721,7 @@ class SetAttr(MIRInstruction):
             attr: Attribute name.
             value: Value to set.
         """
+        super().__init__()
         self.obj = obj
         self.attr = attr
         self.value = value
@@ -708,6 +760,7 @@ class Pop(MIRInstruction):
         Args:
             value: The value to pop/discard.
         """
+        super().__init__()
         self.value = value
 
     def __str__(self) -> str:
@@ -742,6 +795,7 @@ class TypeCast(MIRInstruction):
             value: Value to cast.
             target_type: Target type to cast to.
         """
+        super().__init__()
         self.dest = dest
         self.value = value
         self.target_type = target_type
@@ -778,6 +832,7 @@ class TypeCheck(MIRInstruction):
             value: Value to check type of.
             check_type: Type to check against.
         """
+        super().__init__()
         self.dest = dest
         self.value = value
         self.check_type = check_type
@@ -814,6 +869,7 @@ class TypeAssert(MIRInstruction):
             value: Value to assert type of.
             assert_type: Expected type.
         """
+        super().__init__()
         self.value = value
         self.assert_type = assert_type
 
@@ -850,13 +906,232 @@ class NarrowType(MIRInstruction):
             value: Value to narrow.
             narrow_type: The specific type to narrow to.
         """
+        super().__init__()
         self.dest = dest
         self.value = value
         self.narrow_type = narrow_type
+        self.is_pure = True
+        self.cost = 0  # Compile-time only
 
     def __str__(self) -> str:
         """Return string representation."""
         return f"{self.dest} = narrow({self.value}, {self.narrow_type})"
+
+    def get_uses(self) -> list[MIRValue]:
+        """Get value used."""
+        return [self.value]
+
+    def get_defs(self) -> list[MIRValue]:
+        """Get destination defined."""
+        return [self.dest]
+
+    def replace_use(self, old: MIRValue, new: MIRValue) -> None:
+        """Replace uses of a value."""
+        if self.value == old:
+            self.value = new
+
+
+# New specialized instructions for better optimization
+
+
+class SelectOp(MIRInstruction):
+    """Conditional select without branches: dest = cond ? true_val : false_val."""
+
+    def __init__(self, dest: MIRValue, cond: MIRValue, true_val: MIRValue, false_val: MIRValue) -> None:
+        """Initialize a select operation.
+
+        Args:
+            dest: Destination to store result.
+            cond: Condition to test.
+            true_val: Value if condition is true.
+            false_val: Value if condition is false.
+        """
+        super().__init__()
+        self.dest = dest
+        self.cond = cond
+        self.true_val = true_val
+        self.false_val = false_val
+        self.is_pure = True
+        self.cost = 1  # Branchless on modern CPUs
+
+    def __str__(self) -> str:
+        """Return string representation."""
+        return f"{self.dest} = select({self.cond}, {self.true_val}, {self.false_val})"
+
+    def get_uses(self) -> list[MIRValue]:
+        """Get values used."""
+        return [self.cond, self.true_val, self.false_val]
+
+    def get_defs(self) -> list[MIRValue]:
+        """Get destination defined."""
+        return [self.dest]
+
+    def replace_use(self, old: MIRValue, new: MIRValue) -> None:
+        """Replace uses of a value."""
+        if self.cond == old:
+            self.cond = new
+        if self.true_val == old:
+            self.true_val = new
+        if self.false_val == old:
+            self.false_val = new
+
+
+class MinOp(MIRInstruction):
+    """Minimum operation: dest = min(left, right)."""
+
+    def __init__(self, dest: MIRValue, left: MIRValue, right: MIRValue) -> None:
+        """Initialize a min operation.
+
+        Args:
+            dest: Destination to store result.
+            left: Left operand.
+            right: Right operand.
+        """
+        super().__init__()
+        self.dest = dest
+        self.left = left
+        self.right = right
+        self.is_pure = True
+        self.is_commutative = True
+        self.cost = 1
+
+    def __str__(self) -> str:
+        """Return string representation."""
+        return f"{self.dest} = min({self.left}, {self.right})"
+
+    def get_uses(self) -> list[MIRValue]:
+        """Get operands used."""
+        return [self.left, self.right]
+
+    def get_defs(self) -> list[MIRValue]:
+        """Get destination defined."""
+        return [self.dest]
+
+    def replace_use(self, old: MIRValue, new: MIRValue) -> None:
+        """Replace uses of a value."""
+        if self.left == old:
+            self.left = new
+        if self.right == old:
+            self.right = new
+
+
+class MaxOp(MIRInstruction):
+    """Maximum operation: dest = max(left, right)."""
+
+    def __init__(self, dest: MIRValue, left: MIRValue, right: MIRValue) -> None:
+        """Initialize a max operation.
+
+        Args:
+            dest: Destination to store result.
+            left: Left operand.
+            right: Right operand.
+        """
+        super().__init__()
+        self.dest = dest
+        self.left = left
+        self.right = right
+        self.is_pure = True
+        self.is_commutative = True
+        self.cost = 1
+
+    def __str__(self) -> str:
+        """Return string representation."""
+        return f"{self.dest} = max({self.left}, {self.right})"
+
+    def get_uses(self) -> list[MIRValue]:
+        """Get operands used."""
+        return [self.left, self.right]
+
+    def get_defs(self) -> list[MIRValue]:
+        """Get destination defined."""
+        return [self.dest]
+
+    def replace_use(self, old: MIRValue, new: MIRValue) -> None:
+        """Replace uses of a value."""
+        if self.left == old:
+            self.left = new
+        if self.right == old:
+            self.right = new
+
+
+class SaturatingAddOp(MIRInstruction):
+    """Saturating addition: dest = saturating_add(left, right, min, max)."""
+
+    def __init__(
+        self,
+        dest: MIRValue,
+        left: MIRValue,
+        right: MIRValue,
+        min_val: MIRValue | None = None,
+        max_val: MIRValue | None = None,
+    ) -> None:
+        """Initialize a saturating add operation.
+
+        Args:
+            dest: Destination to store result.
+            left: Left operand.
+            right: Right operand.
+            min_val: Minimum value (saturates to this).
+            max_val: Maximum value (saturates to this).
+        """
+        super().__init__()
+        self.dest = dest
+        self.left = left
+        self.right = right
+        self.min_val = min_val
+        self.max_val = max_val
+        self.is_pure = True
+        self.is_commutative = True
+        self.cost = 2
+
+    def __str__(self) -> str:
+        """Return string representation."""
+        return f"{self.dest} = saturating_add({self.left}, {self.right})"
+
+    def get_uses(self) -> list[MIRValue]:
+        """Get operands used."""
+        uses = [self.left, self.right]
+        if self.min_val:
+            uses.append(self.min_val)
+        if self.max_val:
+            uses.append(self.max_val)
+        return uses
+
+    def get_defs(self) -> list[MIRValue]:
+        """Get destination defined."""
+        return [self.dest]
+
+    def replace_use(self, old: MIRValue, new: MIRValue) -> None:
+        """Replace uses of a value."""
+        if self.left == old:
+            self.left = new
+        if self.right == old:
+            self.right = new
+        if self.min_val == old:
+            self.min_val = new
+        if self.max_val == old:
+            self.max_val = new
+
+
+class PopCountOp(MIRInstruction):
+    """Population count (count set bits): dest = popcount(value)."""
+
+    def __init__(self, dest: MIRValue, value: MIRValue) -> None:
+        """Initialize a popcount operation.
+
+        Args:
+            dest: Destination to store result.
+            value: Value to count bits in.
+        """
+        super().__init__()
+        self.dest = dest
+        self.value = value
+        self.is_pure = True
+        self.cost = 1  # Hardware instruction on modern CPUs
+
+    def __str__(self) -> str:
+        """Return string representation."""
+        return f"{self.dest} = popcount({self.value})"
 
     def get_uses(self) -> list[MIRValue]:
         """Get value used."""

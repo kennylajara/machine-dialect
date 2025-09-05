@@ -23,8 +23,9 @@ from machine_dialect.ast import (
     WholeNumberLiteral,
     YesNoLiteral,
 )
-from machine_dialect.errors.exceptions import MDException, MDNameError, MDTypeError
+from machine_dialect.errors.exceptions import MDException, MDNameError, MDTypeError, MDUninitializedError
 from machine_dialect.parser.symbol_table import SymbolTable
+from machine_dialect.semantic.error_messages import ErrorMessageGenerator
 
 
 @dataclass
@@ -136,19 +137,36 @@ class SemanticAnalyzer:
         if self.symbol_table.is_defined_in_current_scope(var_name):
             existing = self.symbol_table.lookup(var_name)
             if existing:
-                self.errors.append(
-                    MDNameError(
-                        f"Variable '{var_name}' is already defined at line {existing.definition_line}",
-                        stmt.token.line,
-                        stmt.token.position,
-                    )
+                error_msg = ErrorMessageGenerator.redefinition(
+                    var_name,
+                    stmt.token.line,
+                    stmt.token.position,
+                    existing.definition_line,
+                    existing.definition_pos,
                 )
+                self.errors.append(MDNameError(error_msg, stmt.token.line, stmt.token.position))
                 return
 
         # Validate type names
         for type_name in stmt.type_spec:
             if not self._is_valid_type(type_name):
-                self.errors.append(MDTypeError(f"Unknown type '{type_name}'", stmt.token.line, stmt.token.position))
+                valid_types = [
+                    "Text",
+                    "Whole Number",
+                    "Float",
+                    "Number",
+                    "Yes/No",
+                    "URL",
+                    "Date",
+                    "DateTime",
+                    "Time",
+                    "List",
+                    "Empty",
+                ]
+                error_msg = ErrorMessageGenerator.invalid_type(
+                    type_name, stmt.token.line, stmt.token.position, valid_types
+                )
+                self.errors.append(MDTypeError(error_msg, stmt.token.line, stmt.token.position))
                 return
 
         # Register the variable definition
@@ -184,13 +202,20 @@ class SemanticAnalyzer:
         # Check if variable is defined
         var_info = self.symbol_table.lookup(var_name)
         if not var_info:
-            self.errors.append(
-                MDNameError(
-                    f"Variable '{var_name}' is not defined. Add 'Define `{var_name}` as Type.' before using it",
-                    stmt.token.line,
-                    stmt.token.position,
-                )
+            # Get list of all defined variables for suggestions
+            all_vars: list[str] = []
+            current_table: SymbolTable | None = self.symbol_table
+            while current_table:
+                all_vars.extend(current_table.symbols.keys())
+                current_table = current_table.parent
+
+            # Find similar variables using ErrorMessageGenerator
+            similar_vars = ErrorMessageGenerator._find_similar(var_name, all_vars) if all_vars else None
+
+            error_msg = ErrorMessageGenerator.undefined_variable(
+                var_name, stmt.token.line, stmt.token.position, similar_vars
             )
+            self.errors.append(MDNameError(error_msg, stmt.token.line, stmt.token.position))
             return
 
         # Analyze the value expression (this will check for uninitialized variables)
@@ -201,14 +226,23 @@ class SemanticAnalyzer:
             # Then check type compatibility
             value_type = self._infer_expression_type(stmt.value)
             if value_type and not value_type.is_compatible_with(var_info.type_spec):
-                self.errors.append(
-                    MDTypeError(
-                        f"Cannot set '{var_name}' to type '{value_type.type_name}'. "
-                        f"Expected one of: {', '.join(var_info.type_spec)}",
-                        stmt.token.line,
-                        stmt.token.position,
-                    )
+                # Try to get string representation of the value for better error message
+                value_repr = None
+                if value_type.is_literal and value_type.literal_value is not None:
+                    if value_type.type_name == "Text":
+                        value_repr = f'"{value_type.literal_value}"'
+                    else:
+                        value_repr = str(value_type.literal_value)
+
+                error_msg = ErrorMessageGenerator.type_mismatch(
+                    var_name,
+                    var_info.type_spec,
+                    value_type.type_name,
+                    stmt.token.line,
+                    stmt.token.position,
+                    value_repr,
                 )
+                self.errors.append(MDTypeError(error_msg, stmt.token.line, stmt.token.position))
                 return
 
         # Mark variable as initialized
@@ -232,17 +266,23 @@ class SemanticAnalyzer:
         if isinstance(expr, Identifier):
             var_info = self.symbol_table.lookup(expr.value)
             if not var_info:
-                self.errors.append(
-                    MDNameError(f"Variable '{expr.value}' is not defined", expr.token.line, expr.token.position)
+                # Get list of all defined variables for suggestions
+                all_vars: list[str] = []
+                current_table: SymbolTable | None = self.symbol_table
+                while current_table:
+                    all_vars.extend(current_table.symbols.keys())
+                    current_table = current_table.parent
+
+                similar_vars = ErrorMessageGenerator._find_similar(expr.value, all_vars) if all_vars else None
+                error_msg = ErrorMessageGenerator.undefined_variable(
+                    expr.value, expr.token.line, expr.token.position, similar_vars
                 )
+                self.errors.append(MDNameError(error_msg, expr.token.line, expr.token.position))
             elif not var_info.initialized:
-                self.errors.append(
-                    MDNameError(
-                        f"Variable '{expr.value}' is used before being initialized",
-                        expr.token.line,
-                        expr.token.position,
-                    )
+                error_msg = ErrorMessageGenerator.uninitialized_use(
+                    expr.value, expr.token.line, expr.token.position, var_info.definition_line
                 )
+                self.errors.append(MDUninitializedError(error_msg, expr.token.line, expr.token.position))
 
         return type_info
 
@@ -311,6 +351,44 @@ class SemanticAnalyzer:
             # Logical operators
             elif expr.operator in ["and", "or"]:
                 return TypeInfo("Yes/No")
+
+        # Additional expression types for better coverage
+        # Import these types if needed
+        from machine_dialect.ast.call_expression import CallExpression
+        from machine_dialect.ast.expressions import ConditionalExpression, ErrorExpression
+
+        # Conditional expressions (ternary: condition ? true_expr : false_expr)
+        if isinstance(expr, ConditionalExpression):
+            # Type is the common type of consequence and alternative
+            if expr.consequence and expr.alternative:
+                cons_type = self._infer_expression_type(expr.consequence)
+                alt_type = self._infer_expression_type(expr.alternative)
+                if cons_type and alt_type:
+                    # If both branches have same type, return that type
+                    if cons_type.type_name == alt_type.type_name:
+                        return cons_type
+                    # If one is Empty, return the other
+                    if cons_type.type_name == "Empty":
+                        return alt_type
+                    if alt_type.type_name == "Empty":
+                        return cons_type
+                    # If numeric types, return Float as common type
+                    if cons_type.type_name in ["Whole Number", "Float"] and alt_type.type_name in [
+                        "Whole Number",
+                        "Float",
+                    ]:
+                        return TypeInfo("Float")
+            return None
+
+        # Call expressions - for now return None (would need function registry)
+        elif isinstance(expr, CallExpression):
+            # In a full implementation, we'd look up the function's return type
+            # For now, we can't determine the type without a function registry
+            return None
+
+        # Error expressions always have unknown type
+        elif isinstance(expr, ErrorExpression):
+            return None
 
         return None
 

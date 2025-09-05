@@ -12,6 +12,7 @@ from machine_dialect.ast import (
     BlockStatement,
     CallStatement,
     ConditionalExpression,
+    DefineStatement,
     EmptyLiteral,
     ErrorExpression,
     ErrorStatement,
@@ -164,6 +165,8 @@ class HIRToMIRLowering:
         """
         if isinstance(stmt, FunctionStatement | UtilityStatement | ActionStatement | InteractionStatement):
             self.lower_function(stmt)
+        elif isinstance(stmt, DefineStatement):
+            self._convert_define_statement(stmt)
         elif isinstance(stmt, SetStatement):
             self.lower_set_statement(stmt)
         elif isinstance(stmt, IfStatement):
@@ -319,6 +322,61 @@ class HIRToMIRLowering:
 
         # Store the value
         self.current_block.add_instruction(StoreVar(var, value))
+
+    def _convert_define_statement(self, stmt: DefineStatement) -> None:
+        """Convert DefineStatement to MIR.
+
+        Args:
+            stmt: DefineStatement from HIR
+        """
+        if not self.current_function:
+            return
+
+        var_name = stmt.name.value if isinstance(stmt.name, Identifier) else str(stmt.name)
+
+        # Import ast_type_to_mir_type function
+        from machine_dialect.mir.mir_types import MIRType, MIRUnionType, ast_type_to_mir_type
+
+        # Convert type specification to MIR type
+        mir_type = ast_type_to_mir_type(stmt.type_spec)
+
+        # Create typed variable in MIR
+        # For union types, use MIRType.UNKNOWN for now (will be refined by type inference)
+        var_type = MIRType.UNKNOWN if isinstance(mir_type, MIRUnionType) else mir_type
+        var = Variable(var_name, var_type)
+
+        # Register in variable map with type
+        self.variable_map[var_name] = var
+
+        # Add to function locals
+        self.current_function.add_local(var)
+
+        # Update type context
+        # Store the actual type (could be union) in type_context
+        if isinstance(mir_type, MIRUnionType):
+            # For union types, use UNKNOWN in type_context for now
+            self.type_context[var_name] = MIRType.UNKNOWN
+        else:
+            self.type_context[var_name] = mir_type
+
+        # Track variable for debugging
+        self.debug_builder.track_variable(var_name, var, str(mir_type), is_parameter=False)
+
+        # If there's an initial value (shouldn't happen after HIR desugaring but handle it)
+        if stmt.initial_value:
+            # This case shouldn't occur as HIR desugars default values
+            # But handle it for completeness
+            if self.current_block:
+                value = self.lower_expression(stmt.initial_value)
+
+                # If the value is a constant, load it into a temporary first
+                if isinstance(value, Constant):
+                    temp = self.current_function.new_temp(value.type)
+                    self.current_block.add_instruction(LoadConst(temp, value))
+                    value = temp
+
+                # Store the value
+                self.current_block.add_instruction(StoreVar(var, value))
 
     def lower_if_statement(self, stmt: IfStatement) -> None:
         """Lower an if statement to MIR.

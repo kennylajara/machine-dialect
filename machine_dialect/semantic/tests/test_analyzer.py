@@ -235,3 +235,27 @@ class TestSemanticAnalyzer:
         _, errors = analyzer.analyze(program)
 
         assert len(errors) == 0
+
+    def test_scoped_definitions(self) -> None:
+        """Test variable scoping - variables defined in inner scope not accessible in outer scope."""
+        source = """
+        Define `x` as Whole Number.
+        Set `x` to _5_.
+
+        If _yes_ then:
+        > Define `y` as Text.
+        > Set `y` to _"hello"_.
+
+        Set `y` to _"world"_.
+        """
+        parser = Parser()
+        program = parser.parse(source, check_semantics=False)
+
+        analyzer = SemanticAnalyzer()
+        _, errors = analyzer.analyze(program)
+
+        # Should have one error for accessing 'y' outside its scope
+        assert len(errors) == 1
+        assert isinstance(errors[0], MDNameError)
+        assert "not defined" in str(errors[0])
+        assert "y" in str(errors[0])

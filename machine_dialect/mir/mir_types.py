@@ -52,6 +52,14 @@ class MIRType(Enum):
         """Return string representation of type."""
         return self.name.lower()
 
+    def is_union(self) -> bool:
+        """Check if this is a union type.
+
+        Returns:
+            Always False for regular MIRType
+        """
+        return False
+
 
 def infer_type(value: Any) -> MIRType:
     """Infer MIR type from a Python value.
@@ -145,6 +153,14 @@ class MIRUnionType:
         if not isinstance(other, MIRUnionType):
             return False
         return set(self.types) == set(other.types)
+
+    def is_union(self) -> bool:
+        """Check if this is a union type.
+
+        Returns:
+            Always True for MIRUnionType
+        """
+        return True
 
 
 def ast_type_to_mir_type(type_spec: list[str]) -> MIRType | MIRUnionType:

@@ -133,13 +133,12 @@ class DefineStatement(Statement):
             HIR representation of the define statement
         """
         if not self.initial_value:
-            # No default value - return as-is since type_spec already contains the type annotation
+            # No default value - return as-is
             return DefineStatement(self.token, self.name, self.type_spec, None)
 
         # With default value - desugar to define + set
         # Create annotated define without initial value
         define_stmt = DefineStatement(self.token, self.name, self.type_spec, None)
-        # Type annotation is already in type_spec, no need to set _type_annotation
 
         # Create initialization set statement
         set_stmt = SetStatement(

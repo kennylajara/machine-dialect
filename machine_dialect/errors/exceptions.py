@@ -188,6 +188,24 @@ class MDNameError(MDException):
         MDNameError: name 'nonexistent' is not defined
     """
 
+    def __init__(self, message: str | ErrorTemplate, line: int = 0, column: int = 0, **kwargs: Any) -> None:
+        """Initialize name error.
+
+        Args:
+            message: Error message string or ErrorTemplate
+            line: Line number where error occurred
+            column: Column position where error occurred
+            **kwargs: Additional template parameters if message is ErrorTemplate
+        """
+        if isinstance(message, str):
+            # Create a simple ErrorTemplate from the string
+            from machine_dialect.errors.messages import ErrorTemplate
+
+            template = ErrorTemplate(message)
+            super().__init__(template, line, column, **kwargs)
+        else:
+            super().__init__(message, line, column, **kwargs)
+
 
 class MDSyntaxError(MDException):
     """Raised when a syntax error is encountered.
@@ -230,6 +248,24 @@ class MDTypeError(MDException):
         MDTypeError: object of type 'int' has no len()
     """
 
+    def __init__(self, message: str | ErrorTemplate, line: int = 0, column: int = 0, **kwargs: Any) -> None:
+        """Initialize type error.
+
+        Args:
+            message: Error message string or ErrorTemplate
+            line: Line number where error occurred
+            column: Column position where error occurred
+            **kwargs: Additional template parameters if message is ErrorTemplate
+        """
+        if isinstance(message, str):
+            # Create a simple ErrorTemplate from the string
+            from machine_dialect.errors.messages import ErrorTemplate
+
+            template = ErrorTemplate(message)
+            super().__init__(template, line, column, **kwargs)
+        else:
+            super().__init__(message, line, column, **kwargs)
+
 
 class MDValueError(MDException):
     """Raised when a value is inappropriate for the operation.
@@ -249,3 +285,37 @@ class MDValueError(MDException):
             ...
         MDValueError: list.remove(x): x not in list
     """
+
+
+class MDUninitializedError(MDException):
+    """Raised when a variable is used before being initialized.
+
+    This exception is raised during semantic analysis when a variable
+    that has been defined but not yet assigned a value is used in an
+    expression or assignment.
+
+    Example:
+        >>> Define `x` as Whole Number.
+        >>> Set `y` to `x`.
+        Traceback (most recent call last):
+            ...
+        MDUninitializedError: Variable 'x' is used before being initialized
+    """
+
+    def __init__(self, message: str | ErrorTemplate, line: int = 0, position: int = 0, **kwargs: Any) -> None:
+        """Initialize uninitialized variable error.
+
+        Args:
+            message: Error message string or ErrorTemplate
+            line: Line number where error occurred
+            position: Column position where error occurred
+            **kwargs: Additional template parameters if message is ErrorTemplate
+        """
+        if isinstance(message, str):
+            # Create a simple ErrorTemplate from the string
+            from machine_dialect.errors.messages import ErrorTemplate
+
+            template = ErrorTemplate(message)
+            super().__init__(template, line, position, **kwargs)
+        else:
+            super().__init__(message, line, position, **kwargs)

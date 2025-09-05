@@ -21,6 +21,9 @@ VARIABLE_NOT_DEFINED = ErrorTemplate(
 VARIABLE_ALREADY_DEFINED = ErrorTemplate(
     "Variable '$name' is already defined at line $original_line. Cannot redefine variables in the same scope"
 )
+ASSIGNMENT_TYPE_MISMATCH = ErrorTemplate(
+    "Cannot assign $actual_type value to variable '$variable' of type $expected_type"
+)
 UNEXPECTED_TOKEN = ErrorTemplate(
     "Unexpected '$token_literal'. Expected a '$expected_token_type', but a got a '$received_token_type'"
 )
@@ -35,6 +38,8 @@ EXPECTED_EXPRESSION = ErrorTemplate("expected expression, got $got")
 EMPTY_IF_CONSEQUENCE = ErrorTemplate("If statement must have a non-empty consequence block")
 EMPTY_ELSE_BLOCK = ErrorTemplate("Else/otherwise block must not be empty. If no alternative is needed, omit it.")
 EXPECTED_DETAILS_CLOSE = ErrorTemplate("Expected </details> tag after action body, got $token_type")
+EXPECTED_BLOCK_MARKER = ErrorTemplate("Expected block marker '>', got $token_type")
+EXPECTED_PREFIX_OPERATOR = ErrorTemplate("Expected prefix operator, got $token_type")
 MISSING_DEPTH_TRANSITION = ErrorTemplate(
     "After nested blocks ($nested_depth), add a blank line with just '$parent_depth' "
     "before continuing at the parent depth. Found '$token_type' at line $line"

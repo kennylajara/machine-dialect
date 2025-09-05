@@ -35,7 +35,7 @@ class TestParseErrors:
         """
         parser = Parser()
 
-        program = parser.parse(source)
+        program = parser.parse(source, check_semantics=False)
 
         # Should have exactly one error
         assert len(parser.errors) == 1
@@ -61,7 +61,7 @@ class TestParseErrors:
         source = "* 42. + 5. / 10."
         parser = Parser()
 
-        parser.parse(source)
+        parser.parse(source, check_semantics=False)
 
         # Should have three errors (one for each invalid prefix)
         assert len(parser.errors) == 3
@@ -77,7 +77,7 @@ class TestParseErrors:
         source = "   * 42"  # 3 spaces before *
         parser = Parser()
 
-        _ = parser.parse(source)
+        _ = parser.parse(source, check_semantics=False)
 
         assert len(parser.errors) == 1
         error = parser.errors[0]
@@ -102,7 +102,7 @@ class TestParseErrors:
         for source in valid_sources:
             parser = Parser()
 
-            program = parser.parse(source)
+            program = parser.parse(source, check_semantics=False)
 
             # Should have no errors
             assert len(parser.errors) == 0, f"Unexpected error for source: {source}"

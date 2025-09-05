@@ -4,8 +4,30 @@ This module defines the type system used in the MIR, including type
 representations, inference, and checking utilities.
 """
 
+from dataclasses import dataclass
 from enum import Enum, auto
 from typing import Any
+
+
+class MIRTypeKind(Enum):
+    """Kind of MIR type."""
+
+    # Primitive types
+    INT = auto()
+    FLOAT = auto()
+    STRING = auto()
+    BOOL = auto()
+    EMPTY = auto()  # null/none type
+
+    # Complex types
+    FUNCTION = auto()
+    URL = auto()
+
+    # Special types
+    UNION = auto()  # For union types
+    UNKNOWN = auto()  # Type to be inferred
+    ERROR = auto()  # Error type
+    ANY = auto()  # Unknown/dynamic type
 
 
 class MIRType(Enum):
@@ -79,6 +101,96 @@ def is_comparable_type(mir_type: MIRType) -> bool:
         True if the type is comparable, False otherwise.
     """
     return mir_type in (MIRType.INT, MIRType.FLOAT, MIRType.STRING, MIRType.BOOL)
+
+
+@dataclass
+class MIRUnionType:
+    """Union type that can be one of multiple types.
+
+    Attributes:
+        types: List of possible MIR types
+        kind: Always MIRTypeKind.UNION
+    """
+
+    kind: MIRTypeKind
+    types: list[MIRType]
+
+    def __init__(self, types: list[MIRType]) -> None:
+        """Initialize union type.
+
+        Args:
+            types: List of possible types
+        """
+        self.kind = MIRTypeKind.UNION
+        self.types = types
+
+    def contains(self, mir_type: MIRType) -> bool:
+        """Check if union contains a specific type.
+
+        Args:
+            mir_type: Type to check for
+
+        Returns:
+            True if union contains the type
+        """
+        return mir_type in self.types
+
+    def __str__(self) -> str:
+        """Return string representation."""
+        type_strs = [str(t) for t in self.types]
+        return f"Union[{', '.join(type_strs)}]"
+
+    def __eq__(self, other: object) -> bool:
+        """Check equality."""
+        if not isinstance(other, MIRUnionType):
+            return False
+        return set(self.types) == set(other.types)
+
+
+def ast_type_to_mir_type(type_spec: list[str]) -> MIRType | MIRUnionType:
+    """Convert AST type specification to MIR type.
+
+    Note: Yes/No type from the frontend is converted to Boolean
+    in the MIR representation for internal processing.
+
+    Args:
+        type_spec: List of type names from AST
+
+    Returns:
+        Corresponding MIR type or MIRUnionType
+    """
+    if len(type_spec) == 1:
+        # Single type
+        type_name = type_spec[0]
+        mapping = {
+            "Whole Number": MIRType.INT,
+            "Float": MIRType.FLOAT,
+            "Yes/No": MIRType.BOOL,  # Yes/No -> Boolean in MIR
+            "Text": MIRType.STRING,
+            "URL": MIRType.URL,
+            "Empty": MIRType.EMPTY,
+            "Number": None,  # Special handling below
+        }
+
+        if type_name == "Number":
+            # Number is a union of INT and FLOAT
+            return MIRUnionType([MIRType.INT, MIRType.FLOAT])
+
+        mir_type = mapping.get(type_name)
+        if mir_type:
+            return mir_type
+        return MIRType.UNKNOWN
+    else:
+        # Union type
+        mir_types = []
+        for type_name in type_spec:
+            single_type = ast_type_to_mir_type([type_name])
+            if isinstance(single_type, MIRUnionType):
+                # Flatten nested unions
+                mir_types.extend(single_type.types)
+            else:
+                mir_types.append(single_type)
+        return MIRUnionType(mir_types)
 
 
 def coerce_types(left: MIRType, right: MIRType) -> MIRType | None:

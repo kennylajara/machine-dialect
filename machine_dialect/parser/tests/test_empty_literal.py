@@ -13,7 +13,7 @@ class TestEmptyLiteral:
         """Test parsing the empty keyword as a literal."""
         source = "empty"
         parser = Parser()
-        program = parser.parse(source)
+        program = parser.parse(source, check_semantics=False)
 
         assert len(parser.errors) == 0, f"Parser errors: {parser.errors}"
         assert len(program.statements) == 1
@@ -29,7 +29,7 @@ class TestEmptyLiteral:
         source = """Define `result` as Empty.
 Set `result` to empty."""
         parser = Parser()
-        program = parser.parse(source)
+        program = parser.parse(source, check_semantics=False)
 
         assert len(parser.errors) == 0, f"Parser errors: {parser.errors}"
         assert len(program.statements) == 2
@@ -54,7 +54,7 @@ Set `result` to empty."""
 
         for source, expected_left, expected_op, expected_right in test_cases:
             parser = Parser()
-            program = parser.parse(source)
+            program = parser.parse(source, check_semantics=False)
 
             assert len(parser.errors) == 0, f"Parser errors for '{source}': {parser.errors}"
             assert len(program.statements) == 1
@@ -79,7 +79,7 @@ Set `result` to empty."""
         > Set `result` to _0_.
         """
         parser = Parser()
-        program = parser.parse(source)
+        program = parser.parse(source, check_semantics=False)
 
         assert len(parser.errors) == 0, f"Parser errors: {parser.errors}"
         assert len(program.statements) == 3
@@ -100,7 +100,7 @@ Set `result` to empty."""
         """Test using empty in a return statement."""
         source = "give back empty."
         parser = Parser()
-        program = parser.parse(source)
+        program = parser.parse(source, check_semantics=False)
 
         assert len(parser.errors) == 0, f"Parser errors: {parser.errors}"
         assert len(program.statements) == 1
@@ -115,7 +115,7 @@ Set `result` to empty."""
         """Test that 'empty' is recognized as a keyword, not an identifier."""
         # Test that 'empty' is parsed as EmptyLiteral
         parser1 = Parser()
-        program1 = parser1.parse("empty")
+        program1 = parser1.parse("empty", check_semantics=False)
         assert len(parser1.errors) == 0
         stmt1 = program1.statements[0]
         assert isinstance(stmt1, ExpressionStatement)
@@ -123,7 +123,7 @@ Set `result` to empty."""
 
         # Test that similar words are parsed as identifiers
         parser2 = Parser()
-        program2 = parser2.parse("emptyness")
+        program2 = parser2.parse("emptyness", check_semantics=False)
         assert len(parser2.errors) == 0
 
         from machine_dialect.ast import Identifier
@@ -143,7 +143,7 @@ Set `result` to empty."""
     def test_empty_case_insensitive(self, source: str) -> None:
         """Test that empty keyword is case-insensitive."""
         parser = Parser()
-        program = parser.parse(source)
+        program = parser.parse(source, check_semantics=False)
 
         assert len(parser.errors) == 0, f"Parser errors for '{source}': {parser.errors}"
         assert len(program.statements) == 1

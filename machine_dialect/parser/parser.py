@@ -63,6 +63,7 @@ from machine_dialect.parser.protocols import (
 )
 from machine_dialect.parser.symbol_table import SymbolTable
 from machine_dialect.parser.token_buffer import TokenBuffer
+from machine_dialect.type_checking import TypeSpec, check_type_compatibility, get_type_from_value
 
 PRECEDENCES: dict[TokenType, Precedence] = {
     # Ternary conditional
@@ -114,12 +115,13 @@ class Parser:
         self._infix_parse_funcs: InfixParseFuncs = self._register_infix_funcs()
         self._postfix_parse_funcs: PostfixParseFuncs = self._register_postfix_funcs()
 
-    def parse(self, source: str, as_hir: bool = False) -> Program:
+    def parse(self, source: str, as_hir: bool = False, check_semantics: bool = True) -> Program:
         """Parse the source code into an AST.
 
         Args:
             source: The source code to parse.
             as_hir: If True, return a HIR (High level Intermediate Representation).
+            check_semantics: If True, perform semantic analysis.
 
         Returns:
             The root Program node of the AST.
@@ -163,6 +165,14 @@ class Parser:
             # After parsing a statement, skip any trailing period
             elif self._current_token and self._current_token.type == TokenType.PUNCT_PERIOD:  # type: ignore[comparison-overlap]
                 self._advance_tokens()
+
+        # Perform semantic analysis if requested
+        if check_semantics and not self._errors:
+            from machine_dialect.semantic.analyzer import SemanticAnalyzer
+
+            analyzer = SemanticAnalyzer()
+            program, semantic_errors = analyzer.analyze(program)
+            self._errors.extend(semantic_errors)
 
         return program.desugar() if as_hir else program
 
@@ -1005,11 +1015,9 @@ class Parser:
         let_statement.name = self._parse_identifier()
 
         # Variables MUST be defined before use - no exceptions
-        if not self._check_variable_defined(
+        variable_defined = self._check_variable_defined(
             let_statement.name.value, let_statement.name.token.line, let_statement.name.token.position
-        ):
-            # Continue parsing despite the error to find more issues
-            pass
+        )
 
         # Check for "to" or "using" keyword
         assert self._peek_token is not None
@@ -1053,6 +1061,15 @@ class Parser:
         # BUT: the 'using' branch already leaves us at the period, so skip this
         if not used_using:
             self._advance_tokens()
+
+        # Type-check the assignment if the variable is defined
+        if variable_defined and let_statement.value and not isinstance(let_statement.value, ErrorExpression):
+            self._validate_assignment_type(
+                let_statement.name.value,
+                let_statement.value,
+                let_statement.name.token.line,
+                let_statement.name.token.position,
+            )
 
         # If the expression failed, skip to synchronization point
         if isinstance(let_statement.value, ErrorExpression):
@@ -2282,6 +2299,57 @@ class Parser:
         if not info:
             self.errors.append(MDNameError(message=VARIABLE_NOT_DEFINED, name=name, line=line, column=position))
             return False
+        return True
+
+    def _validate_assignment_type(self, variable_name: str, value: Expression, line: int, position: int) -> bool:
+        """Validate that an assignment value matches the variable's type.
+
+        Args:
+            variable_name: Name of the variable being assigned to
+            value: The expression being assigned
+            line: Line number for error reporting
+            position: Column position for error reporting
+
+        Returns:
+            True if type is valid, False otherwise
+        """
+        # Look up the variable's type specification
+        var_info = self._symbol_table.lookup(variable_name)
+        if not var_info:
+            # Variable not defined - already reported elsewhere
+            return False
+
+        # Determine the type of the value being assigned
+        value_type = get_type_from_value(value)
+        if value_type is None:
+            # Can't determine type - allow assignment for now
+            # This might be a function call or complex expression
+            return True
+
+        # Check if the value's type is compatible with the variable's type spec
+        type_spec = TypeSpec(var_info.type_spec)
+        is_compatible, error_msg = check_type_compatibility(value_type, type_spec)
+
+        if not is_compatible:
+            # Create a detailed error message
+            from machine_dialect.errors.messages import ASSIGNMENT_TYPE_MISMATCH
+            from machine_dialect.type_checking import TYPE_DISPLAY_NAMES
+
+            actual_type_name = TYPE_DISPLAY_NAMES.get(value_type, "unknown")
+            self.errors.append(
+                MDSyntaxError(
+                    message=ASSIGNMENT_TYPE_MISMATCH,
+                    line=line,
+                    column=position,
+                    variable=variable_name,
+                    expected_type=str(type_spec),
+                    actual_type=actual_type_name,
+                )
+            )
+            return False
+
+        # Mark the variable as initialized on successful type check
+        self._symbol_table.mark_initialized(variable_name)
         return True
 
     def _panic_until_tokens(self, token_types: list[TokenType]) -> list[Token]:

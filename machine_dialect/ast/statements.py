@@ -123,6 +123,36 @@ class DefineStatement(Statement):
         block.statements = [define_only, set_stmt]
         return block
 
+    def to_hir(self) -> Statement:
+        """Convert DefineStatement to HIR representation.
+
+        The HIR representation includes type annotations and
+        desugars default values into separate initialization.
+
+        Returns:
+            HIR representation of the define statement
+        """
+        if not self.initial_value:
+            # No default value - return as-is since type_spec already contains the type annotation
+            return DefineStatement(self.token, self.name, self.type_spec, None)
+
+        # With default value - desugar to define + set
+        # Create annotated define without initial value
+        define_stmt = DefineStatement(self.token, self.name, self.type_spec, None)
+        # Type annotation is already in type_spec, no need to set _type_annotation
+
+        # Create initialization set statement
+        set_stmt = SetStatement(
+            self.token,
+            self.name,
+            self.initial_value.to_hir() if hasattr(self.initial_value, "to_hir") else self.initial_value,
+        )
+
+        # Return as block
+        block = BlockStatement(self.token)
+        block.statements = [define_stmt, set_stmt]
+        return block
+
 
 class ExpressionStatement(Statement):
     """A statement that wraps an expression.

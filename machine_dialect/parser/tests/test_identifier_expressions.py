@@ -46,7 +46,7 @@ class TestIdentifierExpressions:
         """
         parser = Parser()
 
-        program = parser.parse(source)
+        program = parser.parse(source, check_semantics=False)
 
         assert_program_statements(parser, program)
 

@@ -14,7 +14,6 @@ from machine_dialect.ast import (
     Identifier,
     IfStatement,
     InfixExpression,
-    IntegerLiteral,
     PrefixExpression,
     Program,
     ReturnStatement,
@@ -22,6 +21,7 @@ from machine_dialect.ast import (
     SetStatement,
     Statement,
     StringLiteral,
+    WholeNumberLiteral,
     YesNoLiteral,
 )
 from machine_dialect.lexer.tokens import Token, TokenType
@@ -95,7 +95,8 @@ class TestE2EPipeline(unittest.TestCase):
         program = Program(
             [
                 ReturnStatement(
-                    self._token(TokenType.KW_RETURN, "return"), IntegerLiteral(self._token(TokenType.LIT_INT, "42"), 42)
+                    self._token(TokenType.KW_RETURN, "return"),
+                    WholeNumberLiteral(self._token(TokenType.LIT_WHOLE_NUMBER, "42"), 42),
                 )
             ]
         )
@@ -122,12 +123,12 @@ class TestE2EPipeline(unittest.TestCase):
                 SetStatement(
                     self._token(TokenType.KW_SET, "set"),
                     Identifier(self._token(TokenType.MISC_IDENT, "x"), "x"),
-                    IntegerLiteral(self._token(TokenType.LIT_INT, "10"), 10),
+                    WholeNumberLiteral(self._token(TokenType.LIT_WHOLE_NUMBER, "10"), 10),
                 ),
                 SetStatement(
                     self._token(TokenType.KW_SET, "set"),
                     Identifier(self._token(TokenType.MISC_IDENT, "y"), "y"),
-                    IntegerLiteral(self._token(TokenType.LIT_INT, "20"), 20),
+                    WholeNumberLiteral(self._token(TokenType.LIT_WHOLE_NUMBER, "20"), 20),
                 ),
                 SetStatement(
                     self._token(TokenType.KW_SET, "set"),
@@ -159,13 +160,13 @@ class TestE2EPipeline(unittest.TestCase):
                 SetStatement(
                     self._token(TokenType.KW_SET, "set"),
                     Identifier(self._token(TokenType.MISC_IDENT, "x"), "x"),
-                    IntegerLiteral(self._token(TokenType.LIT_INT, "15"), 15),
+                    WholeNumberLiteral(self._token(TokenType.LIT_WHOLE_NUMBER, "15"), 15),
                 ),
                 self._create_if_statement(
                     self._create_infix(
                         Identifier(self._token(TokenType.MISC_IDENT, "x"), "x"),
                         ">",
-                        IntegerLiteral(self._token(TokenType.LIT_INT, "10"), 10),
+                        WholeNumberLiteral(self._token(TokenType.LIT_WHOLE_NUMBER, "10"), 10),
                     ),
                     SetStatement(
                         self._token(TokenType.KW_SET, "set"),
@@ -200,7 +201,7 @@ class TestE2EPipeline(unittest.TestCase):
                 SetStatement(
                     self._token(TokenType.KW_SET, "set"),
                     Identifier(self._token(TokenType.MISC_IDENT, "x"), "x"),
-                    IntegerLiteral(self._token(TokenType.LIT_INT, "10"), 10),
+                    WholeNumberLiteral(self._token(TokenType.LIT_WHOLE_NUMBER, "10"), 10),
                 ),
                 ReturnStatement(
                     self._token(TokenType.KW_RETURN, "return"), Identifier(self._token(TokenType.MISC_IDENT, "x"), "x")
@@ -235,9 +236,9 @@ class TestE2EPipeline(unittest.TestCase):
                     self._token(TokenType.KW_SET, "set"),
                     Identifier(self._token(TokenType.MISC_IDENT, "x"), "x"),
                     self._create_infix(
-                        IntegerLiteral(self._token(TokenType.LIT_INT, "10"), 10),
+                        WholeNumberLiteral(self._token(TokenType.LIT_WHOLE_NUMBER, "10"), 10),
                         "+",
-                        IntegerLiteral(self._token(TokenType.LIT_INT, "20"), 20),
+                        WholeNumberLiteral(self._token(TokenType.LIT_WHOLE_NUMBER, "20"), 20),
                     ),
                 ),
                 ReturnStatement(
@@ -272,12 +273,12 @@ class TestE2EPipeline(unittest.TestCase):
                 SetStatement(
                     self._token(TokenType.KW_SET, "set"),
                     Identifier(self._token(TokenType.MISC_IDENT, "a"), "a"),
-                    IntegerLiteral(self._token(TokenType.LIT_INT, "5"), 5),
+                    WholeNumberLiteral(self._token(TokenType.LIT_WHOLE_NUMBER, "5"), 5),
                 ),
                 SetStatement(
                     self._token(TokenType.KW_SET, "set"),
                     Identifier(self._token(TokenType.MISC_IDENT, "b"), "b"),
-                    IntegerLiteral(self._token(TokenType.LIT_INT, "3"), 3),
+                    WholeNumberLiteral(self._token(TokenType.LIT_WHOLE_NUMBER, "3"), 3),
                 ),
                 SetStatement(
                     self._token(TokenType.KW_SET, "set"),
@@ -316,22 +317,22 @@ class TestE2EPipeline(unittest.TestCase):
                 SetStatement(
                     self._token(TokenType.KW_SET, "set"),
                     Identifier(self._token(TokenType.MISC_IDENT, "n"), "n"),
-                    IntegerLiteral(self._token(TokenType.LIT_INT, "6"), 6),
+                    WholeNumberLiteral(self._token(TokenType.LIT_WHOLE_NUMBER, "6"), 6),
                 ),
                 SetStatement(
                     self._token(TokenType.KW_SET, "set"),
                     Identifier(self._token(TokenType.MISC_IDENT, "a"), "a"),
-                    IntegerLiteral(self._token(TokenType.LIT_INT, "0"), 0),
+                    WholeNumberLiteral(self._token(TokenType.LIT_WHOLE_NUMBER, "0"), 0),
                 ),
                 SetStatement(
                     self._token(TokenType.KW_SET, "set"),
                     Identifier(self._token(TokenType.MISC_IDENT, "b"), "b"),
-                    IntegerLiteral(self._token(TokenType.LIT_INT, "1"), 1),
+                    WholeNumberLiteral(self._token(TokenType.LIT_WHOLE_NUMBER, "1"), 1),
                 ),
                 SetStatement(
                     self._token(TokenType.KW_SET, "set"),
                     Identifier(self._token(TokenType.MISC_IDENT, "i"), "i"),
-                    IntegerLiteral(self._token(TokenType.LIT_INT, "0"), 0),
+                    WholeNumberLiteral(self._token(TokenType.LIT_WHOLE_NUMBER, "0"), 0),
                 ),
                 # Simplified - would need loop support for real fibonacci
                 SetStatement(
@@ -374,12 +375,12 @@ class TestE2EPipeline(unittest.TestCase):
                 SetStatement(
                     self._token(TokenType.KW_SET, "set"),
                     Identifier(self._token(TokenType.MISC_IDENT, "x"), "x"),
-                    IntegerLiteral(self._token(TokenType.LIT_INT, "100"), 100),
+                    WholeNumberLiteral(self._token(TokenType.LIT_WHOLE_NUMBER, "100"), 100),
                 ),
                 SetStatement(
                     self._token(TokenType.KW_SET, "set"),
                     Identifier(self._token(TokenType.MISC_IDENT, "y"), "y"),
-                    IntegerLiteral(self._token(TokenType.LIT_INT, "200"), 200),
+                    WholeNumberLiteral(self._token(TokenType.LIT_WHOLE_NUMBER, "200"), 200),
                 ),
                 ReturnStatement(
                     self._token(TokenType.KW_RETURN, "return"),
@@ -410,12 +411,12 @@ class TestE2EPipeline(unittest.TestCase):
                 SetStatement(
                     self._token(TokenType.KW_SET, "set"),
                     Identifier(self._token(TokenType.MISC_IDENT, "x"), "x"),
-                    IntegerLiteral(self._token(TokenType.LIT_INT, "10"), 10),
+                    WholeNumberLiteral(self._token(TokenType.LIT_WHOLE_NUMBER, "10"), 10),
                 ),
                 SetStatement(
                     self._token(TokenType.KW_SET, "set"),
                     Identifier(self._token(TokenType.MISC_IDENT, "y"), "y"),
-                    IntegerLiteral(self._token(TokenType.LIT_INT, "0"), 0),
+                    WholeNumberLiteral(self._token(TokenType.LIT_WHOLE_NUMBER, "0"), 0),
                 ),
                 SetStatement(
                     self._token(TokenType.KW_SET, "set"),
@@ -458,7 +459,8 @@ class TestE2EPipeline(unittest.TestCase):
                     self._token(TokenType.KW_SAY, "say"), Identifier(self._token(TokenType.MISC_IDENT, "msg"), "msg")
                 ),
                 ReturnStatement(
-                    self._token(TokenType.KW_RETURN, "return"), IntegerLiteral(self._token(TokenType.LIT_INT, "0"), 0)
+                    self._token(TokenType.KW_RETURN, "return"),
+                    WholeNumberLiteral(self._token(TokenType.LIT_WHOLE_NUMBER, "0"), 0),
                 ),
             ]
         )
@@ -532,7 +534,7 @@ class TestE2EPipeline(unittest.TestCase):
                 SetStatement(
                     self._token(TokenType.KW_SET, "set"),
                     Identifier(self._token(TokenType.MISC_IDENT, "x"), "x"),
-                    IntegerLiteral(self._token(TokenType.LIT_INT, "10"), 10),
+                    WholeNumberLiteral(self._token(TokenType.LIT_WHOLE_NUMBER, "10"), 10),
                 ),
                 SetStatement(
                     self._token(TokenType.KW_SET, "set"),
@@ -598,7 +600,7 @@ class TestPipelineIntegration(unittest.TestCase):
                 [
                     ReturnStatement(
                         self._token(TokenType.KW_RETURN, "return"),
-                        IntegerLiteral(self._token(TokenType.LIT_INT, "42"), 42),
+                        WholeNumberLiteral(self._token(TokenType.LIT_WHOLE_NUMBER, "42"), 42),
                     )
                 ]
             ),
@@ -608,7 +610,7 @@ class TestPipelineIntegration(unittest.TestCase):
                     SetStatement(
                         self._token(TokenType.KW_SET, "set"),
                         Identifier(self._token(TokenType.MISC_IDENT, "x"), "x"),
-                        IntegerLiteral(self._token(TokenType.LIT_INT, "10"), 10),
+                        WholeNumberLiteral(self._token(TokenType.LIT_WHOLE_NUMBER, "10"), 10),
                     ),
                     ReturnStatement(
                         self._token(TokenType.KW_RETURN, "return"),
@@ -622,9 +624,9 @@ class TestPipelineIntegration(unittest.TestCase):
                     ReturnStatement(
                         self._token(TokenType.KW_RETURN, "return"),
                         self._create_infix(
-                            IntegerLiteral(self._token(TokenType.LIT_INT, "5"), 5),
+                            WholeNumberLiteral(self._token(TokenType.LIT_WHOLE_NUMBER, "5"), 5),
                             "*",
-                            IntegerLiteral(self._token(TokenType.LIT_INT, "6"), 6),
+                            WholeNumberLiteral(self._token(TokenType.LIT_WHOLE_NUMBER, "6"), 6),
                         ),
                     )
                 ]
@@ -635,9 +637,9 @@ class TestPipelineIntegration(unittest.TestCase):
                     ReturnStatement(
                         self._token(TokenType.KW_RETURN, "return"),
                         self._create_infix(
-                            IntegerLiteral(self._token(TokenType.LIT_INT, "10"), 10),
+                            WholeNumberLiteral(self._token(TokenType.LIT_WHOLE_NUMBER, "10"), 10),
                             ">",
-                            IntegerLiteral(self._token(TokenType.LIT_INT, "5"), 5),
+                            WholeNumberLiteral(self._token(TokenType.LIT_WHOLE_NUMBER, "5"), 5),
                         ),
                     )
                 ]
@@ -668,18 +670,18 @@ class TestPipelineIntegration(unittest.TestCase):
                     self._token(TokenType.KW_SET, "set"),
                     Identifier(self._token(TokenType.MISC_IDENT, "x"), "x"),
                     self._create_infix(
-                        IntegerLiteral(self._token(TokenType.LIT_INT, "2"), 2),
+                        WholeNumberLiteral(self._token(TokenType.LIT_WHOLE_NUMBER, "2"), 2),
                         "*",
-                        IntegerLiteral(self._token(TokenType.LIT_INT, "3"), 3),
+                        WholeNumberLiteral(self._token(TokenType.LIT_WHOLE_NUMBER, "3"), 3),
                     ),
                 ),
                 SetStatement(
                     self._token(TokenType.KW_SET, "set"),
                     Identifier(self._token(TokenType.MISC_IDENT, "y"), "y"),
                     self._create_infix(
-                        IntegerLiteral(self._token(TokenType.LIT_INT, "10"), 10),
+                        WholeNumberLiteral(self._token(TokenType.LIT_WHOLE_NUMBER, "10"), 10),
                         "-",
-                        IntegerLiteral(self._token(TokenType.LIT_INT, "4"), 4),
+                        WholeNumberLiteral(self._token(TokenType.LIT_WHOLE_NUMBER, "4"), 4),
                     ),
                 ),
                 SetStatement(

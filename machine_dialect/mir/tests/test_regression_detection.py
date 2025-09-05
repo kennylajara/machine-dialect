@@ -8,10 +8,10 @@ from pathlib import Path
 
 from machine_dialect.ast import (
     Identifier,
-    IntegerLiteral,
     Program,
     ReturnStatement,
     SetStatement,
+    WholeNumberLiteral,
 )
 from machine_dialect.lexer.tokens import Token, TokenType
 from machine_dialect.mir.benchmarks.compilation_benchmark import CompilationBenchmark
@@ -39,7 +39,7 @@ class TestRegressionDetection(unittest.TestCase):
                 SetStatement(
                     token,
                     Identifier(Token(TokenType.MISC_IDENT, "x", 0, 0), "x"),
-                    IntegerLiteral(Token(TokenType.LIT_INT, str(value), 0, 0), value),
+                    WholeNumberLiteral(Token(TokenType.LIT_WHOLE_NUMBER, str(value), 0, 0), value),
                 ),
                 ReturnStatement(
                     Token(TokenType.KW_RETURN, "return", 0, 0),

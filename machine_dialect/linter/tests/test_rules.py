@@ -1,6 +1,6 @@
 """Tests for individual linting rules."""
 
-from machine_dialect.ast import ExpressionStatement, IntegerLiteral
+from machine_dialect.ast import ExpressionStatement, WholeNumberLiteral
 from machine_dialect.lexer import Token, TokenType
 from machine_dialect.linter.rules.base import Context
 from machine_dialect.linter.rules.statement_termination import StatementTerminationRule
@@ -21,8 +21,8 @@ class TestStatementTerminationRule:
         rule = StatementTerminationRule()
 
         # Create a mock expression statement
-        token = Token(TokenType.LIT_INT, "42", line=1, position=1)
-        node = ExpressionStatement(token=token, expression=IntegerLiteral(token=token, value=42))
+        token = Token(TokenType.LIT_WHOLE_NUMBER, "42", line=1, position=1)
+        node = ExpressionStatement(token=token, expression=WholeNumberLiteral(token=token, value=42))
 
         # Create context with source that has a period
         context = Context("test.md", "42.")
@@ -35,8 +35,8 @@ class TestStatementTerminationRule:
         rule = StatementTerminationRule()
 
         # Create a mock expression statement
-        token = Token(TokenType.LIT_INT, "42", line=1, position=1)
-        node = ExpressionStatement(token=token, expression=IntegerLiteral(token=token, value=42))
+        token = Token(TokenType.LIT_WHOLE_NUMBER, "42", line=1, position=1)
+        node = ExpressionStatement(token=token, expression=WholeNumberLiteral(token=token, value=42))
 
         # Create context with source that lacks a period (at EOF - valid)
         context = Context("test.md", "42")
@@ -57,8 +57,8 @@ class TestStatementTerminationRule:
         rule = StatementTerminationRule()
 
         # First statement in "42. 100"
-        token = Token(TokenType.LIT_INT, "42", line=1, position=1)
-        node = ExpressionStatement(token=token, expression=IntegerLiteral(token=token, value=42))
+        token = Token(TokenType.LIT_WHOLE_NUMBER, "42", line=1, position=1)
+        node = ExpressionStatement(token=token, expression=WholeNumberLiteral(token=token, value=42))
 
         context = Context("test.md", "42. 100")
 
@@ -70,8 +70,8 @@ class TestStatementTerminationRule:
         """Test statements with trailing whitespace."""
         rule = StatementTerminationRule()
 
-        token = Token(TokenType.LIT_INT, "42", line=1, position=1)
-        node = ExpressionStatement(token=token, expression=IntegerLiteral(token=token, value=42))
+        token = Token(TokenType.LIT_WHOLE_NUMBER, "42", line=1, position=1)
+        node = ExpressionStatement(token=token, expression=WholeNumberLiteral(token=token, value=42))
 
         # Test with trailing whitespace but no period (at EOF - valid)
         context = Context("test.md", "42   ")
@@ -84,8 +84,8 @@ class TestStatementTerminationRule:
         rule = StatementTerminationRule()
 
         # Test with a literal node (not a statement)
-        token = Token(TokenType.LIT_INT, "42", line=1, position=1)
-        node = IntegerLiteral(token=token, value=42)
+        token = Token(TokenType.LIT_WHOLE_NUMBER, "42", line=1, position=1)
+        node = WholeNumberLiteral(token=token, value=42)
 
         context = Context("test.md", "42")
 

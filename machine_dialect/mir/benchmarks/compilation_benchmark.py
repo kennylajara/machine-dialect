@@ -354,9 +354,9 @@ def run_standard_benchmarks() -> None:
         Identifier,
         IfStatement,
         InfixExpression,
-        IntegerLiteral,
         ReturnStatement,
         SetStatement,
+        WholeNumberLiteral,
     )
     from machine_dialect.lexer.tokens import Token, TokenType
 
@@ -389,7 +389,7 @@ def run_standard_benchmarks() -> None:
         [
             ReturnStatement(
                 _token(TokenType.KW_RETURN, "return"),
-                IntegerLiteral(_token(TokenType.LIT_INT, "42"), 42),
+                WholeNumberLiteral(_token(TokenType.LIT_WHOLE_NUMBER, "42"), 42),
             )
         ]
     )
@@ -401,12 +401,12 @@ def run_standard_benchmarks() -> None:
             SetStatement(
                 _token(TokenType.KW_SET, "set"),
                 Identifier(_token(TokenType.MISC_IDENT, "x"), "x"),
-                IntegerLiteral(_token(TokenType.LIT_INT, "10"), 10),
+                WholeNumberLiteral(_token(TokenType.LIT_WHOLE_NUMBER, "10"), 10),
             ),
             SetStatement(
                 _token(TokenType.KW_SET, "set"),
                 Identifier(_token(TokenType.MISC_IDENT, "y"), "y"),
-                IntegerLiteral(_token(TokenType.LIT_INT, "20"), 20),
+                WholeNumberLiteral(_token(TokenType.LIT_WHOLE_NUMBER, "20"), 20),
             ),
             SetStatement(
                 _token(TokenType.KW_SET, "set"),
@@ -431,7 +431,7 @@ def run_standard_benchmarks() -> None:
         _create_infix(
             Identifier(_token(TokenType.MISC_IDENT, "x"), "x"),
             ">",
-            IntegerLiteral(_token(TokenType.LIT_INT, "5"), 5),
+            WholeNumberLiteral(_token(TokenType.LIT_WHOLE_NUMBER, "5"), 5),
         ),
     )
 
@@ -441,7 +441,7 @@ def run_standard_benchmarks() -> None:
         SetStatement(
             _token(TokenType.KW_SET, "set"),
             Identifier(_token(TokenType.MISC_IDENT, "y"), "y"),
-            IntegerLiteral(_token(TokenType.LIT_INT, "1"), 1),
+            WholeNumberLiteral(_token(TokenType.LIT_WHOLE_NUMBER, "1"), 1),
         )
     ]
     if_stmt.consequence = then_block
@@ -452,7 +452,7 @@ def run_standard_benchmarks() -> None:
         SetStatement(
             _token(TokenType.KW_SET, "set"),
             Identifier(_token(TokenType.MISC_IDENT, "y"), "y"),
-            IntegerLiteral(_token(TokenType.LIT_INT, "0"), 0),
+            WholeNumberLiteral(_token(TokenType.LIT_WHOLE_NUMBER, "0"), 0),
         )
     ]
     if_stmt.alternative = else_block
@@ -462,7 +462,7 @@ def run_standard_benchmarks() -> None:
             SetStatement(
                 _token(TokenType.KW_SET, "set"),
                 Identifier(_token(TokenType.MISC_IDENT, "x"), "x"),
-                IntegerLiteral(_token(TokenType.LIT_INT, "10"), 10),
+                WholeNumberLiteral(_token(TokenType.LIT_WHOLE_NUMBER, "10"), 10),
             ),
             if_stmt,
             ReturnStatement(

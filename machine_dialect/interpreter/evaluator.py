@@ -10,10 +10,10 @@ from machine_dialect.interpreter.objects import (
     Error,
     Float,
     Function,
-    Integer,
     Object,
     Return,
     String,
+    WholeNumber,
 )
 from machine_dialect.lexer import TokenType
 
@@ -70,10 +70,10 @@ def evaluate(node: ast.ASTNode, env: Environment | None = None) -> Object | None
 
             return _evaluate_infix_expression(node.token.type, left, right)
 
-        case ast.IntegerLiteral:
-            node = cast(ast.IntegerLiteral, node)
+        case ast.WholeNumberLiteral:
+            node = cast(ast.WholeNumberLiteral, node)
             assert node.value is not None
-            return Integer(node.value)
+            return WholeNumber(node.value)
 
         case ast.FloatLiteral:
             node = cast(ast.FloatLiteral, node)

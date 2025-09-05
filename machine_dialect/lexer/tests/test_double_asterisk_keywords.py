@@ -93,11 +93,11 @@ class TestDoubleAsteriskKeywords:
         lexer = Lexer(source)
         tokens = collect_all_tokens(lexer)
         assert len(tokens) == 3
-        assert tokens[0].type == TokenType.LIT_INT
+        assert tokens[0].type == TokenType.LIT_WHOLE_NUMBER
         assert tokens[0].literal == "2"
         assert tokens[1].type == TokenType.OP_TWO_STARS
         assert tokens[1].literal == "**"
-        assert tokens[2].type == TokenType.LIT_INT
+        assert tokens[2].type == TokenType.LIT_WHOLE_NUMBER
         assert tokens[2].literal == "3"
 
     def test_stopword_wrapped(self) -> None:

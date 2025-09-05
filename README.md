@@ -283,7 +283,7 @@ Tokens (6):
   KW_SET               | 'Set'
   MISC_IDENT           | 'x'
   KW_TO                | 'to'
-  LIT_INT              | '42'
+  LIT_WHOLE_NUMBER              | '42'
   PUNCT_PERIOD         | '.'
   MISC_EOF             | ''
 --------------------------------------------------

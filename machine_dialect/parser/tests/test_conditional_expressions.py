@@ -11,9 +11,9 @@ from machine_dialect.ast import (
     ExpressionStatement,
     Identifier,
     InfixExpression,
-    IntegerLiteral,
     PrefixExpression,
     StringLiteral,
+    WholeNumberLiteral,
     YesNoLiteral,
 )
 from machine_dialect.parser import Parser
@@ -65,7 +65,7 @@ class TestConditionalExpressions:
             # Already in canonical Yes/No representation
             assert str(conditional.consequence) == f"_{expected_consequence}_"
         else:
-            assert isinstance(conditional.consequence, IntegerLiteral)
+            assert isinstance(conditional.consequence, WholeNumberLiteral)
             assert conditional.consequence.value == int(expected_consequence)
 
         # Check condition
@@ -81,7 +81,7 @@ class TestConditionalExpressions:
             # Already in canonical Yes/No representation
             assert str(conditional.alternative) == f"_{expected_alternative}_"
         else:
-            assert isinstance(conditional.alternative, IntegerLiteral)
+            assert isinstance(conditional.alternative, WholeNumberLiteral)
             assert conditional.alternative.value == int(expected_alternative)
 
     def test_conditional_with_identifiers(self) -> None:
@@ -151,7 +151,7 @@ class TestConditionalExpressions:
         assert isinstance(conditional, ConditionalExpression)
 
         # Check consequence
-        assert isinstance(conditional.consequence, IntegerLiteral)
+        assert isinstance(conditional.consequence, WholeNumberLiteral)
         assert conditional.consequence.value == 1
 
         # Check condition is an infix expression
@@ -159,14 +159,14 @@ class TestConditionalExpressions:
         assert conditional.condition.operator == ">"
         assert isinstance(conditional.condition.left, Identifier)
         assert conditional.condition.left.value == "x"
-        assert isinstance(conditional.condition.right, IntegerLiteral)
+        assert isinstance(conditional.condition.right, WholeNumberLiteral)
         assert conditional.condition.right.value == 0
 
         # Check alternative
-        # TODO: In the future, negative numbers should be parsed as IntegerLiteral, not PrefixExpression
+        # TODO: In the future, negative numbers should be parsed as WholeNumberLiteral, not PrefixExpression
         assert isinstance(conditional.alternative, PrefixExpression)
         assert conditional.alternative.operator == "-"
-        assert isinstance(conditional.alternative.right, IntegerLiteral)
+        assert isinstance(conditional.alternative.right, WholeNumberLiteral)
         assert conditional.alternative.right.value == 1
 
     def test_nested_conditional_expressions(self) -> None:
@@ -184,7 +184,7 @@ class TestConditionalExpressions:
         assert isinstance(outer_conditional, ConditionalExpression)
 
         # Check outer consequence
-        assert isinstance(outer_conditional.consequence, IntegerLiteral)
+        assert isinstance(outer_conditional.consequence, WholeNumberLiteral)
         assert outer_conditional.consequence.value == 1
 
         # Check outer condition
@@ -196,11 +196,11 @@ class TestConditionalExpressions:
         assert isinstance(inner_conditional, ConditionalExpression)
 
         # Check inner conditional
-        assert isinstance(inner_conditional.consequence, IntegerLiteral)
+        assert isinstance(inner_conditional.consequence, WholeNumberLiteral)
         assert inner_conditional.consequence.value == 2
         assert isinstance(inner_conditional.condition, Identifier)
         assert inner_conditional.condition.value == "b"
-        assert isinstance(inner_conditional.alternative, IntegerLiteral)
+        assert isinstance(inner_conditional.alternative, WholeNumberLiteral)
         assert inner_conditional.alternative.value == 3
 
     def test_conditional_with_arithmetic_expressions(self) -> None:
@@ -222,7 +222,7 @@ class TestConditionalExpressions:
         assert conditional.consequence.operator == "+"
         assert isinstance(conditional.consequence.left, Identifier)
         assert conditional.consequence.left.value == "x"
-        assert isinstance(conditional.consequence.right, IntegerLiteral)
+        assert isinstance(conditional.consequence.right, WholeNumberLiteral)
         assert conditional.consequence.right.value == 1
 
         # Check condition
@@ -234,7 +234,7 @@ class TestConditionalExpressions:
         assert conditional.alternative.operator == "-"
         assert isinstance(conditional.alternative.left, Identifier)
         assert conditional.alternative.left.value == "x"
-        assert isinstance(conditional.alternative.right, IntegerLiteral)
+        assert isinstance(conditional.alternative.right, WholeNumberLiteral)
         assert conditional.alternative.right.value == 1
 
     def test_conditional_string_representation(self) -> None:
@@ -311,10 +311,10 @@ class TestConditionalExpressions:
         assert isinstance(conditional, ConditionalExpression)
 
         # Verify the expression was parsed correctly
-        assert isinstance(conditional.consequence, IntegerLiteral)
+        assert isinstance(conditional.consequence, WholeNumberLiteral)
         assert conditional.consequence.value == 1
         assert isinstance(conditional.condition, YesNoLiteral)
-        assert isinstance(conditional.alternative, IntegerLiteral)
+        assert isinstance(conditional.alternative, WholeNumberLiteral)
         assert conditional.alternative.value == 0
 
     @pytest.mark.parametrize(
@@ -336,8 +336,8 @@ class TestConditionalExpressions:
         assert isinstance(conditional, ConditionalExpression)
 
         # Verify the expression was parsed correctly
-        assert isinstance(conditional.consequence, IntegerLiteral)
+        assert isinstance(conditional.consequence, WholeNumberLiteral)
         assert conditional.consequence.value == 1
         assert isinstance(conditional.condition, YesNoLiteral)
-        assert isinstance(conditional.alternative, IntegerLiteral)
+        assert isinstance(conditional.alternative, WholeNumberLiteral)
         assert conditional.alternative.value == 0

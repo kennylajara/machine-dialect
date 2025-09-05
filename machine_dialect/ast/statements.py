@@ -66,7 +66,7 @@ class DefineStatement(Statement):
         initial_value: Optional default value expression
 
     Examples:
-        Define `count` as Integer.
+        Define `count` as Whole Number.
         Define `message` as Text (default: _"Hello"_).
     """
 
@@ -78,7 +78,7 @@ class DefineStatement(Statement):
         Args:
             token: The DEFINE keyword token
             name: The variable identifier
-            type_spec: List of type names (e.g., ["Integer"], ["Text", "Integer"])
+            type_spec: List of type names (e.g., ["WholeNumber"], ["Text", "WholeNumber"])
             initial_value: Optional default value expression
         """
         super().__init__(token)

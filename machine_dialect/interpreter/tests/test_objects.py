@@ -8,10 +8,10 @@ from machine_dialect.interpreter.objects import (
     Empty,
     Error,
     Float,
-    Integer,
     Object,
     ObjectType,
     String,
+    WholeNumber,
 )
 
 
@@ -114,45 +114,45 @@ class TestEmpty:
 
 
 class TestInteger:
-    """Test the Integer object type."""
+    """Test the Whole Number object type."""
 
     def test_type_property(self) -> None:
         """Test that type property returns INTEGER."""
-        int_obj = Integer(42)
+        int_obj = WholeNumber(42)
         assert int_obj.type == ObjectType.INTEGER
 
     def test_inspect_positive(self) -> None:
         """Test inspect() for positive integers."""
-        int_obj = Integer(42)
+        int_obj = WholeNumber(42)
         assert int_obj.inspect() == "42"
 
     def test_inspect_negative(self) -> None:
         """Test inspect() for negative integers."""
-        int_obj = Integer(-42)
+        int_obj = WholeNumber(-42)
         assert int_obj.inspect() == "-42"
 
     def test_inspect_zero(self) -> None:
         """Test inspect() for zero."""
-        int_obj = Integer(0)
+        int_obj = WholeNumber(0)
         assert int_obj.inspect() == "0"
 
     def test_different_values_different_instances(self) -> None:
         """Test that different values create different instances."""
-        int1 = Integer(42)
-        int2 = Integer(42)
-        int3 = Integer(43)
+        int1 = WholeNumber(42)
+        int2 = WholeNumber(42)
+        int3 = WholeNumber(43)
         # Different instances even for same value (no singleton)
         assert int1 is not int2
         assert int1 is not int3
 
     def test_large_numbers(self) -> None:
         """Test handling of large integers."""
-        large = Integer(9876543210)
+        large = WholeNumber(9876543210)
         assert large.inspect() == "9876543210"
 
     def test_value_preserved(self) -> None:
         """Test that the integer value is preserved internally."""
-        int_obj = Integer(42)
+        int_obj = WholeNumber(42)
         assert int_obj._value == 42
 
 
@@ -314,7 +314,7 @@ class TestObjectAbstraction:
 
     def test_all_concrete_classes_implement_interface(self) -> None:
         """Test that all concrete classes implement the Object interface."""
-        concrete_classes = [Boolean, Empty, Float, Integer, String, URL]
+        concrete_classes = [Boolean, Empty, Float, WholeNumber, String, URL]
 
         for cls in concrete_classes:
             # Create an instance (with appropriate arguments)
@@ -322,8 +322,8 @@ class TestObjectAbstraction:
                 obj = cls(True)
             elif cls == Empty:
                 obj = cls()
-            elif cls in (Float, Integer, String, URL):
-                obj = cls(42) if cls in (Float, Integer) else cls("test")
+            elif cls in (Float, WholeNumber, String, URL):
+                obj = cls(42) if cls in (Float, WholeNumber) else cls("test")
 
             # Check that required methods/properties are present
             assert hasattr(obj, "type")
@@ -365,8 +365,8 @@ class TestObjectPrefixOperatorReactions:
         assert "Unsupported" in result.inspect()
 
     def test_integer_react_to_not(self) -> None:
-        """Test Integer reaction to not operator."""
-        int_obj = Integer(42)
+        """Test WholeNumber reaction to not operator."""
+        int_obj = WholeNumber(42)
 
         # Not of integer should return Empty
         result = int_obj.react_to_prefix_operator_not()
@@ -374,24 +374,24 @@ class TestObjectPrefixOperatorReactions:
         assert "Unsupported" in result.inspect()
 
     def test_integer_react_to_minus(self) -> None:
-        """Test Integer reaction to minus operator."""
-        positive = Integer(42)
-        negative = Integer(-42)
-        zero = Integer(0)
+        """Test WholeNumber reaction to minus operator."""
+        positive = WholeNumber(42)
+        negative = WholeNumber(-42)
+        zero = WholeNumber(0)
 
         # Minus of positive should return negative
         result = positive.react_to_prefix_operator_minus()
-        assert isinstance(result, Integer)
+        assert isinstance(result, WholeNumber)
         assert result.inspect() == "-42"
 
         # Minus of negative should return positive
         result = negative.react_to_prefix_operator_minus()
-        assert isinstance(result, Integer)
+        assert isinstance(result, WholeNumber)
         assert result.inspect() == "42"
 
         # Minus of zero should return zero
         result = zero.react_to_prefix_operator_minus()
-        assert isinstance(result, Integer)
+        assert isinstance(result, WholeNumber)
         assert result.inspect() == "0"
 
     def test_float_react_to_not(self) -> None:
@@ -485,7 +485,7 @@ class TestObjectPrefixOperatorReactions:
             Boolean(True),
             Empty(),
             Float(3.14),
-            Integer(42),
+            WholeNumber(42),
             String("test"),
             URL("https://example.com"),
         ]
@@ -593,10 +593,10 @@ class TestObjectLogicalOperatorReactions:
         """Test Boolean and non-Boolean returns Empty."""
         true = Boolean(True)
         false = Boolean(False)
-        num = Integer(42)
+        num = WholeNumber(42)
         text = String("hello")
 
-        # Boolean and Integer
+        # Boolean and WholeNumber
         result = true.react_to_infix_operator_and(num)
         assert isinstance(result, Error)
         assert "Unsupported" in result.inspect()
@@ -633,13 +633,13 @@ class TestObjectLogicalOperatorReactions:
 
     def test_non_boolean_logical_operations(self) -> None:
         """Test that non-Boolean types return Empty for logical operations."""
-        num = Integer(42)
+        num = WholeNumber(42)
         text = String("hello")
         empty = Empty()
         flt = Float(3.14)
         url = URL("https://example.com")
 
-        # Integer logical operations
+        # Whole Number logical operations
         result = num.react_to_infix_operator_and(Boolean(True))
         assert isinstance(result, Error)
         assert "Unsupported" in result.inspect()

@@ -6,9 +6,9 @@ from pathlib import Path
 from machine_dialect.ast import (
     Identifier,
     InfixExpression,
-    IntegerLiteral,
     Program,
     SetStatement,
+    WholeNumberLiteral,
 )
 from machine_dialect.codegen.isa import Opcode
 from machine_dialect.compiler.config import CompilerConfig
@@ -277,8 +277,8 @@ class TestBitwiseVMExecution(unittest.TestCase):
         # 12 = 1100 in binary
         # 7  = 0111 in binary
         # Result should be 0100 = 4
-        left = IntegerLiteral(Token(TokenType.LIT_INT, "12", 1, 0), 12)
-        right = IntegerLiteral(Token(TokenType.LIT_INT, "7", 1, 4), 7)
+        left = WholeNumberLiteral(Token(TokenType.LIT_WHOLE_NUMBER, "12", 1, 0), 12)
+        right = WholeNumberLiteral(Token(TokenType.LIT_WHOLE_NUMBER, "7", 1, 4), 7)
 
         # Note: We need to check if "&" is recognized as an operator token
         # For now, let's create the expression using the caret operator which is mapped to XOR
@@ -323,8 +323,8 @@ class TestBitwiseVMExecution(unittest.TestCase):
         # 12 = 1100 in binary
         # 7  = 0111 in binary
         # Result should be 1011 = 11
-        left = IntegerLiteral(Token(TokenType.LIT_INT, "12", 1, 0), 12)
-        right = IntegerLiteral(Token(TokenType.LIT_INT, "7", 1, 4), 7)
+        left = WholeNumberLiteral(Token(TokenType.LIT_WHOLE_NUMBER, "12", 1, 0), 12)
+        right = WholeNumberLiteral(Token(TokenType.LIT_WHOLE_NUMBER, "7", 1, 4), 7)
 
         # The caret operator should be recognized
         expr = InfixExpression(Token(TokenType.OP_CARET, "^", 1, 2), "^", left)

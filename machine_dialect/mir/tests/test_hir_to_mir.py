@@ -16,7 +16,6 @@ from machine_dialect.ast import (
     Identifier,
     IfStatement,
     InfixExpression,
-    IntegerLiteral,
     Parameter,
     PrefixExpression,
     Program,
@@ -24,6 +23,7 @@ from machine_dialect.ast import (
     SetStatement,
     Statement,
     StringLiteral,
+    WholeNumberLiteral,
     YesNoLiteral,
 )
 from machine_dialect.lexer import Token, TokenType
@@ -76,7 +76,7 @@ class TestHIRToMIRLowering(unittest.TestCase):
         body.statements = [
             ReturnStatement(
                 token=self._dummy_token("return", TokenType.KW_RETURN),
-                return_value=IntegerLiteral(token=self._dummy_token("42", TokenType.LIT_INT), value=42),
+                return_value=WholeNumberLiteral(token=self._dummy_token("42", TokenType.LIT_WHOLE_NUMBER), value=42),
             )
         ]
         func = FunctionStatement(
@@ -148,7 +148,7 @@ class TestHIRToMIRLowering(unittest.TestCase):
             SetStatement(
                 token=self._dummy_token("set", TokenType.KW_SET),
                 name=Identifier(self._dummy_token("x"), "x"),
-                value=IntegerLiteral(token=self._dummy_token("10", TokenType.LIT_INT), value=10),
+                value=WholeNumberLiteral(token=self._dummy_token("10", TokenType.LIT_WHOLE_NUMBER), value=10),
             )
         ]
         func = FunctionStatement(
@@ -175,7 +175,7 @@ class TestHIRToMIRLowering(unittest.TestCase):
         consequence_block.statements = [
             ReturnStatement(
                 token=self._dummy_token("return", TokenType.KW_RETURN),
-                return_value=IntegerLiteral(token=self._dummy_token("1", TokenType.LIT_INT), value=1),
+                return_value=WholeNumberLiteral(token=self._dummy_token("1", TokenType.LIT_WHOLE_NUMBER), value=1),
             )
         ]
 
@@ -183,7 +183,7 @@ class TestHIRToMIRLowering(unittest.TestCase):
         alternative_block.statements = [
             ReturnStatement(
                 token=self._dummy_token("return", TokenType.KW_RETURN),
-                return_value=IntegerLiteral(token=self._dummy_token("2", TokenType.LIT_INT), value=2),
+                return_value=WholeNumberLiteral(token=self._dummy_token("2", TokenType.LIT_WHOLE_NUMBER), value=2),
             )
         ]
 
@@ -249,11 +249,11 @@ class TestHIRToMIRLowering(unittest.TestCase):
         # Create: return 2 + 3 * 4;
         expr = self._create_infix_expr(
             "+",
-            IntegerLiteral(token=self._dummy_token("2", TokenType.LIT_INT), value=2),
+            WholeNumberLiteral(token=self._dummy_token("2", TokenType.LIT_WHOLE_NUMBER), value=2),
             self._create_infix_expr(
                 "*",
-                IntegerLiteral(token=self._dummy_token("3", TokenType.LIT_INT), value=3),
-                IntegerLiteral(token=self._dummy_token("4", TokenType.LIT_INT), value=4),
+                WholeNumberLiteral(token=self._dummy_token("3", TokenType.LIT_WHOLE_NUMBER), value=3),
+                WholeNumberLiteral(token=self._dummy_token("4", TokenType.LIT_WHOLE_NUMBER), value=4),
             ),
         )
         body = BlockStatement(token=self._dummy_token())
@@ -280,7 +280,7 @@ class TestHIRToMIRLowering(unittest.TestCase):
         """Test lowering prefix expressions."""
         # Create: return -42;
         expr = PrefixExpression(token=self._dummy_token("-", TokenType.OP_MINUS), operator="-")
-        expr.right = IntegerLiteral(token=self._dummy_token("42", TokenType.LIT_INT), value=42)
+        expr.right = WholeNumberLiteral(token=self._dummy_token("42", TokenType.LIT_WHOLE_NUMBER), value=42)
         body = BlockStatement(token=self._dummy_token())
         body.statements = [ReturnStatement(token=self._dummy_token("return", TokenType.KW_RETURN), return_value=expr)]
         func = FunctionStatement(
@@ -313,7 +313,7 @@ class TestHIRToMIRLowering(unittest.TestCase):
             SetStatement(
                 token=self._dummy_token("set", TokenType.KW_SET),
                 name=Identifier(self._dummy_token("i"), "i"),
-                value=IntegerLiteral(token=self._dummy_token("42", TokenType.LIT_INT), value=42),
+                value=WholeNumberLiteral(token=self._dummy_token("42", TokenType.LIT_WHOLE_NUMBER), value=42),
             ),
             SetStatement(
                 token=self._dummy_token("set", TokenType.KW_SET),
@@ -402,7 +402,7 @@ class TestHIRToMIRLowering(unittest.TestCase):
             SetStatement(
                 token=self._dummy_token("set", TokenType.KW_SET),
                 name=Identifier(self._dummy_token("x"), "x"),
-                value=IntegerLiteral(token=self._dummy_token("10", TokenType.LIT_INT), value=10),
+                value=WholeNumberLiteral(token=self._dummy_token("10", TokenType.LIT_WHOLE_NUMBER), value=10),
             )
         ]
         func = FunctionStatement(
@@ -429,7 +429,7 @@ class TestHIRToMIRLowering(unittest.TestCase):
         inner_consequence.statements = [
             ReturnStatement(
                 token=self._dummy_token("return", TokenType.KW_RETURN),
-                return_value=IntegerLiteral(token=self._dummy_token("1", TokenType.LIT_INT), value=1),
+                return_value=WholeNumberLiteral(token=self._dummy_token("1", TokenType.LIT_WHOLE_NUMBER), value=1),
             )
         ]
 

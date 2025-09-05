@@ -8,15 +8,15 @@ class TestVariableInfo:
 
     def test_single_type(self) -> None:
         """Test variable with single type."""
-        info = VariableInfo(["Integer"])
-        assert info.allows_type("Integer")
+        info = VariableInfo(["Whole Number"])
+        assert info.allows_type("Whole Number")
         assert not info.allows_type("Text")
-        assert str(info) == "VariableInfo(types=Integer, uninitialized)"
+        assert str(info) == "VariableInfo(types=WholeNumber, uninitialized)"
 
     def test_union_types(self) -> None:
         """Test variable with union types."""
-        info = VariableInfo(["Integer", "Text", "Yes/No"])
-        assert info.allows_type("Integer")
+        info = VariableInfo(["Whole Number", "Text", "Yes/No"])
+        assert info.allows_type("Whole Number")
         assert info.allows_type("Text")
         assert info.allows_type("Yes/No")
         assert not info.allows_type("Float")
@@ -31,7 +31,7 @@ class TestVariableInfo:
 
     def test_definition_location(self) -> None:
         """Test that definition location is tracked."""
-        info = VariableInfo(["Integer"], definition_line=10, definition_pos=5)
+        info = VariableInfo(["Whole Number"], definition_line=10, definition_pos=5)
         assert info.definition_line == 10
         assert info.definition_pos == 5
 
@@ -44,12 +44,12 @@ class TestSymbolTable:
         table = SymbolTable()
 
         # Define a variable
-        table.define("count", ["Integer"], line=1, position=5)
+        table.define("count", ["Whole Number"], line=1, position=5)
 
         # Look it up
         info = table.lookup("count")
         assert info is not None
-        assert info.type_spec == ["Integer"]
+        assert info.type_spec == ["Whole Number"]
         assert not info.initialized
 
     def test_redefinition_error(self) -> None:
@@ -57,7 +57,7 @@ class TestSymbolTable:
         table = SymbolTable()
 
         # First definition should succeed
-        table.define("x", ["Integer"], line=1, position=1)
+        table.define("x", ["Whole Number"], line=1, position=1)
 
         # Second definition should raise error
         with pytest.raises(NameError) as exc_info:
@@ -103,7 +103,7 @@ class TestSymbolTable:
         """Test nested scope handling."""
         # Global scope
         global_table = SymbolTable()
-        global_table.define("global_var", ["Integer"])
+        global_table.define("global_var", ["Whole Number"])
 
         # Enter function scope
         func_table = global_table.enter_scope()
@@ -132,7 +132,7 @@ class TestSymbolTable:
     def test_is_defined_in_current_scope(self) -> None:
         """Test checking if variable is in current scope only."""
         global_table = SymbolTable()
-        global_table.define("x", ["Integer"])
+        global_table.define("x", ["Whole Number"])
 
         local_table = global_table.enter_scope()
         local_table.define("y", ["Text"])
@@ -147,7 +147,7 @@ class TestSymbolTable:
     def test_mark_initialized_in_parent_scope(self) -> None:
         """Test marking variable in parent scope as initialized."""
         global_table = SymbolTable()
-        global_table.define("global_var", ["Integer"])
+        global_table.define("global_var", ["Whole Number"])
 
         # Enter nested scope
         local_table = global_table.enter_scope()
@@ -163,7 +163,7 @@ class TestSymbolTable:
     def test_multiple_nested_scopes(self) -> None:
         """Test multiple levels of nesting."""
         level1 = SymbolTable()
-        level1.define("var1", ["Integer"])
+        level1.define("var1", ["Whole Number"])
 
         level2 = level1.enter_scope()
         level2.define("var2", ["Text"])
@@ -189,7 +189,7 @@ class TestSymbolTable:
     def test_string_representation(self) -> None:
         """Test string representation of symbol table."""
         table = SymbolTable()
-        table.define("x", ["Integer"])
+        table.define("x", ["Whole Number"])
         table.define("y", ["Text", "Number"])
 
         str_repr = str(table)
@@ -206,11 +206,11 @@ class TestSymbolTable:
     def test_union_type_checking(self) -> None:
         """Test type checking with union types."""
         table = SymbolTable()
-        table.define("value", ["Integer", "Text", "Empty"])
+        table.define("value", ["Whole Number", "Text", "Empty"])
 
         info = table.lookup("value")
         assert info is not None
-        assert info.allows_type("Integer")
+        assert info.allows_type("WholeNumber")
         assert info.allows_type("Text")
         assert info.allows_type("Empty")
         assert not info.allows_type("Float")

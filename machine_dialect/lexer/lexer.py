@@ -516,7 +516,7 @@ class Lexer:
                     return None
 
                 # Return canonical form without underscores
-                token_type = TokenType.LIT_FLOAT if is_float else TokenType.LIT_INT
+                token_type = TokenType.LIT_FLOAT if is_float else TokenType.LIT_WHOLE_NUMBER
                 return literal, token_type, start_line, literal_column
         elif self.current_char in ('"', "'"):
             # String literal - but minus sign is not valid before strings
@@ -699,7 +699,7 @@ class Lexer:
             if literal.startswith("."):
                 literal = "0" + literal
 
-            token_type = TokenType.LIT_FLOAT if is_float else TokenType.LIT_INT
+            token_type = TokenType.LIT_FLOAT if is_float else TokenType.LIT_WHOLE_NUMBER
             return Token(token_type, literal, token_line, token_column)
 
         # Identifiers and keywords

@@ -296,28 +296,28 @@ class Float(Object):
         return str(self._value)
 
     def react_to_infix_operator_addition(self, other: Object) -> Object:
-        if isinstance(other, Float) or isinstance(other, Integer):
+        if isinstance(other, Float) or isinstance(other, WholeNumber):
             return Float(self._value + other.value)
         return Error(
             UNSUPPORTED_OPERAND_TYPE.format(operator="+", left_type=self.type.name, right_type=other.type.name)
         )
 
     def react_to_infix_operator_substraction(self, other: Object) -> Object:
-        if isinstance(other, Float) or isinstance(other, Integer):
+        if isinstance(other, Float) or isinstance(other, WholeNumber):
             return Float(self._value - other.value)
         return Error(
             UNSUPPORTED_OPERAND_TYPE.format(operator="-", left_type=self.type.name, right_type=other.type.name)
         )
 
     def react_to_infix_operator_multiplication(self, other: Object) -> Object:
-        if isinstance(other, Float) or isinstance(other, Integer):
+        if isinstance(other, Float) or isinstance(other, WholeNumber):
             return Float(self._value * other.value)
         return Error(
             UNSUPPORTED_OPERAND_TYPE.format(operator="*", left_type=self.type.name, right_type=other.type.name)
         )
 
     def react_to_infix_operator_division(self, other: Object) -> Object:
-        if isinstance(other, Float) or isinstance(other, Integer):
+        if isinstance(other, Float) or isinstance(other, WholeNumber):
             if other.value == 0:
                 return Error(DIVISION_BY_ZERO.format())
             return Float(self._value / other.value)
@@ -326,49 +326,49 @@ class Float(Object):
         )
 
     def react_to_infix_operator_exponentiation(self, other: Object) -> Object:
-        if isinstance(other, Float) or isinstance(other, Integer):
+        if isinstance(other, Float) or isinstance(other, WholeNumber):
             return Float(self._value**other.value)
         return Error(
             UNSUPPORTED_OPERAND_TYPE.format(operator="^", left_type=self.type.name, right_type=other.type.name)
         )
 
     def react_to_infix_operator_less_than(self, other: Object) -> Object:
-        if isinstance(other, Float) or isinstance(other, Integer):
+        if isinstance(other, Float) or isinstance(other, WholeNumber):
             return Boolean(self._value < other.value)
         return Error(
             UNSUPPORTED_OPERAND_TYPE.format(operator="<", left_type=self.type.name, right_type=other.type.name)
         )
 
     def react_to_infix_operator_greater_than(self, other: Object) -> Object:
-        if isinstance(other, Float) or isinstance(other, Integer):
+        if isinstance(other, Float) or isinstance(other, WholeNumber):
             return Boolean(self._value > other.value)
         return Error(
             UNSUPPORTED_OPERAND_TYPE.format(operator=">", left_type=self.type.name, right_type=other.type.name)
         )
 
     def react_to_infix_operator_less_than_or_equal(self, other: Object) -> Object:
-        if isinstance(other, Float) or isinstance(other, Integer):
+        if isinstance(other, Float) or isinstance(other, WholeNumber):
             return Boolean(self._value <= other.value)
         return Error(
             UNSUPPORTED_OPERAND_TYPE.format(operator="<=", left_type=self.type.name, right_type=other.type.name)
         )
 
     def react_to_infix_operator_greater_than_or_equal(self, other: Object) -> Object:
-        if isinstance(other, Float) or isinstance(other, Integer):
+        if isinstance(other, Float) or isinstance(other, WholeNumber):
             return Boolean(self._value >= other.value)
         return Error(
             UNSUPPORTED_OPERAND_TYPE.format(operator=">=", left_type=self.type.name, right_type=other.type.name)
         )
 
     def react_to_infix_operator_equals(self, other: Object) -> Object:
-        # Allow numeric comparison between Float and Integer
-        if isinstance(other, Float | Integer):
+        # Allow numeric comparison between Float and Whole Number
+        if isinstance(other, Float | WholeNumber):
             return Boolean(self._value == other.value)
         return super().react_to_infix_operator_equals(other)
 
     def react_to_infix_operator_not_equals(self, other: Object) -> Object:
-        # Allow numeric comparison between Float and Integer
-        if isinstance(other, Float | Integer):
+        # Allow numeric comparison between Float and Whole Number
+        if isinstance(other, Float | WholeNumber):
             return Boolean(self._value != other.value)
         return super().react_to_infix_operator_not_equals(other)
 
@@ -376,7 +376,7 @@ class Float(Object):
         return Float(-self._value if self._value != 0.0 else 0.0)
 
 
-class Integer(Object):
+class WholeNumber(Object):
     def __init__(self, value: int) -> None:
         self._value = value
 
@@ -392,8 +392,8 @@ class Integer(Object):
         return str(self._value)
 
     def react_to_infix_operator_addition(self, other: Object) -> Object:
-        if isinstance(other, Integer):
-            return Integer(self._value + other.value)
+        if isinstance(other, WholeNumber):
+            return WholeNumber(self._value + other.value)
         elif isinstance(other, Float):
             return Float(self._value + other.value)
         return Error(
@@ -401,8 +401,8 @@ class Integer(Object):
         )
 
     def react_to_infix_operator_substraction(self, other: Object) -> Object:
-        if isinstance(other, Integer):
-            return Integer(self._value - other.value)
+        if isinstance(other, WholeNumber):
+            return WholeNumber(self._value - other.value)
         elif isinstance(other, Float):
             return Float(self._value - other.value)
         return Error(
@@ -410,8 +410,8 @@ class Integer(Object):
         )
 
     def react_to_infix_operator_multiplication(self, other: Object) -> Object:
-        if isinstance(other, Integer):
-            return Integer(self._value * other.value)
+        if isinstance(other, WholeNumber):
+            return WholeNumber(self._value * other.value)
         elif isinstance(other, Float):
             return Float(self._value * other.value)
         return Error(
@@ -419,20 +419,21 @@ class Integer(Object):
         )
 
     def react_to_infix_operator_division(self, other: Object) -> Object:
-        if isinstance(other, Integer) or isinstance(other, Float):
+        if isinstance(other, WholeNumber) or isinstance(other, Float):
             if other.value == 0:
                 return Error(DIVISION_BY_ZERO.format())
-            # Integer division always returns a Float
+            # Whole Number division always returns a Float
             return Float(self._value / other.value)
         return Error(
             UNSUPPORTED_OPERAND_TYPE.format(operator="/", left_type=self.type.name, right_type=other.type.name)
         )
 
     def react_to_infix_operator_exponentiation(self, other: Object) -> Object:
-        if isinstance(other, Integer):
-            # Integer exponentiation returns an Integer if both operands are integers and exponent is non-negative
+        if isinstance(other, WholeNumber):
+            # Whole Number exponentiation returns an Whole Number if both operands are
+            # integers and exponent is non-negative
             if other.value >= 0:
-                return Integer(self._value**other.value)
+                return WholeNumber(self._value**other.value)
             else:
                 return Float(self._value**other.value)
         elif isinstance(other, Float):
@@ -442,47 +443,47 @@ class Integer(Object):
         )
 
     def react_to_infix_operator_less_than(self, other: Object) -> Object:
-        if isinstance(other, Integer) or isinstance(other, Float):
+        if isinstance(other, WholeNumber) or isinstance(other, Float):
             return Boolean(self._value < other.value)
         return Error(
             UNSUPPORTED_OPERAND_TYPE.format(operator="<", left_type=self.type.name, right_type=other.type.name)
         )
 
     def react_to_infix_operator_greater_than(self, other: Object) -> Object:
-        if isinstance(other, Integer) or isinstance(other, Float):
+        if isinstance(other, WholeNumber) or isinstance(other, Float):
             return Boolean(self._value > other.value)
         return Error(
             UNSUPPORTED_OPERAND_TYPE.format(operator=">", left_type=self.type.name, right_type=other.type.name)
         )
 
     def react_to_infix_operator_less_than_or_equal(self, other: Object) -> Object:
-        if isinstance(other, Integer) or isinstance(other, Float):
+        if isinstance(other, WholeNumber) or isinstance(other, Float):
             return Boolean(self._value <= other.value)
         return Error(
             UNSUPPORTED_OPERAND_TYPE.format(operator="<=", left_type=self.type.name, right_type=other.type.name)
         )
 
     def react_to_infix_operator_greater_than_or_equal(self, other: Object) -> Object:
-        if isinstance(other, Integer) or isinstance(other, Float):
+        if isinstance(other, WholeNumber) or isinstance(other, Float):
             return Boolean(self._value >= other.value)
         return Error(
             UNSUPPORTED_OPERAND_TYPE.format(operator=">=", left_type=self.type.name, right_type=other.type.name)
         )
 
     def react_to_infix_operator_equals(self, other: Object) -> Object:
-        # Allow numeric comparison between Integer and Float
-        if isinstance(other, Integer | Float):
+        # Allow numeric comparison between WholeNumber and Float
+        if isinstance(other, WholeNumber | Float):
             return Boolean(self._value == other.value)
         return super().react_to_infix_operator_equals(other)
 
     def react_to_infix_operator_not_equals(self, other: Object) -> Object:
-        # Allow numeric comparison between Integer and Float
-        if isinstance(other, Integer | Float):
+        # Allow numeric comparison between Whole Number and Float
+        if isinstance(other, WholeNumber | Float):
             return Boolean(self._value != other.value)
         return super().react_to_infix_operator_not_equals(other)
 
     def react_to_prefix_operator_minus(self) -> Object:
-        return Integer(-self._value if self._value != 0 else 0)
+        return WholeNumber(-self._value if self._value != 0 else 0)
 
 
 class Return(Object):

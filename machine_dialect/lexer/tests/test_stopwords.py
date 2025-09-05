@@ -62,7 +62,7 @@ class TestStopwords:
             Token(TokenType.MISC_STOPWORD, "the", line=1, position=5),
             Token(TokenType.MISC_IDENT, "value", line=1, position=9),
             Token(TokenType.KW_TO, "to", line=1, position=15),
-            Token(TokenType.LIT_INT, "5", line=1, position=18),
+            Token(TokenType.LIT_WHOLE_NUMBER, "5", line=1, position=18),
         ]
 
         stream_and_assert_tokens(lexer, expected_tokens)

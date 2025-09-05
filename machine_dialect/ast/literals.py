@@ -4,8 +4,8 @@ from machine_dialect.ast import Expression
 from machine_dialect.lexer import Token
 
 
-class IntegerLiteral(Expression):
-    """Represents an integer literal expression."""
+class WholeNumberLiteral(Expression):
+    """Represents a Whole Number literal expression."""
 
     def __init__(self, token: Token, value: int) -> None:
         super().__init__(token)
@@ -15,8 +15,8 @@ class IntegerLiteral(Expression):
         # Display with underscores for the new syntax
         return f"_{self.value}_"
 
-    def desugar(self) -> "IntegerLiteral":
-        """Integer literals are already in simplest form.
+    def desugar(self) -> "WholeNumberLiteral":
+        """Whole Number literals are already in simplest form.
 
         Returns:
             Self unchanged.

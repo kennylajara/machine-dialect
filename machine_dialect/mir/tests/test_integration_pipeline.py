@@ -17,7 +17,6 @@ from machine_dialect.ast import (
     Identifier,
     IfStatement,
     InfixExpression,
-    IntegerLiteral,
     Parameter,
     PrefixExpression,
     Program,
@@ -26,6 +25,7 @@ from machine_dialect.ast import (
     Statement,
     StringLiteral,
     UtilityStatement,
+    WholeNumberLiteral,
     YesNoLiteral,
 )
 from machine_dialect.codegen.isa import Opcode
@@ -78,7 +78,7 @@ class TestIntegrationPipeline(unittest.TestCase):
         set_stmt = SetStatement(
             self._dummy_token("set"),
             Identifier(self._dummy_token("x"), "x"),
-            IntegerLiteral(self._dummy_token("42"), 42),
+            WholeNumberLiteral(self._dummy_token("42"), 42),
         )
 
         program = Program([set_stmt])
@@ -117,7 +117,7 @@ class TestIntegrationPipeline(unittest.TestCase):
                     ReturnStatement(
                         self._dummy_token("return"),
                         self._create_infix(
-                            "*", Identifier(self._dummy_token("x"), "x"), IntegerLiteral(self._dummy_token("2"), 2)
+                            "*", Identifier(self._dummy_token("x"), "x"), WholeNumberLiteral(self._dummy_token("2"), 2)
                         ),
                     )
                 ]
@@ -126,7 +126,7 @@ class TestIntegrationPipeline(unittest.TestCase):
 
         # Call the function
         args = Arguments(self._dummy_token("with"))
-        args.positional = [IntegerLiteral(self._dummy_token("21"), 21)]
+        args.positional = [WholeNumberLiteral(self._dummy_token("21"), 21)]
         call = CallStatement(self._dummy_token("call"), Identifier(self._dummy_token("double"), "double"), args)
 
         program = Program([utility, call])
@@ -150,7 +150,7 @@ class TestIntegrationPipeline(unittest.TestCase):
         """Test if statement control flow through pipeline."""
         # Create: if (x > 10) { y = 100 } else { y = 200 }
         condition = self._create_infix(
-            ">", Identifier(self._dummy_token("x"), "x"), IntegerLiteral(self._dummy_token("10"), 10)
+            ">", Identifier(self._dummy_token("x"), "x"), WholeNumberLiteral(self._dummy_token("10"), 10)
         )
 
         then_branch = self._create_block_with_statements(
@@ -158,7 +158,7 @@ class TestIntegrationPipeline(unittest.TestCase):
                 SetStatement(
                     self._dummy_token("set"),
                     Identifier(self._dummy_token("y"), "y"),
-                    IntegerLiteral(self._dummy_token("100"), 100),
+                    WholeNumberLiteral(self._dummy_token("100"), 100),
                 )
             ]
         )
@@ -168,7 +168,7 @@ class TestIntegrationPipeline(unittest.TestCase):
                 SetStatement(
                     self._dummy_token("set"),
                     Identifier(self._dummy_token("y"), "y"),
-                    IntegerLiteral(self._dummy_token("200"), 200),
+                    WholeNumberLiteral(self._dummy_token("200"), 200),
                 )
             ]
         )
@@ -181,7 +181,7 @@ class TestIntegrationPipeline(unittest.TestCase):
         init_x = SetStatement(
             self._dummy_token("set"),
             Identifier(self._dummy_token("x"), "x"),
-            IntegerLiteral(self._dummy_token("15"), 15),
+            WholeNumberLiteral(self._dummy_token("15"), 15),
         )
 
         program = Program([init_x, if_stmt])
@@ -209,11 +209,11 @@ class TestIntegrationPipeline(unittest.TestCase):
         """Test complex expression evaluation through pipeline."""
         # Create: result = (10 + 20) * (30 - 15)
         add_expr = self._create_infix(
-            "+", IntegerLiteral(self._dummy_token("10"), 10), IntegerLiteral(self._dummy_token("20"), 20)
+            "+", WholeNumberLiteral(self._dummy_token("10"), 10), WholeNumberLiteral(self._dummy_token("20"), 20)
         )
 
         sub_expr = self._create_infix(
-            "-", IntegerLiteral(self._dummy_token("30"), 30), IntegerLiteral(self._dummy_token("15"), 15)
+            "-", WholeNumberLiteral(self._dummy_token("30"), 30), WholeNumberLiteral(self._dummy_token("15"), 15)
         )
 
         mul_expr = self._create_infix("*", add_expr, sub_expr)
@@ -246,7 +246,7 @@ class TestIntegrationPipeline(unittest.TestCase):
             SetStatement(
                 self._dummy_token("set"),
                 Identifier(self._dummy_token("int_var"), "int_var"),
-                IntegerLiteral(self._dummy_token("42"), 42),
+                WholeNumberLiteral(self._dummy_token("42"), 42),
             ),
             SetStatement(
                 self._dummy_token("set"),
@@ -298,7 +298,7 @@ class TestIntegrationPipeline(unittest.TestCase):
         inner_stmt = SetStatement(
             self._dummy_token("set"),
             Identifier(self._dummy_token("inner"), "inner"),
-            IntegerLiteral(self._dummy_token("1"), 1),
+            WholeNumberLiteral(self._dummy_token("1"), 1),
         )
 
         inner_block = BlockStatement(self._dummy_token(), depth=2)
@@ -307,7 +307,7 @@ class TestIntegrationPipeline(unittest.TestCase):
         outer_stmt = SetStatement(
             self._dummy_token("set"),
             Identifier(self._dummy_token("outer"), "outer"),
-            IntegerLiteral(self._dummy_token("2"), 2),
+            WholeNumberLiteral(self._dummy_token("2"), 2),
         )
 
         outer_block = BlockStatement(self._dummy_token(), depth=1)
@@ -332,9 +332,9 @@ class TestIntegrationPipeline(unittest.TestCase):
     def test_conditional_expression_pipeline(self) -> None:
         """Test conditional expression (ternary) through pipeline."""
         # Create: x = true ? 10 : 20
-        cond_expr = ConditionalExpression(self._dummy_token(), IntegerLiteral(self._dummy_token("10"), 10))
+        cond_expr = ConditionalExpression(self._dummy_token(), WholeNumberLiteral(self._dummy_token("10"), 10))
         cond_expr.condition = YesNoLiteral(self._dummy_token("true"), True)
-        cond_expr.alternative = IntegerLiteral(self._dummy_token("20"), 20)
+        cond_expr.alternative = WholeNumberLiteral(self._dummy_token("20"), 20)
 
         set_stmt = SetStatement(self._dummy_token("set"), Identifier(self._dummy_token("x"), "x"), cond_expr)
 
@@ -358,7 +358,7 @@ class TestIntegrationPipeline(unittest.TestCase):
         """Test unary operations through pipeline."""
         # Create: x = -5; y = not true
         neg_expr = PrefixExpression(self._dummy_token("-"), "-")
-        neg_expr.right = IntegerLiteral(self._dummy_token("5"), 5)
+        neg_expr.right = WholeNumberLiteral(self._dummy_token("5"), 5)
         neg_stmt = SetStatement(self._dummy_token("set"), Identifier(self._dummy_token("x"), "x"), neg_expr)
 
         not_expr = PrefixExpression(self._dummy_token("not"), "not")
@@ -430,11 +430,17 @@ class TestIntegrationPipeline(unittest.TestCase):
 
         # Call both functions
         args1 = Arguments(self._dummy_token("with"))
-        args1.positional = [IntegerLiteral(self._dummy_token("10"), 10), IntegerLiteral(self._dummy_token("20"), 20)]
+        args1.positional = [
+            WholeNumberLiteral(self._dummy_token("10"), 10),
+            WholeNumberLiteral(self._dummy_token("20"), 20),
+        ]
         call1 = CallStatement(self._dummy_token("call"), Identifier(self._dummy_token("add"), "add"), args1)
 
         args2 = Arguments(self._dummy_token("with"))
-        args2.positional = [IntegerLiteral(self._dummy_token("3"), 3), IntegerLiteral(self._dummy_token("4"), 4)]
+        args2.positional = [
+            WholeNumberLiteral(self._dummy_token("3"), 3),
+            WholeNumberLiteral(self._dummy_token("4"), 4),
+        ]
         call2 = CallStatement(self._dummy_token("call"), Identifier(self._dummy_token("multiply"), "multiply"), args2)
 
         program = Program([add_func, mul_func, call1, call2])
@@ -470,10 +476,14 @@ class TestIntegrationPipeline(unittest.TestCase):
                     # if (n <= 1) { return 1 }
                     self._create_if_statement(
                         self._create_infix(
-                            "<=", Identifier(self._dummy_token("n"), "n"), IntegerLiteral(self._dummy_token("1"), 1)
+                            "<=", Identifier(self._dummy_token("n"), "n"), WholeNumberLiteral(self._dummy_token("1"), 1)
                         ),
                         self._create_block_with_statements(
-                            [ReturnStatement(self._dummy_token("return"), IntegerLiteral(self._dummy_token("1"), 1))]
+                            [
+                                ReturnStatement(
+                                    self._dummy_token("return"), WholeNumberLiteral(self._dummy_token("1"), 1)
+                                )
+                            ]
                         ),
                         None,
                     ),
@@ -489,7 +499,7 @@ class TestIntegrationPipeline(unittest.TestCase):
                                     self._create_infix(
                                         "-",
                                         Identifier(self._dummy_token("n"), "n"),
-                                        IntegerLiteral(self._dummy_token("1"), 1),
+                                        WholeNumberLiteral(self._dummy_token("1"), 1),
                                     )
                                 ],
                             ),
@@ -501,7 +511,7 @@ class TestIntegrationPipeline(unittest.TestCase):
 
         # Call factorial(5)
         args = Arguments(self._dummy_token("with"))
-        args.positional = [IntegerLiteral(self._dummy_token("5"), 5)]
+        args.positional = [WholeNumberLiteral(self._dummy_token("5"), 5)]
         call = CallStatement(self._dummy_token("call"), Identifier(self._dummy_token("factorial"), "factorial"), args)
 
         program = Program([factorial, call])

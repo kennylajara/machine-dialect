@@ -14,7 +14,7 @@ class TestUnderscoreLiterals:
         lexer = Lexer(source)
 
         # Expected token
-        expected = Token(TokenType.LIT_INT, "42", line=1, position=1)
+        expected = Token(TokenType.LIT_WHOLE_NUMBER, "42", line=1, position=1)
 
         # Get and verify token
         actual = lexer.next_token()
@@ -62,7 +62,7 @@ class TestUnderscoreLiterals:
         lexer = Lexer(source)
 
         # Expected token
-        expected = Token(TokenType.LIT_INT, "42", line=1, position=1)
+        expected = Token(TokenType.LIT_WHOLE_NUMBER, "42", line=1, position=1)
 
         # Get and verify token
         actual = lexer.next_token()
@@ -115,13 +115,13 @@ class TestUnderscoreLiterals:
             token = lexer.next_token()
             if token.type == TokenType.MISC_EOF:
                 break
-            if token.type in (TokenType.LIT_INT, TokenType.LIT_FLOAT):
+            if token.type in (TokenType.LIT_WHOLE_NUMBER, TokenType.LIT_FLOAT):
                 numeric_literals.append(token)
 
         assert len(numeric_literals) == 2
 
         # First literal is wrapped (underscore wrapping handled by lexer)
-        expected_int = Token(TokenType.LIT_INT, "42", line=1, position=12)
+        expected_int = Token(TokenType.LIT_WHOLE_NUMBER, "42", line=1, position=12)
         assert_expected_token(numeric_literals[0], expected_int)
 
         # Second literal is unwrapped
@@ -164,7 +164,7 @@ class TestUnderscoreLiterals:
         lexer = Lexer(source)
 
         # Expected token
-        expected = Token(TokenType.LIT_INT, "-42", line=1, position=1)
+        expected = Token(TokenType.LIT_WHOLE_NUMBER, "-42", line=1, position=1)
 
         # Get and verify token
         actual = lexer.next_token()
@@ -281,6 +281,6 @@ class TestUnderscoreLiterals:
             tokens.append(token)
 
         # Find the negative integer literal
-        int_literals = [t for t in tokens if t.type == TokenType.LIT_INT]
+        int_literals = [t for t in tokens if t.type == TokenType.LIT_WHOLE_NUMBER]
         assert len(int_literals) == 1
         assert int_literals[0].literal == "-5"

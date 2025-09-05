@@ -215,9 +215,9 @@ class TestActionStatements:
         assert volume_param.type_name == "Whole Number"
         assert volume_param.is_required is False
         assert volume_param.default_value is not None
-        from machine_dialect.ast import IntegerLiteral
+        from machine_dialect.ast import WholeNumberLiteral
 
-        assert isinstance(volume_param.default_value, IntegerLiteral)
+        assert isinstance(volume_param.default_value, WholeNumberLiteral)
         assert volume_param.default_value.value == 60
 
         # No outputs

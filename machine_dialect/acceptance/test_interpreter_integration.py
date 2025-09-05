@@ -14,8 +14,8 @@ from machine_dialect.interpreter.objects import (
     Environment,
     Error,
     Float,
-    Integer,
     String,
+    WholeNumber,
 )
 from machine_dialect.parser import Parser
 
@@ -39,15 +39,15 @@ Set `quotient` to `a` / `b`.
 
         evaluate(program, env)
 
-        assert isinstance(env["a"], Integer)
+        assert isinstance(env["a"], WholeNumber)
         assert env["a"].value == 10
-        assert isinstance(env["b"], Integer)
+        assert isinstance(env["b"], WholeNumber)
         assert env["b"].value == 5
-        assert isinstance(env["sum"], Integer)
+        assert isinstance(env["sum"], WholeNumber)
         assert env["sum"].value == 15
-        assert isinstance(env["difference"], Integer)
+        assert isinstance(env["difference"], WholeNumber)
         assert env["difference"].value == 5
-        assert isinstance(env["product"], Integer)
+        assert isinstance(env["product"], WholeNumber)
         assert env["product"].value == 50
         assert isinstance(env["quotient"], Float)
         assert env["quotient"].value == 2.0
@@ -116,7 +116,7 @@ Set `something` to _42_.
         evaluate(program, env)
 
         assert isinstance(env["nothing"], Empty)
-        assert isinstance(env["something"], Integer)
+        assert isinstance(env["something"], WholeNumber)
         assert env["something"].value == 42
 
     @pytest.mark.skip(reason="Skipping failing test")
@@ -145,9 +145,9 @@ Else:
 
         evaluate(program, env)
 
-        assert isinstance(env["result"], Integer)
+        assert isinstance(env["result"], WholeNumber)
         assert env["result"].value == 100  # x > 5 is true
-        assert isinstance(env["result2"], Integer)
+        assert isinstance(env["result2"], WholeNumber)
         assert env["result2"].value == 200  # y > 5 is false
 
     @pytest.mark.skip(reason="Skipping failing test")
@@ -190,7 +190,7 @@ Give back `x` * _2_.
 
         result = evaluate(program, env)
 
-        assert isinstance(result, Integer)
+        assert isinstance(result, WholeNumber)
         assert result.value == 20
 
     def test_utility_definition_and_call(self) -> None:
@@ -217,7 +217,7 @@ Use `add` with _10_, _20_.
 
         result = evaluate(program, env)
 
-        assert isinstance(result, Integer)
+        assert isinstance(result, WholeNumber)
         assert result.value == 30
 
     def test_utility_with_named_arguments(self) -> None:
@@ -299,11 +299,11 @@ Set `result` to `squared` + _10_.
 
         evaluate(program, env)
 
-        assert isinstance(env["x"], Integer)
+        assert isinstance(env["x"], WholeNumber)
         assert env["x"].value == 5
-        assert isinstance(env["squared"], Integer)
+        assert isinstance(env["squared"], WholeNumber)
         assert env["squared"].value == 25
-        assert isinstance(env["result"], Integer)
+        assert isinstance(env["result"], WholeNumber)
         assert env["result"].value == 35
 
     def test_set_using_with_named_arguments(self) -> None:
@@ -330,7 +330,7 @@ Set `result` using `subtract` where `subtrahend` is _7_, `minuend` is _20_.
 
         evaluate(program, env)
 
-        assert isinstance(env["result"], Integer)
+        assert isinstance(env["result"], WholeNumber)
         assert env["result"].value == 13
 
     def test_utility_with_conditional_logic(self) -> None:
@@ -360,7 +360,7 @@ Set `larger` using `max` with _15_, _8_.
 
         evaluate(program, env)
 
-        assert isinstance(env["larger"], Integer)
+        assert isinstance(env["larger"], WholeNumber)
         assert env["larger"].value == 15
 
     def test_nested_utility_calls(self) -> None:
@@ -400,7 +400,7 @@ Set `result` using `double_twice` with _5_.
 
         evaluate(program, env)
 
-        assert isinstance(env["result"], Integer)
+        assert isinstance(env["result"], WholeNumber)
         assert env["result"].value == 20  # 5 * 2 * 2
 
     def test_utility_scope_isolation(self) -> None:
@@ -427,11 +427,11 @@ Set `result` using `modify_x`.
         evaluate(program, env)
 
         # Function returned its local x
-        assert isinstance(env["result"], Integer)
+        assert isinstance(env["result"], WholeNumber)
         assert env["result"].value == 42
 
         # But global x is unchanged
-        assert isinstance(env["x"], Integer)
+        assert isinstance(env["x"], WholeNumber)
         assert env["x"].value == 100
 
     def test_complex_expression_evaluation(self) -> None:
@@ -466,9 +466,9 @@ Set `min` to `x` if `x` < `y` else `y`.
 
         evaluate(program, env)
 
-        assert isinstance(env["max"], Integer)
+        assert isinstance(env["max"], WholeNumber)
         assert env["max"].value == 10
-        assert isinstance(env["min"], Integer)
+        assert isinstance(env["min"], WholeNumber)
         assert env["min"].value == 5
 
     def test_error_handling_undefined_variable(self) -> None:
@@ -564,7 +564,7 @@ Set `empty_val` to _empty_.
 
         evaluate(program, env)
 
-        assert isinstance(env["int_val"], Integer)
+        assert isinstance(env["int_val"], WholeNumber)
         assert env["int_val"].value == 42
         assert isinstance(env["float_val"], Float)
         assert env["float_val"].value == 3.14
@@ -604,7 +604,7 @@ Set `result` using `factorial` with _5_.
 
         evaluate(program, env)
 
-        assert isinstance(env["result"], Integer)
+        assert isinstance(env["result"], WholeNumber)
         assert env["result"].value == 120  # 5! = 120
 
     def test_complex_utility_workflow(self) -> None:

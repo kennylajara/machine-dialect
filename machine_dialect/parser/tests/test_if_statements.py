@@ -11,8 +11,8 @@ from machine_dialect.ast import (
     Identifier,
     IfStatement,
     InfixExpression,
-    IntegerLiteral,
     SetStatement,
+    WholeNumberLiteral,
     YesNoLiteral,
 )
 from machine_dialect.parser import Parser
@@ -45,7 +45,7 @@ class TestIfStatements:
         assert isinstance(set_stmt, SetStatement)
         assert isinstance(set_stmt.name, Identifier)
         assert set_stmt.name.value == "x"
-        assert isinstance(set_stmt.value, IntegerLiteral)
+        assert isinstance(set_stmt.value, WholeNumberLiteral)
         assert set_stmt.value.value == 1
 
         assert if_stmt.alternative is None

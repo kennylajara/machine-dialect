@@ -13,8 +13,8 @@ from machine_dialect.ast import (
     FloatLiteral,
     Identifier,
     InfixExpression,
-    IntegerLiteral,
     Program,
+    WholeNumberLiteral,
     YesNoLiteral,
 )
 from machine_dialect.parser import Parser
@@ -94,14 +94,14 @@ def _assert_integer_literal(expression: Expression, expected_value: int) -> None
     match the expected value.
 
     Args:
-        expression: The expression to test (must be an IntegerLiteral).
+        expression: The expression to test (must be a WholeNumberLiteral).
         expected_value: The expected integer value.
 
     Raises:
-        AssertionError: If the expression is not an IntegerLiteral or if
+        AssertionError: If the expression is not a WholeNumberLiteral or if
             the value doesn't match the expected value.
     """
-    assert isinstance(expression, IntegerLiteral), f"Expected IntegerLiteral, got {type(expression).__name__}"
+    assert isinstance(expression, WholeNumberLiteral), f"Expected WholeNumberLiteral, got {type(expression).__name__}"
     integer_literal = expression
     assert integer_literal.value == expected_value, f"Integer value={integer_literal.value} != {expected_value}"
     assert integer_literal.token.literal == str(

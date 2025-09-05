@@ -152,7 +152,7 @@ def _parse_expression(self, precedence: Precedence) -> Expression:
 
 ```python
 # Literals
-self._prefix_parse_fns[TokenType.LIT_INT] = self._parse_integer_literal
+self._prefix_parse_fns[TokenType.LIT_WHOLE_NUMBER] = self._parse_integer_literal
 self._prefix_parse_fns[TokenType.LIT_FLOAT] = self._parse_float_literal
 self._prefix_parse_fns[TokenType.LIT_TEXT] = self._parse_string_literal
 self._prefix_parse_fns[TokenType.LIT_BOOL] = self._parse_boolean_literal

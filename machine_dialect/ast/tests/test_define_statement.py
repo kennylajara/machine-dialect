@@ -2,9 +2,9 @@ from machine_dialect.ast import (
     BlockStatement,
     DefineStatement,
     Identifier,
-    IntegerLiteral,
     SetStatement,
     StringLiteral,
+    WholeNumberLiteral,
 )
 from machine_dialect.lexer import Token, TokenType
 
@@ -16,13 +16,13 @@ class TestDefineStatement:
         """Test basic variable definition without default."""
         token = Token(TokenType.KW_DEFINE, "Define", 1, 1)
         name = Identifier(Token(TokenType.MISC_IDENT, "count", 1, 8), "count")
-        type_spec = ["Integer"]
+        type_spec = ["Whole Number"]
 
         stmt = DefineStatement(token, name, type_spec)
 
-        assert str(stmt) == "Define `count` as Integer."
+        assert str(stmt) == "Define `count` as Whole Number."
         assert stmt.initial_value is None
-        assert stmt.type_spec == ["Integer"]
+        assert stmt.type_spec == ["Whole Number"]
 
     def test_definition_with_default(self) -> None:
         """Test variable definition with default value."""
@@ -40,17 +40,17 @@ class TestDefineStatement:
         """Test definition with union types."""
         token = Token(TokenType.KW_DEFINE, "Define", 1, 1)
         name = Identifier(Token(TokenType.MISC_IDENT, "value", 1, 8), "value")
-        type_spec = ["Integer", "Text", "Yes/No"]
+        type_spec = ["Whole Number", "Text", "Yes/No"]
 
         stmt = DefineStatement(token, name, type_spec)
 
-        assert str(stmt) == "Define `value` as Integer or Text or Yes/No."
+        assert str(stmt) == "Define `value` as Whole Number or Text or Yes/No."
 
     def test_desugar_without_default(self) -> None:
         """Test desugaring when no default value."""
         token = Token(TokenType.KW_DEFINE, "Define", 1, 1)
         name = Identifier(Token(TokenType.MISC_IDENT, "x", 1, 8), "x")
-        type_spec = ["Integer"]
+        type_spec = ["Whole Number"]
 
         stmt = DefineStatement(token, name, type_spec)
         desugared = stmt.desugar()
@@ -62,8 +62,8 @@ class TestDefineStatement:
         """Test desugaring with default value."""
         token = Token(TokenType.KW_DEFINE, "Define", 1, 1)
         name = Identifier(Token(TokenType.MISC_IDENT, "count", 1, 8), "count")
-        type_spec = ["Integer"]
-        default = IntegerLiteral(Token(TokenType.LIT_INT, "0", 1, 30), 0)
+        type_spec = ["Whole Number"]
+        default = WholeNumberLiteral(Token(TokenType.LIT_WHOLE_NUMBER, "0", 1, 30), 0)
 
         stmt = DefineStatement(token, name, type_spec, default)
         desugared = stmt.desugar()
@@ -77,7 +77,7 @@ class TestDefineStatement:
         assert isinstance(define_stmt, DefineStatement)
         assert define_stmt.initial_value is None
         assert define_stmt.name.value == "count"
-        assert define_stmt.type_spec == ["Integer"]
+        assert define_stmt.type_spec == ["Whole Number"]
 
         # Second statement should be Set
         set_stmt = desugared.statements[1]
@@ -102,7 +102,7 @@ class TestDefineStatement:
 
         type_names = [
             "Text",
-            "Integer",
+            "Whole Number",
             "Float",
             "Number",
             "Yes/No",

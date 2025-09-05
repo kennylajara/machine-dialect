@@ -141,7 +141,7 @@ not False"""
         rule = StatementTerminationRule()
 
         # Test with a statement not at EOF
-        token = Token(TokenType.LIT_INT, "42", line=1, position=0)
+        token = Token(TokenType.LIT_WHOLE_NUMBER, "42", line=1, position=0)
         node = ExpressionStatement(token=token, expression=None)
         context = Context("test.md", "42\nTrue.")  # Not at EOF
 
@@ -155,14 +155,14 @@ not False"""
         rule = StatementTerminationRule()
 
         # Empty line
-        token = Token(TokenType.LIT_INT, "42", line=1, position=0)
+        token = Token(TokenType.LIT_WHOLE_NUMBER, "42", line=1, position=0)
         node = ExpressionStatement(token=token, expression=None)
         context = Context("test.md", "")
         violations = rule.check(node, context)
         assert len(violations) == 0  # No crash on empty source
 
         # Line number out of bounds
-        token = Token(TokenType.LIT_INT, "42", line=10, position=0)
+        token = Token(TokenType.LIT_WHOLE_NUMBER, "42", line=10, position=0)
         node = ExpressionStatement(token=token, expression=None)
         context = Context("test.md", "42")
         violations = rule.check(node, context)

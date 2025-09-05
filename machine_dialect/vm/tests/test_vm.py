@@ -8,9 +8,9 @@ from machine_dialect.ast import (
     FloatLiteral,
     Identifier,
     InfixExpression,
-    IntegerLiteral,
     Program,
     SetStatement,
+    WholeNumberLiteral,
 )
 from machine_dialect.codegen.objects import Module
 from machine_dialect.compiler.config import CompilerConfig
@@ -74,8 +74,8 @@ def compile_and_run(program: Program) -> Any:
 
 def test_integer_literal() -> None:
     """Test executing integer literal."""
-    expr = IntegerLiteral(Token(TokenType.LIT_INT, "42", 1, 0), 42)
-    stmt = ExpressionStatement(Token(TokenType.LIT_INT, "42", 1, 0), expr)
+    expr = WholeNumberLiteral(Token(TokenType.LIT_WHOLE_NUMBER, "42", 1, 0), 42)
+    stmt = ExpressionStatement(Token(TokenType.LIT_WHOLE_NUMBER, "42", 1, 0), expr)
     program = Program([stmt])
 
     # This will pop the value, so result is None
@@ -86,8 +86,8 @@ def test_integer_literal() -> None:
 def test_addition() -> None:
     """Test addition of two integers."""
     # Create: 2 + 3
-    left = IntegerLiteral(Token(TokenType.LIT_INT, "2", 1, 0), 2)
-    right = IntegerLiteral(Token(TokenType.LIT_INT, "3", 1, 4), 3)
+    left = WholeNumberLiteral(Token(TokenType.LIT_WHOLE_NUMBER, "2", 1, 0), 2)
+    right = WholeNumberLiteral(Token(TokenType.LIT_WHOLE_NUMBER, "3", 1, 4), 3)
     expr = InfixExpression(Token(TokenType.OP_PLUS, "+", 1, 2), "+", left)
     expr.right = right
 
@@ -108,8 +108,8 @@ def test_addition() -> None:
 def test_subtraction() -> None:
     """Test subtraction."""
     # Create: 10 - 3
-    left = IntegerLiteral(Token(TokenType.LIT_INT, "10", 1, 0), 10)
-    right = IntegerLiteral(Token(TokenType.LIT_INT, "3", 1, 4), 3)
+    left = WholeNumberLiteral(Token(TokenType.LIT_WHOLE_NUMBER, "10", 1, 0), 10)
+    right = WholeNumberLiteral(Token(TokenType.LIT_WHOLE_NUMBER, "3", 1, 4), 3)
     expr = InfixExpression(Token(TokenType.OP_MINUS, "-", 1, 2), "-", left)
     expr.right = right
 
@@ -128,8 +128,8 @@ def test_subtraction() -> None:
 def test_multiplication() -> None:
     """Test multiplication."""
     # Create: 4 * 5
-    left = IntegerLiteral(Token(TokenType.LIT_INT, "4", 1, 0), 4)
-    right = IntegerLiteral(Token(TokenType.LIT_INT, "5", 1, 4), 5)
+    left = WholeNumberLiteral(Token(TokenType.LIT_WHOLE_NUMBER, "4", 1, 0), 4)
+    right = WholeNumberLiteral(Token(TokenType.LIT_WHOLE_NUMBER, "5", 1, 4), 5)
     expr = InfixExpression(Token(TokenType.OP_STAR, "*", 1, 2), "*", left)
     expr.right = right
 
@@ -148,8 +148,8 @@ def test_multiplication() -> None:
 def test_division() -> None:
     """Test division."""
     # Create: 15 / 3
-    left = IntegerLiteral(Token(TokenType.LIT_INT, "15", 1, 0), 15)
-    right = IntegerLiteral(Token(TokenType.LIT_INT, "3", 1, 4), 3)
+    left = WholeNumberLiteral(Token(TokenType.LIT_WHOLE_NUMBER, "15", 1, 0), 15)
+    right = WholeNumberLiteral(Token(TokenType.LIT_WHOLE_NUMBER, "3", 1, 4), 3)
     expr = InfixExpression(Token(TokenType.OP_DIVISION, "/", 1, 2), "/", left)
     expr.right = right
 
@@ -168,12 +168,12 @@ def test_division() -> None:
 def test_complex_arithmetic() -> None:
     """Test complex arithmetic expression."""
     # Create: (2 + 3) * 4
-    add_left = IntegerLiteral(Token(TokenType.LIT_INT, "2", 1, 0), 2)
-    add_right = IntegerLiteral(Token(TokenType.LIT_INT, "3", 1, 4), 3)
+    add_left = WholeNumberLiteral(Token(TokenType.LIT_WHOLE_NUMBER, "2", 1, 0), 2)
+    add_right = WholeNumberLiteral(Token(TokenType.LIT_WHOLE_NUMBER, "3", 1, 4), 3)
     add_expr = InfixExpression(Token(TokenType.OP_PLUS, "+", 1, 2), "+", add_left)
     add_expr.right = add_right
 
-    mul_right = IntegerLiteral(Token(TokenType.LIT_INT, "4", 1, 8), 4)
+    mul_right = WholeNumberLiteral(Token(TokenType.LIT_WHOLE_NUMBER, "4", 1, 8), 4)
     expr = InfixExpression(Token(TokenType.OP_STAR, "*", 1, 6), "*", add_expr)
     expr.right = mul_right
 
@@ -212,8 +212,8 @@ def test_float_operations() -> None:
 def test_comparison_gt() -> None:
     """Test greater than comparison."""
     # Create: 5 > 3
-    left = IntegerLiteral(Token(TokenType.LIT_INT, "5", 1, 0), 5)
-    right = IntegerLiteral(Token(TokenType.LIT_INT, "3", 1, 4), 3)
+    left = WholeNumberLiteral(Token(TokenType.LIT_WHOLE_NUMBER, "5", 1, 0), 5)
+    right = WholeNumberLiteral(Token(TokenType.LIT_WHOLE_NUMBER, "3", 1, 4), 3)
     expr = InfixExpression(Token(TokenType.OP_GT, ">", 1, 2), ">", left)
     expr.right = right
 
@@ -232,8 +232,8 @@ def test_comparison_gt() -> None:
 def test_comparison_lt() -> None:
     """Test less than comparison."""
     # Create: 3 < 5
-    left = IntegerLiteral(Token(TokenType.LIT_INT, "3", 1, 0), 3)
-    right = IntegerLiteral(Token(TokenType.LIT_INT, "5", 1, 4), 5)
+    left = WholeNumberLiteral(Token(TokenType.LIT_WHOLE_NUMBER, "3", 1, 0), 3)
+    right = WholeNumberLiteral(Token(TokenType.LIT_WHOLE_NUMBER, "5", 1, 4), 5)
     expr = InfixExpression(Token(TokenType.OP_LT, "<", 1, 2), "<", left)
     expr.right = right
 
@@ -252,8 +252,8 @@ def test_comparison_lt() -> None:
 def test_strict_equality() -> None:
     """Test strict equality comparison."""
     # Test: 5 is strictly equal to 5 (should be True)
-    left = IntegerLiteral(Token(TokenType.LIT_INT, "5", 1, 0), 5)
-    right = IntegerLiteral(Token(TokenType.LIT_INT, "5", 1, 4), 5)
+    left = WholeNumberLiteral(Token(TokenType.LIT_WHOLE_NUMBER, "5", 1, 0), 5)
+    right = WholeNumberLiteral(Token(TokenType.LIT_WHOLE_NUMBER, "5", 1, 4), 5)
     expr = InfixExpression(Token(TokenType.OP_STRICT_EQ, "is strictly equal to", 1, 2), "is strictly equal to", left)
     expr.right = right
 
@@ -262,7 +262,7 @@ def test_strict_equality() -> None:
     )
 
     # Test: 5 is strictly equal to 5.0 (should be False - different types)
-    left2 = IntegerLiteral(Token(TokenType.LIT_INT, "5", 2, 0), 5)
+    left2 = WholeNumberLiteral(Token(TokenType.LIT_WHOLE_NUMBER, "5", 2, 0), 5)
     right2 = FloatLiteral(Token(TokenType.LIT_FLOAT, "5.0", 2, 4), 5.0)
     expr2 = InfixExpression(Token(TokenType.OP_STRICT_EQ, "is strictly equal to", 2, 2), "is strictly equal to", left2)
     expr2.right = right2
@@ -284,7 +284,7 @@ def test_strict_equality() -> None:
 def test_strict_inequality() -> None:
     """Test strict inequality comparison."""
     # Test: 5 is not strictly equal to 5.0 (should be True - different types)
-    left = IntegerLiteral(Token(TokenType.LIT_INT, "5", 1, 0), 5)
+    left = WholeNumberLiteral(Token(TokenType.LIT_WHOLE_NUMBER, "5", 1, 0), 5)
     right = FloatLiteral(Token(TokenType.LIT_FLOAT, "5.0", 1, 4), 5.0)
     expr = InfixExpression(
         Token(TokenType.OP_STRICT_NOT_EQ, "is not strictly equal to", 1, 2), "is not strictly equal to", left
@@ -296,8 +296,8 @@ def test_strict_inequality() -> None:
     )
 
     # Test: 5 is not strictly equal to 5 (should be False - same type and value)
-    left2 = IntegerLiteral(Token(TokenType.LIT_INT, "5", 2, 0), 5)
-    right2 = IntegerLiteral(Token(TokenType.LIT_INT, "5", 2, 4), 5)
+    left2 = WholeNumberLiteral(Token(TokenType.LIT_WHOLE_NUMBER, "5", 2, 0), 5)
+    right2 = WholeNumberLiteral(Token(TokenType.LIT_WHOLE_NUMBER, "5", 2, 4), 5)
     expr2 = InfixExpression(
         Token(TokenType.OP_STRICT_NOT_EQ, "is not strictly equal to", 2, 2), "is not strictly equal to", left2
     )
@@ -323,12 +323,12 @@ def test_variable_assignment_and_reference() -> None:
     set_stmt = SetStatement(
         Token(TokenType.KW_SET, "Set", 1, 0),
         Identifier(Token(TokenType.MISC_IDENT, "x", 1, 4), "x"),
-        IntegerLiteral(Token(TokenType.LIT_INT, "10", 1, 9), 10),
+        WholeNumberLiteral(Token(TokenType.LIT_WHOLE_NUMBER, "10", 1, 9), 10),
     )
 
     # Set y to x + 5
     x_ref = Identifier(Token(TokenType.MISC_IDENT, "x", 2, 0), "x")
-    five = IntegerLiteral(Token(TokenType.LIT_INT, "5", 2, 4), 5)
+    five = WholeNumberLiteral(Token(TokenType.LIT_WHOLE_NUMBER, "5", 2, 4), 5)
     add_expr = InfixExpression(Token(TokenType.OP_PLUS, "+", 2, 2), "+", x_ref)
     add_expr.right = five
 
@@ -349,11 +349,11 @@ def test_variable_assignment_and_reference() -> None:
 def test_disassembler() -> None:
     """Test the disassembler output."""
     # Create simple program: 2 + 3
-    left = IntegerLiteral(Token(TokenType.LIT_INT, "2", 1, 0), 2)
-    right = IntegerLiteral(Token(TokenType.LIT_INT, "3", 1, 4), 3)
+    left = WholeNumberLiteral(Token(TokenType.LIT_WHOLE_NUMBER, "2", 1, 0), 2)
+    right = WholeNumberLiteral(Token(TokenType.LIT_WHOLE_NUMBER, "3", 1, 4), 3)
     expr = InfixExpression(Token(TokenType.OP_PLUS, "+", 1, 2), "+", left)
     expr.right = right
-    stmt = ExpressionStatement(Token(TokenType.LIT_INT, "2", 1, 0), expr)
+    stmt = ExpressionStatement(Token(TokenType.LIT_WHOLE_NUMBER, "2", 1, 0), expr)
     program = Program([stmt])
 
     # Compile without optimization to ensure ADD instruction is generated

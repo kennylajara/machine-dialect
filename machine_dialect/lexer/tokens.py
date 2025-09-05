@@ -58,7 +58,7 @@ class TokenType(Enum):
 
     # Literals
     LIT_FLOAT = auto()
-    LIT_INT = auto()
+    LIT_WHOLE_NUMBER = auto()
     LIT_NO = auto()
     LIT_TEXT = auto()
     LIT_TRIPLE_BACKTICK = auto()
@@ -90,7 +90,6 @@ class TokenType(Enum):
     KW_FROM = auto()
     KW_IF = auto()
     KW_INPUTS = auto()
-    KW_INT = auto()
     KW_INTERACTION = auto()
     KW_IS = auto()
     KW_LIST = auto()
@@ -229,8 +228,6 @@ keywords_mapping: dict[str, TokenType] = {
     "if": TokenType.KW_IF,
     "when": TokenType.KW_IF,
     "whenever": TokenType.KW_IF,
-    # integer typing: set `a` to integer 3
-    "Integer": TokenType.KW_INT,
     # inputs section for parameters
     "Inputs": TokenType.KW_INPUTS,
     # interaction for objects
@@ -336,7 +333,6 @@ keywords_mapping: dict[str, TokenType] = {
     # Plural forms map to singular token types
     "actions": TokenType.KW_ACTION,
     "Floats": TokenType.KW_FLOAT,
-    "Integers": TokenType.KW_INT,
     "Numbers": TokenType.KW_NUMBER,
     "takes": TokenType.KW_TAKE,
     "texts": TokenType.KW_TEXT,

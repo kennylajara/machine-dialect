@@ -29,7 +29,7 @@ from .statements import (
     UtilityStatement,
 )
 from .program import Program
-from .literals import IntegerLiteral, FloatLiteral, StringLiteral, YesNoLiteral, EmptyLiteral, URLLiteral
+from .literals import WholeNumberLiteral, FloatLiteral, StringLiteral, YesNoLiteral, EmptyLiteral, URLLiteral
 from .call_expression import CallExpression
 
 
@@ -54,7 +54,7 @@ __all__ = [
     "Identifier",
     "IfStatement",
     "InfixExpression",
-    "IntegerLiteral",
+    "WholeNumberLiteral",
     "InteractionStatement",
     "Output",
     "Parameter",

@@ -35,11 +35,28 @@ class VariableInfo:
         Returns:
             True if type is allowed, False otherwise
         """
-        return type_name in self.type_spec
+        # Normalize the type names for comparison
+        normalized_input = self._normalize_type(type_name)
+        normalized_specs = [self._normalize_type(t) for t in self.type_spec]
+        return normalized_input in normalized_specs
+
+    def _normalize_type(self, type_name: str) -> str:
+        """Normalize type name for comparison.
+
+        Args:
+            type_name: Type name to normalize
+
+        Returns:
+            Normalized type name
+        """
+        # Remove spaces and normalize case for comparison
+        return type_name.replace(" ", "").replace("/", "")
 
     def __str__(self) -> str:
         """Return string representation."""
-        type_str = " or ".join(self.type_spec)
+        # Format type names without spaces for display
+        formatted_types = [t.replace(" ", "").replace("/", "") for t in self.type_spec]
+        type_str = " or ".join(formatted_types)
         status = "initialized" if self.initialized else "uninitialized"
         return f"VariableInfo(types={type_str}, {status})"
 

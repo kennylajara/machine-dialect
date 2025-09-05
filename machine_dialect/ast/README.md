@@ -86,7 +86,7 @@ Unary operators applied to expressions.
 - `operator: str` - String representation (`-`, `not`)
 - `right: Expression` - The operand expression
 
-**Example:** `-5` → `PrefixExpression(operator="-", right=IntegerLiteral(5))`
+**Example:** `-5` → `PrefixExpression(operator="-", right=WholeNumberLiteral(5))`
 
 #### `InfixExpression`
 
@@ -106,7 +106,7 @@ Binary operators between two expressions.
 - Equality: `==`, `!=`, `===`, `!==`
 - Logical: `and`, `or`
 
-**Example:** `x + 5` → `InfixExpression(left=Identifier("x"), operator="+", right=IntegerLiteral(5))`
+**Example:** `x + 5` → `InfixExpression(left=Identifier("x"), operator="+", right=WholeNumberLiteral(5))`
 
 #### `Arguments`
 
@@ -119,7 +119,7 @@ Function call arguments supporting both positional and named parameters.
 - `named: list[tuple[Identifier, Expression]]` - Named arguments as (name, value) pairs
 
 **Example:** `with 5, name: "John"` →
-`Arguments(positional=[IntegerLiteral(5)], named=[(Identifier("name"), StringLiteral("John"))])`
+`Arguments(positional=[WholeNumberLiteral(5)], named=[(Identifier("name"), StringLiteral("John"))])`
 
 #### `ConditionalExpression`
 
@@ -147,14 +147,14 @@ Represents parsing errors while maintaining AST structure.
 
 All literals inherit from `Expression` and represent constant values.
 
-#### `IntegerLiteral`
+#### `WholeNumberLiteral`
 
 **Properties:**
 
-- `token: Token` - The INT token
-- `value: int` - The integer value
+- `token: Token` - The WholeNumber token
+- `value: whole number` - The whole number value
 
-**Example:** `_42_` → `IntegerLiteral(value=42)`
+**Example:** `_42_` → `WholeNumberLiteral(value=42)`
 
 #### `FloatLiteral`
 
@@ -222,7 +222,7 @@ Variable assignment statement.
 - `identifier: Identifier` - Variable being assigned
 - `value: Expression` - Value to assign
 
-**Example:** `Set x to 5.` → `SetStatement(identifier=Identifier("x"), value=IntegerLiteral(5))`
+**Example:** `Set x to 5.` → `SetStatement(identifier=Identifier("x"), value=WholeNumberLiteral(5))`
 
 #### `ReturnStatement`
 
@@ -340,7 +340,7 @@ Represents parsing errors as statements.
 
 ```python
 from machine_dialect.ast import (
-    Program, SetStatement, Identifier, IntegerLiteral,
+    Program, SetStatement, Identifier, WholeNumberLiteral,
     IfStatement, BlockStatement, InfixExpression
 )
 from machine_dialect.lexer import Token, TokenType
@@ -354,8 +354,8 @@ program = Program(
                 Token(TokenType.MISC_IDENT, "x", 1, 4),
                 "x"
             ),
-            value=IntegerLiteral(
-                Token(TokenType.LIT_INT, "5", 1, 9),
+            value=WholeNumberLiteral(
+                Token(TokenType.LIT_WHOLE_NUMBER, "5", 1, 9),
                 5
             )
         )
@@ -396,7 +396,7 @@ def count_nodes(node: ASTNode) -> int:
 def evaluate_literal(node: ASTNode) -> Any:
     """Extract value from literal nodes."""
     match node:
-        case IntegerLiteral(value=v):
+        case WholeNumberLiteral(value=v):
             return v
         case FloatLiteral(value=v):
             return v

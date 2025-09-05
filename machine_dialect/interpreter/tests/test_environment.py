@@ -2,7 +2,7 @@
 
 import pytest
 
-from machine_dialect.interpreter.objects import Boolean, Empty, Environment, Float, Integer, String
+from machine_dialect.interpreter.objects import Boolean, Empty, Environment, Float, String, WholeNumber
 
 
 class TestEnvironment:
@@ -17,14 +17,14 @@ class TestEnvironment:
     def test_environment_set_and_get(self) -> None:
         """Test basic variable storage and retrieval."""
         env = Environment()
-        value = Integer(42)
+        value = WholeNumber(42)
 
         # Set a variable
         env["x"] = value
 
         # Get the variable
         assert env["x"] is value
-        assert isinstance(env["x"], Integer)
+        assert isinstance(env["x"], WholeNumber)
         assert env["x"].value == 42
 
     def test_environment_contains(self) -> None:
@@ -35,7 +35,7 @@ class TestEnvironment:
         assert "x" not in env
 
         # Add variable
-        env["x"] = Integer(100)
+        env["x"] = WholeNumber(100)
 
         # Now it exists
         assert "x" in env
@@ -46,13 +46,13 @@ class TestEnvironment:
         env = Environment()
 
         # Set initial value
-        env["x"] = Integer(10)
-        assert isinstance(env["x"], Integer)
+        env["x"] = WholeNumber(10)
+        assert isinstance(env["x"], WholeNumber)
         assert env["x"].value == 10
 
         # Overwrite with new value
-        env["x"] = Integer(20)
-        assert isinstance(env["x"], Integer)
+        env["x"] = WholeNumber(20)
+        assert isinstance(env["x"], WholeNumber)
         assert env["x"].value == 20
 
         # Overwrite with different type
@@ -72,7 +72,7 @@ class TestEnvironment:
         env = Environment()
 
         # Store various types
-        env["int_var"] = Integer(42)
+        env["int_var"] = WholeNumber(42)
         env["float_var"] = Float(3.14)
         env["string_var"] = String("hello")
         env["bool_var"] = Boolean(True)
@@ -80,7 +80,7 @@ class TestEnvironment:
 
         # Verify all are stored correctly
         assert len(env.store) == 5
-        assert isinstance(env["int_var"], Integer)
+        assert isinstance(env["int_var"], WholeNumber)
         assert env["int_var"].value == 42
         assert isinstance(env["float_var"], Float)
         assert env["float_var"].value == 3.14
@@ -94,7 +94,7 @@ class TestEnvironment:
     def test_environment_copy(self) -> None:
         """Test copying environment state to a new environment."""
         env1 = Environment()
-        env1["x"] = Integer(10)
+        env1["x"] = WholeNumber(10)
         env1["y"] = String("test")
 
         # Create new environment and copy state
@@ -102,16 +102,16 @@ class TestEnvironment:
         env2.store.update(env1.store)
 
         # Verify copies
-        assert isinstance(env2["x"], Integer)
+        assert isinstance(env2["x"], WholeNumber)
         assert env2["x"].value == 10
         assert isinstance(env2["y"], String)
         assert env2["y"].value == "test"
 
         # Verify they're independent
-        env1["x"] = Integer(20)
-        assert isinstance(env1["x"], Integer)
+        env1["x"] = WholeNumber(20)
+        assert isinstance(env1["x"], WholeNumber)
         assert env1["x"].value == 20
-        assert isinstance(env2["x"], Integer)
+        assert isinstance(env2["x"], WholeNumber)
         assert env2["x"].value == 10  # Unchanged
 
     def test_environment_special_characters_in_names(self) -> None:
@@ -119,11 +119,11 @@ class TestEnvironment:
         env = Environment()
 
         # Machine Dialect allows variable names with spaces
-        env["my variable"] = Integer(100)
+        env["my variable"] = WholeNumber(100)
         env["variable-with-dash"] = String("dash")
         env["variable_with_underscore"] = Boolean(False)
 
-        assert isinstance(env["my variable"], Integer)
+        assert isinstance(env["my variable"], WholeNumber)
         assert env["my variable"].value == 100
         assert isinstance(env["variable-with-dash"], String)
         assert env["variable-with-dash"].value == "dash"
@@ -134,15 +134,15 @@ class TestEnvironment:
         """Test that variable names are case-sensitive."""
         env = Environment()
 
-        env["Variable"] = Integer(1)
-        env["variable"] = Integer(2)
-        env["VARIABLE"] = Integer(3)
+        env["Variable"] = WholeNumber(1)
+        env["variable"] = WholeNumber(2)
+        env["VARIABLE"] = WholeNumber(3)
 
-        assert isinstance(env["Variable"], Integer)
+        assert isinstance(env["Variable"], WholeNumber)
         assert env["Variable"].value == 1
-        assert isinstance(env["variable"], Integer)
+        assert isinstance(env["variable"], WholeNumber)
         assert env["variable"].value == 2
-        assert isinstance(env["VARIABLE"], Integer)
+        assert isinstance(env["VARIABLE"], WholeNumber)
         assert env["VARIABLE"].value == 3
         assert len(env.store) == 3
 
@@ -151,10 +151,10 @@ class TestEnvironment:
         env = Environment()
 
         # Direct store manipulation
-        env.store["direct"] = Integer(99)
+        env.store["direct"] = WholeNumber(99)
 
         # Should be accessible via getitem
-        assert isinstance(env["direct"], Integer)
+        assert isinstance(env["direct"], WholeNumber)
         assert env["direct"].value == 99
 
         # And via contains
@@ -163,9 +163,9 @@ class TestEnvironment:
     def test_environment_iteration(self) -> None:
         """Test iterating over environment variables."""
         env = Environment()
-        env["a"] = Integer(1)
-        env["b"] = Integer(2)
-        env["c"] = Integer(3)
+        env["a"] = WholeNumber(1)
+        env["b"] = WholeNumber(2)
+        env["c"] = WholeNumber(3)
 
         # Get all keys
         keys = list(env.store.keys())
@@ -173,15 +173,15 @@ class TestEnvironment:
 
         # Get all values
         values = list(env.store.values())
-        assert all(isinstance(v, Integer) for v in values)
-        int_values = [v for v in values if isinstance(v, Integer)]
+        assert all(isinstance(v, WholeNumber) for v in values)
+        int_values = [v for v in values if isinstance(v, WholeNumber)]
         assert {v.value for v in int_values} == {1, 2, 3}
 
     def test_environment_clear(self) -> None:
         """Test clearing all variables from an environment."""
         env = Environment()
-        env["x"] = Integer(1)
-        env["y"] = Integer(2)
+        env["x"] = WholeNumber(1)
+        env["y"] = WholeNumber(2)
 
         assert len(env.store) == 2
 
@@ -197,7 +197,7 @@ class TestEnvironment:
         env1 = Environment()
         env2 = Environment()
 
-        env1["x"] = Integer(100)
+        env1["x"] = WholeNumber(100)
 
         # env2 should not have the variable
         assert "x" not in env2

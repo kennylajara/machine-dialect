@@ -10,7 +10,7 @@ from machine_dialect.parser.tests.helper_functions import (
 )
 
 
-class TestIntegerLiteralExpressions:
+class TestWholeNumberLiteralExpressions:
     """Test cases for parsing integer literal expressions."""
 
     @pytest.mark.parametrize(

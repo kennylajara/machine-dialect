@@ -3,7 +3,7 @@
 import pytest
 
 from machine_dialect.interpreter.evaluator import evaluate
-from machine_dialect.interpreter.objects import Environment, Integer, String
+from machine_dialect.interpreter.objects import Environment, String, WholeNumber
 from machine_dialect.parser import Parser
 
 
@@ -38,7 +38,7 @@ Use `get captured`."""
 
         result, _ = self._parse_and_evaluate(source)
         assert result is not None
-        assert isinstance(result, Integer)
+        assert isinstance(result, WholeNumber)
         assert result.value == 200  # Function sees current value
 
     def test_closure_with_mutable_state(self) -> None:
@@ -61,9 +61,9 @@ Use `increment`."""
 
         result, env = self._parse_and_evaluate(source)
         assert result is not None
-        assert isinstance(result, Integer)
+        assert isinstance(result, WholeNumber)
         assert result.value == 3
-        assert isinstance(env["counter"], Integer)
+        assert isinstance(env["counter"], WholeNumber)
         assert env["counter"].value == 3
 
     def test_multiple_closures_share_environment(self) -> None:
@@ -96,9 +96,9 @@ Use `getter`."""
 
         result, env = self._parse_and_evaluate(source)
         assert result is not None
-        assert isinstance(result, Integer)
+        assert isinstance(result, WholeNumber)
         assert result.value == 42
-        assert isinstance(env["shared"], Integer)
+        assert isinstance(env["shared"], WholeNumber)
         assert env["shared"].value == 42
 
     def test_nested_closures(self) -> None:
@@ -140,7 +140,7 @@ Use `outer`."""
 
         result, _ = self._parse_and_evaluate(source)
         assert result is not None
-        assert isinstance(result, Integer)
+        assert isinstance(result, WholeNumber)
         assert result.value == 6  # 1 + 2 + 3
 
     def test_closure_after_outer_scope_exits(self) -> None:
@@ -172,7 +172,7 @@ Use `counter`."""
 
         result, env = self._parse_and_evaluate(source)
         assert result is not None
-        assert isinstance(result, Integer)
+        assert isinstance(result, WholeNumber)
         # This tests that the counter function exists and works
         assert "counter" in env
 
@@ -209,7 +209,7 @@ Use `add` with `n` as _5`."""
 
         result, _ = self._parse_and_evaluate(source)
         assert result is not None
-        assert isinstance(result, Integer)
+        assert isinstance(result, WholeNumber)
         assert result.value == 15  # 10 + 5
 
     def test_closure_with_default_parameters(self) -> None:
@@ -234,7 +234,7 @@ Use `multiply` with `n` as _5_."""
 
         result, _ = self._parse_and_evaluate(source)
         assert result is not None
-        assert isinstance(result, Integer)
+        assert isinstance(result, WholeNumber)
         assert result.value == 15  # 5 * 3
 
     def test_recursive_closure(self) -> None:
@@ -260,9 +260,9 @@ Use `recurse` with `n` as _3_."""
 
         result, env = self._parse_and_evaluate(source)
         assert result is not None
-        assert isinstance(result, Integer)
+        assert isinstance(result, WholeNumber)
         assert result.value == 4  # depth incremented 4 times (initial call + 3 recursions)
-        assert isinstance(env["depth"], Integer)
+        assert isinstance(env["depth"], WholeNumber)
         assert env["depth"].value == 4
 
     def test_closure_with_conditionals(self) -> None:
@@ -291,7 +291,7 @@ Use `operation` with `a` as _10_ and `b` as _3_."""
 
         result, _ = self._parse_and_evaluate(source)
         assert result is not None
-        assert isinstance(result, Integer)
+        assert isinstance(result, WholeNumber)
         assert result.value == 7  # 10 - 3 (mode changed to subtract)
 
     def test_closure_isolation(self) -> None:
@@ -324,7 +324,7 @@ Use `accumulate` with `amount` as _3_."""
 
         result, env = self._parse_and_evaluate(source)
         assert result is not None
-        assert isinstance(result, Integer)
+        assert isinstance(result, WholeNumber)
         assert result.value == 8  # 5 + 3
         assert "accumulate" in env
 
@@ -381,5 +381,5 @@ Use `first`."""
 
         result, _ = self._parse_and_evaluate(source)
         assert result is not None
-        assert isinstance(result, Integer)
+        assert isinstance(result, WholeNumber)
         assert result.value == 2  # second sees first's x, not global

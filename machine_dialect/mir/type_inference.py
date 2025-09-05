@@ -10,10 +10,10 @@ from machine_dialect.ast import (
     FloatLiteral,
     Identifier,
     InfixExpression,
-    IntegerLiteral,
     PrefixExpression,
     StringLiteral,
     URLLiteral,
+    WholeNumberLiteral,
     YesNoLiteral,
 )
 from machine_dialect.mir.mir_function import MIRFunction
@@ -309,7 +309,7 @@ def infer_ast_literal_type(literal: ASTNode) -> MIRType:
     Returns:
         The inferred MIR type.
     """
-    if isinstance(literal, IntegerLiteral):
+    if isinstance(literal, WholeNumberLiteral):
         return MIRType.INT
     elif isinstance(literal, FloatLiteral):
         return MIRType.FLOAT
@@ -335,7 +335,7 @@ def infer_ast_expression_type(expr: ASTNode, context: dict[str, MIRType]) -> MIR
     Returns:
         The inferred MIR type.
     """
-    if isinstance(expr, IntegerLiteral | FloatLiteral | StringLiteral | YesNoLiteral | EmptyLiteral | URLLiteral):
+    if isinstance(expr, WholeNumberLiteral | FloatLiteral | StringLiteral | YesNoLiteral | EmptyLiteral | URLLiteral):
         return infer_ast_literal_type(expr)
 
     elif isinstance(expr, Identifier):

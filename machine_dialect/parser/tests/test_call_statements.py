@@ -4,8 +4,8 @@ from machine_dialect.ast import (
     Arguments,
     CallStatement,
     Identifier,
-    IntegerLiteral,
     StringLiteral,
+    WholeNumberLiteral,
 )
 from machine_dialect.parser import Parser
 
@@ -51,11 +51,11 @@ class TestCallStatements:
         assert len(call_stmt.arguments.named) == 0
 
         # First argument
-        assert isinstance(call_stmt.arguments.positional[0], IntegerLiteral)
+        assert isinstance(call_stmt.arguments.positional[0], WholeNumberLiteral)
         assert call_stmt.arguments.positional[0].value == 5
 
         # Second argument
-        assert isinstance(call_stmt.arguments.positional[1], IntegerLiteral)
+        assert isinstance(call_stmt.arguments.positional[1], WholeNumberLiteral)
         assert call_stmt.arguments.positional[1].value == 10
 
     def test_call_with_named_arguments(self) -> None:
@@ -90,7 +90,7 @@ class TestCallStatements:
         name1, val1 = call_stmt.arguments.named[1]
         assert isinstance(name1, Identifier)
         assert name1.value == "volume"
-        assert isinstance(val1, IntegerLiteral)
+        assert isinstance(val1, WholeNumberLiteral)
         assert val1.value == 80
 
     def test_call_with_identifier_as_function_name(self) -> None:

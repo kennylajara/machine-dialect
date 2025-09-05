@@ -10,10 +10,10 @@ from machine_dialect.interpreter.objects import (
     Empty,
     Error,
     Float,
-    Integer,
     Object,
     ObjectType,
     String,
+    WholeNumber,
 )
 from machine_dialect.lexer import Token, TokenType
 from machine_dialect.parser import Parser
@@ -24,13 +24,13 @@ class TestEvaluatorLiterals:
 
     def test_evaluate_integer_literal(self) -> None:
         """Test evaluating an integer literal."""
-        token = Token(TokenType.LIT_INT, "42", 1, 0)
-        node = ast.IntegerLiteral(token, 42)
+        token = Token(TokenType.LIT_WHOLE_NUMBER, "42", 1, 0)
+        node = ast.WholeNumberLiteral(token, 42)
 
         result = evaluate(node)
 
         assert result is not None
-        assert isinstance(result, Integer)
+        assert isinstance(result, WholeNumber)
         assert result.type == ObjectType.INTEGER
         assert result.inspect() == "42"
 
@@ -113,13 +113,13 @@ class TestEvaluatorStatements:
     def test_evaluate_expression_statement(self) -> None:
         """Test evaluating an expression statement."""
         # Create an expression statement containing an integer literal
-        expr = ast.IntegerLiteral(Token(TokenType.LIT_INT, "42", 1, 0), 42)
-        stmt = ast.ExpressionStatement(Token(TokenType.LIT_INT, "42", 1, 0), expr)
+        expr = ast.WholeNumberLiteral(Token(TokenType.LIT_WHOLE_NUMBER, "42", 1, 0), 42)
+        stmt = ast.ExpressionStatement(Token(TokenType.LIT_WHOLE_NUMBER, "42", 1, 0), expr)
 
         result = evaluate(stmt)
 
         assert result is not None
-        assert isinstance(result, Integer)
+        assert isinstance(result, WholeNumber)
         assert result.inspect() == "42"
 
     def test_evaluate_program_single_statement(self) -> None:
@@ -138,7 +138,8 @@ class TestEvaluatorStatements:
         """Test evaluating a program with multiple statements."""
         # Create multiple statements
         stmt1 = ast.ExpressionStatement(
-            Token(TokenType.LIT_INT, "42", 1, 0), ast.IntegerLiteral(Token(TokenType.LIT_INT, "42", 1, 0), 42)
+            Token(TokenType.LIT_WHOLE_NUMBER, "42", 1, 0),
+            ast.WholeNumberLiteral(Token(TokenType.LIT_WHOLE_NUMBER, "42", 1, 0), 42),
         )
         stmt2 = ast.ExpressionStatement(
             Token(TokenType.LIT_TEXT, '"hello"', 2, 0),
@@ -171,7 +172,7 @@ class TestEvaluatorEdgeCases:
     def test_evaluate_none_expression_in_statement(self) -> None:
         """Test that assertion fails for statement with None expression."""
         # Create an expression statement with None expression
-        stmt = ast.ExpressionStatement(Token(TokenType.LIT_INT, "42", 1, 0), None)
+        stmt = ast.ExpressionStatement(Token(TokenType.LIT_WHOLE_NUMBER, "42", 1, 0), None)
 
         with pytest.raises(AssertionError):
             evaluate(stmt)
@@ -195,7 +196,7 @@ class TestEvaluatorIntegration:
         result = self._parse_and_evaluate("_42_.")
 
         assert result is not None
-        assert isinstance(result, Integer)
+        assert isinstance(result, WholeNumber)
         assert result.inspect() == "42"
 
     def test_integrate_float_literal(self) -> None:
@@ -364,7 +365,7 @@ class TestEvaluatorPrefixExpressions:
         result = self._parse_and_evaluate("-_42_.")
 
         assert result is not None
-        assert isinstance(result, Integer)
+        assert isinstance(result, WholeNumber)
         assert result.inspect() == "-42"
 
     def test_evaluate_minus_negative_integer(self) -> None:
@@ -373,7 +374,7 @@ class TestEvaluatorPrefixExpressions:
         result = self._parse_and_evaluate("-_-42_.")
 
         assert result is not None
-        assert isinstance(result, Integer)
+        assert isinstance(result, WholeNumber)
         assert result.inspect() == "42"  # Minus of negative is positive
 
     def test_evaluate_minus_float(self) -> None:
@@ -493,7 +494,7 @@ class TestEvaluatorPrefixExpressions:
         """Test evaluating unsupported prefix operator returns Error."""
         # Create a prefix expression with an unsupported operator
         token = Token(TokenType.OP_PLUS, "+", 1, 0)
-        right = ast.IntegerLiteral(Token(TokenType.LIT_INT, "42", 1, 2), 42)
+        right = ast.WholeNumberLiteral(Token(TokenType.LIT_WHOLE_NUMBER, "42", 1, 2), 42)
         prefix_expr = ast.PrefixExpression(token, "+")
         prefix_expr.right = right
         stmt = ast.ExpressionStatement(token, prefix_expr)
@@ -538,7 +539,7 @@ class TestEvaluatorIfStatements:
         result = self._parse_and_evaluate(source)
 
         assert result is not None
-        assert isinstance(result, Integer)
+        assert isinstance(result, WholeNumber)
         assert result.inspect() == "42"
 
     def test_evaluate_if_false_no_else(self) -> None:
@@ -563,7 +564,7 @@ class TestEvaluatorIfStatements:
         result = self._parse_and_evaluate(source)
 
         assert result is not None
-        assert isinstance(result, Integer)
+        assert isinstance(result, WholeNumber)
         assert result.inspect() == "42"
 
     def test_evaluate_if_false_with_else(self) -> None:
@@ -577,7 +578,7 @@ class TestEvaluatorIfStatements:
         result = self._parse_and_evaluate(source)
 
         assert result is not None
-        assert isinstance(result, Integer)
+        assert isinstance(result, WholeNumber)
         assert result.inspect() == "99"
 
     def test_evaluate_if_with_expression_condition(self) -> None:
@@ -605,7 +606,7 @@ class TestEvaluatorIfStatements:
         result = self._parse_and_evaluate(source)
 
         assert result is not None
-        assert isinstance(result, Integer)
+        assert isinstance(result, WholeNumber)
         assert result.inspect() == "100"
 
     def test_evaluate_nested_if_statements(self) -> None:
@@ -622,7 +623,7 @@ class TestEvaluatorIfStatements:
         result = self._parse_and_evaluate(source)
 
         assert result is not None
-        assert isinstance(result, Integer)
+        assert isinstance(result, WholeNumber)
         assert result.inspect() == "2"
 
     def test_evaluate_if_with_multiple_statements_in_block(self) -> None:
@@ -636,7 +637,7 @@ class TestEvaluatorIfStatements:
         result = self._parse_and_evaluate(source)
 
         assert result is not None
-        assert isinstance(result, Integer)
+        assert isinstance(result, WholeNumber)
         assert result.inspect() == "30"
 
     def test_evaluate_if_else_with_multiple_statements(self) -> None:
@@ -754,7 +755,7 @@ class TestEvaluatorIfStatements:
         result = self._parse_and_evaluate(source)
 
         assert result is not None
-        assert isinstance(result, Integer)
+        assert isinstance(result, WholeNumber)
         assert result.inspect() == "42"
 
     def test_evaluate_chained_if_else_if(self) -> None:
@@ -772,7 +773,7 @@ class TestEvaluatorIfStatements:
         result = self._parse_and_evaluate(source)
 
         assert result is not None
-        assert isinstance(result, Integer)
+        assert isinstance(result, WholeNumber)
         assert result.inspect() == "3"
 
     def test_evaluate_if_with_arithmetic_in_condition(self) -> None:
@@ -821,7 +822,7 @@ class TestEvaluatorReturnStatements:
         result = self._parse_and_evaluate("Give back _42_.")
 
         assert result is not None
-        assert isinstance(result, Integer)
+        assert isinstance(result, WholeNumber)
         assert result.inspect() == "42"
 
     def test_return_float(self) -> None:
@@ -877,7 +878,7 @@ class TestEvaluatorReturnStatements:
         result = self._parse_and_evaluate("Gives back _100_.")
 
         assert result is not None
-        assert isinstance(result, Integer)
+        assert isinstance(result, WholeNumber)
         assert result.inspect() == "100"
 
     def test_return_with_expression(self) -> None:
@@ -885,7 +886,7 @@ class TestEvaluatorReturnStatements:
         result = self._parse_and_evaluate("Give back _5_ + _3_.")
 
         assert result is not None
-        assert isinstance(result, Integer)
+        assert isinstance(result, WholeNumber)
         assert result.inspect() == "8"
 
     def test_return_with_comparison(self) -> None:
@@ -909,7 +910,7 @@ class TestEvaluatorReturnStatements:
         result = self._parse_and_evaluate("Give back -_42_.")
 
         assert result is not None
-        assert isinstance(result, Integer)
+        assert isinstance(result, WholeNumber)
         assert result.inspect() == "-42"
 
     def test_return_stops_execution(self) -> None:
@@ -922,7 +923,7 @@ class TestEvaluatorReturnStatements:
         result = self._parse_and_evaluate(source)
 
         assert result is not None
-        assert isinstance(result, Integer)
+        assert isinstance(result, WholeNumber)
         assert result.inspect() == "1"
 
     def test_multiple_returns(self) -> None:
@@ -991,7 +992,7 @@ class TestEvaluatorReturnStatements:
         result = self._parse_and_evaluate(source)
 
         assert result is not None
-        assert isinstance(result, Integer)
+        assert isinstance(result, WholeNumber)
         assert result.inspect() == "10"
 
     def test_return_in_nested_if(self) -> None:
@@ -1041,7 +1042,7 @@ class TestEvaluatorReturnStatements:
         result = self._parse_and_evaluate("Give back (_5_ + _3_) * _2_ - _1_.")
 
         assert result is not None
-        assert isinstance(result, Integer)
+        assert isinstance(result, WholeNumber)
         assert result.inspect() == "15"
 
     def test_return_with_not_expression(self) -> None:
@@ -1057,7 +1058,7 @@ class TestEvaluatorReturnStatements:
         result = self._parse_and_evaluate("Give back _999_.")
 
         assert result is not None
-        assert isinstance(result, Integer)
+        assert isinstance(result, WholeNumber)
         assert result.inspect() == "999"
 
 
@@ -1225,7 +1226,7 @@ class TestEvaluatorVariables:
         result = self._parse_and_evaluate("Set x to _10_. Give back x.")
 
         assert result is not None
-        assert isinstance(result, Integer)
+        assert isinstance(result, WholeNumber)
         assert result.value == 10
 
     def test_set_and_retrieve_string(self) -> None:
@@ -1249,7 +1250,7 @@ class TestEvaluatorVariables:
         result = self._parse_and_evaluate("Set x to _10_. Set y to _5_. Give back x + y.")
 
         assert result is not None
-        assert isinstance(result, Integer)
+        assert isinstance(result, WholeNumber)
         assert result.value == 15
 
     def test_variable_reassignment(self) -> None:
@@ -1257,7 +1258,7 @@ class TestEvaluatorVariables:
         result = self._parse_and_evaluate("Set x to _10_. Set x to _20_. Give back x.")
 
         assert result is not None
-        assert isinstance(result, Integer)
+        assert isinstance(result, WholeNumber)
         assert result.value == 20
 
     def test_undefined_variable(self) -> None:
@@ -1298,7 +1299,7 @@ Use `shadow test`."""
 
         result = self._parse_and_evaluate(source)
         assert result is not None
-        assert isinstance(result, Integer)
+        assert isinstance(result, WholeNumber)
         assert result.value == 42  # Returns inner scope value
 
     def test_shadowing_preserves_outer(self) -> None:
@@ -1320,7 +1321,7 @@ Give back `x`."""
 
         result = self._parse_and_evaluate(source)
         assert result is not None
-        assert isinstance(result, Integer)
+        assert isinstance(result, WholeNumber)
         assert result.value == 100  # Outer x is unchanged
 
     def test_multiple_shadowing_levels(self) -> None:
@@ -1363,7 +1364,7 @@ Use `level1`."""
 
         result = self._parse_and_evaluate(source)
         assert result is not None
-        assert isinstance(result, Integer)
+        assert isinstance(result, WholeNumber)
         assert result.value == 2  # level1's x value
 
     def test_nested_scope_access(self) -> None:
@@ -1383,7 +1384,7 @@ Use `access outer`."""
 
         result = self._parse_and_evaluate(source)
         assert result is not None
-        assert isinstance(result, Integer)
+        assert isinstance(result, WholeNumber)
         assert result.value == 100
 
     def test_scope_chain_resolution(self) -> None:
@@ -1406,7 +1407,7 @@ Use `scope test`."""
 
         result = self._parse_and_evaluate(source)
         assert result is not None
-        assert isinstance(result, Integer)
+        assert isinstance(result, WholeNumber)
         assert result.value == 51  # 1 + 20 + 30
 
     def test_scope_isolation(self) -> None:
@@ -1436,7 +1437,7 @@ Use `func2`."""
 
         result = self._parse_and_evaluate(source)
         assert result is not None
-        assert isinstance(result, Integer)
+        assert isinstance(result, WholeNumber)
         assert result.value == 20  # Each function has its own scope
 
     def test_if_statement_scope(self) -> None:
@@ -1453,7 +1454,7 @@ Give back `x`."""
         assert result is not None
         if isinstance(result, Error):
             print(f"Error: {result.message}")
-        assert isinstance(result, Integer)
+        assert isinstance(result, WholeNumber)
         assert result.value == 10  # If block has its own scope, doesn't modify outer x
 
     def test_nested_if_scopes(self) -> None:
@@ -1470,7 +1471,7 @@ Give back `x`."""
 
         result = self._parse_and_evaluate(source)
         assert result is not None
-        assert isinstance(result, Integer)
+        assert isinstance(result, WholeNumber)
         assert result.value == 1  # Outer x unchanged due to block scoping
 
     def test_function_parameter_shadowing(self) -> None:
@@ -1493,7 +1494,7 @@ Use `param shadow` where `x` is _42_."""
 
         result = self._parse_and_evaluate(source)
         assert result is not None
-        assert isinstance(result, Integer)
+        assert isinstance(result, WholeNumber)
         assert result.value == 42  # Parameter value, not outer x
 
     def test_complex_scope_chain(self) -> None:

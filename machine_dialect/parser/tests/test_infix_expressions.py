@@ -12,7 +12,7 @@ import pytest
 from machine_dialect.ast import (
     ExpressionStatement,
     InfixExpression,
-    IntegerLiteral,
+    WholeNumberLiteral,
     YesNoLiteral,
 )
 from machine_dialect.parser import Parser
@@ -522,11 +522,11 @@ class TestInfixExpressions:
 
         # Check the comparison operands
         assert left_expr.left is not None
-        assert isinstance(left_expr.left, IntegerLiteral)
+        assert isinstance(left_expr.left, WholeNumberLiteral)
         assert left_expr.left.value == 5
 
         assert left_expr.right is not None
-        assert isinstance(left_expr.right, IntegerLiteral)
+        assert isinstance(left_expr.right, WholeNumberLiteral)
         assert left_expr.right.value == 3
 
         # The right side should be True

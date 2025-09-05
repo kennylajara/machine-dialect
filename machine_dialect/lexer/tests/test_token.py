@@ -20,10 +20,10 @@ class TestToken:
 
     def test_token_equality_with_location(self) -> None:
         """Test that tokens are equal if all attributes match."""
-        token1 = Token(type=TokenType.LIT_INT, literal="42", line=1, position=1)
-        token2 = Token(type=TokenType.LIT_INT, literal="42", line=1, position=1)
+        token1 = Token(type=TokenType.LIT_WHOLE_NUMBER, literal="42", line=1, position=1)
+        token2 = Token(type=TokenType.LIT_WHOLE_NUMBER, literal="42", line=1, position=1)
         token3 = Token(
-            type=TokenType.LIT_INT,
+            type=TokenType.LIT_WHOLE_NUMBER,
             literal="42",
             line=2,  # Different line
             position=1,

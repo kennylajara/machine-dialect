@@ -1,7 +1,7 @@
 """Tests for Set statements with 'using' for function calls."""
 
 from machine_dialect.interpreter.evaluator import evaluate
-from machine_dialect.interpreter.objects import Environment, Integer
+from machine_dialect.interpreter.objects import Environment, WholeNumber
 from machine_dialect.parser import Parser
 
 
@@ -30,7 +30,7 @@ Set `answer` using `get_answer`."""
 
         # The answer should be stored in the environment
         assert "answer" in env.store
-        assert isinstance(env["answer"], Integer)
+        assert isinstance(env["answer"], WholeNumber)
         assert env["answer"].value == 42
 
     def test_set_using_function_with_positional_args(self) -> None:
@@ -61,7 +61,7 @@ Set `product` using `multiply` with `x`, `y`."""
 
         # The product should be stored in the environment
         assert "product" in env.store
-        assert isinstance(env["product"], Integer)
+        assert isinstance(env["product"], WholeNumber)
         assert env["product"].value == 35
 
     def test_set_using_function_with_named_args(self) -> None:
@@ -135,15 +135,15 @@ Set `final` using `add_ten` with `doubled`."""
 
         # Check the chain of operations
         assert "x" in env.store
-        assert isinstance(env["x"], Integer)
+        assert isinstance(env["x"], WholeNumber)
         assert env["x"].value == 5
 
         assert "doubled" in env.store
-        assert isinstance(env["doubled"], Integer)
+        assert isinstance(env["doubled"], WholeNumber)
         assert env["doubled"].value == 10
 
         assert "final" in env.store
-        assert isinstance(env["final"], Integer)
+        assert isinstance(env["final"], WholeNumber)
         assert env["final"].value == 20
 
     def test_set_using_with_default_parameters(self) -> None:
@@ -207,12 +207,12 @@ Set `result` using `test_scope`."""
 
         # The result should be the function's local value
         assert "result" in env.store
-        assert isinstance(env["result"], Integer)
+        assert isinstance(env["result"], WholeNumber)
         assert env["result"].value == 42
 
         # The global x should still be 100
         assert "x" in env.store
-        assert isinstance(env["x"], Integer)
+        assert isinstance(env["x"], WholeNumber)
         assert env["x"].value == 100
 
     def test_set_using_in_expression(self) -> None:
@@ -242,13 +242,13 @@ Set `result` to `squared` + _10_."""
 
         # Check the calculations
         assert "base" in env.store
-        assert isinstance(env["base"], Integer)
+        assert isinstance(env["base"], WholeNumber)
         assert env["base"].value == 5
 
         assert "squared" in env.store
-        assert isinstance(env["squared"], Integer)
+        assert isinstance(env["squared"], WholeNumber)
         assert env["squared"].value == 25
 
         assert "result" in env.store
-        assert isinstance(env["result"], Integer)
+        assert isinstance(env["result"], WholeNumber)
         assert env["result"].value == 35

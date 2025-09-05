@@ -29,7 +29,7 @@ class TestParserErrors:
     def test_parser_has_errors_method(self) -> None:
         """Test the has_errors() method."""
         # Valid source - no errors
-        source = "Define `X` as Integer. Set `X` to 42."
+        source = "Define `X` as Whole Number. Set `X` to 42."
         parser = Parser()
         parser.parse(source)
 

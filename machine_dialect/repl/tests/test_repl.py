@@ -6,7 +6,7 @@ from machine_dialect.lexer.lexer import Lexer
 # Test inputs
 test_inputs = [
     "if x > 0 then return true",
-    "Set x to Integer 42",
+    "Set x to Whole Number 42",
     "Define a rule called add that takes Number a and Number b",
     "**bold** text with #hash",
     "URL: https://example.com",

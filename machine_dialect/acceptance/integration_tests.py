@@ -65,7 +65,7 @@ class IntegrationTestRunner:
                 name="integer_literal",
                 code="Give back _42_.",
                 expected_output=42,
-                description="Integer literal",
+                description="Whole Number literal",
             ),
             IntegrationTestCase(
                 name="float_literal",
@@ -602,12 +602,12 @@ Use get_user_data.
 </details>
 
 #### Inputs:
-- `x` **as** Integer (required)
+- `x` **as** Whole Number (required)
 
 Use `process` with _42_.
 """,
                 expected_output=42,
-                description="Integer type annotation",
+                description="Whole Number type annotation",
             ),
             IntegrationTestCase(
                 name="type_float",
@@ -1099,12 +1099,12 @@ Use `get_pi`.
             Boolean,
             Empty,
             Float,
-            Integer,
             Return,
             String,
+            WholeNumber,
         )
 
-        if isinstance(obj, Integer):
+        if isinstance(obj, WholeNumber):
             return obj.value
         elif isinstance(obj, Float):
             return obj.value

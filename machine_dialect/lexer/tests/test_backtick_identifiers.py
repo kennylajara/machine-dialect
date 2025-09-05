@@ -33,7 +33,7 @@ class TestBacktickIdentifiers:
         assert len(tokens) == 3
         assert tokens[0].type == TokenType.MISC_ILLEGAL
         assert tokens[0].literal == "`"
-        assert tokens[1].type == TokenType.LIT_INT
+        assert tokens[1].type == TokenType.LIT_WHOLE_NUMBER
         assert tokens[1].literal == "42"
         assert tokens[2].type == TokenType.MISC_ILLEGAL
         assert tokens[2].literal == "`"

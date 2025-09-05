@@ -3,7 +3,7 @@
 import pytest
 
 from machine_dialect.interpreter.evaluator import evaluate
-from machine_dialect.interpreter.objects import Environment, Error, Float, Function, Integer, String
+from machine_dialect.interpreter.objects import Environment, Error, Float, Function, String, WholeNumber
 from machine_dialect.parser import Parser
 
 
@@ -90,7 +90,7 @@ Use `add numbers` with `x`, `y`."""
 
         # The call should return the sum
         assert result is not None
-        assert isinstance(result, Integer)
+        assert isinstance(result, WholeNumber)
         assert result.value == 15
 
     def test_utility_with_named_arguments(self) -> None:
@@ -119,7 +119,7 @@ Use `subtract` where `subtrahend` is _3_, `minuend` is _10_."""
 
         # Should return 10 - 3 = 7
         assert result is not None
-        assert isinstance(result, Integer)
+        assert isinstance(result, WholeNumber)
         assert result.value == 7
 
     def test_utility_with_default_parameters(self) -> None:
@@ -179,7 +179,7 @@ Use `absolute value` with _-5_."""
 
         # Should return 5 (absolute value of -5)
         assert result is not None
-        assert isinstance(result, Integer)
+        assert isinstance(result, WholeNumber)
         assert result.value == 5
 
     def test_utility_call_missing_required_parameter(self) -> None:
@@ -252,11 +252,11 @@ Use `test scope`."""
 
         # Should return 42 (the local value in the utility)
         assert result is not None
-        assert isinstance(result, Integer)
+        assert isinstance(result, WholeNumber)
         assert result.value == 42
 
         # The global x should still be 100
-        assert isinstance(env["x"], Integer)
+        assert isinstance(env["x"], WholeNumber)
         assert env["x"].value == 100
 
     def test_nested_utility_calls(self) -> None:
@@ -300,7 +300,7 @@ Use `quadruple` with _3_."""
 
         # Should return 12 (hardcoded for now since we can't capture call results yet)
         assert result is not None
-        assert isinstance(result, Integer)
+        assert isinstance(result, WholeNumber)
         assert result.value == 12
 
     def test_utility_without_return(self) -> None:
@@ -350,7 +350,7 @@ Use `access globals`."""
         result = evaluate(program, env)
 
         assert result is not None
-        assert isinstance(result, Integer)
+        assert isinstance(result, WholeNumber)
         assert result.value == 42
 
     def test_utility_cannot_modify_global(self) -> None:
@@ -378,7 +378,7 @@ Give back `x`."""
         result = evaluate(program, env)
 
         assert result is not None
-        assert isinstance(result, Integer)
+        assert isinstance(result, WholeNumber)
         assert result.value == 100  # Global x unchanged
 
     def test_nested_utility_environments(self) -> None:
@@ -418,7 +418,7 @@ Use `outer`."""
         result = evaluate(program, env)
 
         assert result is not None
-        assert isinstance(result, Integer)
+        assert isinstance(result, WholeNumber)
         assert result.value == 60
 
     def test_recursive_utility_environment(self) -> None:
@@ -450,7 +450,7 @@ Use `calculate` where `n` is _7_."""
 
         # Check last call result (7*2 + 7+10 = 14 + 17 = 31)
         assert result is not None
-        assert isinstance(result, Integer)
+        assert isinstance(result, WholeNumber)
         assert result.value == 31
 
         # Verify utility exists but local vars don't leak
@@ -493,7 +493,7 @@ Use `outer` with `outer_param` as _21_."""
         result = evaluate(program, env)
 
         assert result is not None
-        assert isinstance(result, Integer)
+        assert isinstance(result, WholeNumber)
         assert result.value == 42  # 21 * 2
 
     def test_utility_environment_with_conditionals(self) -> None:
@@ -524,7 +524,7 @@ Use `conditional env`."""
         result = evaluate(program, env)
 
         assert result is not None
-        assert isinstance(result, Integer)
+        assert isinstance(result, WholeNumber)
         assert result.value == 100
 
     def test_utility_parameter_priority(self) -> None:
@@ -555,7 +555,7 @@ Use `param priority` where `x` is _10_."""
         result = evaluate(program, env)
 
         assert result is not None
-        assert isinstance(result, Integer)
+        assert isinstance(result, WholeNumber)
         assert result.value == 60  # 10 (param) + 50 (default), not globals
 
     def test_multiple_utility_instances(self) -> None:
@@ -586,11 +586,11 @@ Set `second` using `counter` where `increment` is _3_."""
 
         # Each call should have its own counter
         assert "first" in env.store
-        assert isinstance(env["first"], Integer)
+        assert isinstance(env["first"], WholeNumber)
         assert env["first"].value == 5
 
         assert "second" in env.store
-        assert isinstance(env["second"], Integer)
+        assert isinstance(env["second"], WholeNumber)
         assert env["second"].value == 3
 
     def test_utility_environment_cleanup(self) -> None:
@@ -618,7 +618,7 @@ Use `messy function`."""
         result = evaluate(program, env)
 
         assert result is not None
-        assert isinstance(result, Integer)
+        assert isinstance(result, WholeNumber)
         assert result.value == 6
 
         # Local variables should not be in global environment

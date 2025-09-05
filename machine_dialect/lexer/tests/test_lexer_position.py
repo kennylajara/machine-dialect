@@ -14,7 +14,7 @@ class TestLexerPosition:
             Token(TokenType.KW_SET, "Set", line=1, position=1),
             Token(TokenType.MISC_IDENT, "x", line=1, position=5),
             Token(TokenType.OP_ASSIGN, "=", line=1, position=7),
-            Token(TokenType.LIT_INT, "42", line=1, position=9),
+            Token(TokenType.LIT_WHOLE_NUMBER, "42", line=1, position=9),
         ]
 
         assert tokens == expected
@@ -34,10 +34,10 @@ else
             Token(TokenType.LIT_YES, "Yes", line=1, position=4),
             Token(TokenType.KW_THEN, "then", line=1, position=8),
             Token(TokenType.KW_RETURN, "give back", line=2, position=5),
-            Token(TokenType.LIT_INT, "42", line=2, position=15),
+            Token(TokenType.LIT_WHOLE_NUMBER, "42", line=2, position=15),
             Token(TokenType.KW_ELSE, "else", line=3, position=1),
             Token(TokenType.KW_RETURN, "gives back", line=4, position=5),
-            Token(TokenType.LIT_INT, "0", line=4, position=16),
+            Token(TokenType.LIT_WHOLE_NUMBER, "0", line=4, position=16),
         ]
 
         assert tokens == expected
@@ -70,11 +70,11 @@ Set y = 2"""
             Token(TokenType.KW_SET, "Set", line=1, position=1),
             Token(TokenType.MISC_IDENT, "x", line=1, position=5),
             Token(TokenType.OP_ASSIGN, "=", line=1, position=7),
-            Token(TokenType.LIT_INT, "1", line=1, position=9),
+            Token(TokenType.LIT_WHOLE_NUMBER, "1", line=1, position=9),
             Token(TokenType.KW_SET, "Set", line=3, position=1),
             Token(TokenType.MISC_IDENT, "y", line=3, position=5),
             Token(TokenType.OP_ASSIGN, "=", line=3, position=7),
-            Token(TokenType.LIT_INT, "2", line=3, position=9),
+            Token(TokenType.LIT_WHOLE_NUMBER, "2", line=3, position=9),
         ]
 
         assert tokens == expected
@@ -90,7 +90,7 @@ Set y = 2"""
             Token(TokenType.KW_SET, "Set", line=1, position=1),
             Token(TokenType.MISC_IDENT, "x", line=1, position=5),
             Token(TokenType.OP_ASSIGN, "=", line=1, position=7),
-            Token(TokenType.LIT_INT, "42", line=1, position=9),
+            Token(TokenType.LIT_WHOLE_NUMBER, "42", line=1, position=9),
         ]
 
         assert tokens == expected

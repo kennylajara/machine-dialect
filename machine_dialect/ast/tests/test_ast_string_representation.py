@@ -1,4 +1,4 @@
-from machine_dialect.ast import Identifier, IntegerLiteral, Program, ReturnStatement, SetStatement
+from machine_dialect.ast import Identifier, Program, ReturnStatement, SetStatement, WholeNumberLiteral
 from machine_dialect.lexer import Token, TokenType
 
 
@@ -41,7 +41,7 @@ class TestASTStringRepresentation:
                 SetStatement(
                     token=Token(TokenType.KW_SET, "Set", 1, 0),
                     name=Identifier(token=Token(TokenType.MISC_IDENT, "x", 1, 4), value="x"),
-                    value=IntegerLiteral(token=Token(TokenType.LIT_INT, "_42_", 1, 11), value=42),
+                    value=WholeNumberLiteral(token=Token(TokenType.LIT_WHOLE_NUMBER, "_42_", 1, 11), value=42),
                 ),
                 SetStatement(
                     token=Token(TokenType.KW_SET, "Set", 2, 0),

@@ -16,13 +16,13 @@ from machine_dialect.ast import (
     Identifier,
     IfStatement,
     InfixExpression,
-    IntegerLiteral,
     InteractionStatement,
     PrefixExpression,
     ReturnStatement,
     SetStatement,
     StringLiteral,
     UtilityStatement,
+    WholeNumberLiteral,
     YesNoLiteral,
 )
 from machine_dialect.lexer import Token, TokenType
@@ -33,8 +33,8 @@ class TestExpressionDesugaring(unittest.TestCase):
 
     def test_literal_desugaring(self) -> None:
         """Test that literals remain unchanged during desugaring."""
-        # Integer literal
-        int_lit = IntegerLiteral(Token(TokenType.LIT_INT, "42", 1, 1), 42)
+        # Whole Number literal
+        int_lit = WholeNumberLiteral(Token(TokenType.LIT_WHOLE_NUMBER, "42", 1, 1), 42)
         self.assertIs(int_lit.desugar(), int_lit)
 
         # Float literal
@@ -63,7 +63,7 @@ class TestExpressionDesugaring(unittest.TestCase):
         # Create a prefix expression: -42
         token = Token(TokenType.OP_MINUS, "-", 1, 1)
         prefix = PrefixExpression(token, "-")
-        prefix.right = IntegerLiteral(Token(TokenType.LIT_INT, "42", 1, 2), 42)
+        prefix.right = WholeNumberLiteral(Token(TokenType.LIT_WHOLE_NUMBER, "42", 1, 2), 42)
 
         desugared = prefix.desugar()
 
@@ -77,7 +77,7 @@ class TestExpressionDesugaring(unittest.TestCase):
     def test_infix_expression_operator_normalization(self) -> None:
         """Test that natural language operators are normalized during desugaring."""
         left = Identifier(Token(TokenType.MISC_IDENT, "x", 1, 1), "x")
-        right = IntegerLiteral(Token(TokenType.LIT_INT, "5", 1, 10), 5)
+        right = WholeNumberLiteral(Token(TokenType.LIT_WHOLE_NUMBER, "5", 1, 10), 5)
 
         # Test equality operators - include correct token types
         test_cases = [
@@ -115,7 +115,7 @@ class TestExpressionDesugaring(unittest.TestCase):
     def test_infix_expression_already_normalized(self) -> None:
         """Test that already normalized operators remain unchanged."""
         left = Identifier(Token(TokenType.MISC_IDENT, "x", 1, 1), "x")
-        right = IntegerLiteral(Token(TokenType.LIT_INT, "5", 1, 5), 5)
+        right = WholeNumberLiteral(Token(TokenType.LIT_WHOLE_NUMBER, "5", 1, 5), 5)
 
         # Use correct token types for each operator
         operators = [
@@ -146,9 +146,9 @@ class TestExpressionDesugaring(unittest.TestCase):
 
     def test_conditional_expression_desugaring(self) -> None:
         """Test desugaring of conditional expressions."""
-        consequence = IntegerLiteral(Token(TokenType.LIT_INT, "1", 1, 1), 1)
+        consequence = WholeNumberLiteral(Token(TokenType.LIT_WHOLE_NUMBER, "1", 1, 1), 1)
         condition = YesNoLiteral(Token(TokenType.LIT_YES, "True", 1, 5), True)
-        alternative = IntegerLiteral(Token(TokenType.LIT_INT, "2", 1, 15), 2)
+        alternative = WholeNumberLiteral(Token(TokenType.LIT_WHOLE_NUMBER, "2", 1, 15), 2)
 
         token = Token(TokenType.KW_IF, "if", 1, 3)
         cond_expr = ConditionalExpression(token, consequence)
@@ -170,7 +170,7 @@ class TestExpressionDesugaring(unittest.TestCase):
         args = Arguments(token)
 
         # Add positional arguments
-        args.positional.append(IntegerLiteral(Token(TokenType.LIT_INT, "1", 1, 15), 1))
+        args.positional.append(WholeNumberLiteral(Token(TokenType.LIT_WHOLE_NUMBER, "1", 1, 15), 1))
         args.positional.append(StringLiteral(Token(TokenType.LIT_TEXT, '"test"', 1, 18), '"test"'))
 
         # Add named arguments
@@ -194,7 +194,7 @@ class TestStatementDesugaring(unittest.TestCase):
 
     def test_return_statement_normalization(self) -> None:
         """Test that return statements normalize 'give back' and 'gives back' to 'return'."""
-        return_value = IntegerLiteral(Token(TokenType.LIT_INT, "42", 1, 11), 42)
+        return_value = WholeNumberLiteral(Token(TokenType.LIT_WHOLE_NUMBER, "42", 1, 11), 42)
 
         # Test "give back"
         token1 = Token(TokenType.KW_RETURN, "give back", 1, 1)
@@ -218,7 +218,7 @@ class TestStatementDesugaring(unittest.TestCase):
         """Test desugaring of set statements."""
         token = Token(TokenType.KW_SET, "Set", 1, 1)
         name = Identifier(Token(TokenType.MISC_IDENT, "x", 1, 5), "x")
-        value = IntegerLiteral(Token(TokenType.LIT_INT, "42", 1, 10), 42)
+        value = WholeNumberLiteral(Token(TokenType.LIT_WHOLE_NUMBER, "42", 1, 10), 42)
 
         set_stmt = SetStatement(token, name, value)
         desugared = set_stmt.desugar()
@@ -252,7 +252,8 @@ class TestStatementDesugaring(unittest.TestCase):
         # Test single statement block - now preserves block for scope
         block1 = BlockStatement(token, depth=1)
         single_stmt = ReturnStatement(
-            Token(TokenType.KW_RETURN, "return", 2, 3), IntegerLiteral(Token(TokenType.LIT_INT, "42", 2, 10), 42)
+            Token(TokenType.KW_RETURN, "return", 2, 3),
+            WholeNumberLiteral(Token(TokenType.LIT_WHOLE_NUMBER, "42", 2, 10), 42),
         )
         block1.statements = [single_stmt]
 
@@ -266,7 +267,7 @@ class TestStatementDesugaring(unittest.TestCase):
         stmt1 = SetStatement(
             Token(TokenType.KW_SET, "Set", 2, 3),
             Identifier(Token(TokenType.MISC_IDENT, "x", 2, 7), "x"),
-            IntegerLiteral(Token(TokenType.LIT_INT, "1", 2, 12), 1),
+            WholeNumberLiteral(Token(TokenType.LIT_WHOLE_NUMBER, "1", 2, 12), 1),
         )
         stmt2 = ReturnStatement(
             Token(TokenType.KW_RETURN, "return", 3, 3), Identifier(Token(TokenType.MISC_IDENT, "x", 3, 10), "x")
@@ -299,7 +300,8 @@ class TestStatementDesugaring(unittest.TestCase):
         consequence = BlockStatement(Token(TokenType.PUNCT_COLON, ":", 1, 9), depth=1)
         consequence.statements = [
             ReturnStatement(
-                Token(TokenType.KW_RETURN, "give back", 2, 3), IntegerLiteral(Token(TokenType.LIT_INT, "1", 2, 13), 1)
+                Token(TokenType.KW_RETURN, "give back", 2, 3),
+                WholeNumberLiteral(Token(TokenType.LIT_WHOLE_NUMBER, "1", 2, 13), 1),
             )
         ]
 
@@ -307,7 +309,8 @@ class TestStatementDesugaring(unittest.TestCase):
         alternative = BlockStatement(Token(TokenType.PUNCT_COLON, ":", 3, 5), depth=1)
         alternative.statements = [
             ReturnStatement(
-                Token(TokenType.KW_RETURN, "gives back", 4, 3), IntegerLiteral(Token(TokenType.LIT_INT, "2", 4, 14), 2)
+                Token(TokenType.KW_RETURN, "gives back", 4, 3),
+                WholeNumberLiteral(Token(TokenType.LIT_WHOLE_NUMBER, "2", 4, 14), 2),
             )
         ]
 
@@ -341,7 +344,7 @@ class TestStatementDesugaring(unittest.TestCase):
         """Test desugaring of expression statements."""
         # Create an infix expression that needs normalization
         left = Identifier(Token(TokenType.MISC_IDENT, "x", 1, 1), "x")
-        right = IntegerLiteral(Token(TokenType.LIT_INT, "5", 1, 15), 5)
+        right = WholeNumberLiteral(Token(TokenType.LIT_WHOLE_NUMBER, "5", 1, 15), 5)
 
         infix = InfixExpression(Token(TokenType.OP_EQ, "is equal to", 1, 3), "is equal to", left)
         infix.right = right
@@ -367,7 +370,8 @@ class TestFunctionStatementDesugaring(unittest.TestCase):
         body = BlockStatement(Token(TokenType.PUNCT_COLON, ":", 1, 20), depth=1)
         body.statements = [
             ReturnStatement(
-                Token(TokenType.KW_RETURN, "give back", 2, 3), IntegerLiteral(Token(TokenType.LIT_INT, "42", 2, 13), 42)
+                Token(TokenType.KW_RETURN, "give back", 2, 3),
+                WholeNumberLiteral(Token(TokenType.LIT_WHOLE_NUMBER, "42", 2, 13), 42),
             )
         ]
 
@@ -397,7 +401,7 @@ class TestFunctionStatementDesugaring(unittest.TestCase):
             SetStatement(
                 Token(TokenType.KW_SET, "Set", 2, 3),
                 Identifier(Token(TokenType.MISC_IDENT, "x", 2, 7), "x"),
-                IntegerLiteral(Token(TokenType.LIT_INT, "10", 2, 12), 10),
+                WholeNumberLiteral(Token(TokenType.LIT_WHOLE_NUMBER, "10", 2, 12), 10),
             )
         ]
 
@@ -417,7 +421,7 @@ class TestFunctionStatementDesugaring(unittest.TestCase):
         body.statements = [
             ReturnStatement(
                 Token(TokenType.KW_RETURN, "gives back", 2, 3),
-                IntegerLiteral(Token(TokenType.LIT_INT, "100", 2, 14), 100),
+                WholeNumberLiteral(Token(TokenType.LIT_WHOLE_NUMBER, "100", 2, 14), 100),
             )
         ]
 
@@ -468,13 +472,13 @@ class TestComplexDesugaring(unittest.TestCase):
         """Test desugaring of deeply nested expressions."""
         # Create: (x is equal to 5) and (y is greater than 10)
         x = Identifier(Token(TokenType.MISC_IDENT, "x", 1, 1), "x")
-        five = IntegerLiteral(Token(TokenType.LIT_INT, "5", 1, 15), 5)
+        five = WholeNumberLiteral(Token(TokenType.LIT_WHOLE_NUMBER, "5", 1, 15), 5)
 
         left_expr = InfixExpression(Token(TokenType.OP_EQ, "is equal to", 1, 3), "is equal to", x)
         left_expr.right = five
 
         y = Identifier(Token(TokenType.MISC_IDENT, "y", 1, 20), "y")
-        ten = IntegerLiteral(Token(TokenType.LIT_INT, "10", 1, 38), 10)
+        ten = WholeNumberLiteral(Token(TokenType.LIT_WHOLE_NUMBER, "10", 1, 38), 10)
 
         right_expr = InfixExpression(Token(TokenType.OP_GT, "is greater than", 1, 22), "is greater than", y)
         right_expr.right = ten
@@ -505,7 +509,7 @@ class TestComplexDesugaring(unittest.TestCase):
 
         # Condition: x is strictly equal to 5
         x = Identifier(Token(TokenType.MISC_IDENT, "x", 1, 4), "x")
-        five = IntegerLiteral(Token(TokenType.LIT_INT, "5", 1, 27), 5)
+        five = WholeNumberLiteral(Token(TokenType.LIT_WHOLE_NUMBER, "5", 1, 27), 5)
         condition = InfixExpression(
             Token(TokenType.OP_STRICT_EQ, "is strictly equal to", 1, 6), "is strictly equal to", x
         )
@@ -517,7 +521,7 @@ class TestComplexDesugaring(unittest.TestCase):
         inner_block.statements = [
             ReturnStatement(
                 Token(TokenType.KW_RETURN, "give back", 3, 7),
-                IntegerLiteral(Token(TokenType.LIT_INT, "100", 3, 17), 100),
+                WholeNumberLiteral(Token(TokenType.LIT_WHOLE_NUMBER, "100", 3, 17), 100),
             )
         ]
         consequence.statements = [inner_block]

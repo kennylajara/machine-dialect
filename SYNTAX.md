@@ -35,7 +35,7 @@ Identifiers name variables, functions, and other entities.
 
 #### 2. Literals
 
-##### Integer Literals
+##### Whole Number Literals
 
 - Regular: `42`, `0`, `-17`
 - Underscore-wrapped: `_42_`, `_-17_`

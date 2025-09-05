@@ -22,7 +22,6 @@ from machine_dialect.ast import (
     Identifier,
     IfStatement,
     InfixExpression,
-    IntegerLiteral,
     InteractionStatement,
     Parameter,
     PrefixExpression,
@@ -34,6 +33,7 @@ from machine_dialect.ast import (
     StringLiteral,
     URLLiteral,
     UtilityStatement,
+    WholeNumberLiteral,
     YesNoLiteral,
 )
 from machine_dialect.mir.basic_block import BasicBlock
@@ -560,7 +560,7 @@ class HIRToMIRLowering:
             return Constant(None)
 
         # Handle literals
-        if isinstance(expr, IntegerLiteral):
+        if isinstance(expr, WholeNumberLiteral):
             return Constant(expr.value, MIRType.INT)
         elif isinstance(expr, FloatLiteral):
             return Constant(expr.value, MIRType.FLOAT)

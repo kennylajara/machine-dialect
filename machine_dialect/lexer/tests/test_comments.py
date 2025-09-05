@@ -86,7 +86,7 @@ that spans multiple lines
         assert tokens[1].type == TokenType.MISC_IDENT
         assert tokens[1].literal == "x"
         assert tokens[2].type == TokenType.KW_TO
-        assert tokens[3].type == TokenType.LIT_INT
+        assert tokens[3].type == TokenType.LIT_WHOLE_NUMBER
         assert tokens[3].literal == "10"
         assert tokens[4].type == TokenType.PUNCT_PERIOD
 
@@ -101,7 +101,7 @@ that spans multiple lines
         assert tokens[9].type == TokenType.MISC_IDENT
         assert tokens[9].literal == "y"
         assert tokens[10].type == TokenType.KW_TO
-        assert tokens[11].type == TokenType.LIT_INT
+        assert tokens[11].type == TokenType.LIT_WHOLE_NUMBER
         assert tokens[11].literal == "20"
         assert tokens[12].type == TokenType.PUNCT_PERIOD
         assert tokens[13].type == TokenType.MISC_EOF

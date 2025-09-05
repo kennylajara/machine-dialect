@@ -194,7 +194,7 @@ but lacks support for:
 1. **Modern function syntax** (utilities, Use keyword, using keyword)
 1. **Rich documentation features** (HTML tags, markdown headers)
 1. **Advanced identifier formats** (backticks, bold text)
-1. **Type system keywords** (Boolean, Integer, Float, etc.)
+1. **Type system keywords** (Boolean, WholeNumber, Float, etc.)
 1. **Natural language operator variants**
 1. **Complex nested structures**
 1. **Error recovery mechanisms**

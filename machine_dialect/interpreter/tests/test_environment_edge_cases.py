@@ -4,7 +4,7 @@
 import pytest
 
 from machine_dialect.interpreter.evaluator import evaluate
-from machine_dialect.interpreter.objects import Environment, Error, Function, Integer, String
+from machine_dialect.interpreter.objects import Environment, Error, Function, String, WholeNumber
 from machine_dialect.parser import Parser
 
 
@@ -32,7 +32,7 @@ Give back `变量` + `🚀`."""
         result, env = self._parse_and_evaluate(source)
 
         assert result is not None
-        assert isinstance(result, Integer)
+        assert isinstance(result, WholeNumber)
         assert result.value == 142
 
         # Check unicode names are stored correctly
@@ -43,10 +43,10 @@ Give back `变量` + `🚀`."""
     def test_environment_with_empty_string_name(self) -> None:
         """Test variable with empty string as name."""
         env = Environment()
-        env[""] = Integer(42)
+        env[""] = WholeNumber(42)
 
         assert "" in env
-        assert isinstance(env[""], Integer)
+        assert isinstance(env[""], WholeNumber)
         assert env[""].value == 42
 
     def test_environment_with_very_long_name(self) -> None:
@@ -58,7 +58,7 @@ Give back `{long_name}`."""
         result, _ = self._parse_and_evaluate(source)
 
         assert result is not None
-        assert isinstance(result, Integer)
+        assert isinstance(result, WholeNumber)
         assert result.value == 42
 
     def test_maximum_scope_depth(self) -> None:
@@ -90,7 +90,7 @@ Give back `{long_name}`."""
         result, _ = self._parse_and_evaluate(source)
 
         assert result is not None
-        assert isinstance(result, Integer)
+        assert isinstance(result, WholeNumber)
         assert result.value == depth - 1
 
     def test_environment_with_large_data(self) -> None:
@@ -127,7 +127,7 @@ Give back `large`."""
         result, env = self._parse_and_evaluate(source)
 
         assert result is not None
-        assert isinstance(result, Integer)
+        assert isinstance(result, WholeNumber)
         # Sum of 0 to 99 = (99 * 100) / 2 = 4950
         assert result.value == sum(range(num_vars))
 
@@ -168,7 +168,7 @@ Use `circular1`."""
         result, env = self._parse_and_evaluate(source)
 
         assert result is not None
-        assert isinstance(result, Integer)
+        assert isinstance(result, WholeNumber)
         assert result.value == 0
 
     def test_environment_after_error(self) -> None:
@@ -187,9 +187,9 @@ Set `w` to _30_."""
         # But x and y should be set
         assert "x" in env.store
         assert "y" in env.store
-        assert isinstance(env["x"], Integer)
+        assert isinstance(env["x"], WholeNumber)
         assert env["x"].value == 10
-        assert isinstance(env["y"], Integer)
+        assert isinstance(env["y"], WholeNumber)
         assert env["y"].value == 20
 
         # w should not be set (error occurred before)
@@ -226,7 +226,7 @@ Give back `var`."""
         result, env = self._parse_and_evaluate(source)
 
         assert result is not None
-        assert isinstance(result, Integer)
+        assert isinstance(result, WholeNumber)
         assert result.value == 42  # Original type preserved
 
     def test_parameter_with_same_name_as_global(self) -> None:
@@ -250,7 +250,7 @@ Use `process` where `value` is _5_."""
         result, _ = self._parse_and_evaluate(source)
 
         assert result is not None
-        assert isinstance(result, Integer)
+        assert isinstance(result, WholeNumber)
         assert result.value == 10  # 5 * 2, not 100 * 2
 
     def test_nested_set_using_statements(self) -> None:
@@ -288,7 +288,7 @@ Give back `y`."""
         result, _ = self._parse_and_evaluate(source)
 
         assert result is not None
-        assert isinstance(result, Integer)
+        assert isinstance(result, WholeNumber)
         assert result.value == 14  # (3 + 4) * 2
 
     def test_environment_with_null_like_values(self) -> None:
@@ -342,7 +342,7 @@ Use `func`."""
         result, env = self._parse_and_evaluate(source)
 
         assert result is not None
-        assert isinstance(result, Integer)
+        assert isinstance(result, WholeNumber)
         assert result.value == 2  # Uses second definition
 
         # Check that func is a Function
@@ -360,7 +360,7 @@ Use `func`."""
         result, _ = self._parse_and_evaluate(source)
 
         assert result is not None
-        assert isinstance(result, Integer)
+        assert isinstance(result, WholeNumber)
         assert result.value == sum(range(1, 21))  # 210
 
     def test_environment_consistency_across_returns(self) -> None:
@@ -387,7 +387,7 @@ Give back `global`."""
         result, env = self._parse_and_evaluate(source)
 
         assert result is not None
-        assert isinstance(result, Integer)
+        assert isinstance(result, WholeNumber)
         assert result.value == 100
 
         # Check global environment is clean

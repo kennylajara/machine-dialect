@@ -7,9 +7,9 @@ from machine_dialect.ast import (
     ExpressionStatement,
     Identifier,
     InfixExpression,
-    IntegerLiteral,
     Program,
     SetStatement,
+    WholeNumberLiteral,
 )
 from machine_dialect.codegen.isa import Opcode
 from machine_dialect.compiler.config import CompilerConfig, OptimizationLevel
@@ -116,11 +116,11 @@ class TestExpressionStatementMIR(unittest.TestCase):
     def test_expression_statement_generates_pop(self) -> None:
         """Test that expression statements generate Pop instructions."""
         # Create an expression statement: 2 + 3
-        left = IntegerLiteral(Token(TokenType.LIT_INT, "2", 1, 0), 2)
-        right = IntegerLiteral(Token(TokenType.LIT_INT, "3", 1, 4), 3)
+        left = WholeNumberLiteral(Token(TokenType.LIT_WHOLE_NUMBER, "2", 1, 0), 2)
+        right = WholeNumberLiteral(Token(TokenType.LIT_WHOLE_NUMBER, "3", 1, 4), 3)
         expr = InfixExpression(Token(TokenType.OP_PLUS, "+", 1, 2), "+", left)
         expr.right = right
-        expr_stmt = ExpressionStatement(Token(TokenType.LIT_INT, "2", 1, 0), expr)
+        expr_stmt = ExpressionStatement(Token(TokenType.LIT_WHOLE_NUMBER, "2", 1, 0), expr)
 
         # Convert to MIR
         self.converter.lower_expression_statement(expr_stmt)
@@ -135,11 +135,11 @@ class TestExpressionStatementMIR(unittest.TestCase):
     def test_multiple_expression_statements(self) -> None:
         """Test multiple expression statements each generate Pop."""
         # Create two expression statements
-        expr1 = IntegerLiteral(Token(TokenType.LIT_INT, "42", 1, 0), 42)
-        stmt1 = ExpressionStatement(Token(TokenType.LIT_INT, "42", 1, 0), expr1)
+        expr1 = WholeNumberLiteral(Token(TokenType.LIT_WHOLE_NUMBER, "42", 1, 0), 42)
+        stmt1 = ExpressionStatement(Token(TokenType.LIT_WHOLE_NUMBER, "42", 1, 0), expr1)
 
-        expr2 = IntegerLiteral(Token(TokenType.LIT_INT, "100", 2, 0), 100)
-        stmt2 = ExpressionStatement(Token(TokenType.LIT_INT, "100", 2, 0), expr2)
+        expr2 = WholeNumberLiteral(Token(TokenType.LIT_WHOLE_NUMBER, "100", 2, 0), 100)
+        stmt2 = ExpressionStatement(Token(TokenType.LIT_WHOLE_NUMBER, "100", 2, 0), expr2)
 
         # Convert both
         self.converter.lower_expression_statement(stmt1)
@@ -183,11 +183,11 @@ class TestPopBytecodeGeneration(unittest.TestCase):
     def test_expression_statement_full_pipeline(self) -> None:
         """Test full pipeline from AST expression statement to bytecode with POP."""
         # Create an expression statement in AST
-        left = IntegerLiteral(Token(TokenType.LIT_INT, "5", 1, 0), 5)
-        right = IntegerLiteral(Token(TokenType.LIT_INT, "7", 1, 4), 7)
+        left = WholeNumberLiteral(Token(TokenType.LIT_WHOLE_NUMBER, "5", 1, 0), 5)
+        right = WholeNumberLiteral(Token(TokenType.LIT_WHOLE_NUMBER, "7", 1, 4), 7)
         expr = InfixExpression(Token(TokenType.OP_STAR, "*", 1, 2), "*", left)
         expr.right = right
-        expr_stmt = ExpressionStatement(Token(TokenType.LIT_INT, "5", 1, 0), expr)
+        expr_stmt = ExpressionStatement(Token(TokenType.LIT_WHOLE_NUMBER, "5", 1, 0), expr)
 
         program = Program([expr_stmt])
 
@@ -227,15 +227,15 @@ class TestPopBytecodeGeneration(unittest.TestCase):
         set_stmt = SetStatement(
             Token(TokenType.KW_SET, "Set", 1, 0),
             Identifier(Token(TokenType.MISC_IDENT, "x", 1, 4), "x"),
-            IntegerLiteral(Token(TokenType.LIT_INT, "10", 1, 9), 10),
+            WholeNumberLiteral(Token(TokenType.LIT_WHOLE_NUMBER, "10", 1, 9), 10),
         )
 
         # Expression statement: 5 + 3 (result discarded)
-        left = IntegerLiteral(Token(TokenType.LIT_INT, "5", 2, 0), 5)
-        right = IntegerLiteral(Token(TokenType.LIT_INT, "3", 2, 4), 3)
+        left = WholeNumberLiteral(Token(TokenType.LIT_WHOLE_NUMBER, "5", 2, 0), 5)
+        right = WholeNumberLiteral(Token(TokenType.LIT_WHOLE_NUMBER, "3", 2, 4), 3)
         expr = InfixExpression(Token(TokenType.OP_PLUS, "+", 2, 2), "+", left)
         expr.right = right
-        expr_stmt = ExpressionStatement(Token(TokenType.LIT_INT, "5", 2, 0), expr)
+        expr_stmt = ExpressionStatement(Token(TokenType.LIT_WHOLE_NUMBER, "5", 2, 0), expr)
 
         program = Program([set_stmt, expr_stmt])
 
@@ -278,16 +278,16 @@ class TestComplexExpressionStatements(unittest.TestCase):
     def test_nested_expression_statement(self) -> None:
         """Test nested expressions in expression statements generate correct Pop."""
         # Create: (2 + 3) * 4 as an expression statement
-        add_left = IntegerLiteral(Token(TokenType.LIT_INT, "2", 1, 0), 2)
-        add_right = IntegerLiteral(Token(TokenType.LIT_INT, "3", 1, 4), 3)
+        add_left = WholeNumberLiteral(Token(TokenType.LIT_WHOLE_NUMBER, "2", 1, 0), 2)
+        add_right = WholeNumberLiteral(Token(TokenType.LIT_WHOLE_NUMBER, "3", 1, 4), 3)
         add_expr = InfixExpression(Token(TokenType.OP_PLUS, "+", 1, 2), "+", add_left)
         add_expr.right = add_right
 
-        mul_right = IntegerLiteral(Token(TokenType.LIT_INT, "4", 1, 8), 4)
+        mul_right = WholeNumberLiteral(Token(TokenType.LIT_WHOLE_NUMBER, "4", 1, 8), 4)
         mul_expr = InfixExpression(Token(TokenType.OP_STAR, "*", 1, 6), "*", add_expr)
         mul_expr.right = mul_right
 
-        expr_stmt = ExpressionStatement(Token(TokenType.LIT_INT, "2", 1, 0), mul_expr)
+        expr_stmt = ExpressionStatement(Token(TokenType.LIT_WHOLE_NUMBER, "2", 1, 0), mul_expr)
         program = Program([expr_stmt])
 
         # Compile
@@ -324,7 +324,7 @@ class TestComplexExpressionStatements(unittest.TestCase):
         set_stmt = SetStatement(
             Token(TokenType.KW_SET, "Set", 1, 0),
             Identifier(Token(TokenType.MISC_IDENT, "x", 1, 4), "x"),
-            IntegerLiteral(Token(TokenType.LIT_INT, "42", 1, 9), 42),
+            WholeNumberLiteral(Token(TokenType.LIT_WHOLE_NUMBER, "42", 1, 9), 42),
         )
 
         # Use x as an expression statement (just evaluate and discard)

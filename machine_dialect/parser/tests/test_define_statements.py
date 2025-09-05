@@ -7,7 +7,7 @@ class TestDefineStatements:
 
     def test_parse_simple_define(self) -> None:
         """Test parsing basic Define statement."""
-        source = "Define `count` as Integer."
+        source = "Define `count` as Whole Number."
         parser = Parser()
 
         # Debug: Add print before parsing
@@ -33,7 +33,7 @@ class TestDefineStatements:
         stmt = program.statements[0]
         assert isinstance(stmt, DefineStatement)
         assert stmt.name.value == "count"
-        assert stmt.type_spec == ["Integer"]
+        assert stmt.type_spec == ["Whole Number"]
         assert stmt.initial_value is None
 
     def test_parse_define_with_default(self) -> None:
@@ -70,7 +70,7 @@ class TestDefineStatements:
 
     def test_parse_define_with_integer_default(self) -> None:
         """Test parsing Define with integer default."""
-        source = "Define `age` as Integer (default: _25_)."
+        source = "Define `age` as Whole Number (default: _25_)."
         parser = Parser()
         program = parser.parse(source)
 
@@ -78,7 +78,7 @@ class TestDefineStatements:
         stmt = program.statements[0]
         assert isinstance(stmt, DefineStatement)
         assert stmt.name.value == "age"
-        assert stmt.type_spec == ["Integer"]
+        assert stmt.type_spec == ["Whole Number"]
         assert str(stmt.initial_value) == "_25_"
 
     def test_parse_define_with_boolean_default(self) -> None:
@@ -96,7 +96,7 @@ class TestDefineStatements:
 
     def test_parse_union_type(self) -> None:
         """Test parsing Define with union types."""
-        source = "Define `value` as Integer or Text."
+        source = "Define `value` as Whole Number or Text."
         parser = Parser()
         program = parser.parse(source)
 
@@ -104,7 +104,7 @@ class TestDefineStatements:
         stmt = program.statements[0]
         assert isinstance(stmt, DefineStatement)
         assert stmt.name.value == "value"
-        assert stmt.type_spec == ["Integer", "Text"]
+        assert stmt.type_spec == ["Whole Number", "Text"]
 
     def test_parse_multiple_union_types(self) -> None:
         """Test parsing Define with multiple union types."""
@@ -135,7 +135,7 @@ class TestDefineStatements:
         """Test parsing various type names."""
         test_cases = [
             ("Define `a` as Text.", ["Text"]),
-            ("Define `b` as Integer.", ["Integer"]),
+            ("Define `b` as Whole Number.", ["Whole Number"]),
             ("Define `c` as Float.", ["Float"]),
             ("Define `d` as Number.", ["Number"]),
             ("Define `e` as Yes/No.", ["Yes/No"]),
@@ -157,7 +157,7 @@ class TestDefineStatements:
 
     def test_error_missing_variable_name(self) -> None:
         """Test error when variable name is missing."""
-        source = "Define as Integer."
+        source = "Define as Whole Number."
         parser = Parser()
         _ = parser.parse(source)
 
@@ -166,7 +166,7 @@ class TestDefineStatements:
 
     def test_error_missing_as_keyword(self) -> None:
         """Test error when 'as' keyword is missing."""
-        source = "Define `count` Integer."
+        source = "Define `count` Whole Number."
         parser = Parser()
         _ = parser.parse(source)
 
@@ -182,7 +182,7 @@ class TestDefineStatements:
 
     def test_error_invalid_default_syntax(self) -> None:
         """Test error with invalid default syntax."""
-        source = "Define `x` as Integer (default _5_)."  # Missing colon
+        source = "Define `x` as Whole Number (default _5_)."  # Missing colon
         parser = Parser()
         _ = parser.parse(source)
 
@@ -190,7 +190,7 @@ class TestDefineStatements:
 
     def test_define_with_stopwords(self) -> None:
         """Test that stopwords are properly skipped."""
-        source = "Define the `count` as an Integer."
+        source = "Define the `count` as a Whole Number."
         parser = Parser()
         program = parser.parse(source)
 
@@ -198,13 +198,13 @@ class TestDefineStatements:
         stmt = program.statements[0]
         assert isinstance(stmt, DefineStatement)
         assert stmt.name.value == "count"
-        assert stmt.type_spec == ["Integer"]
+        assert stmt.type_spec == ["Whole Number"]
 
     def test_multiple_define_statements(self) -> None:
         """Test parsing multiple Define statements."""
         source = """
 Define `name` as Text.
-Define `age` as Integer.
+Define `age` as Whole Number.
 Define `active` as Yes/No (default: _yes_).
         """
         parser = Parser()
@@ -223,7 +223,7 @@ Define `active` as Yes/No (default: _yes_).
         stmt2 = program.statements[1]
         assert isinstance(stmt2, DefineStatement)
         assert stmt2.name.value == "age"
-        assert stmt2.type_spec == ["Integer"]
+        assert stmt2.type_spec == ["Whole Number"]
         assert stmt2.initial_value is None
 
         # Check third statement
@@ -237,12 +237,12 @@ Define `active` as Yes/No (default: _yes_).
         """Test parsing Define with identifier-based type names."""
         test_cases = [
             ("Define `a` as text.", ["Text"]),
-            ("Define `b` as integer.", ["Integer"]),
+            ("Define `b` as integer.", ["integer"]),  # No longer mapped
             ("Define `c` as float.", ["Float"]),
             ("Define `d` as number.", ["Number"]),
-            ("Define `e` as boolean.", ["Yes/No"]),
-            ("Define `f` as bool.", ["Yes/No"]),
-            ("Define `g` as status.", ["Yes/No"]),
+            ("Define `e` as boolean.", ["boolean"]),  # No longer mapped
+            ("Define `f` as bool.", ["bool"]),  # No longer mapped
+            ("Define `g` as status.", ["status"]),  # No longer mapped
             ("Define `h` as url.", ["URL"]),
             ("Define `i` as date.", ["Date"]),
             ("Define `j` as datetime.", ["DateTime"]),

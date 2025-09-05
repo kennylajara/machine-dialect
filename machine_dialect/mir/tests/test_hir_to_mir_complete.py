@@ -14,7 +14,6 @@ from machine_dialect.ast import (
     Identifier,
     IfStatement,
     InfixExpression,
-    IntegerLiteral,
     InteractionStatement,
     Parameter,
     PrefixExpression,
@@ -25,6 +24,7 @@ from machine_dialect.ast import (
     StringLiteral,
     URLLiteral,
     UtilityStatement,
+    WholeNumberLiteral,
     YesNoLiteral,
 )
 from machine_dialect.lexer import Token, TokenType
@@ -119,8 +119,8 @@ class TestHIRToMIRComplete(unittest.TestCase):
         """Test lowering of ConditionalExpression (ternary)."""
         # Create: x = true ? 1 : 2
         condition = YesNoLiteral(self._dummy_token("true"), True)
-        true_val = IntegerLiteral(self._dummy_token("1"), 1)
-        false_val = IntegerLiteral(self._dummy_token("2"), 2)
+        true_val = WholeNumberLiteral(self._dummy_token("1"), 1)
+        false_val = WholeNumberLiteral(self._dummy_token("2"), 2)
 
         cond_expr = ConditionalExpression(self._dummy_token(), true_val)
         cond_expr.condition = condition
@@ -159,7 +159,9 @@ class TestHIRToMIRComplete(unittest.TestCase):
         """Test that BlockStatement generates scope instructions."""
         # Create block with statements
         stmt1 = SetStatement(
-            self._dummy_token("set"), Identifier(self._dummy_token("x"), "x"), IntegerLiteral(self._dummy_token("1"), 1)
+            self._dummy_token("set"),
+            Identifier(self._dummy_token("x"), "x"),
+            WholeNumberLiteral(self._dummy_token("1"), 1),
         )
 
         block = BlockStatement(self._dummy_token(), depth=1)
@@ -232,7 +234,7 @@ class TestHIRToMIRComplete(unittest.TestCase):
         # Create utility that returns a value
         body_block = BlockStatement(self._dummy_token())
         body_block.statements = [
-            ReturnStatement(self._dummy_token("return"), IntegerLiteral(self._dummy_token("42"), 42))
+            ReturnStatement(self._dummy_token("return"), WholeNumberLiteral(self._dummy_token("42"), 42))
         ]
         utility = UtilityStatement(
             self._dummy_token("utility"),
@@ -283,11 +285,11 @@ class TestHIRToMIRComplete(unittest.TestCase):
 
         # Outer condition: x > 0
         outer_cond = InfixExpression(self._dummy_token(">"), ">", x_ident)
-        outer_cond.right = IntegerLiteral(self._dummy_token("0"), 0)
+        outer_cond.right = WholeNumberLiteral(self._dummy_token("0"), 0)
 
         # Inner condition: x < 10
         inner_cond = InfixExpression(self._dummy_token("<"), "<", x_ident)
-        inner_cond.right = IntegerLiteral(self._dummy_token("10"), 10)
+        inner_cond.right = WholeNumberLiteral(self._dummy_token("10"), 10)
 
         # Inner then: y = x
         inner_then = BlockStatement(self._dummy_token())
@@ -296,7 +298,7 @@ class TestHIRToMIRComplete(unittest.TestCase):
         # Inner else: y = 10
         inner_else = BlockStatement(self._dummy_token())
         inner_else.statements = [
-            SetStatement(self._dummy_token("set"), y_ident, IntegerLiteral(self._dummy_token("10"), 10))
+            SetStatement(self._dummy_token("set"), y_ident, WholeNumberLiteral(self._dummy_token("10"), 10))
         ]
 
         # Inner if
@@ -314,7 +316,7 @@ class TestHIRToMIRComplete(unittest.TestCase):
         outer_if.alternative = None
 
         # Initialize x
-        init_x = SetStatement(self._dummy_token("set"), x_ident, IntegerLiteral(self._dummy_token("5"), 5))
+        init_x = SetStatement(self._dummy_token("set"), x_ident, WholeNumberLiteral(self._dummy_token("5"), 5))
 
         program = Program([init_x, outer_if])
         mir = lower_to_mir(program)
@@ -339,8 +341,8 @@ class TestHIRToMIRComplete(unittest.TestCase):
         for op in operators:
             with self.subTest(operator=op):
                 # Create: result = 10 op 5
-                expr = InfixExpression(self._dummy_token(op), op, IntegerLiteral(self._dummy_token("10"), 10))
-                expr.right = IntegerLiteral(self._dummy_token("5"), 5)
+                expr = InfixExpression(self._dummy_token(op), op, WholeNumberLiteral(self._dummy_token("10"), 10))
+                expr.right = WholeNumberLiteral(self._dummy_token("5"), 5)
 
                 set_stmt = SetStatement(
                     self._dummy_token("set"), Identifier(self._dummy_token("result"), "result"), expr
@@ -363,7 +365,7 @@ class TestHIRToMIRComplete(unittest.TestCase):
         """Test unary operators are properly lowered."""
         # Test negation: -5
         neg_expr = PrefixExpression(self._dummy_token("-"), "-")
-        neg_expr.right = IntegerLiteral(self._dummy_token("5"), 5)
+        neg_expr.right = WholeNumberLiteral(self._dummy_token("5"), 5)
 
         # Test not: not true
         not_expr = PrefixExpression(self._dummy_token("not"), "not")

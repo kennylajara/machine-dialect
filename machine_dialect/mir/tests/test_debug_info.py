@@ -8,12 +8,12 @@ from machine_dialect.ast import (
     FunctionVisibility,
     Identifier,
     InfixExpression,
-    IntegerLiteral,
     Parameter,
     Program,
     ReturnStatement,
     SetStatement,
     StringLiteral,
+    WholeNumberLiteral,
 )
 from machine_dialect.lexer.tokens import Token, TokenType
 from machine_dialect.mir.debug_info import (
@@ -205,7 +205,7 @@ class TestDebugInfoTracking:
                 SetStatement(
                     self._token(TokenType.KW_SET, "set"),
                     Identifier(self._token(TokenType.MISC_IDENT, "count"), "count"),
-                    IntegerLiteral(self._token(TokenType.LIT_INT, "0"), 0),
+                    WholeNumberLiteral(self._token(TokenType.LIT_WHOLE_NUMBER, "0"), 0),
                 ),
                 SetStatement(
                     self._token(TokenType.KW_SET, "set"),

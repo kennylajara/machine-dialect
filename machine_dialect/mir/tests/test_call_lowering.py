@@ -5,9 +5,9 @@ from machine_dialect.ast import (
     Arguments,
     CallStatement,
     Identifier,
-    IntegerLiteral,
     Program,
     StringLiteral,
+    WholeNumberLiteral,
     YesNoLiteral,
 )
 from machine_dialect.lexer.tokens import Token, TokenType
@@ -23,7 +23,7 @@ class TestCallStatementLowering:
         args = Arguments(Token(TokenType.DELIM_LPAREN, "(", 0, 0))
         args.positional = [
             StringLiteral(Token(TokenType.LIT_TEXT, '"Hello"', 0, 0), '"Hello"'),
-            IntegerLiteral(Token(TokenType.LIT_INT, "42", 0, 0), 42),
+            WholeNumberLiteral(Token(TokenType.LIT_WHOLE_NUMBER, "42", 0, 0), 42),
         ]
 
         call = CallStatement(
@@ -62,7 +62,7 @@ class TestCallStatementLowering:
             ),
             (
                 Identifier(Token(TokenType.MISC_IDENT, "age", 0, 0), "age"),
-                IntegerLiteral(Token(TokenType.LIT_INT, "30", 0, 0), 30),
+                WholeNumberLiteral(Token(TokenType.LIT_WHOLE_NUMBER, "30", 0, 0), 30),
             ),
         ]
 

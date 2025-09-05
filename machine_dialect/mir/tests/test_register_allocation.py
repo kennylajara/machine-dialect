@@ -5,10 +5,10 @@ from machine_dialect.ast import (
     Expression,
     Identifier,
     InfixExpression,
-    IntegerLiteral,
     Program,
     ReturnStatement,
     SetStatement,
+    WholeNumberLiteral,
 )
 from machine_dialect.lexer.tokens import Token, TokenType
 from machine_dialect.mir.hir_to_mir import lower_to_mir
@@ -40,12 +40,12 @@ class TestRegisterAllocation:
                 SetStatement(
                     self._token(TokenType.KW_SET, "set"),
                     Identifier(self._token(TokenType.MISC_IDENT, "x"), "x"),
-                    IntegerLiteral(self._token(TokenType.LIT_INT, "10"), 10),
+                    WholeNumberLiteral(self._token(TokenType.LIT_WHOLE_NUMBER, "10"), 10),
                 ),
                 SetStatement(
                     self._token(TokenType.KW_SET, "set"),
                     Identifier(self._token(TokenType.MISC_IDENT, "y"), "y"),
-                    IntegerLiteral(self._token(TokenType.LIT_INT, "20"), 20),
+                    WholeNumberLiteral(self._token(TokenType.LIT_WHOLE_NUMBER, "20"), 20),
                 ),
                 SetStatement(
                     self._token(TokenType.KW_SET, "set"),
@@ -90,7 +90,7 @@ class TestRegisterAllocation:
                 SetStatement(
                     self._token(TokenType.KW_SET, "set"),
                     Identifier(self._token(TokenType.MISC_IDENT, f"var_{i}"), f"var_{i}"),
-                    IntegerLiteral(self._token(TokenType.LIT_INT, str(i)), i),
+                    WholeNumberLiteral(self._token(TokenType.LIT_WHOLE_NUMBER, str(i)), i),
                 )
             )
 
@@ -136,12 +136,12 @@ class TestRegisterAllocation:
                 SetStatement(
                     self._token(TokenType.KW_SET, "set"),
                     Identifier(self._token(TokenType.MISC_IDENT, "a"), "a"),
-                    IntegerLiteral(self._token(TokenType.LIT_INT, "1"), 1),
+                    WholeNumberLiteral(self._token(TokenType.LIT_WHOLE_NUMBER, "1"), 1),
                 ),
                 SetStatement(
                     self._token(TokenType.KW_SET, "set"),
                     Identifier(self._token(TokenType.MISC_IDENT, "b"), "b"),
-                    IntegerLiteral(self._token(TokenType.LIT_INT, "2"), 2),
+                    WholeNumberLiteral(self._token(TokenType.LIT_WHOLE_NUMBER, "2"), 2),
                 ),
                 SetStatement(
                     self._token(TokenType.KW_SET, "set"),
@@ -156,7 +156,7 @@ class TestRegisterAllocation:
                 SetStatement(
                     self._token(TokenType.KW_SET, "set"),
                     Identifier(self._token(TokenType.MISC_IDENT, "d"), "d"),
-                    IntegerLiteral(self._token(TokenType.LIT_INT, "3"), 3),
+                    WholeNumberLiteral(self._token(TokenType.LIT_WHOLE_NUMBER, "3"), 3),
                 ),
                 SetStatement(
                     self._token(TokenType.KW_SET, "set"),
@@ -199,12 +199,12 @@ class TestRegisterAllocation:
                 SetStatement(
                     self._token(TokenType.KW_SET, "set"),
                     Identifier(self._token(TokenType.MISC_IDENT, "temp1"), "temp1"),
-                    IntegerLiteral(self._token(TokenType.LIT_INT, "1"), 1),
+                    WholeNumberLiteral(self._token(TokenType.LIT_WHOLE_NUMBER, "1"), 1),
                 ),
                 SetStatement(
                     self._token(TokenType.KW_SET, "set"),
                     Identifier(self._token(TokenType.MISC_IDENT, "temp2"), "temp2"),
-                    IntegerLiteral(self._token(TokenType.LIT_INT, "2"), 2),
+                    WholeNumberLiteral(self._token(TokenType.LIT_WHOLE_NUMBER, "2"), 2),
                 ),
                 SetStatement(
                     self._token(TokenType.KW_SET, "set"),
@@ -220,12 +220,12 @@ class TestRegisterAllocation:
                 SetStatement(
                     self._token(TokenType.KW_SET, "set"),
                     Identifier(self._token(TokenType.MISC_IDENT, "temp3"), "temp3"),
-                    IntegerLiteral(self._token(TokenType.LIT_INT, "3"), 3),
+                    WholeNumberLiteral(self._token(TokenType.LIT_WHOLE_NUMBER, "3"), 3),
                 ),
                 SetStatement(
                     self._token(TokenType.KW_SET, "set"),
                     Identifier(self._token(TokenType.MISC_IDENT, "temp4"), "temp4"),
-                    IntegerLiteral(self._token(TokenType.LIT_INT, "4"), 4),
+                    WholeNumberLiteral(self._token(TokenType.LIT_WHOLE_NUMBER, "4"), 4),
                 ),
                 SetStatement(
                     self._token(TokenType.KW_SET, "set"),
@@ -275,17 +275,17 @@ class TestRegisterAllocation:
                 SetStatement(
                     self._token(TokenType.KW_SET, "set"),
                     Identifier(self._token(TokenType.MISC_IDENT, "first"), "first"),
-                    IntegerLiteral(self._token(TokenType.LIT_INT, "1"), 1),
+                    WholeNumberLiteral(self._token(TokenType.LIT_WHOLE_NUMBER, "1"), 1),
                 ),
                 SetStatement(
                     self._token(TokenType.KW_SET, "set"),
                     Identifier(self._token(TokenType.MISC_IDENT, "second"), "second"),
-                    IntegerLiteral(self._token(TokenType.LIT_INT, "2"), 2),
+                    WholeNumberLiteral(self._token(TokenType.LIT_WHOLE_NUMBER, "2"), 2),
                 ),
                 SetStatement(
                     self._token(TokenType.KW_SET, "set"),
                     Identifier(self._token(TokenType.MISC_IDENT, "third"), "third"),
-                    IntegerLiteral(self._token(TokenType.LIT_INT, "3"), 3),
+                    WholeNumberLiteral(self._token(TokenType.LIT_WHOLE_NUMBER, "3"), 3),
                 ),
             ]
         )

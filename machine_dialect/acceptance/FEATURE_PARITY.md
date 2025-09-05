@@ -144,7 +144,7 @@ These features work consistently across all components:
 KW_BEHAVIOR    KW_BOOL       KW_DATATYPE    KW_DATE
 KW_DATETIME    KW_DEFAULT    KW_DEFINE      KW_ENTRYPOINT
 KW_FILTER      KW_FLOAT      KW_FROM        KW_INPUTS
-KW_INT         KW_IS         KW_LIST        KW_MAP
+KW_WHOLE_NUMBER         KW_IS         KW_LIST        KW_MAP
 KW_NUMBER      KW_OBJECT     KW_OPTIONAL    KW_OUTPUTS
 KW_PROMPT      KW_REDUCE     KW_REQUIRED    KW_RULE
 KW_STATUS      KW_TEXT       KW_TIME        KW_TRAIT

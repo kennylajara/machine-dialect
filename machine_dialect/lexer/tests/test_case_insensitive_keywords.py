@@ -148,8 +148,8 @@ class TestCaseInsensitiveKeywords:
     def test_complex_expression_mixed_case(self) -> None:
         """Test complex expressions with mixed case keywords."""
         test_cases = [
-            ("SET x AS integer", ["Set", "x", "as", "Integer"]),
-            ("set X as INTEGER", ["Set", "X", "as", "Integer"]),
+            ("SET x AS integer", ["Set", "x", "as", "integer"]),
+            ("set X as INTEGER", ["Set", "X", "as", "INTEGER"]),
             ("define RULE myFunc", ["define", "rule", "myFunc"]),
             ("DEFINE rule MyFunc", ["define", "rule", "MyFunc"]),
             ("if YES then GIVE BACK no", ["if", "Yes", "then", "give back", "No"]),

@@ -18,7 +18,6 @@ from machine_dialect.ast import (
     Identifier,
     IfStatement,
     InfixExpression,
-    IntegerLiteral,
     InteractionStatement,
     Output,
     Parameter,
@@ -31,6 +30,7 @@ from machine_dialect.ast import (
     StringLiteral,
     URLLiteral,
     UtilityStatement,
+    WholeNumberLiteral,
     YesNoLiteral,
 )
 from machine_dialect.errors.exceptions import MDBaseException, MDNameError, MDSyntaxError
@@ -454,7 +454,7 @@ class Parser:
             value=self._current_token.literal,
         )
 
-    def _parse_integer_literal(self) -> IntegerLiteral | ErrorExpression:
+    def _parse_integer_literal(self) -> WholeNumberLiteral | ErrorExpression:
         assert self._current_token is not None
 
         # The lexer has already validated and cleaned the literal
@@ -473,7 +473,7 @@ class Parser:
             error_message = INVALID_INTEGER_LITERAL.substitute(literal=self._current_token.literal)
             return ErrorExpression(token=self._current_token, message=error_message)
 
-        return IntegerLiteral(
+        return WholeNumberLiteral(
             token=self._current_token,
             value=value,
         )
@@ -947,7 +947,7 @@ class Parser:
     def _parse_type_name(self) -> str | None:
         """Parse a single type name.
 
-        Handles both keyword types (Text, Integer, etc.) and identifier-based types.
+        Handles both keyword types (Text, WholeNumber, etc.) and identifier-based types.
 
         Returns:
             The type name as a string, or None if current token is not a type.
@@ -957,7 +957,7 @@ class Parser:
 
         type_mapping = {
             TokenType.KW_TEXT: "Text",
-            TokenType.KW_INT: "Integer",
+            TokenType.KW_WHOLE_NUMBER: "Whole Number",
             TokenType.KW_FLOAT: "Float",
             TokenType.KW_NUMBER: "Number",
             TokenType.KW_YES_NO: "Yes/No",
@@ -967,7 +967,6 @@ class Parser:
             TokenType.KW_TIME: "Time",
             TokenType.KW_LIST: "List",
             TokenType.KW_EMPTY: "Empty",
-            TokenType.KW_WHOLE_NUMBER: "Whole Number",  # Keep original type name
         }
 
         if self._current_token.type in type_mapping:
@@ -982,14 +981,9 @@ class Parser:
             ident_mapping = {
                 "text": "Text",
                 "string": "Text",
-                "integer": "Integer",
-                "int": "Integer",
                 "float": "Float",
                 "decimal": "Float",
                 "number": "Number",
-                "boolean": "Yes/No",
-                "bool": "Yes/No",
-                "status": "Yes/No",
                 "url": "URL",
                 "link": "URL",
                 "date": "Date",
@@ -1299,7 +1293,7 @@ class Parser:
             value = Identifier(token, token.literal)
             self._advance_tokens()
             return value
-        elif token.type == TokenType.LIT_INT:
+        elif token.type == TokenType.LIT_WHOLE_NUMBER:
             # Integer literal
             int_value = self._parse_integer_literal()
             self._advance_tokens()
@@ -1375,7 +1369,7 @@ class Parser:
                 # Check if this looks like another argument (identifier or literal)
                 if self._current_token.type in (
                     TokenType.MISC_IDENT,
-                    TokenType.LIT_INT,
+                    TokenType.LIT_WHOLE_NUMBER,
                     TokenType.LIT_FLOAT,
                     TokenType.LIT_TEXT,
                     TokenType.LIT_YES,
@@ -1917,7 +1911,7 @@ class Parser:
         """
         return {
             TokenType.MISC_IDENT: self._parse_identifier,
-            TokenType.LIT_INT: self._parse_integer_literal,
+            TokenType.LIT_WHOLE_NUMBER: self._parse_integer_literal,
             TokenType.LIT_FLOAT: self._parse_float_literal,
             TokenType.LIT_TEXT: self._parse_string_literal,
             TokenType.LIT_URL: self._parse_url_literal,
@@ -2359,7 +2353,7 @@ class Parser:
         """
         return token_type in {
             TokenType.KW_TEXT,
-            TokenType.KW_INT,
+            TokenType.KW_WHOLE_NUMBER,
             TokenType.KW_FLOAT,
             TokenType.KW_NUMBER,
             TokenType.KW_YES_NO,

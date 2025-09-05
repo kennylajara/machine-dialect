@@ -59,7 +59,7 @@ class TestStrictEqualityOperators:
             (TokenType.KW_IF, "if"),
             (TokenType.MISC_IDENT, "x"),
             (TokenType.OP_STRICT_EQ, "is strictly equal to"),
-            (TokenType.LIT_INT, "5"),
+            (TokenType.LIT_WHOLE_NUMBER, "5"),
             (TokenType.KW_THEN, "then"),
             (TokenType.KW_RETURN, "give back"),
             (TokenType.LIT_YES, "Yes"),

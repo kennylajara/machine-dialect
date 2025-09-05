@@ -302,11 +302,11 @@ def create_regression_suite() -> dict[str, Program]:
         Identifier,
         IfStatement,
         InfixExpression,
-        IntegerLiteral,
         Program,
         ReturnStatement,
         SetStatement,
         StringLiteral,
+        WholeNumberLiteral,
     )
     from machine_dialect.lexer.tokens import Token, TokenType
 
@@ -336,9 +336,9 @@ def create_regression_suite() -> dict[str, Program]:
                 _token(TokenType.KW_SET, "set"),
                 Identifier(_token(TokenType.MISC_IDENT, "x"), "x"),
                 _create_infix(
-                    IntegerLiteral(_token(TokenType.LIT_INT, "10"), 10),
+                    WholeNumberLiteral(_token(TokenType.LIT_WHOLE_NUMBER, "10"), 10),
                     "+",
-                    IntegerLiteral(_token(TokenType.LIT_INT, "20"), 20),
+                    WholeNumberLiteral(_token(TokenType.LIT_WHOLE_NUMBER, "20"), 20),
                 ),
             ),
             ReturnStatement(
@@ -354,7 +354,7 @@ def create_regression_suite() -> dict[str, Program]:
         _create_infix(
             Identifier(_token(TokenType.MISC_IDENT, "x"), "x"),
             ">",
-            IntegerLiteral(_token(TokenType.LIT_INT, "10"), 10),
+            WholeNumberLiteral(_token(TokenType.LIT_WHOLE_NUMBER, "10"), 10),
         ),
     )
     consequence = BlockStatement(_token(TokenType.OP_GT, ">"))
@@ -372,7 +372,7 @@ def create_regression_suite() -> dict[str, Program]:
             SetStatement(
                 _token(TokenType.KW_SET, "set"),
                 Identifier(_token(TokenType.MISC_IDENT, "x"), "x"),
-                IntegerLiteral(_token(TokenType.LIT_INT, "15"), 15),
+                WholeNumberLiteral(_token(TokenType.LIT_WHOLE_NUMBER, "15"), 15),
             ),
             if_stmt,
             ReturnStatement(

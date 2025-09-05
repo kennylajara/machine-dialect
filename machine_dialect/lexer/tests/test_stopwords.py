@@ -71,7 +71,7 @@ class TestStopwords:
         from machine_dialect.parser import Parser
 
         # Test that parser skips stopwords correctly
-        input_text = "Define `x` as Integer. Set the `x` to 5"
+        input_text = "Define `x` as Whole Number. Set the `x` to _5_"
         parser = Parser()
         program = parser.parse(input_text)
 

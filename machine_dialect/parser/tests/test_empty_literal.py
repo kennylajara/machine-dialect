@@ -73,8 +73,8 @@ Set `result` to empty."""
     def test_empty_in_if_condition(self) -> None:
         """Test using empty in if statement conditions."""
         source = """
-        Define `value` as Integer or Empty.
-        Define `result` as Integer.
+        Define `value` as Whole Number or Empty.
+        Define `result` as Whole Number.
         if `value` equals empty then:
         > Set `result` to _0_.
         """

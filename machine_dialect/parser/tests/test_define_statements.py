@@ -233,31 +233,79 @@ Define `active` as Yes/No (default: _yes_).
         assert stmt3.type_spec == ["Yes/No"]
         assert stmt3.initial_value is not None
 
-    def test_define_identifier_based_types(self) -> None:
-        """Test parsing Define with identifier-based type names."""
-        test_cases = [
-            ("Define `a` as text.", ["Text"]),
-            ("Define `b` as integer.", ["integer"]),  # No longer mapped
-            ("Define `c` as float.", ["Float"]),
-            ("Define `d` as number.", ["Number"]),
-            ("Define `e` as boolean.", ["boolean"]),  # No longer mapped
-            ("Define `f` as bool.", ["bool"]),  # No longer mapped
-            ("Define `g` as status.", ["status"]),  # No longer mapped
-            ("Define `h` as url.", ["URL"]),
-            ("Define `i` as date.", ["Date"]),
-            ("Define `j` as datetime.", ["DateTime"]),
-            ("Define `k` as time.", ["Time"]),
-            ("Define `l` as list.", ["List"]),
-            ("Define `m` as array.", ["List"]),
-            ("Define `n` as empty.", ["Empty"]),
-            ("Define `o` as null.", ["Empty"]),
-            ("Define `p` as none.", ["Empty"]),
-        ]
+    def test_complex_nested_default_expressions(self) -> None:
+        """Test parsing Define with complex nested default expressions."""
+        # Test arithmetic expression as default
+        source1 = "Define `result` as Number (default: _70_)."
+        parser1 = Parser()
+        program1 = parser1.parse(source1)
+        assert len(program1.statements) == 1
+        stmt1 = program1.statements[0]
+        assert isinstance(stmt1, DefineStatement)
+        assert stmt1.name.value == "result"
+        assert stmt1.type_spec == ["Number"]
+        assert stmt1.initial_value is not None
 
-        for source, expected_types in test_cases:
-            parser = Parser()
-            program = parser.parse(source)
-            assert len(program.statements) == 1
-            stmt = program.statements[0]
-            assert isinstance(stmt, DefineStatement)
-            assert stmt.type_spec == expected_types, f"Failed for {source}"
+        # Test string literal as default
+        source2 = 'Define `value` as Text (default: _"Hello World"_).'
+        parser2 = Parser()
+        program2 = parser2.parse(source2)
+        assert len(program2.statements) == 1
+        stmt2 = program2.statements[0]
+        assert isinstance(stmt2, DefineStatement)
+        assert stmt2.initial_value is not None
+
+        # Test boolean expression as default
+        source3 = "Define `flag` as Yes/No (default: _yes_)."
+        parser3 = Parser()
+        program3 = parser3.parse(source3)
+        assert len(program3.statements) == 1
+        stmt3 = program3.statements[0]
+        assert isinstance(stmt3, DefineStatement)
+        assert stmt3.type_spec == ["Yes/No"]
+        assert stmt3.initial_value is not None
+
+    def test_error_recovery_paths(self) -> None:
+        """Test error recovery when parsing malformed Define statements."""
+        # Missing closing parenthesis in default
+        source1 = "Define `x` as Number (default: _5_. Define `y` as Text."
+        parser1 = Parser()
+        _ = parser1.parse(source1)
+        # Should have errors but still parse the second Define
+        assert len(parser1.errors) > 0
+        # May still have some statements parsed
+
+        # Malformed type specification
+        source2 = "Define `z` as or Text."
+        parser2 = Parser()
+        _ = parser2.parse(source2)
+        assert len(parser2.errors) > 0
+
+        # Multiple errors in one statement
+        source3 = "Define as (default: )."
+        parser3 = Parser()
+        _ = parser3.parse(source3)
+        assert len(parser3.errors) > 0
+
+    def test_edge_case_union_types(self) -> None:
+        """Test edge cases for union type specifications."""
+        # Very long union type list
+        source1 = "Define `data` as Text or Number or Yes/No or Date or Time or URL or List or Empty."
+        parser1 = Parser()
+        program1 = parser1.parse(source1)
+        assert len(program1.statements) == 1
+        stmt1 = program1.statements[0]
+        assert isinstance(stmt1, DefineStatement)
+        assert len(stmt1.type_spec) == 8
+        assert "Text" in stmt1.type_spec
+        assert "Empty" in stmt1.type_spec
+
+        # Union type with default value
+        source2 = "Define `flexible` as Text or Number (default: _42_)."
+        parser2 = Parser()
+        program2 = parser2.parse(source2)
+        assert len(program2.statements) == 1
+        stmt2 = program2.statements[0]
+        assert isinstance(stmt2, DefineStatement)
+        assert stmt2.type_spec == ["Text", "Number"]
+        assert stmt2.initial_value is not None

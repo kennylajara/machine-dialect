@@ -61,7 +61,7 @@ class TestReturnStatements:
     def test_return_with_set_statement(self) -> None:
         """Test parsing return statement followed by set statement."""
         source = """
-            Define `x` as Integer.
+            Define `x` as Whole Number.
             give back 42.
             Set `x` to 10
         """

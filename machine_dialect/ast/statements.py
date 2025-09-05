@@ -62,7 +62,7 @@ class DefineStatement(Statement):
 
     Attributes:
         name: Variable identifier to define
-        type_spec: List of type names (for future union type support)
+        type_spec: List of type names (for union type support)
         initial_value: Optional default value expression
 
     Examples:
@@ -78,7 +78,7 @@ class DefineStatement(Statement):
         Args:
             token: The DEFINE keyword token
             name: The variable identifier
-            type_spec: List of type names (e.g., ["WholeNumber"], ["Text", "WholeNumber"])
+            type_spec: List of type names (e.g., ["Whole Number"], ["Text", "Whole Number"])
             initial_value: Optional default value expression
         """
         super().__init__(token)

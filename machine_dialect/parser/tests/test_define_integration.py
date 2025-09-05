@@ -16,7 +16,7 @@ class TestDefineIntegration:
     def test_define_then_set_valid(self) -> None:
         """Test that defining a variable allows it to be set."""
         source = """
-        Define `count` as Integer.
+        Define `count` as Whole Number.
         Set `count` to _42_.
         """
         parser = Parser()
@@ -59,7 +59,7 @@ class TestDefineIntegration:
     def test_multiple_defines_then_sets(self) -> None:
         """Test multiple variable definitions and uses."""
         source = """
-        Define `x` as Integer.
+        Define `x` as Whole Number.
         Define `y` as Float.
         Define `name` as Text.
         Set `x` to _10_.
@@ -76,7 +76,7 @@ class TestDefineIntegration:
     def test_redefinition_error(self) -> None:
         """Test that redefining a variable generates error."""
         source = """
-        Define `x` as Integer.
+        Define `x` as Whole Number.
         Define `x` as Text.
         """
         parser = Parser()
@@ -93,7 +93,7 @@ class TestDefineIntegration:
         # This test is a placeholder for when we implement scope handling
         # Currently all variables are in global scope
         source = """
-        Define `global_var` as Integer.
+        Define `global_var` as Whole Number.
         Set `global_var` to _1_.
         """
         parser = Parser()
@@ -105,7 +105,7 @@ class TestDefineIntegration:
         """Test that using variable before definition generates error."""
         source = """
         Set `x` to _5_.
-        Define `x` as Integer.
+        Define `x` as Whole Number.
         """
         parser = Parser()
         parser.parse(source)
@@ -120,7 +120,7 @@ class TestDefineIntegration:
         """Test a more complex program with multiple defines and sets."""
         source = """
         Define `user_name` as Text.
-        Define `user_age` as Integer.
+        Define `user_age` as Whole Number.
         Define `is_admin` as Yes/No (default: _no_).
 
         Set `user_name` to _"John Doe"_.
@@ -140,7 +140,7 @@ class TestDefineIntegration:
     def test_undefined_variable_in_expression(self) -> None:
         """Test that undefined variables in expressions generate errors."""
         source = """
-        Define `x` as Integer.
+        Define `x` as Whole Number.
         Set `x` to _10_.
         Set `y` to `x` + _5_.
         """
@@ -156,7 +156,7 @@ class TestDefineIntegration:
     def test_define_with_union_types(self) -> None:
         """Test defining variable with union types."""
         source = """
-        Define `flexible` as Integer or Text.
+        Define `flexible` as Whole Number or Text.
         Set `flexible` to _42_.
         Define `flexible` as Float.
         """
@@ -173,7 +173,7 @@ class TestDefineIntegration:
         """Test that parser continues after encountering errors."""
         source = """
         Set `undefined1` to _1_.
-        Define `valid` as Integer.
+        Define `valid` as Whole Number.
         Set `undefined2` to _2_.
         Set `valid` to _100_.
         Set `undefined3` to _3_.
@@ -200,7 +200,7 @@ class TestDefineIntegration:
     def test_define_with_invalid_syntax_error(self) -> None:
         """Test that invalid Define syntax generates appropriate error."""
         source = """
-        Define as Integer.
+        Define as Whole Number.
         """
         parser = Parser()
         parser.parse(source)
@@ -213,7 +213,7 @@ class TestDefineIntegration:
         source = """
         Set `a` to _1_.
         Set `b` to _2_.
-        Define `a` as Integer.
+        Define `a` as Whole Number.
         Define `a` as Text.
         Set `c` to _3_.
         """

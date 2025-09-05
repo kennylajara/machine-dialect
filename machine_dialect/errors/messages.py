@@ -15,8 +15,12 @@ class ErrorTemplate(Template):
 
 # NameError
 NAME_UNDEFINED = ErrorTemplate("Name '$name' is not defined")
-VARIABLE_NOT_DEFINED = ErrorTemplate("Variable '$name' is not defined. Did you mean to define it first?")
-VARIABLE_ALREADY_DEFINED = ErrorTemplate("Variable '$name' is already defined at line $original_line")
+VARIABLE_NOT_DEFINED = ErrorTemplate(
+    "Variable '$name' is not defined. Use 'Define `$name` as <type>.' to define it first"
+)
+VARIABLE_ALREADY_DEFINED = ErrorTemplate(
+    "Variable '$name' is already defined at line $original_line. Cannot redefine variables in the same scope"
+)
 UNEXPECTED_TOKEN = ErrorTemplate(
     "Unexpected '$token_literal'. Expected a '$expected_token_type', but a got a '$received_token_type'"
 )

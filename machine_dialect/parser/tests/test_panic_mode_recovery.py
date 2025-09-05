@@ -13,7 +13,7 @@ class TestPanicModeRecovery:
 
     def test_recovery_at_period_boundary(self) -> None:
         """Test that panic mode stops at period boundaries."""
-        source = "Define `x` as Integer. Set @ to 42. Set `x` to 5."
+        source = "Define `x` as Whole Number. Set @ to 42. Set `x` to 5."
         parser = Parser()
 
         program = parser.parse(source)
@@ -48,7 +48,7 @@ class TestPanicModeRecovery:
 
     def test_multiple_errors_with_recovery(self) -> None:
         """Test that multiple errors are collected with recovery between them."""
-        source = "Define `x` as Integer. Set @ to 42. Set # to 10. Set `x` to 5."
+        source = "Define `x` as Whole Number. Set @ to 42. Set # to 10. Set `x` to 5."
         parser = Parser()
 
         program = parser.parse(source)
@@ -63,7 +63,7 @@ class TestPanicModeRecovery:
 
     def test_recovery_in_expression_context(self) -> None:
         """Test panic recovery when error occurs in expression parsing."""
-        source = "Define `x` as Integer. Define `y` as Integer. Set `x` to @ + 5. Set `y` to 10."
+        source = "Define `x` as Whole Number. Define `y` as Whole Number. Set `x` to @ + 5. Set `y` to 10."
         parser = Parser()
 
         program = parser.parse(source)
@@ -77,7 +77,7 @@ class TestPanicModeRecovery:
 
     def test_recovery_with_missing_keyword(self) -> None:
         """Test panic recovery when 'to' keyword is missing."""
-        source = "Define `x` as Integer. Define `y` as Integer. Set `x` 42. Set `y` to 10."
+        source = "Define `x` as Whole Number. Define `y` as Whole Number. Set `x` 42. Set `y` to 10."
         parser = Parser()
 
         program = parser.parse(source)
@@ -138,8 +138,8 @@ class TestPanicModeRecovery:
 
     def test_no_recovery_for_valid_code(self) -> None:
         """Test that valid code doesn't trigger panic recovery."""
-        source = """Define `x` as Integer.
-Define `y` as Integer.
+        source = """Define `x` as Whole Number.
+Define `y` as Whole Number.
 Set `x` to _42_.
 Set `y` to _10_.
 give back `x`."""
@@ -155,7 +155,7 @@ give back `x`."""
 
     def test_recovery_with_mixed_statement_types(self) -> None:
         """Test panic recovery across different statement types."""
-        source = """Define `x` as Integer.
+        source = """Define `x` as Whole Number.
 Set @ to 42.
 give back #.
 Set `x` to _5_."""

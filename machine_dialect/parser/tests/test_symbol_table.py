@@ -11,7 +11,7 @@ class TestVariableInfo:
         info = VariableInfo(["Whole Number"])
         assert info.allows_type("Whole Number")
         assert not info.allows_type("Text")
-        assert str(info) == "VariableInfo(types=WholeNumber, uninitialized)"
+        assert str(info) == "VariableInfo(types=Whole Number, uninitialized)"
 
     def test_union_types(self) -> None:
         """Test variable with union types."""
@@ -210,7 +210,7 @@ class TestSymbolTable:
 
         info = table.lookup("value")
         assert info is not None
-        assert info.allows_type("WholeNumber")
+        assert info.allows_type("Whole Number")
         assert info.allows_type("Text")
         assert info.allows_type("Empty")
         assert not info.allows_type("Float")

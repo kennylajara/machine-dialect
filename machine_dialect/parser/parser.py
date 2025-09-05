@@ -719,9 +719,9 @@ class Parser:
                                ["(" "default" ":" expression ")"] "."
 
         Examples:
-            Define `x` as Integer.
+            Define `x` as Whole Number.
             Define `name` as Text (default: _"Unknown"_).
-            Define `value` as Integer or Text.
+            Define `value` as Whole Number or Text.
 
         Returns:
             DefineStatement on success, ErrorStatement on parse error.
@@ -753,7 +753,9 @@ class Parser:
                 if type_spec:
                     return DefineStatement(statement_token, name, type_spec, None)
             return ErrorStatement(
-                token=statement_token, skipped_tokens=skipped, message="Expected variable name after 'Define'"
+                token=statement_token,
+                skipped_tokens=skipped,
+                message="Expected variable name after 'Define'",
             )
 
         # Parse the identifier
@@ -791,7 +793,9 @@ class Parser:
                     return DefineStatement(statement_token, name, type_spec, None)
             skipped = self._panic_mode_recovery()
             return ErrorStatement(
-                token=statement_token, skipped_tokens=skipped, message="Expected 'as' after variable name"
+                token=statement_token,
+                skipped_tokens=skipped,
+                message=f"Expected 'as' after variable name '{name.value}'",
             )
 
         # Move past "as"
@@ -811,7 +815,9 @@ class Parser:
             self.errors.append(error)
             skipped = self._panic_mode_recovery()
             return ErrorStatement(
-                token=statement_token, skipped_tokens=skipped, message="Expected type name after 'as'"
+                token=statement_token,
+                skipped_tokens=skipped,
+                message="Expected type name after 'as'",
             )
 
         # Optional: (default: value) clause
@@ -902,12 +908,12 @@ class Parser:
 
         Grammar:
             type_spec ::= type_name ["or" type_name]*
-            type_name ::= "Text" | "Integer" | "Float" | "Number" | "Yes/No"
+            type_name ::= "Text" | "Whole Number" | "Float" | "Number" | "Yes/No"
                         | "URL" | "Date" | "DateTime" | "Time" | "List" | "Empty"
 
         Examples:
-            Integer -> ["Integer"]
-            Integer or Text -> ["Integer", "Text"]
+            Whole Number -> ["Whole Number"]
+            Whole Number or Text -> ["Whole Number", "Text"]
             Number or Yes/No or Empty -> ["Number", "Yes/No", "Empty"]
 
         Returns:
@@ -947,7 +953,7 @@ class Parser:
     def _parse_type_name(self) -> str | None:
         """Parse a single type name.
 
-        Handles both keyword types (Text, WholeNumber, etc.) and identifier-based types.
+        Only handles keyword-based types as specified in the grammar.
 
         Returns:
             The type name as a string, or None if current token is not a type.
@@ -973,39 +979,6 @@ class Parser:
             type_name = type_mapping[self._current_token.type]
             self._advance_tokens()
             return type_name
-
-        # Check for identifier-based type names (for forward compatibility)
-        if self._current_token.type == TokenType.MISC_IDENT:
-            # Map common identifier forms to canonical types
-            literal_lower = self._current_token.literal.lower()
-            ident_mapping = {
-                "text": "Text",
-                "string": "Text",
-                "float": "Float",
-                "decimal": "Float",
-                "number": "Number",
-                "url": "URL",
-                "link": "URL",
-                "date": "Date",
-                "datetime": "DateTime",
-                "time": "Time",
-                "list": "List",
-                "array": "List",
-                "empty": "Empty",
-                "null": "Empty",
-                "none": "Empty",
-            }
-
-            if literal_lower in ident_mapping:
-                type_name = ident_mapping[literal_lower]
-                self._advance_tokens()
-                return type_name
-            else:
-                # If not in mapping, just use the identifier as-is
-                # This will fail the test but is needed for forward compatibility
-                type_name = self._current_token.literal
-                self._advance_tokens()
-                return type_name
 
         return None
 

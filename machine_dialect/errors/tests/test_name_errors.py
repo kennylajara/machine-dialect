@@ -66,7 +66,7 @@ class TestParserErrors:
     def test_parser_continues_after_lexer_errors(self) -> None:
         """Test that parser continues parsing despite lexer errors."""
         # Source with an error but valid structure
-        source = "Define `X` as Empty. Define `result` as Integer. Set `X` to @. Set `result` to 123."
+        source = "Define `X` as Empty. Define `result` as Whole Number. Set `X` to @. Set `result` to _123_."
         # Lexer instantiation moved to Parser.parse()
         parser = Parser()
 

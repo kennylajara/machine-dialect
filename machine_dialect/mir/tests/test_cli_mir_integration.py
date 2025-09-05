@@ -14,9 +14,9 @@ class TestCLIMIRIntegration:
     @pytest.fixture
     def test_program(self) -> str:
         """Create a simple test program."""
-        return """Define `x` as Integer.
-Define `y` as Integer.
-Define `result` as Integer.
+        return """Define `x` as Whole Number.
+Define `y` as Whole Number.
+Define `result` as Whole Number.
 Set `x` to _10_.
 Set `y` to _20_.
 Set `result` to `x` + `y`.

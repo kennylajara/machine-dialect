@@ -59,7 +59,7 @@ class TestActionStatements:
 <details>
 <summary>Performs a calculation.</summary>
 
-> Define `result` as Integer.
+> Define `result` as Whole Number.
 > Set `result` to _42_.
 
 </details>"""
@@ -143,7 +143,7 @@ class TestActionStatements:
 <details>
 <summary>First action.</summary>
 
-> Define `x` as Integer.
+> Define `x` as Whole Number.
 > Set `x` to _1_.
 
 </details>
@@ -153,7 +153,7 @@ class TestActionStatements:
 <details>
 <summary>Second action.</summary>
 
-> Define `y` as Integer.
+> Define `y` as Whole Number.
 > Set `y` to _2_.
 
 </details>"""

@@ -16,6 +16,7 @@ from machine_dialect.mir.optimizations.loop_unrolling import LoopUnrolling
 from machine_dialect.mir.optimizations.peephole_optimizer import PeepholeOptimizer, PeepholePass
 from machine_dialect.mir.optimizations.strength_reduction import StrengthReduction
 from machine_dialect.mir.optimizations.tail_call import TailCallOptimization
+from machine_dialect.mir.optimizations.type_narrowing import TypeNarrowing
 from machine_dialect.mir.optimizations.type_specialization import TypeSpecialization
 from machine_dialect.mir.optimizations.type_specific import TypeSpecificOptimization
 
@@ -37,6 +38,7 @@ __all__ = [
     "PeepholePass",
     "StrengthReduction",
     "TailCallOptimization",
+    "TypeNarrowing",
     "TypeSpecificOptimization",
     "TypeSpecialization",
 ]
@@ -65,6 +67,7 @@ def register_all_passes(pass_manager: PassManager) -> None:
 
     # Register optimization passes
     pass_manager.register_pass(TypeSpecificOptimization)  # Run early to benefit other passes
+    pass_manager.register_pass(TypeNarrowing)  # Run after type-specific to narrow union types
     pass_manager.register_pass(ConstantPropagation)
     pass_manager.register_pass(CommonSubexpressionElimination)
     pass_manager.register_pass(DeadCodeElimination)

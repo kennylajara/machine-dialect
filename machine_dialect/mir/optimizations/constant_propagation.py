@@ -165,7 +165,10 @@ class ConstantPropagation(OptimizationPass):
         return transformer.modified
 
     def _analyze_constants(self, function: MIRFunction) -> ConstantLattice:
-        """Analyze function to find constant values.
+        """Analyze function to find constant values using iterative dataflow.
+
+        This implements a worklist algorithm that converges to a fixed point,
+        properly handling loops and cross-block propagation.
 
         Args:
             function: Function to analyze.
@@ -174,109 +177,180 @@ class ConstantPropagation(OptimizationPass):
             Constant lattice with analysis results.
         """
         lattice = ConstantLattice()
-        worklist = []
+        worklist = set()
+        block_lattices: dict[Any, ConstantLattice] = {}
 
-        # Initialize worklist with entry block
-        if function.cfg.entry_block:
-            worklist.append(function.cfg.entry_block)
+        # Initialize all blocks' local lattices
+        for block in function.cfg.blocks.values():
+            block_lattices[block] = ConstantLattice()
+            worklist.add(block)
 
-        visited = set()
+        # Fixed-point iteration
+        iteration_count = 0
+        max_iterations = 100  # Prevent infinite loops
 
-        while worklist:
-            block = worklist.pop(0)
-            if block in visited:
-                continue
-            visited.add(block)
+        while worklist and iteration_count < max_iterations:
+            iteration_count += 1
+            block = worklist.pop()
 
-            # Process phi nodes
+            # Merge lattice values from predecessors
+            changed = self._merge_predecessors(block, block_lattices, lattice)
+
+            # Process phi nodes with proper meet operation
             for phi in block.phi_nodes:
-                self._process_phi(phi, lattice)
+                if self._process_phi(phi, block, block_lattices, lattice):
+                    changed = True
 
             # Process instructions
             for inst in block.instructions:
-                self._process_instruction(inst, lattice)
+                if self._process_instruction(inst, lattice):
+                    changed = True
 
-            # Add successors to worklist
-            worklist.extend(block.successors)
+            # If this block changed, add successors to worklist
+            if changed:
+                worklist.update(block.successors)
 
         return lattice
 
-    def _process_instruction(
-        self,
-        inst: MIRInstruction,
-        lattice: ConstantLattice,
-    ) -> None:
-        """Process an instruction for constant propagation.
+    def _merge_predecessors(
+        self, block: Any, block_lattices: dict[Any, ConstantLattice], lattice: ConstantLattice
+    ) -> bool:
+        """Merge lattice values from predecessor blocks.
 
         Args:
-            inst: Instruction to process.
-            lattice: Constant lattice.
+            block: Current block.
+            block_lattices: Per-block lattice states.
+            lattice: Global lattice.
+
+        Returns:
+            True if any values changed.
         """
-        if isinstance(inst, LoadConst):
-            # LoadConst defines a constant
-            lattice.set(inst.dest, inst.constant.value)
+        changed = False
 
-        elif isinstance(inst, Copy):
-            # Copy propagates constants
-            if isinstance(inst.source, Constant):
-                lattice.set(inst.dest, inst.source.value)
-            elif isinstance(inst.source, Variable | Temp):
-                val = lattice.get(inst.source)
-                if val != ConstantLattice.TOP:
-                    lattice.set(inst.dest, val)
+        # For each predecessor, merge its output values
+        for pred in block.predecessors:
+            pred_lattice = block_lattices.get(pred)
+            if pred_lattice:
+                for value, const_val in pred_lattice.values.items():
+                    if lattice.set(value, const_val):
+                        changed = True
 
-        elif isinstance(inst, StoreVar):
-            # Store propagates constants to variables
-            if isinstance(inst.source, Constant):
-                lattice.set(inst.var, inst.source.value)
-            elif isinstance(inst.source, Variable | Temp):
-                val = lattice.get(inst.source)
-                if val != ConstantLattice.TOP:
-                    lattice.set(inst.var, val)
+        return changed
 
-        elif isinstance(inst, LoadVar):
-            # Load from variable
-            val = lattice.get(inst.var)
-            if val != ConstantLattice.TOP:
-                lattice.set(inst.dest, val)
-
-        elif isinstance(inst, BinaryOp):
-            # Try to fold binary operations
-            self._process_binary_op(inst, lattice)
-
-        elif isinstance(inst, UnaryOp):
-            # Try to fold unary operations
-            self._process_unary_op(inst, lattice)
-
-    def _process_phi(self, phi: Phi, lattice: ConstantLattice) -> None:
-        """Process a phi node for constant propagation.
+    def _process_phi(
+        self, phi: Phi, block: Any, block_lattices: dict[Any, ConstantLattice], lattice: ConstantLattice
+    ) -> bool:
+        """Process phi node with improved cross-block analysis.
 
         Args:
             phi: Phi node to process.
+            block: Current block.
+            block_lattices: Per-block lattice states.
             lattice: Constant lattice.
+
+        Returns:
+            True if the phi's value changed.
         """
-        # Phi merges values from predecessors
+        # Collect all incoming values with proper lattice meet
         result = ConstantLattice.TOP
-        for value, _ in phi.incoming:
+        all_same = True
+        first_val = None
+
+        for value, pred_block in phi.incoming:
             if isinstance(value, Constant):
                 val = value.value
-            elif isinstance(value, Variable | Temp):
-                val = lattice.get(value)
             else:
-                val = ConstantLattice.BOTTOM
+                # Look up value from predecessor's lattice
+                pred_lattice = block_lattices.get(pred_block, lattice)
+                val = pred_lattice.get(value) if pred_lattice else lattice.get(value)
 
             if val == ConstantLattice.BOTTOM:
                 result = ConstantLattice.BOTTOM
                 break
             elif val != ConstantLattice.TOP:
-                if result == ConstantLattice.TOP:
-                    result = val
-                elif result != val:
+                if first_val is None:
+                    first_val = val
+                elif first_val != val:
+                    all_same = False
                     result = ConstantLattice.BOTTOM
                     break
 
+        # If all values are the same constant, propagate it
+        if all_same and first_val is not None:
+            result = first_val
+
         if result != ConstantLattice.TOP:
-            lattice.set(phi.dest, result)
+            return lattice.set(phi.dest, result)
+        return False
+
+    def _process_instruction(self, inst: MIRInstruction, lattice: ConstantLattice) -> bool:
+        """Process instruction with change tracking.
+
+        Args:
+            inst: Instruction to process.
+            lattice: Constant lattice.
+
+        Returns:
+            True if any value changed.
+        """
+        changed = False
+
+        if isinstance(inst, LoadConst):
+            # LoadConst defines a constant
+            if lattice.set(inst.dest, inst.constant.value):
+                changed = True
+
+        elif isinstance(inst, Copy):
+            # Copy propagates constants
+            if isinstance(inst.source, Constant):
+                if lattice.set(inst.dest, inst.source.value):
+                    changed = True
+            elif isinstance(inst.source, Variable | Temp):
+                val = lattice.get(inst.source)
+                if val != ConstantLattice.TOP:
+                    if lattice.set(inst.dest, val):
+                        changed = True
+
+        elif isinstance(inst, StoreVar):
+            # Store propagates constants to variables
+            if isinstance(inst.source, Constant):
+                if lattice.set(inst.var, inst.source.value):
+                    changed = True
+            elif isinstance(inst.source, Variable | Temp):
+                val = lattice.get(inst.source)
+                if val != ConstantLattice.TOP:
+                    if lattice.set(inst.var, val):
+                        changed = True
+
+        elif isinstance(inst, LoadVar):
+            # Load from variable
+            val = lattice.get(inst.var)
+            if val != ConstantLattice.TOP:
+                if lattice.set(inst.dest, val):
+                    changed = True
+
+        elif isinstance(inst, BinaryOp):
+            # Try to fold binary operations
+            left_val = self._get_value(inst.left, lattice)
+            right_val = self._get_value(inst.right, lattice)
+
+            if left_val is not None and right_val is not None:
+                result = self._fold_binary_op(inst.op, left_val, right_val)
+                if result is not None:
+                    if lattice.set(inst.dest, result):
+                        changed = True
+
+        elif isinstance(inst, UnaryOp):
+            # Try to fold unary operations
+            operand_val = self._get_value(inst.operand, lattice)
+
+            if operand_val is not None:
+                result = self._fold_unary_op(inst.op, operand_val)
+                if result is not None:
+                    if lattice.set(inst.dest, result):
+                        changed = True
+
+        return changed
 
     def _process_binary_op(self, inst: BinaryOp, lattice: ConstantLattice) -> None:
         """Process a binary operation for constant folding.
@@ -345,7 +419,11 @@ class ConstantPropagation(OptimizationPass):
             The folded result or None.
         """
         try:
+            # Arithmetic operations
             if op == "+":
+                # Handle string concatenation and numeric addition
+                if isinstance(left, str) or isinstance(right, str):
+                    return str(left) + str(right)
                 return left + right
             elif op == "-":
                 return left - right
@@ -353,6 +431,9 @@ class ConstantPropagation(OptimizationPass):
                 return left * right
             elif op == "/":
                 if right != 0:
+                    # Integer division for integers
+                    if isinstance(left, int) and isinstance(right, int):
+                        return left // right
                     return left / right
             elif op == "//":
                 if right != 0:
@@ -360,6 +441,10 @@ class ConstantPropagation(OptimizationPass):
             elif op == "%":
                 if right != 0:
                     return left % right
+            elif op == "**":
+                return left**right
+
+            # Comparison operations
             elif op == "<":
                 return left < right
             elif op == "<=":
@@ -372,11 +457,41 @@ class ConstantPropagation(OptimizationPass):
                 return left == right
             elif op == "!=":
                 return left != right
+            elif op == "===":  # Strict equality
+                return left is right
+            elif op == "!==":  # Strict inequality
+                return left is not right
+
+            # Logical operations
             elif op == "and":
                 return left and right
             elif op == "or":
                 return left or right
-        except (TypeError, ValueError):
+
+            # Bitwise operations
+            elif op == "&":
+                if isinstance(left, int) and isinstance(right, int):
+                    return left & right
+            elif op == "|":
+                if isinstance(left, int) and isinstance(right, int):
+                    return left | right
+            elif op == "^":
+                if isinstance(left, int) and isinstance(right, int):
+                    return left ^ right
+            elif op == "<<":
+                if isinstance(left, int) and isinstance(right, int):
+                    return left << right
+            elif op == ">>":
+                if isinstance(left, int) and isinstance(right, int):
+                    return left >> right
+
+            # String operations
+            elif op == "in":
+                return left in right
+            elif op == "not in":
+                return left not in right
+
+        except (TypeError, ValueError, ZeroDivisionError, OverflowError):
             pass
         return None
 
@@ -395,6 +510,16 @@ class ConstantPropagation(OptimizationPass):
                 return -operand
             elif op == "not":
                 return not operand
+            elif op == "+":
+                return +operand
+            elif op == "~":  # Bitwise NOT
+                if isinstance(operand, int):
+                    return ~operand
+            elif op == "abs":
+                return abs(operand)
+            elif op == "len":
+                if hasattr(operand, "__len__"):
+                    return len(operand)
         except (TypeError, ValueError):
             pass
         return None

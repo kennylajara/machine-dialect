@@ -42,12 +42,14 @@ class TypeSpecificOptimization(FunctionPass):
         """Initialize the type-specific optimization pass."""
         super().__init__()
         self.type_info: dict[str, MIRType | MIRUnionType] = {}
+        self.def_map: dict[MIRValue, MIRInstruction] = {}  # Maps values to their defining instructions
         self.stats = {
             "constant_folded": 0,
             "type_checks_eliminated": 0,
             "boolean_optimized": 0,
             "integer_optimized": 0,
             "float_optimized": 0,
+            "string_optimized": 0,
             "instructions_removed": 0,
         }
 
@@ -79,12 +81,29 @@ class TypeSpecificOptimization(FunctionPass):
         # First, collect type information from the function
         self._collect_type_info(function)
 
+        # Build def-use chains for pattern detection
+        self._build_def_map(function)
+
         # Then optimize each basic block
         for block in function.cfg.blocks.values():
             if self._optimize_block(block, function):
                 modified = True
 
         return modified
+
+    def _build_def_map(self, function: MIRFunction) -> None:
+        """Build a map from values to their defining instructions.
+
+        Args:
+            function: The function to analyze.
+        """
+        self.def_map.clear()
+
+        for block in function.cfg.blocks.values():
+            for inst in block.instructions:
+                # Record all definitions
+                for def_val in inst.get_defs():
+                    self.def_map[def_val] = inst
 
     def _collect_type_info(self, function: MIRFunction) -> None:
         """Collect type information from function locals and parameters.
@@ -199,6 +218,13 @@ class TypeSpecificOptimization(FunctionPass):
                 self.stats["float_optimized"] += 1
                 return optimized
 
+        # String-specific optimizations
+        elif left_type == MIRType.STRING or right_type == MIRType.STRING:
+            optimized = self._optimize_string_binary_op(inst)
+            if optimized and optimized != inst:
+                self.stats["string_optimized"] += 1
+                return optimized
+
         # Boolean-specific optimizations
         elif inst.op in ("and", "or"):
             optimized = self._optimize_boolean_op(inst)
@@ -231,15 +257,57 @@ class TypeSpecificOptimization(FunctionPass):
         if inst.op == "-":
             if operand_type == MIRType.INT:
                 # Integer negation optimizations
-                pass  # Could add specific patterns
+                # Check for negation of negation: -(-x) -> x
+                if isinstance(inst.operand, Temp):
+                    defining_inst = self.def_map.get(inst.operand)
+                    if defining_inst and isinstance(defining_inst, UnaryOp) and defining_inst.op == "-":
+                        # Found double negation
+                        return Copy(inst.dest, defining_inst.operand)
             elif operand_type == MIRType.FLOAT:
                 # Float negation optimizations
-                pass  # Could add specific patterns
+                # Check for negation of negation: -(-x) -> x
+                if isinstance(inst.operand, Temp):
+                    defining_inst = self.def_map.get(inst.operand)
+                    if defining_inst and isinstance(defining_inst, UnaryOp) and defining_inst.op == "-":
+                        # Found double negation
+                        return Copy(inst.dest, defining_inst.operand)
         elif inst.op == "not":
             # Boolean NOT optimizations
-            if isinstance(inst.operand, Variable):
-                # Could optimize double negation patterns
-                pass
+            # Check for double negation: not(not(x)) -> x
+            if isinstance(inst.operand, Temp) or isinstance(inst.operand, Variable):
+                # Look for the instruction that defines this operand
+                defining_inst = self.def_map.get(inst.operand)
+                if defining_inst and isinstance(defining_inst, UnaryOp) and defining_inst.op == "not":
+                    # Found double negation: not(not(x)) -> x
+                    self.stats["boolean_optimized"] += 1
+                    return Copy(inst.dest, defining_inst.operand)
+
+            # Check for NOT of comparison: not(x == y) -> x != y
+            if isinstance(inst.operand, Temp):
+                defining_inst = self.def_map.get(inst.operand)
+                if defining_inst and isinstance(defining_inst, BinaryOp):
+                    # Invert comparison operators
+                    inverted_ops = {
+                        "==": "!=",
+                        "!=": "==",
+                        "<": ">=",
+                        "<=": ">",
+                        ">": "<=",
+                        ">=": "<",
+                    }
+                    if defining_inst.op in inverted_ops:
+                        # not(x op y) -> x inverted_op y
+                        self.stats["boolean_optimized"] += 1
+                        return BinaryOp(
+                            inst.dest, inverted_ops[defining_inst.op], defining_inst.left, defining_inst.right
+                        )
+        elif inst.op == "abs":
+            # Absolute value optimizations
+            if operand_type == MIRType.INT or operand_type == MIRType.FLOAT:
+                # abs(constant) can be folded
+                if isinstance(inst.operand, Constant):
+                    result = abs(inst.operand.value)
+                    return LoadConst(inst.dest, Constant(result, operand_type))
 
         return inst
 
@@ -521,6 +589,48 @@ class TypeSpecificOptimization(FunctionPass):
 
         return inst
 
+    def _optimize_string_binary_op(self, inst: BinaryOp) -> MIRInstruction:
+        """Apply string-specific optimizations.
+
+        Args:
+            inst: The binary operation involving strings.
+
+        Returns:
+            Optimized instruction.
+        """
+        # String concatenation optimizations
+        if inst.op == "+":
+            # Empty string concatenation
+            if isinstance(inst.left, Constant) and inst.left.value == "":
+                # "" + x -> x
+                return Copy(inst.dest, inst.right)
+            elif isinstance(inst.right, Constant) and inst.right.value == "":
+                # x + "" -> x
+                return Copy(inst.dest, inst.left)
+
+            # Constant string concatenation is handled by constant folding
+
+        # String comparison optimizations
+        elif inst.op == "==":
+            # Comparing with empty string
+            if isinstance(inst.right, Constant) and inst.right.value == "":
+                # TODO: x == "" can be optimized to checking length
+                #  This would need a Length instruction, so we leave it for now
+                pass
+
+            # Same string comparison
+            if inst.left == inst.right:
+                # x == x -> True
+                return LoadConst(inst.dest, Constant(True, MIRType.BOOL))
+
+        elif inst.op == "!=":
+            # Same string comparison
+            if inst.left == inst.right:
+                # x != x -> False
+                return LoadConst(inst.dest, Constant(False, MIRType.BOOL))
+
+        return inst
+
     def _optimize_comparison(self, inst: BinaryOp, left_type: MIRType, right_type: MIRType) -> MIRInstruction:
         """Apply comparison-specific optimizations.
 
@@ -552,6 +662,35 @@ class TypeSpecificOptimization(FunctionPass):
             elif inst.op == ">":
                 # x > x -> False
                 return LoadConst(inst.dest, Constant(False, MIRType.BOOL))
+
+        # Optimize comparisons with boolean constants
+        if left_type == MIRType.BOOL or right_type == MIRType.BOOL:
+            if inst.op == "==":
+                # x == true -> x
+                if isinstance(inst.right, Constant) and inst.right.value is True:
+                    return Copy(inst.dest, inst.left)
+                # x == false -> not x
+                elif isinstance(inst.right, Constant) and inst.right.value is False:
+                    return UnaryOp(inst.dest, "not", inst.left)
+                # true == x -> x
+                elif isinstance(inst.left, Constant) and inst.left.value is True:
+                    return Copy(inst.dest, inst.right)
+                # false == x -> not x
+                elif isinstance(inst.left, Constant) and inst.left.value is False:
+                    return UnaryOp(inst.dest, "not", inst.right)
+            elif inst.op == "!=":
+                # x != true -> not x
+                if isinstance(inst.right, Constant) and inst.right.value is True:
+                    return UnaryOp(inst.dest, "not", inst.left)
+                # x != false -> x
+                elif isinstance(inst.right, Constant) and inst.right.value is False:
+                    return Copy(inst.dest, inst.left)
+                # true != x -> not x
+                elif isinstance(inst.left, Constant) and inst.left.value is True:
+                    return UnaryOp(inst.dest, "not", inst.right)
+                # false != x -> x
+                elif isinstance(inst.left, Constant) and inst.left.value is False:
+                    return Copy(inst.dest, inst.right)
 
         return inst
 

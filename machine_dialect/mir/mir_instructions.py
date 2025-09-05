@@ -7,6 +7,7 @@ Each instruction follows the three-address code format where possible.
 from abc import ABC, abstractmethod
 from typing import Any
 
+from .mir_types import MIRType, MIRUnionType
 from .mir_values import Constant, FunctionRef, MIRValue, Variable
 
 
@@ -117,6 +118,47 @@ class UnaryOp(MIRInstruction):
         """Replace uses of a value."""
         if self.operand == old_value:
             self.operand = new_value
+
+
+class ShiftOp(MIRInstruction):
+    """Bitwise shift operation: dest = left op right.
+
+    Used for strength reduction optimizations where multiply/divide
+    by powers of 2 are converted to shift operations.
+    """
+
+    def __init__(self, dest: MIRValue, left: MIRValue, right: MIRValue, op: str) -> None:
+        """Initialize a shift operation.
+
+        Args:
+            dest: Destination to store result.
+            left: Value to shift.
+            right: Shift amount.
+            op: Shift operator ('<<' for left shift, '>>' for right shift).
+        """
+        self.dest = dest
+        self.left = left
+        self.right = right
+        self.op = op
+
+    def __str__(self) -> str:
+        """Return string representation."""
+        return f"{self.dest} = {self.left} {self.op} {self.right}"
+
+    def get_uses(self) -> list[MIRValue]:
+        """Get operands used."""
+        return [self.left, self.right]
+
+    def get_defs(self) -> list[MIRValue]:
+        """Get destination defined."""
+        return [self.dest]
+
+    def replace_use(self, old_value: MIRValue, new_value: MIRValue) -> None:
+        """Replace uses of a value."""
+        if self.left == old_value:
+            self.left = new_value
+        if self.right == old_value:
+            self.right = new_value
 
 
 class Copy(MIRInstruction):
@@ -682,5 +724,149 @@ class Pop(MIRInstruction):
 
     def replace_use(self, old: MIRValue, new: MIRValue) -> None:
         """Replace a used value."""
+        if self.value == old:
+            self.value = new
+
+
+class TypeCast(MIRInstruction):
+    """Type cast instruction: dest = cast(value, target_type).
+
+    Explicit type conversion between compatible types.
+    """
+
+    def __init__(self, dest: MIRValue, value: MIRValue, target_type: MIRType | MIRUnionType) -> None:
+        """Initialize a type cast instruction.
+
+        Args:
+            dest: Destination to store cast result.
+            value: Value to cast.
+            target_type: Target type to cast to.
+        """
+        self.dest = dest
+        self.value = value
+        self.target_type = target_type
+
+    def __str__(self) -> str:
+        """Return string representation."""
+        return f"{self.dest} = cast({self.value}, {self.target_type})"
+
+    def get_uses(self) -> list[MIRValue]:
+        """Get value used."""
+        return [self.value]
+
+    def get_defs(self) -> list[MIRValue]:
+        """Get destination defined."""
+        return [self.dest]
+
+    def replace_use(self, old: MIRValue, new: MIRValue) -> None:
+        """Replace uses of a value."""
+        if self.value == old:
+            self.value = new
+
+
+class TypeCheck(MIRInstruction):
+    """Type check instruction: dest = is_type(value, type).
+
+    Runtime type checking for union types or dynamic typing.
+    """
+
+    def __init__(self, dest: MIRValue, value: MIRValue, check_type: MIRType | MIRUnionType) -> None:
+        """Initialize a type check instruction.
+
+        Args:
+            dest: Destination to store boolean result.
+            value: Value to check type of.
+            check_type: Type to check against.
+        """
+        self.dest = dest
+        self.value = value
+        self.check_type = check_type
+
+    def __str__(self) -> str:
+        """Return string representation."""
+        return f"{self.dest} = is_type({self.value}, {self.check_type})"
+
+    def get_uses(self) -> list[MIRValue]:
+        """Get value used."""
+        return [self.value]
+
+    def get_defs(self) -> list[MIRValue]:
+        """Get destination defined."""
+        return [self.dest]
+
+    def replace_use(self, old: MIRValue, new: MIRValue) -> None:
+        """Replace uses of a value."""
+        if self.value == old:
+            self.value = new
+
+
+class TypeAssert(MIRInstruction):
+    """Type assertion instruction: assert_type(value, type).
+
+    Assert that a value has a specific type at runtime.
+    Throws error if type mismatch.
+    """
+
+    def __init__(self, value: MIRValue, assert_type: MIRType | MIRUnionType) -> None:
+        """Initialize a type assertion instruction.
+
+        Args:
+            value: Value to assert type of.
+            assert_type: Expected type.
+        """
+        self.value = value
+        self.assert_type = assert_type
+
+    def __str__(self) -> str:
+        """Return string representation."""
+        return f"assert_type({self.value}, {self.assert_type})"
+
+    def get_uses(self) -> list[MIRValue]:
+        """Get value used."""
+        return [self.value]
+
+    def get_defs(self) -> list[MIRValue]:
+        """No values defined."""
+        return []
+
+    def replace_use(self, old: MIRValue, new: MIRValue) -> None:
+        """Replace uses of a value."""
+        if self.value == old:
+            self.value = new
+
+
+class NarrowType(MIRInstruction):
+    """Type narrowing instruction: dest = narrow(value, type).
+
+    Used after type checks to narrow union types to specific types.
+    This is a compile-time hint for optimization, not a runtime operation.
+    """
+
+    def __init__(self, dest: MIRValue, value: MIRValue, narrow_type: MIRType) -> None:
+        """Initialize a type narrowing instruction.
+
+        Args:
+            dest: Destination with narrowed type.
+            value: Value to narrow.
+            narrow_type: The specific type to narrow to.
+        """
+        self.dest = dest
+        self.value = value
+        self.narrow_type = narrow_type
+
+    def __str__(self) -> str:
+        """Return string representation."""
+        return f"{self.dest} = narrow({self.value}, {self.narrow_type})"
+
+    def get_uses(self) -> list[MIRValue]:
+        """Get value used."""
+        return [self.value]
+
+    def get_defs(self) -> list[MIRValue]:
+        """Get destination defined."""
+        return [self.dest]
+
+    def replace_use(self, old: MIRValue, new: MIRValue) -> None:
+        """Replace uses of a value."""
         if self.value == old:
             self.value = new

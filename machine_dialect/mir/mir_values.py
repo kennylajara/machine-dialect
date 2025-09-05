@@ -7,19 +7,24 @@ including temporaries, variables, constants, and function references.
 from abc import ABC, abstractmethod
 from typing import Any
 
-from .mir_types import MIRType, infer_type
+from .mir_types import MIRType, MIRUnionType, infer_type
 
 
 class MIRValue(ABC):
     """Base class for all MIR values."""
 
-    def __init__(self, mir_type: MIRType) -> None:
+    def __init__(self, mir_type: MIRType | MIRUnionType) -> None:
         """Initialize a MIR value.
 
         Args:
-            mir_type: The type of the value.
+            mir_type: The type of the value (can be union type).
         """
         self.type = mir_type
+        # Additional metadata for union types
+        self.union_type: MIRUnionType | None = None
+        if isinstance(mir_type, MIRUnionType):
+            self.union_type = mir_type
+            self.type = MIRType.UNKNOWN  # Base type is unknown for unions
 
     @abstractmethod
     def __str__(self) -> str:
@@ -46,11 +51,11 @@ class Temp(MIRValue):
 
     _next_id = 0
 
-    def __init__(self, mir_type: MIRType, temp_id: int | None = None) -> None:
+    def __init__(self, mir_type: MIRType | MIRUnionType, temp_id: int | None = None) -> None:
         """Initialize a temporary.
 
         Args:
-            mir_type: The type of the temporary.
+            mir_type: The type of the temporary (can be union type).
             temp_id: Optional explicit ID. If None, auto-generated.
         """
         super().__init__(mir_type)
@@ -85,12 +90,12 @@ class Variable(MIRValue):
     In SSA form, these may be versioned (e.g., x_1, x_2).
     """
 
-    def __init__(self, name: str, mir_type: MIRType, version: int = 0) -> None:
+    def __init__(self, name: str, mir_type: MIRType | MIRUnionType, version: int = 0) -> None:
         """Initialize a variable.
 
         Args:
             name: The variable name.
-            mir_type: The type of the variable.
+            mir_type: The type of the variable (can be union type).
             version: SSA version number (0 for non-SSA).
         """
         super().__init__(mir_type)

@@ -17,6 +17,7 @@ from machine_dialect.mir.optimizations.peephole_optimizer import PeepholeOptimiz
 from machine_dialect.mir.optimizations.strength_reduction import StrengthReduction
 from machine_dialect.mir.optimizations.tail_call import TailCallOptimization
 from machine_dialect.mir.optimizations.type_specialization import TypeSpecialization
+from machine_dialect.mir.optimizations.type_specific import TypeSpecificOptimization
 
 if TYPE_CHECKING:
     from machine_dialect.mir.pass_manager import PassManager
@@ -36,6 +37,7 @@ __all__ = [
     "PeepholePass",
     "StrengthReduction",
     "TailCallOptimization",
+    "TypeSpecificOptimization",
     "TypeSpecialization",
 ]
 
@@ -62,6 +64,7 @@ def register_all_passes(pass_manager: PassManager) -> None:
     pass_manager.register_pass(TypeAnalysis)
 
     # Register optimization passes
+    pass_manager.register_pass(TypeSpecificOptimization)  # Run early to benefit other passes
     pass_manager.register_pass(ConstantPropagation)
     pass_manager.register_pass(CommonSubexpressionElimination)
     pass_manager.register_pass(DeadCodeElimination)

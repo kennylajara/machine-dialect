@@ -57,7 +57,7 @@ from machine_dialect.mir.mir_instructions import (
     UnaryOp,
 )
 from machine_dialect.mir.mir_module import MIRModule
-from machine_dialect.mir.mir_types import MIRType
+from machine_dialect.mir.mir_types import MIRType, MIRUnionType, ast_type_to_mir_type
 from machine_dialect.mir.mir_values import Constant, FunctionRef, MIRValue, Variable
 from machine_dialect.mir.ssa_construction import construct_ssa
 from machine_dialect.mir.type_inference import TypeInferencer, infer_ast_expression_type
@@ -74,6 +74,7 @@ class HIRToMIRLowering:
         self.variable_map: dict[str, Variable] = {}
         self.label_counter = 0
         self.type_context: dict[str, MIRType] = {}  # Track variable types
+        self.union_type_context: dict[str, MIRUnionType] = {}  # Track union types separately
         self.debug_builder = DebugInfoBuilder()  # Debug information tracking
 
     def lower_program(self, program: Program, module_name: str = "main") -> MIRModule:
@@ -273,7 +274,7 @@ class HIRToMIRLowering:
         self.current_block = None
 
     def lower_set_statement(self, stmt: SetStatement) -> None:
-        """Lower a set statement to MIR.
+        """Lower a set statement to MIR with enhanced type tracking.
 
         Args:
             stmt: The set statement to lower.
@@ -291,7 +292,8 @@ class HIRToMIRLowering:
         # Get or create variable
         var_name = stmt.name.value if isinstance(stmt.name, Identifier) else str(stmt.name)
         if var_name not in self.variable_map:
-            # Create new variable with inferred type
+            # Variable wasn't defined - this should be caught by semantic analysis
+            # Create with inferred type for error recovery
             var_type = (
                 value.type
                 if hasattr(value, "type")
@@ -308,9 +310,18 @@ class HIRToMIRLowering:
             self.debug_builder.track_variable(var_name, var, str(var_type), is_parameter=False)
         else:
             var = self.variable_map[var_name]
-            # Update type context if we have better type info
-            if hasattr(value, "type") and value.type != MIRType.UNKNOWN:
-                self.type_context[var_name] = value.type
+
+            # For union types, track the actual runtime type being assigned
+            if var_name in self.union_type_context:
+                if hasattr(value, "type") and value.type != MIRType.UNKNOWN:
+                    # This assignment narrows the type for flow-sensitive analysis
+                    # Store this info for optimization passes
+                    if hasattr(var, "runtime_type"):
+                        var.runtime_type = value.type  # type: ignore[attr-defined]
+            else:
+                # Update type context if we have better type info
+                if hasattr(value, "type") and value.type != MIRType.UNKNOWN:
+                    self.type_context[var_name] = value.type
 
         # If the value is a constant, load it into a temporary first
         if isinstance(value, Constant):
@@ -324,7 +335,7 @@ class HIRToMIRLowering:
         self.current_block.add_instruction(StoreVar(var, value))
 
     def _convert_define_statement(self, stmt: DefineStatement) -> None:
-        """Convert DefineStatement to MIR.
+        """Convert DefineStatement to MIR with enhanced type tracking.
 
         Args:
             stmt: DefineStatement from HIR
@@ -334,16 +345,25 @@ class HIRToMIRLowering:
 
         var_name = stmt.name.value if isinstance(stmt.name, Identifier) else str(stmt.name)
 
-        # Import ast_type_to_mir_type function
-        from machine_dialect.mir.mir_types import MIRType, MIRUnionType, ast_type_to_mir_type
-
         # Convert type specification to MIR type
         mir_type = ast_type_to_mir_type(stmt.type_spec)
 
         # Create typed variable in MIR
-        # For union types, use MIRType.UNKNOWN for now (will be refined by type inference)
-        var_type = MIRType.UNKNOWN if isinstance(mir_type, MIRUnionType) else mir_type
-        var = Variable(var_name, var_type)
+        if isinstance(mir_type, MIRUnionType):
+            # For union types, track both the union and create a variable with UNKNOWN type
+            # The actual type will be refined during type inference and optimization
+            var = Variable(var_name, MIRType.UNKNOWN)
+
+            # Store the union type information separately for optimization passes
+            self.union_type_context[var_name] = mir_type
+            self.type_context[var_name] = MIRType.UNKNOWN
+
+            # Add metadata to the variable for optimization passes
+            var.union_type = mir_type  # type: ignore[attr-defined]
+        else:
+            # Single type - use it directly
+            var = Variable(var_name, mir_type)
+            self.type_context[var_name] = mir_type
 
         # Register in variable map with type
         self.variable_map[var_name] = var
@@ -351,15 +371,7 @@ class HIRToMIRLowering:
         # Add to function locals
         self.current_function.add_local(var)
 
-        # Update type context
-        # Store the actual type (could be union) in type_context
-        if isinstance(mir_type, MIRUnionType):
-            # For union types, use UNKNOWN in type_context for now
-            self.type_context[var_name] = MIRType.UNKNOWN
-        else:
-            self.type_context[var_name] = mir_type
-
-        # Track variable for debugging
+        # Track variable for debugging with full type information
         self.debug_builder.track_variable(var_name, var, str(mir_type), is_parameter=False)
 
         # If there's an initial value (shouldn't happen after HIR desugaring but handle it)

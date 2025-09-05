@@ -262,6 +262,70 @@ def get_binary_op_result_type(op: str, left: MIRType, right: MIRType) -> MIRType
     return MIRType.UNKNOWN
 
 
+def can_cast(from_type: MIRType, to_type: MIRType) -> bool:
+    """Check if a type can be cast to another type.
+
+    Args:
+        from_type: Source type
+        to_type: Target type
+
+    Returns:
+        True if the cast is valid, False otherwise
+    """
+    # Same type - no cast needed
+    if from_type == to_type:
+        return True
+
+    # Numeric casts
+    if is_numeric_type(from_type) and is_numeric_type(to_type):
+        return True
+
+    # Bool to numeric
+    if from_type == MIRType.BOOL and is_numeric_type(to_type):
+        return True
+
+    # Numeric to bool
+    if is_numeric_type(from_type) and to_type == MIRType.BOOL:
+        return True
+
+    # Everything can be cast to string
+    if to_type == MIRType.STRING:
+        return True
+
+    # Empty can be cast to any type (null coercion)
+    if from_type == MIRType.EMPTY:
+        return True
+
+    return False
+
+
+def is_assignable(value_type: MIRType | MIRUnionType, target_type: MIRType | MIRUnionType) -> bool:
+    """Check if a value type can be assigned to a target type.
+
+    Args:
+        value_type: The type of the value being assigned
+        target_type: The target type
+
+    Returns:
+        True if assignment is valid, False otherwise
+    """
+    # Handle union types
+    if isinstance(target_type, MIRUnionType):
+        if isinstance(value_type, MIRUnionType):
+            # All value types must be in target union
+            return all(any(can_cast(vt, tt) for tt in target_type.types) for vt in value_type.types)
+        else:
+            # Single type must be in union
+            return any(can_cast(value_type, tt) for tt in target_type.types)
+
+    if isinstance(value_type, MIRUnionType):
+        # Union to single type - all possibilities must be assignable
+        return all(can_cast(vt, target_type) for vt in value_type.types)
+
+    # Both are single types
+    return can_cast(value_type, target_type)
+
+
 def get_unary_op_result_type(op: str, operand: MIRType) -> MIRType:
     """Get the result type of a unary operation.
 

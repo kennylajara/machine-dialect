@@ -12,7 +12,7 @@ class TestCallStatementErrors:
         source = 'use with _"test"_.'
 
         parser = Parser()
-        parser.parse(source)
+        parser.parse(source, check_semantics=False)
 
         assert len(parser.errors) > 0
         error_messages = [str(err).lower() for err in parser.errors]
@@ -26,7 +26,7 @@ class TestCallStatementErrors:
         source = 'use _"not_an_identifier"_ with _"test"_.'
 
         parser = Parser()
-        parser.parse(source)
+        parser.parse(source, check_semantics=False)
 
         assert len(parser.errors) > 0
         error_messages = [str(err).lower() for err in parser.errors]
@@ -39,7 +39,7 @@ class TestCallStatementErrors:
         source = "use `my_function`"
 
         parser = Parser()
-        parser.parse(source)
+        parser.parse(source, check_semantics=False)
 
         assert len(parser.errors) > 0
         error_messages = [str(err).lower() for err in parser.errors]
@@ -52,7 +52,7 @@ class TestCallStatementErrors:
         source = "use `my_function` with @#$."
 
         parser = Parser()
-        parser.parse(source)
+        parser.parse(source, check_semantics=False)
 
         # Should have an error about invalid argument
         assert len(parser.errors) > 0
@@ -66,7 +66,7 @@ class TestCallStatementErrors:
         source = 'use `my_function` with `param` _"value"_.'
 
         parser = Parser()
-        program = parser.parse(source)
+        program = parser.parse(source, check_semantics=False)
 
         # Should have an error about missing comma
         assert len(parser.errors) > 0
@@ -89,7 +89,7 @@ class TestCallStatementErrors:
         source = "use `my_function` with ."
 
         parser = Parser()
-        program = parser.parse(source)
+        program = parser.parse(source, check_semantics=False)
 
         # This should either produce an error or create an empty arguments list
         if len(parser.errors) > 0:
@@ -111,7 +111,7 @@ class TestCallStatementErrors:
         source = 'use `my_function` where `param` is _"value1"_, `param` is _"value2"_.'
 
         parser = Parser()
-        program = parser.parse(source)
+        program = parser.parse(source, check_semantics=False)
 
         # Parser currently doesn't check for duplicates, so this should parse successfully
         # but both values should be present
@@ -133,7 +133,7 @@ class TestCallStatementErrors:
         source = 'use `my_function` with _"arg1"_ _"arg2"_.'
 
         parser = Parser()
-        program = parser.parse(source)
+        program = parser.parse(source, check_semantics=False)
 
         # Should produce an error about missing comma
         assert len(parser.errors) > 0
@@ -156,7 +156,7 @@ class TestCallStatementErrors:
         source = 'use `my_function` with _"arg1"_, _"arg2"_,.'
 
         parser = Parser()
-        program = parser.parse(source)
+        program = parser.parse(source, check_semantics=False)
 
         # Trailing comma should be acceptable or produce a clear error
         if len(parser.errors) == 0:
@@ -174,7 +174,7 @@ class TestCallStatementErrors:
         source = 'use `my_function` with _"valid"_, , _42_.'
 
         parser = Parser()
-        program = parser.parse(source)
+        program = parser.parse(source, check_semantics=False)
 
         # The double comma should cause parsing issues
         # Parser should handle this gracefully

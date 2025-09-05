@@ -30,7 +30,7 @@ class TestInteractionStatements:
 </details>"""
 
         parser = Parser()
-        program = parser.parse(source)
+        program = parser.parse(source, check_semantics=False)
 
         assert len(parser.errors) == 0, f"Parser errors: {parser.errors}"
         assert len(program.statements) == 1
@@ -63,7 +63,7 @@ class TestInteractionStatements:
 </details>"""
 
         parser = Parser()
-        program = parser.parse(source)
+        program = parser.parse(source, check_semantics=False)
 
         assert len(parser.errors) == 0
         assert len(program.statements) == 1
@@ -86,7 +86,7 @@ class TestInteractionStatements:
 </details>"""
 
         parser = Parser()
-        program = parser.parse(source)
+        program = parser.parse(source, check_semantics=False)
 
         assert len(parser.errors) == 0
         assert len(program.statements) == 1
@@ -107,7 +107,7 @@ class TestInteractionStatements:
 </details>"""
 
         parser = Parser()
-        program = parser.parse(source)
+        program = parser.parse(source, check_semantics=False)
 
         assert len(parser.errors) == 0
         assert len(program.statements) == 1
@@ -126,7 +126,7 @@ class TestInteractionStatements:
 </details>"""
 
         parser = Parser()
-        program = parser.parse(source)
+        program = parser.parse(source, check_semantics=False)
 
         assert len(parser.errors) == 0
         assert len(program.statements) == 1
@@ -159,7 +159,7 @@ class TestInteractionStatements:
 </details>"""
 
         parser = Parser()
-        program = parser.parse(source)
+        program = parser.parse(source, check_semantics=False)
 
         assert len(parser.errors) == 0
         assert len(program.statements) == 2
@@ -195,7 +195,7 @@ class TestInteractionStatements:
 - `age` **as** Number"""
 
         parser = Parser()
-        program = parser.parse(source)
+        program = parser.parse(source, check_semantics=False)
 
         assert len(parser.errors) == 0, f"Parser errors: {parser.errors}"
         assert len(program.statements) == 1
@@ -251,7 +251,7 @@ class TestInteractionStatements:
 </details>"""
 
         parser = Parser()
-        program = parser.parse(source)
+        program = parser.parse(source, check_semantics=False)
 
         assert len(parser.errors) == 0
         assert len(program.statements) == 2

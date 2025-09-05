@@ -108,10 +108,44 @@ class SemanticAnalyzer:
         Args:
             stmt: Statement to analyze
         """
+        from machine_dialect.ast.statements import (
+            ActionStatement,
+            CallStatement,
+            FunctionStatement,
+            IfStatement,
+            InteractionStatement,
+            ReturnStatement,
+            SayStatement,
+            UtilityStatement,
+        )
+
         if isinstance(stmt, DefineStatement):
             self._analyze_define_statement(stmt)
         elif isinstance(stmt, SetStatement):
             self._analyze_set_statement(stmt)
+        elif isinstance(stmt, FunctionStatement | ActionStatement | InteractionStatement | UtilityStatement):
+            self._analyze_function_statement(stmt)
+        elif isinstance(stmt, IfStatement):
+            # Analyze condition
+            if stmt.condition:
+                self._analyze_expression(stmt.condition)
+            # Analyze consequence and alternative blocks
+            if stmt.consequence:
+                self._analyze_statement(stmt.consequence)
+            if stmt.alternative:
+                self._analyze_statement(stmt.alternative)
+        elif isinstance(stmt, SayStatement | ReturnStatement):
+            # Analyze the expression being said or returned
+            if hasattr(stmt, "expression") and stmt.expression:
+                self._analyze_expression(stmt.expression)
+            elif hasattr(stmt, "return_value") and stmt.return_value:
+                self._analyze_expression(stmt.return_value)
+        elif isinstance(stmt, CallStatement):
+            # Analyze the function being called and its arguments
+            if stmt.function_name:
+                self._analyze_expression(stmt.function_name)
+            if stmt.arguments:
+                self._analyze_expression(stmt.arguments)
         elif hasattr(stmt, "expression"):  # ExpressionStatement
             self._analyze_expression(stmt.expression)
         elif hasattr(stmt, "statements"):  # BlockStatement
@@ -188,6 +222,93 @@ class SemanticAnalyzer:
             else:
                 # Mark as initialized since it has a default
                 self.symbol_table.mark_initialized(var_name)
+
+    def _analyze_function_statement(self, stmt: Statement) -> None:
+        """Analyze a function definition (Action, Interaction, Utility, or Function).
+
+        Args:
+            stmt: Function statement to analyze
+        """
+
+        # Get function name
+        func_name = stmt.name.value if hasattr(stmt, "name") else None
+        if not func_name:
+            return
+
+        # Check for redefinition
+        if self.symbol_table.is_defined_in_current_scope(func_name):
+            existing = self.symbol_table.lookup(func_name)
+            if existing:
+                error_msg = ErrorMessageGenerator.redefinition(
+                    func_name,
+                    stmt.token.line,
+                    stmt.token.position,
+                    existing.definition_line,
+                    existing.definition_pos,
+                )
+                self.errors.append(MDNameError(error_msg, stmt.token.line, stmt.token.position))
+                return
+
+        # Determine return type from outputs
+        return_type = None
+        if hasattr(stmt, "outputs") and stmt.outputs:
+            # If function has outputs, use the first output's type
+            # This is simplified - a full implementation might handle multiple outputs
+            if stmt.outputs[0].type_name:
+                return_type = stmt.outputs[0].type_name
+
+        # Register the function in the symbol table
+        # We'll use a simple approach - store it as a variable with a return_type attribute
+        try:
+            # First define it as a "Function" type
+            self.symbol_table.define(func_name, ["Function"], stmt.token.line, stmt.token.position)
+            # Then add return type info if available
+            func_info = self.symbol_table.lookup(func_name)
+            if func_info and return_type:
+                # TODO: Store return type information (would need VariableInfo extension)
+                # func_info.return_type = return_type
+                pass
+            # Mark as initialized since functions are defined with their body
+            self.symbol_table.mark_initialized(func_name)
+        except NameError as e:
+            self.errors.append(MDNameError(str(e), stmt.token.line, stmt.token.position))
+            return
+
+        # Enter new scope for function body
+        old_in_function = self.in_function
+        old_return_type = self.function_return_type
+        self.in_function = True
+        self.function_return_type = return_type
+
+        self.symbol_table = self.symbol_table.enter_scope()
+
+        # Analyze parameters (inputs) - they become local variables in the function scope
+        if hasattr(stmt, "inputs"):
+            for param in stmt.inputs:
+                if param.name and param.type_name:
+                    try:
+                        self.symbol_table.define(
+                            param.name.value,
+                            [param.type_name],
+                            param.token.line if hasattr(param, "token") else stmt.token.line,
+                            param.token.position if hasattr(param, "token") else stmt.token.position,
+                        )
+                        # Parameters are considered initialized
+                        self.symbol_table.mark_initialized(param.name.value)
+                    except NameError:
+                        pass  # Ignore parameter definition errors for now
+
+        # Analyze function body
+        if hasattr(stmt, "body") and stmt.body:
+            self._analyze_statement(stmt.body)
+
+        # Exit function scope
+        parent_table = self.symbol_table.exit_scope()
+        if parent_table:
+            self.symbol_table = parent_table
+
+        self.in_function = old_in_function
+        self.function_return_type = old_return_type
 
     def _analyze_set_statement(self, stmt: SetStatement) -> None:
         """Analyze a Set statement.
@@ -352,10 +473,29 @@ class SemanticAnalyzer:
             elif expr.operator in ["and", "or"]:
                 return TypeInfo("Yes/No")
 
+            # Bitwise operators
+            elif expr.operator in ["|", "&", "^", "<<", ">>"]:
+                # Bitwise operators work on integers and return integers
+                if left_type and right_type:
+                    if left_type.type_name == "Whole Number" and right_type.type_name == "Whole Number":
+                        return TypeInfo("Whole Number")
+                return None
+
         # Additional expression types for better coverage
         # Import these types if needed
         from machine_dialect.ast.call_expression import CallExpression
-        from machine_dialect.ast.expressions import ConditionalExpression, ErrorExpression
+        from machine_dialect.ast.expressions import Arguments, ConditionalExpression, ErrorExpression
+
+        # Check for grouped/parenthesized expressions
+        # GroupedExpression would just pass through the inner expression type
+        # but since we don't have a specific GroupedExpression class,
+        # parenthesized expressions are handled transparently by the parser
+
+        # Arguments expression type
+        if isinstance(expr, Arguments):
+            # Arguments don't have a single type, they're a collection
+            # Return None as we can't determine a single type
+            return None
 
         # Conditional expressions (ternary: condition ? true_expr : false_expr)
         if isinstance(expr, ConditionalExpression):
@@ -380,10 +520,24 @@ class SemanticAnalyzer:
                         return TypeInfo("Float")
             return None
 
-        # Call expressions - for now return None (would need function registry)
+        # Call expressions - check user-defined and built-in functions
         elif isinstance(expr, CallExpression):
-            # In a full implementation, we'd look up the function's return type
-            # For now, we can't determine the type without a function registry
+            # Check if it's a user-defined function by looking it up
+            if hasattr(expr, "function") and isinstance(expr.function, Identifier):
+                func_name = expr.function.value
+
+                # Try to find the function in the symbol table
+                func_info = self.symbol_table.lookup(func_name)
+                if func_info:
+                    # User-defined function - for now return None
+                    # Would need VariableInfo extension to store return types
+                    return None
+
+                # TODO: Check if it's a built-in function from runtime/builtins.py
+                # Built-ins like 'len' return Whole Number, 'str' returns Text, etc.
+                # For now, built-in functions are not tracked in the symbol table
+
+            # Unknown function or complex call expression
             return None
 
         # Error expressions always have unknown type
@@ -413,5 +567,6 @@ class SemanticAnalyzer:
             "Time",
             "List",
             "Empty",
+            "Function",  # Added to support function definitions
         }
         return type_name in valid_types

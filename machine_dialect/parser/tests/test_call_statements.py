@@ -18,7 +18,7 @@ class TestCallStatements:
         source = "use `turn alarm off`."
 
         parser = Parser()
-        program = parser.parse(source)
+        program = parser.parse(source, check_semantics=False)
 
         assert len(parser.errors) == 0, f"Parser errors: {parser.errors}"
         assert len(program.statements) == 1
@@ -34,7 +34,7 @@ class TestCallStatements:
         source = "use `add numbers` with _5_, _10_."
 
         parser = Parser()
-        program = parser.parse(source)
+        program = parser.parse(source, check_semantics=False)
 
         assert len(parser.errors) == 0, f"Parser errors: {parser.errors}"
         assert len(program.statements) == 1
@@ -63,7 +63,7 @@ class TestCallStatements:
         source = 'use `make noise` where `sound` is _"WEE-OO WEE-OO WEE-OO"_, `volume` is _80_.'
 
         parser = Parser()
-        program = parser.parse(source)
+        program = parser.parse(source, check_semantics=False)
 
         assert len(parser.errors) == 0, f"Parser errors: {parser.errors}"
         assert len(program.statements) == 1
@@ -98,7 +98,7 @@ class TestCallStatements:
         source = 'use `my_function` with _"test"_.'
 
         parser = Parser()
-        program = parser.parse(source)
+        program = parser.parse(source, check_semantics=False)
 
         assert len(parser.errors) == 0, f"Parser errors: {parser.errors}"
         assert len(program.statements) == 1
@@ -127,7 +127,7 @@ use `stop process`.
 """
 
         parser = Parser()
-        program = parser.parse(source)
+        program = parser.parse(source, check_semantics=False)
 
         assert len(parser.errors) == 0, f"Parser errors: {parser.errors}"
         assert len(program.statements) == 3

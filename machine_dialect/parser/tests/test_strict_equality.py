@@ -56,7 +56,7 @@ class TestStrictEqualityExpressions:
             right: Expected right operand value.
         """
         parser = Parser()
-        program = parser.parse(source)
+        program = parser.parse(source, check_semantics=False)
 
         assert len(parser.errors) == 0, f"Parser errors: {parser.errors}"
         assert_program_statements(parser, program)
@@ -127,7 +127,7 @@ class TestStrictEqualityExpressions:
 
         for source, expected_structure in test_cases:
             parser = Parser()
-            program = parser.parse(source)
+            program = parser.parse(source, check_semantics=False)
 
             assert len(parser.errors) == 0, f"Parser errors for '{source}': {parser.errors}"
             assert len(program.statements) == 1
@@ -198,7 +198,7 @@ class TestStrictEqualityExpressions:
             expected_right = test_input[3]
 
             parser = Parser()
-            program = parser.parse(source)
+            program = parser.parse(source, check_semantics=False)
 
             assert len(parser.errors) == 0, f"Parser errors: {parser.errors}"
 
@@ -251,7 +251,7 @@ class TestStrictEqualityExpressions:
 
         for source in test_cases:
             parser = Parser()
-            program = parser.parse(source)
+            program = parser.parse(source, check_semantics=False)
 
             # Should parse without errors
             assert len(parser.errors) == 0, f"Parser errors for '{source}': {parser.errors}"

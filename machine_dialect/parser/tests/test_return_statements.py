@@ -12,7 +12,7 @@ class TestReturnStatements:
         source = "give back 42"
         parser = Parser()
 
-        program = parser.parse(source)
+        program = parser.parse(source, check_semantics=False)
 
         assert len(parser.errors) == 0, f"Parser had errors: {parser.errors}"
         assert len(program.statements) == 1
@@ -26,7 +26,7 @@ class TestReturnStatements:
         source = "gives back true"
         parser = Parser()
 
-        program = parser.parse(source)
+        program = parser.parse(source, check_semantics=False)
 
         assert len(parser.errors) == 0, f"Parser had errors: {parser.errors}"
         assert len(program.statements) == 1
@@ -43,7 +43,7 @@ class TestReturnStatements:
         """
         parser = Parser()
 
-        program = parser.parse(source)
+        program = parser.parse(source, check_semantics=False)
 
         assert len(parser.errors) == 0, f"Parser had errors: {parser.errors}"
         assert len(program.statements) == 2
@@ -67,7 +67,7 @@ class TestReturnStatements:
         """
         parser = Parser()
 
-        program = parser.parse(source)
+        program = parser.parse(source, check_semantics=False)
 
         assert len(parser.errors) == 0, f"Parser had errors: {parser.errors}"
         assert len(program.statements) == 3

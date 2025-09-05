@@ -794,7 +794,7 @@ Use `get_pi`.
         """
         try:
             parser = Parser()
-            ast = parser.parse(test_case.code)
+            ast = parser.parse(test_case.code, check_semantics=False)
             if parser.errors:
                 return TestResult(
                     component="Parser",
@@ -833,7 +833,7 @@ Use `get_pi`.
         """
         try:
             parser = Parser()
-            ast = parser.parse(test_case.code)
+            ast = parser.parse(test_case.code, check_semantics=False)
             if parser.errors:
                 return TestResult(
                     component="Interpreter",
@@ -864,7 +864,7 @@ Use `get_pi`.
         """
         try:
             parser = Parser()
-            ast = parser.parse(test_case.code)
+            ast = parser.parse(test_case.code, check_semantics=False)
             if parser.errors:
                 return TestResult(
                     component="VM",

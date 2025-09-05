@@ -1,0 +1,263 @@
+from machine_dialect.ast import DefineStatement
+from machine_dialect.parser import Parser
+
+
+class TestDefineStatements:
+    """Test parsing of Define statements."""
+
+    def test_parse_simple_define(self) -> None:
+        """Test parsing basic Define statement."""
+        source = "Define `count` as Integer."
+        parser = Parser()
+
+        # Debug: Add print before parsing
+        from machine_dialect.lexer import Lexer
+
+        lexer = Lexer(source)
+        tokens = []
+        while True:
+            tok = lexer.next_token()
+            tokens.append(tok)
+            if tok.type.name == "MISC_EOF":
+                break
+        print(f"Tokens: {[(t.type.name, t.literal) for t in tokens]}")
+
+        program = parser.parse(source)
+
+        # Debug: Print any parser errors
+        if parser.errors:
+            for error in parser.errors:
+                print(f"Parser error: {error}")
+
+        assert len(program.statements) == 1
+        stmt = program.statements[0]
+        assert isinstance(stmt, DefineStatement)
+        assert stmt.name.value == "count"
+        assert stmt.type_spec == ["Integer"]
+        assert stmt.initial_value is None
+
+    def test_parse_define_with_default(self) -> None:
+        """Test parsing Define with default value."""
+        source = 'Define `message` as Text (default: _"Hello World"_).'
+
+        # Debug: Print tokens first
+        from machine_dialect.lexer import Lexer
+
+        lexer = Lexer(source)
+        tokens = []
+        while True:
+            tok = lexer.next_token()
+            tokens.append(tok)
+            if tok.type.name == "MISC_EOF":
+                break
+        print(f"Tokens: {[(t.type.name, t.literal) for t in tokens]}")
+
+        parser = Parser()
+        program = parser.parse(source)
+
+        # Debug: Print statements
+        print(f"Got {len(program.statements)} statements:")
+        for i, stmt in enumerate(program.statements):
+            print(f"  {i}: {type(stmt).__name__}: {stmt}")
+
+        assert len(program.statements) == 1
+        stmt = program.statements[0]
+        assert isinstance(stmt, DefineStatement)
+        assert stmt.name.value == "message"
+        assert stmt.type_spec == ["Text"]
+        assert stmt.initial_value is not None
+        assert str(stmt.initial_value) == '_"Hello World"_'
+
+    def test_parse_define_with_integer_default(self) -> None:
+        """Test parsing Define with integer default."""
+        source = "Define `age` as Integer (default: _25_)."
+        parser = Parser()
+        program = parser.parse(source)
+
+        assert len(program.statements) == 1
+        stmt = program.statements[0]
+        assert isinstance(stmt, DefineStatement)
+        assert stmt.name.value == "age"
+        assert stmt.type_spec == ["Integer"]
+        assert str(stmt.initial_value) == "_25_"
+
+    def test_parse_define_with_boolean_default(self) -> None:
+        """Test parsing Define with boolean default."""
+        source = "Define `is_active` as Yes/No (default: _yes_)."
+        parser = Parser()
+        program = parser.parse(source)
+
+        assert len(program.statements) == 1
+        stmt = program.statements[0]
+        assert isinstance(stmt, DefineStatement)
+        assert stmt.name.value == "is_active"
+        assert stmt.type_spec == ["Yes/No"]
+        assert str(stmt.initial_value) == "_Yes_"
+
+    def test_parse_union_type(self) -> None:
+        """Test parsing Define with union types."""
+        source = "Define `value` as Integer or Text."
+        parser = Parser()
+        program = parser.parse(source)
+
+        assert len(program.statements) == 1
+        stmt = program.statements[0]
+        assert isinstance(stmt, DefineStatement)
+        assert stmt.name.value == "value"
+        assert stmt.type_spec == ["Integer", "Text"]
+
+    def test_parse_multiple_union_types(self) -> None:
+        """Test parsing Define with multiple union types."""
+        source = "Define `data` as Number or Yes/No or Text or Empty."
+
+        # Debug: Check tokens
+        from machine_dialect.lexer import Lexer
+
+        lexer = Lexer(source)
+        tokens = []
+        while True:
+            tok = lexer.next_token()
+            tokens.append(tok)
+            if tok.type.name == "MISC_EOF":
+                break
+        print(f"Tokens: {[(t.type.name, t.literal) for t in tokens]}")
+
+        parser = Parser()
+        program = parser.parse(source)
+
+        assert len(program.statements) == 1
+        stmt = program.statements[0]
+        assert isinstance(stmt, DefineStatement)
+        print(f"Got type_spec: {stmt.type_spec}")
+        assert stmt.type_spec == ["Number", "Yes/No", "Text", "Empty"]
+
+    def test_parse_various_type_names(self) -> None:
+        """Test parsing various type names."""
+        test_cases = [
+            ("Define `a` as Text.", ["Text"]),
+            ("Define `b` as Integer.", ["Integer"]),
+            ("Define `c` as Float.", ["Float"]),
+            ("Define `d` as Number.", ["Number"]),
+            ("Define `e` as Yes/No.", ["Yes/No"]),
+            ("Define `f` as URL.", ["URL"]),
+            ("Define `g` as Date.", ["Date"]),
+            ("Define `h` as DateTime.", ["DateTime"]),
+            ("Define `i` as Time.", ["Time"]),
+            ("Define `j` as List.", ["List"]),
+            ("Define `k` as Empty.", ["Empty"]),
+        ]
+
+        for source, expected_types in test_cases:
+            parser = Parser()
+            program = parser.parse(source)
+            assert len(program.statements) == 1
+            stmt = program.statements[0]
+            assert isinstance(stmt, DefineStatement)
+            assert stmt.type_spec == expected_types
+
+    def test_error_missing_variable_name(self) -> None:
+        """Test error when variable name is missing."""
+        source = "Define as Integer."
+        parser = Parser()
+        _ = parser.parse(source)
+
+        assert len(parser.errors) > 0
+        # The error message or structure may vary, just check we got errors
+
+    def test_error_missing_as_keyword(self) -> None:
+        """Test error when 'as' keyword is missing."""
+        source = "Define `count` Integer."
+        parser = Parser()
+        _ = parser.parse(source)
+
+        assert len(parser.errors) > 0
+
+    def test_error_missing_type(self) -> None:
+        """Test error when type is missing."""
+        source = "Define `count` as."
+        parser = Parser()
+        _ = parser.parse(source)
+
+        assert len(parser.errors) > 0
+
+    def test_error_invalid_default_syntax(self) -> None:
+        """Test error with invalid default syntax."""
+        source = "Define `x` as Integer (default _5_)."  # Missing colon
+        parser = Parser()
+        _ = parser.parse(source)
+
+        assert len(parser.errors) > 0
+
+    def test_define_with_stopwords(self) -> None:
+        """Test that stopwords are properly skipped."""
+        source = "Define the `count` as an Integer."
+        parser = Parser()
+        program = parser.parse(source)
+
+        assert len(program.statements) == 1
+        stmt = program.statements[0]
+        assert isinstance(stmt, DefineStatement)
+        assert stmt.name.value == "count"
+        assert stmt.type_spec == ["Integer"]
+
+    def test_multiple_define_statements(self) -> None:
+        """Test parsing multiple Define statements."""
+        source = """
+Define `name` as Text.
+Define `age` as Integer.
+Define `active` as Yes/No (default: _yes_).
+        """
+        parser = Parser()
+        program = parser.parse(source)
+
+        assert len(program.statements) == 3
+
+        # Check first statement
+        stmt1 = program.statements[0]
+        assert isinstance(stmt1, DefineStatement)
+        assert stmt1.name.value == "name"
+        assert stmt1.type_spec == ["Text"]
+        assert stmt1.initial_value is None
+
+        # Check second statement
+        stmt2 = program.statements[1]
+        assert isinstance(stmt2, DefineStatement)
+        assert stmt2.name.value == "age"
+        assert stmt2.type_spec == ["Integer"]
+        assert stmt2.initial_value is None
+
+        # Check third statement
+        stmt3 = program.statements[2]
+        assert isinstance(stmt3, DefineStatement)
+        assert stmt3.name.value == "active"
+        assert stmt3.type_spec == ["Yes/No"]
+        assert stmt3.initial_value is not None
+
+    def test_define_identifier_based_types(self) -> None:
+        """Test parsing Define with identifier-based type names."""
+        test_cases = [
+            ("Define `a` as text.", ["Text"]),
+            ("Define `b` as integer.", ["Integer"]),
+            ("Define `c` as float.", ["Float"]),
+            ("Define `d` as number.", ["Number"]),
+            ("Define `e` as boolean.", ["Yes/No"]),
+            ("Define `f` as bool.", ["Yes/No"]),
+            ("Define `g` as status.", ["Yes/No"]),
+            ("Define `h` as url.", ["URL"]),
+            ("Define `i` as date.", ["Date"]),
+            ("Define `j` as datetime.", ["DateTime"]),
+            ("Define `k` as time.", ["Time"]),
+            ("Define `l` as list.", ["List"]),
+            ("Define `m` as array.", ["List"]),
+            ("Define `n` as empty.", ["Empty"]),
+            ("Define `o` as null.", ["Empty"]),
+            ("Define `p` as none.", ["Empty"]),
+        ]
+
+        for source, expected_types in test_cases:
+            parser = Parser()
+            program = parser.parse(source)
+            assert len(program.statements) == 1
+            stmt = program.statements[0]
+            assert isinstance(stmt, DefineStatement)
+            assert stmt.type_spec == expected_types, f"Failed for {source}"

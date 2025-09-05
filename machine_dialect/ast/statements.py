@@ -5,6 +5,7 @@ for Machine Dialect. Statements are complete units of execution that perform
 actions but don't produce values (unlike expressions).
 
 Statements include:
+- DefineStatement: Defines a variable with explicit type information
 - ExpressionStatement: Wraps an expression as a statement
 - ReturnStatement: Returns a value from a function or procedure
 - SetStatement: Assigns a value to a variable
@@ -50,6 +51,77 @@ class Statement(ASTNode):
             Self unchanged.
         """
         return self
+
+
+class DefineStatement(Statement):
+    """Variable definition statement.
+
+    Defines a new variable with explicit type information and optional
+    default value. Variables must be defined before they can be used
+    in Set statements.
+
+    Attributes:
+        name: Variable identifier to define
+        type_spec: List of type names (for future union type support)
+        initial_value: Optional default value expression
+
+    Examples:
+        Define `count` as Integer.
+        Define `message` as Text (default: _"Hello"_).
+    """
+
+    def __init__(
+        self, token: Token, name: Identifier, type_spec: list[str], initial_value: Expression | None = None
+    ) -> None:
+        """Initialize a DefineStatement node.
+
+        Args:
+            token: The DEFINE keyword token
+            name: The variable identifier
+            type_spec: List of type names (e.g., ["Integer"], ["Text", "Integer"])
+            initial_value: Optional default value expression
+        """
+        super().__init__(token)
+        self.name = name
+        self.type_spec = type_spec
+        self.initial_value = initial_value
+
+    def __str__(self) -> str:
+        """Return string representation of the define statement.
+
+        Returns:
+            Human-readable string representation.
+        """
+        type_str = " or ".join(self.type_spec)
+        base = f"Define `{self.name.value}` as {type_str}"
+        if self.initial_value:
+            base += f" (default: {self.initial_value})"
+        return base + "."
+
+    def desugar(self) -> Statement:
+        """Desugar define statement with default value.
+
+        A Define statement with a default value desugars into:
+        1. The Define statement itself (without initial_value)
+        2. A Set statement for initialization (if initial_value exists)
+
+        Returns:
+            Self if no initial value, otherwise a BlockStatement containing
+            the definition and initialization.
+        """
+        if not self.initial_value:
+            return self
+
+        # Create a Define without initial value
+        define_only = DefineStatement(self.token, self.name, self.type_spec, None)
+
+        # Create a Set statement for initialization
+        set_stmt = SetStatement(self.token, self.name, self.initial_value)
+
+        # Return both as a block
+        block = BlockStatement(self.token)
+        block.statements = [define_only, set_stmt]
+        return block
 
 
 class ExpressionStatement(Statement):

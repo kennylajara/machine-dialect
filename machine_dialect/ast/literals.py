@@ -52,9 +52,9 @@ class StringLiteral(Expression):
         self.value = value
 
     def __str__(self) -> str:
-        # Display with underscores for the new syntax
-        # The value includes the quotes
-        return f"_{self.value}_"
+        # Display with underscores and quotes for the new syntax
+        # The value doesn't include quotes, so add them for display
+        return f'_"{self.value}"_'
 
     def desugar(self) -> "StringLiteral":
         """String literals are already in simplest form.

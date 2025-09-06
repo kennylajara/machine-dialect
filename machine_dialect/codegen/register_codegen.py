@@ -36,9 +36,9 @@ from machine_dialect.mir.mir_values import Constant, MIRValue, Variable
 # from machine_dialect.codegen.objects import BytecodeModule, Chunk, ChunkType
 
 # Placeholder classes until real implementation
-BytecodeModule = Any  # type: ignore[assignment,misc]
-Chunk = Any  # type: ignore[assignment,misc]
-ChunkType = Any  # type: ignore[assignment,misc]
+BytecodeModule = Any
+Chunk = Any
+ChunkType = Any
 
 
 @dataclass
@@ -69,12 +69,12 @@ class RegisterAllocator:
 
         # Allocate registers for parameters
         for param in func.params:
-            self.allocate_register(Variable(param.name, param.mir_type), allocation)
+            self.allocate_register(param, allocation)
 
         # Allocate registers for all instructions
-        for block_name in func.cfg.blocks:  # type: ignore[attr-defined]
-            block = func.cfg.blocks[block_name]  # type: ignore[attr-defined]
-            for inst in block.instructions:  # type: ignore[attr-defined]
+        for block_name in func.cfg.blocks:
+            block = func.cfg.blocks[block_name]
+            for inst in block.instructions:
                 # Allocate for definitions
                 for value in inst.get_defs():
                     if value not in allocation.value_to_register:
@@ -167,13 +167,12 @@ class RegisterBytecodeGenerator:
         self.allocation = self.allocator.allocate_function(func)
 
         # Generate code for each block
-        for block_name in func.cfg.blocks:  # type: ignore[attr-defined]
-            block = func.cfg.blocks[block_name]  # type: ignore[attr-defined]
+        for block_name in func.cfg.blocks:
+            block = func.cfg.blocks[block_name]
             # Record block offset
-            self.block_offsets[block.label] = len(self.bytecode)  # type: ignore[attr-defined]
-
+            self.block_offsets[block.label] = len(self.bytecode)
             # Generate instructions
-            for inst in block.instructions:  # type: ignore[attr-defined]
+            for inst in block.instructions:
                 self.generate_instruction(inst)
 
         # Resolve pending jumps
@@ -233,7 +232,6 @@ class RegisterBytecodeGenerator:
         """Generate LoadConstR instruction."""
         dst = self.get_register(inst.dest)
         const_idx = self.add_constant(inst.value)  # type: ignore[attr-defined]
-
         self.emit_opcode(0)  # LoadConstR
         self.emit_u8(dst)
         self.emit_u16(const_idx)
@@ -383,7 +381,6 @@ class RegisterBytecodeGenerator:
     def generate_scope(self, inst: Scope) -> None:
         """Generate ScopeEnterR/ScopeExitR instruction."""
         scope_id = inst.scope_id  # type: ignore[attr-defined]
-
         if inst.action == "enter":  # type: ignore[attr-defined]
             self.emit_opcode(29)  # ScopeEnterR
         else:
@@ -474,3 +471,195 @@ class RegisterBytecodeGenerator:
     def emit_i32(self, value: int) -> None:
         """Emit a signed 32-bit value."""
         self.bytecode.extend(struct.pack("<i", value))
+
+
+class MetadataCollector:
+    """Collect metadata from MIR for the Rust VM.
+
+    This collects minimal metadata needed for:
+    - Type information for registers
+    - Symbol table for debugging
+    - SSA phi node information
+    - Basic block boundaries
+    """
+
+    def __init__(self, debug_mode: bool = False) -> None:
+        """Initialize the metadata collector.
+
+        Args:
+            debug_mode: Whether to collect full debug metadata.
+        """
+        self.debug_mode = debug_mode
+
+    def collect(self, mir_module: MIRModule, allocation: RegisterAllocation) -> dict[str, Any]:
+        """Collect metadata from MIR module.
+
+        Args:
+            mir_module: MIR module to extract metadata from.
+            allocation: Register allocation for the module.
+
+        Returns:
+            Metadata object.
+        """
+        metadata: dict[str, Any] = {
+            "version": 1,
+            "metadata_level": "full" if self.debug_mode else "minimal",
+            "functions": [],
+        }
+
+        # Process each function
+        for _name, func in mir_module.functions.items():
+            func_metadata = self.collect_function_metadata(func, allocation)
+            metadata["functions"].append(func_metadata)
+
+        return metadata
+
+    def collect_function_metadata(self, func: MIRFunction, allocation: RegisterAllocation) -> dict[str, Any]:
+        """Collect metadata for a function.
+
+        Args:
+            func: MIR function to extract metadata from.
+            allocation: Register allocation for the function.
+
+        Returns:
+            Function metadata dictionary.
+        """
+        func_metadata = {
+            "name": func.name,
+            "signature": {
+                "param_types": [str(p.type) for p in func.params],
+                "return_type": str(func.return_type) if func.return_type else "empty",
+            },
+            "register_types": self.extract_register_types(func, allocation),
+            "basic_blocks": self.extract_basic_blocks(func),
+            "phi_nodes": self.extract_phi_nodes(func, allocation),
+        }
+
+        if self.debug_mode:
+            # Add debug information
+            func_metadata["variable_names"] = self.extract_variable_names(func, allocation)
+            func_metadata["source_map"] = []  # TODO: Implement source mapping
+
+        return func_metadata
+
+    def extract_register_types(self, func: MIRFunction, allocation: RegisterAllocation) -> dict[str, str]:
+        """Extract type information for registers.
+
+        Args:
+            func: MIR function.
+            allocation: Register allocation.
+
+        Returns:
+            Mapping of register numbers to type names.
+        """
+        register_types = {}
+
+        for value, reg_num in allocation.value_to_register.items():
+            if hasattr(value, "type"):
+                register_types[f"r{reg_num}"] = str(value.type)
+            else:
+                register_types[f"r{reg_num}"] = "unknown"
+
+        return register_types
+
+    def extract_basic_blocks(self, func: MIRFunction) -> list[dict[str, Any]]:
+        """Extract basic block information.
+
+        Args:
+            func: MIR function.
+
+        Returns:
+            List of basic block metadata.
+        """
+        blocks = []
+        offset = 0
+
+        for block_name in func.cfg.blocks:
+            block = func.cfg.blocks[block_name]
+            block_info = {
+                "label": block.label,
+                "start_offset": offset,
+                "end_offset": offset + len(block.instructions),
+            }
+            blocks.append(block_info)
+            offset += len(block.instructions)
+        return blocks
+
+    def extract_phi_nodes(self, func: MIRFunction, allocation: RegisterAllocation) -> list[dict[str, Any]]:
+        """Extract phi node information.
+
+        Args:
+            func: MIR function.
+            allocation: Register allocation.
+
+        Returns:
+            List of phi node metadata.
+        """
+        phi_nodes = []
+
+        for block_name in func.cfg.blocks:
+            block = func.cfg.blocks[block_name]
+            for inst in block.instructions:
+                if isinstance(inst, Phi):
+                    dest_reg = allocation.value_to_register.get(inst.dest, -1)
+                    sources = []
+                    for value, label in inst.sources:  # type: ignore[attr-defined]
+                        src_reg = allocation.value_to_register.get(value, -1)
+                        sources.append(
+                            {
+                                "register": f"r{src_reg}",
+                                "block": label,
+                            }
+                        )
+
+                    phi_nodes.append(
+                        {
+                            "block": block.label,
+                            "register": f"r{dest_reg}",
+                            "sources": sources,
+                        }
+                    )
+
+        return phi_nodes
+
+    def extract_variable_names(self, func: MIRFunction, allocation: RegisterAllocation) -> dict[str, str]:
+        """Extract variable names for debugging.
+
+        Args:
+            func: MIR function.
+            allocation: Register allocation.
+
+        Returns:
+            Mapping of register numbers to variable names.
+        """
+        var_names = {}
+
+        for value, reg_num in allocation.value_to_register.items():
+            if isinstance(value, Variable):
+                var_names[f"r{reg_num}"] = value.name
+
+        return var_names
+
+
+def generate_bytecode_from_mir(mir_module: MIRModule) -> tuple[BytecodeModule, dict[str, Any] | None]:
+    """Generate bytecode and metadata from MIR module.
+
+    This is the main entry point for bytecode generation.
+
+    Args:
+        mir_module: MIR module to generate bytecode from.
+
+    Returns:
+        Tuple of (bytecode module, metadata).
+    """
+    generator = RegisterBytecodeGenerator()
+    bytecode = generator.generate(mir_module)
+
+    # Collect metadata
+    if generator.allocation is not None:
+        collector = MetadataCollector(debug_mode=False)
+        metadata = collector.collect(mir_module, generator.allocation)
+    else:
+        metadata = None
+
+    return bytecode, metadata

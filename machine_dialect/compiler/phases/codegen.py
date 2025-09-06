@@ -11,7 +11,7 @@ from machine_dialect.mir.mir_module import MIRModule
 # TODO: Import from new bytecode module when implemented
 # from machine_dialect.codegen.objects import Module as BytecodeModule
 # from machine_dialect.codegen.register_codegen import RegisterBytecodeGenerator
-BytecodeModule = Any  # type: ignore[assignment,misc]
+BytecodeModule = Any
 
 
 class CodeGenerationPhase:

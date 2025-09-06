@@ -6,6 +6,10 @@ use std::collections::HashMap;
 
 use crate::values::Value;
 use crate::values::FunctionRef;
+use crate::errors::{RuntimeError, Result};
+
+/// Maximum call stack depth to prevent stack overflow
+const MAX_CALL_DEPTH: usize = 1000;
 
 /// Call frame for function calls
 #[derive(Clone, Debug)]
@@ -71,10 +75,14 @@ impl VMState {
         }
     }
 
-    /// Push a new call frame
-    pub fn push_frame(&mut self, frame: CallFrame) {
+    /// Push a new call frame with stack overflow protection
+    pub fn push_frame(&mut self, frame: CallFrame) -> Result<()> {
+        if self.call_stack.len() >= MAX_CALL_DEPTH {
+            return Err(RuntimeError::StackOverflow);
+        }
         self.call_stack.push(frame);
         self.sp = self.call_stack.len();
+        Ok(())
     }
 
     /// Pop a call frame

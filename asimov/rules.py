@@ -309,12 +309,12 @@ if __name__ == "__main__":
         identifier="coffee-run",
     )
 
-    # 2) "Ataca a Bob" (choca con la 1ª Ley: dañaría a un humano)
+    # 2) "Attack Bob" (conflicts with the 1st Law: would harm a human)
     order_attack = AskAction(
         agent=alice,
         recipient=robby,
         identifier="attack-bob",
-        result=MedicalCondition(severity=10),  # indica posible daño
+        result=MedicalCondition(severity=10),  # indicates possible harm
     )
 
     orders = [order_coffee, order_attack]

@@ -3,7 +3,7 @@
 //! This module implements logical operations for the VM.
 
 use crate::values::Value;
-use crate::errors::{RuntimeError, Result};
+use crate::errors::Result;
 
 /// Logical operations implementation
 pub struct LogicOps;

@@ -55,6 +55,12 @@ pub enum RuntimeError {
 
     #[error("Module not loaded")]
     ModuleNotLoaded,
+
+    #[error("Invalid opcode: {0}")]
+    InvalidOpcode(u8),
+
+    #[error("Unexpected end of file")]
+    UnexpectedEof,
 }
 
 /// Error that can occur during bytecode loading
@@ -74,6 +80,21 @@ pub enum LoadError {
 
     #[error("Metadata hash mismatch")]
     MetadataMismatch,
+
+    #[error("Invalid constant tag: {0}")]
+    InvalidConstantTag(u8),
+
+    #[error("Invalid opcode: {0}")]
+    InvalidOpcode(u8),
+
+    #[error("Invalid offset")]
+    InvalidOffset,
+
+    #[error("Unexpected EOF")]
+    UnexpectedEof,
+
+    #[error("Invalid UTF-8")]
+    InvalidUtf8,
 }
 
 /// Exception with stack trace

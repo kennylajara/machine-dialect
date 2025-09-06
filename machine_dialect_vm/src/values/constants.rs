@@ -76,6 +76,31 @@ impl ConstantPool {
     pub fn is_empty(&self) -> bool {
         self.constants.is_empty()
     }
+
+    /// Add an integer constant
+    pub fn add_int(&mut self, value: i64) -> u16 {
+        self.add(ConstantValue::Int(value))
+    }
+
+    /// Add a float constant
+    pub fn add_float(&mut self, value: f64) -> u16 {
+        self.add(ConstantValue::Float(value))
+    }
+
+    /// Add a string constant
+    pub fn add_string(&mut self, value: String) -> u16 {
+        self.add(ConstantValue::String(value))
+    }
+
+    /// Add a boolean constant
+    pub fn add_bool(&mut self, value: bool) -> u16 {
+        self.add(ConstantValue::Bool(value))
+    }
+
+    /// Add an empty constant
+    pub fn add_empty(&mut self) -> u16 {
+        self.add(ConstantValue::Empty)
+    }
 }
 
 #[cfg(test)]

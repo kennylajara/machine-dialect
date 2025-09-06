@@ -16,7 +16,7 @@ pub mod bindings;
 pub use vm::VM;
 pub use values::{Value, Type};
 pub use errors::{RuntimeError, Result};
-pub use loader::BytecodeLoader;
+pub use loader::{BytecodeLoader, BytecodeModule};
 
 /// Version of the VM
 pub const VM_VERSION: &str = "0.1.0";

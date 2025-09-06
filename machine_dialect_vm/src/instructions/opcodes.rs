@@ -2,7 +2,6 @@
 //!
 //! This module defines the register-based instruction set for the VM.
 
-use crate::values::Type;
 
 /// Assertion type for AssertR instruction
 #[derive(Clone, Debug, PartialEq)]

@@ -2,14 +2,11 @@
 //!
 //! This module implements the main VM execution engine.
 
-use std::collections::HashMap;
-
-use crate::{MAX_REGISTERS, registers};
 use crate::values::{Value, Type, ConstantPool};
-use crate::vm::{RegisterFile, VMState, CallFrame};
+use crate::vm::{RegisterFile, VMState};
 use crate::instructions::{Instruction, AssertType};
 use crate::runtime::{ArithmeticOps, LogicOps, StringOps};
-use crate::errors::{RuntimeError, Result, Exception, StackFrame};
+use crate::errors::{RuntimeError, Result, StackFrame};
 use crate::loader::{BytecodeModule, MetadataFile};
 
 /// Virtual Machine
@@ -269,7 +266,7 @@ impl VM {
                 }
             }
 
-            Instruction::CallR { func, args, dst } => {
+            Instruction::CallR { func: _, args: _, dst } => {
                 // TODO: Implement function calls
                 self.registers.set(dst, Value::Empty);
             }
@@ -344,19 +341,19 @@ impl VM {
             }
 
             // Arrays - TODO: Implement in Phase 2
-            Instruction::NewArrayR { dst, size } => {
+            Instruction::NewArrayR { dst, size: _ } => {
                 self.registers.set(dst, Value::Empty);
             }
 
-            Instruction::ArrayGetR { dst, array, index } => {
+            Instruction::ArrayGetR { dst, array: _, index: _ } => {
                 self.registers.set(dst, Value::Empty);
             }
 
-            Instruction::ArraySetR { array, index, value } => {
+            Instruction::ArraySetR { array: _, index: _, value: _ } => {
                 // TODO: Implement array operations
             }
 
-            Instruction::ArrayLenR { dst, array } => {
+            Instruction::ArrayLenR { dst, array: _ } => {
                 self.registers.set(dst, Value::Int(0));
             }
 

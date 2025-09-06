@@ -8,7 +8,6 @@ use pyo3::prelude::*;
 use pyo3::exceptions::PyRuntimeError;
 
 use crate::vm::VM;
-use crate::values::Value;
 use crate::loader::BytecodeLoader;
 
 /// Rust VM exposed to Python
@@ -63,7 +62,9 @@ impl RustVM {
     }
 
     /// Convert a Rust value to Python
-    fn value_to_python(&self, py: Python, value: Value) -> PyObject {
+    fn value_to_python(&self, py: Python<'_>, value: crate::values::Value) -> PyObject {
+        use crate::values::Value;
+
         match value {
             Value::Empty => py.None(),
             Value::Bool(b) => b.into_py(py),

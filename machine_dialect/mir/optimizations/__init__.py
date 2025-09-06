@@ -39,8 +39,8 @@ __all__ = [
     "StrengthReduction",
     "TailCallOptimization",
     "TypeNarrowing",
-    "TypeSpecificOptimization",
     "TypeSpecialization",
+    "TypeSpecificOptimization",
 ]
 
 

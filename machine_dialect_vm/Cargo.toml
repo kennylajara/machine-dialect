@@ -1,0 +1,51 @@
+[package]
+name = "machine_dialect_vm"
+version = "0.1.0"
+edition = "2021"
+authors = ["Kenny Lajara"]
+description = "High-performance register-based VM for Machine Dialect"
+license = "Apache-2.0"
+
+[lib]
+name = "machine_dialect_vm"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+# Core dependencies
+thiserror = "1.0"
+anyhow = "1.0"
+
+# Data structures
+ahash = "0.8"  # Fast hasher for HashMap
+arc-swap = "1.7"  # Atomic Arc swapping for concurrent access
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+bincode = "1.3"
+
+# Compression for metadata
+zstd = "0.13"
+
+# Bit manipulation
+bitvec = "1.0"
+
+[dependencies.pyo3]
+version = "0.20"
+features = ["extension-module", "abi3-py39"]
+
+[dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
+proptest = "1.4"
+pretty_assertions = "1.4"
+
+[profile.release]
+lto = true
+codegen-units = 1
+opt-level = 3
+debug = false
+strip = true
+
+[profile.bench]
+inherits = "release"
+debug = true

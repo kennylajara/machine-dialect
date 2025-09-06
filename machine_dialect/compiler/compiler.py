@@ -10,7 +10,6 @@ from machine_dialect.codegen.serializer import serialize_module
 from machine_dialect.compiler.config import CompilerConfig
 from machine_dialect.compiler.context import CompilationContext
 from machine_dialect.compiler.pipeline import CompilationPipeline
-from machine_dialect.vm.disasm import print_disassembly
 
 
 class Compiler:
@@ -140,7 +139,8 @@ class Compiler:
             return
 
         print("\n=== Disassembly ===")
-        print_disassembly(context.bytecode_module.main_chunk)
+        # TODO: Implement disassembly for new register-based bytecode
+        print("Disassembly not yet implemented for register-based bytecode")
 
     def _print_success(self, context: CompilationContext) -> None:
         """Print success message.

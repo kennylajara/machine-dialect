@@ -38,7 +38,6 @@ __all__ = [
     "ActionStatement",
     "Arguments",
     "BlockStatement",
-    "YesNoLiteral",
     "CallExpression",
     "CallStatement",
     "ConditionalExpression",
@@ -54,7 +53,6 @@ __all__ = [
     "Identifier",
     "IfStatement",
     "InfixExpression",
-    "WholeNumberLiteral",
     "InteractionStatement",
     "Output",
     "Parameter",
@@ -67,4 +65,6 @@ __all__ = [
     "StringLiteral",
     "URLLiteral",
     "UtilityStatement",
+    "WholeNumberLiteral",
+    "YesNoLiteral",
 ]

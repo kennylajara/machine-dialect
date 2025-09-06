@@ -14,8 +14,6 @@ import sys
 from machine_dialect.compiler.config import CompilerConfig
 from machine_dialect.compiler.context import CompilationContext
 from machine_dialect.compiler.phases.hir_generation import HIRGenerationPhase
-from machine_dialect.interpreter.evaluator import evaluate
-from machine_dialect.interpreter.objects import Environment
 from machine_dialect.lexer.lexer import Lexer
 from machine_dialect.lexer.tokens import Token
 from machine_dialect.parser.parser import Parser
@@ -48,7 +46,6 @@ class REPL:
         self.accumulated_source = ""
         self.multiline_buffer = ""
         self.in_multiline_mode = False
-        self.env = Environment()  # Persistent environment for variables
         self.hir_phase = HIRGenerationPhase()  # HIR generation phase for desugaring
 
     def print_welcome(self) -> None:
@@ -56,10 +53,8 @@ class REPL:
         print("Machine Dialect REPL v0.1.0")
         if self.debug_tokens:
             mode = "Token Debug Mode"
-        elif self.show_ast:
-            mode = "HIR Mode (desugared AST)"
         else:
-            mode = "Evaluation Mode"
+            mode = "HIR Mode (desugared AST)"
         print(f"Mode: {mode}")
         print("Type 'exit' to exit, 'help' for help")
         print("-" * 50)
@@ -79,8 +74,9 @@ class REPL:
             print("\nEnter Machine Dialect code to see its HIR (desugared AST).")
             print("Source is accumulated across lines until an error occurs.")
         else:
-            print("\nEnter Machine Dialect code to see its evaluation result.")
+            print("\nEnter Machine Dialect code to see its HIR (desugared AST).")
             print("Source is accumulated across lines until an error occurs.")
+            print("\n[Note: Evaluation mode temporarily unavailable - Rust VM under development]")
 
         print("\nMulti-line input:")
         print("  Lines ending with ':' enter multi-line mode")
@@ -232,25 +228,16 @@ class REPL:
             context = CompilationContext(source_path=Path("<repl>"), source_content=test_source, config=config)
             hir = self.hir_phase.run(context, ast)
 
-            if self.show_ast:
-                # Show HIR (desugared AST)
-                print("\nHIR (desugared AST):")
-                print("-" * 50)
-                if isinstance(hir, Program) and hir.statements:
-                    for node in hir.statements:
-                        print(f"  {node}")
-                else:
-                    print("  (empty)")
-                print("-" * 50)
-                print()
+            # Always show HIR since interpreter is temporarily unavailable
+            print("\nHIR (desugared AST):")
+            print("-" * 50)
+            if isinstance(hir, Program) and hir.statements:
+                for node in hir.statements:
+                    print(f"  {node}")
             else:
-                # Evaluate the HIR and show result
-                result = evaluate(hir, self.env)
-
-                if result is not None:
-                    print(result.inspect())
-                else:
-                    print("None")
+                print("  (empty)")
+            print("-" * 50)
+            print()
 
     def run(self) -> int:
         """Main REPL loop. Returns exit code."""

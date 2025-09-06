@@ -11,8 +11,8 @@ from machine_dialect.compiler.context import CompilationContext
 from machine_dialect.compiler.pipeline import CompilationPipeline
 
 __all__ = [
-    "Compiler",
-    "CompilerConfig",
     "CompilationContext",
     "CompilationPipeline",
+    "Compiler",
+    "CompilerConfig",
 ]

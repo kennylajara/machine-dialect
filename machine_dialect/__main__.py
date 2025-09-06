@@ -9,15 +9,8 @@ import sys
 
 import click
 
-from machine_dialect.codegen.serializer import (
-    InvalidMagicError,
-    SerializationError,
-    deserialize_module,
-)
 from machine_dialect.compiler import Compiler, CompilerConfig
 from machine_dialect.repl.repl import REPL
-from machine_dialect.vm.disasm import print_disassembly
-from machine_dialect.vm.vm import VM
 
 
 @click.group()
@@ -120,51 +113,14 @@ def compile(
     "-d",
     "--debug",
     is_flag=True,
-    help="Enable debug mode (show VM state)",
+    help="Enable debug mode",
 )
 def run(bytecode_file: str, debug: bool) -> None:
     """Run a compiled Machine Dialect bytecode file."""
-    # Load compiled module
-    try:
-        with open(bytecode_file, "rb") as f:
-            module = deserialize_module(f)
-    except FileNotFoundError:
-        click.echo(f"Error: File '{bytecode_file}' not found", err=True)
-        sys.exit(1)
-    except InvalidMagicError as e:
-        click.echo(f"Error: {e}", err=True)
-        sys.exit(1)
-    except SerializationError as e:
-        click.echo(f"Error loading file: {e}", err=True)
-        sys.exit(1)
-    except Exception as e:
-        click.echo(f"Error loading file: {e}", err=True)
-        sys.exit(1)
-
-    if debug:
-        click.echo(f"Running '{bytecode_file}' in debug mode...")
-        click.echo("-" * 50)
-
-    # Execute in VM
-    try:
-        vm = VM(debug=debug)
-        result = vm.run(module)
-
-        if debug:
-            click.echo("-" * 50)
-
-        if result is not None:
-            click.echo(f"Result: {result}")
-
-        # Show final globals if any
-        if vm.globals and debug:
-            click.echo("\nGlobal variables:")
-            for name, value in vm.globals.items():
-                click.echo(f"  {name} = {value}")
-
-    except Exception as e:
-        click.echo(f"Runtime error: {e}", err=True)
-        sys.exit(1)
+    # TODO: Implement execution with new Rust VM
+    click.echo("Error: Bytecode execution not yet implemented with new Rust VM", err=True)
+    click.echo("The Python VM has been removed in preparation for the Rust VM implementation.", err=True)
+    sys.exit(1)
 
 
 @cli.command()
@@ -192,25 +148,26 @@ def shell(tokens: bool, ast: bool) -> None:
 @click.argument("bytecode_file", type=click.Path(exists=True))
 def disasm(bytecode_file: str) -> None:
     """Disassemble a compiled bytecode file."""
-    # Load compiled module
-    try:
-        with open(bytecode_file, "rb") as f:
-            module = deserialize_module(f)
-    except FileNotFoundError:
-        click.echo(f"Error: File '{bytecode_file}' not found", err=True)
-        sys.exit(1)
-    except InvalidMagicError as e:
-        click.echo(f"Error: {e}", err=True)
-        sys.exit(1)
-    except SerializationError as e:
-        click.echo(f"Error loading file: {e}", err=True)
-        sys.exit(1)
-    except Exception as e:
-        click.echo(f"Error loading file: {e}", err=True)
-        sys.exit(1)
+    # TODO: Implement disassembly for new register-based bytecode
+    # The code below will be re-enabled once bytecode generation is implemented
+    # try:
+    #     with open(bytecode_file, "rb") as f:
+    #         module = deserialize_module(f)
+    # except FileNotFoundError:
+    #     click.echo(f"Error: File '{bytecode_file}' not found", err=True)
+    #     sys.exit(1)
+    # except InvalidMagicError as e:
+    #     click.echo(f"Error: {e}", err=True)
+    #     sys.exit(1)
+    # except SerializationError as e:
+    #     click.echo(f"Error loading file: {e}", err=True)
+    #     sys.exit(1)
+    # except Exception as e:
+    #     click.echo(f"Error loading file: {e}", err=True)
+    #     sys.exit(1)
 
-    # Show disassembly
-    print_disassembly(module.main_chunk)
+    click.echo("Disassembly not yet implemented for register-based bytecode", err=True)
+    sys.exit(1)
 
 
 @cli.command()

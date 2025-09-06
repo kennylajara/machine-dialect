@@ -11,9 +11,9 @@ from machine_dialect.compiler.phases.optimization import OptimizationPhase
 from machine_dialect.compiler.phases.parsing import ParsingPhase
 
 __all__ = [
-    "ParsingPhase",
+    "CodeGenerationPhase",
     "HIRGenerationPhase",
     "MIRGenerationPhase",
     "OptimizationPhase",
-    "CodeGenerationPhase",
+    "ParsingPhase",
 ]

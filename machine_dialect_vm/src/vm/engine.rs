@@ -249,12 +249,16 @@ impl VM {
 
             // Control Flow
             Instruction::JumpR { offset } => {
+                // Track predecessor for phi nodes
+                self.state.predecessor_block = Some(self.state.pc as u16 - 1);
                 self.state.pc = (self.state.pc as i32 + offset) as usize;
             }
 
             Instruction::JumpIfR { cond, offset } => {
                 let condition = self.registers.get(cond);
                 if condition.is_truthy() {
+                    // Track predecessor for phi nodes
+                    self.state.predecessor_block = Some(self.state.pc as u16 - 1);
                     self.state.pc = (self.state.pc as i32 + offset) as usize;
                 }
             }
@@ -262,13 +266,114 @@ impl VM {
             Instruction::JumpIfNotR { cond, offset } => {
                 let condition = self.registers.get(cond);
                 if !condition.is_truthy() {
+                    // Track predecessor for phi nodes
+                    self.state.predecessor_block = Some(self.state.pc as u16 - 1);
                     self.state.pc = (self.state.pc as i32 + offset) as usize;
                 }
             }
 
-            Instruction::CallR { func: _, args: _, dst } => {
-                // TODO: Implement function calls
-                self.registers.set(dst, Value::Empty);
+            Instruction::CallR { func, args, dst } => {
+                // Get function entry point
+                let func_value = self.registers.get(func);
+
+                // For now, treat the function register as containing an index into the function table
+                // In the future, this could be a FunctionRef value
+                let func_name = match func_value {
+                    Value::String(name) => name.as_ref().clone(),
+                    Value::Int(idx) => {
+                        // Look up function by index in function table
+                        if let Some(module) = &self.module {
+                            module.function_table.iter()
+                                .find(|(_, &offset)| offset == *idx as usize)
+                                .map(|(name, _)| name.clone())
+                                .unwrap_or_else(|| format!("func_{}", idx))
+                        } else {
+                            return Err(RuntimeError::UndefinedFunction(format!("index {}", idx)));
+                        }
+                    }
+                    _ => {
+                        // If no function table, try to use module's function table
+                        if let Some(module) = &self.module {
+                            if let Some(&func_offset) = module.function_table.get("main") {
+                                // Jump to function
+                                let saved_pc = self.state.pc;
+                                let saved_fp = self.state.fp;
+
+                                // Create new call frame
+                                let mut frame = crate::vm::CallFrame::new(saved_pc, saved_fp);
+
+                                // Save argument registers
+                                for (i, &arg_reg) in args.iter().enumerate() {
+                                    let value = self.registers.get(arg_reg).clone();
+                                    // Copy to parameter registers (r0-r15 are argument registers)
+                                    if i < 16 {
+                                        frame.saved_registers.push((i as u8, self.registers.get(i as u8).clone()));
+                                        self.registers.set(i as u8, value);
+                                    }
+                                }
+
+                                // Push frame
+                                self.state.push_frame(frame)?;
+
+                                // Jump to function
+                                self.state.pc = func_offset;
+
+                                // Continue execution until return
+                                let mut return_value = Value::Empty;
+                                while self.state.pc < self.instructions.len() {
+                                    match self.step()? {
+                                        Some(value) => {
+                                            return_value = value;
+                                            break;
+                                        }
+                                        None => {
+                                            if !self.state.is_running() {
+                                                break;
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // Store return value
+                                self.registers.set(dst, return_value);
+                                return Ok(None);
+                            }
+                        }
+                        return Err(RuntimeError::UndefinedFunction("no function specified".to_string()));
+                    }
+                };
+
+                // Look up function in function table
+                if let Some(module) = &self.module {
+                    if let Some(&func_offset) = module.function_table.get(&func_name) {
+                        // Save current state
+                        let saved_pc = self.state.pc;
+                        let saved_fp = self.state.fp;
+
+                        // Create new call frame
+                        let mut frame = crate::vm::CallFrame::new(saved_pc, saved_fp);
+
+                        // Save and set argument registers
+                        for (i, &arg_reg) in args.iter().enumerate() {
+                            let value = self.registers.get(arg_reg).clone();
+                            // Copy to parameter registers (r0-r15 are argument registers)
+                            if i < 16 {
+                                frame.saved_registers.push((i as u8, self.registers.get(i as u8).clone()));
+                                self.registers.set(i as u8, value);
+                            }
+                        }
+
+                        // Push frame
+                        self.state.push_frame(frame)?;
+
+                        // Jump to function
+                        self.state.pc = func_offset;
+                    } else {
+                        return Err(RuntimeError::UndefinedFunction(func_name));
+                    }
+                } else {
+                    return Err(RuntimeError::ModuleNotLoaded);
+                }
             }
 
             Instruction::ReturnR { src } => {

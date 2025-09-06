@@ -158,11 +158,11 @@ mod tests {
         let frame1 = CallFrame::new(100, 0);
         let frame2 = CallFrame::new(200, 1);
 
-        state.push_frame(frame1);
+        state.push_frame(frame1).unwrap();
         assert_eq!(state.sp, 1);
         assert_eq!(state.current_frame().unwrap().return_address, 100);
 
-        state.push_frame(frame2);
+        state.push_frame(frame2).unwrap();
         assert_eq!(state.sp, 2);
         assert_eq!(state.current_frame().unwrap().return_address, 200);
 

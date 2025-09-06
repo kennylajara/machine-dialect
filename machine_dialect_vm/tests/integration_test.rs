@@ -4,7 +4,7 @@ use machine_dialect_vm::{VM, Value};
 
 #[test]
 fn test_basic_arithmetic() {
-    let mut vm = VM::new();
+    let vm = VM::new();
 
     // Test that VM can be created and initialized
     assert_eq!(vm.instruction_count, 0);

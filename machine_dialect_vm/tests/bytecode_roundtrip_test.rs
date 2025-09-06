@@ -3,7 +3,6 @@
 use machine_dialect_vm::{VM, Value};
 use machine_dialect_vm::loader::BytecodeLoader;
 use std::io::Write;
-use std::path::PathBuf;
 use tempfile::NamedTempFile;
 
 /// Create a minimal valid bytecode file for testing

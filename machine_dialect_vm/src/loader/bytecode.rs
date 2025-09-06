@@ -363,6 +363,7 @@ impl BytecodeLoader {
     }
 
     /// Parse global names
+    #[allow(dead_code)]
     fn parse_global_names(cursor: &mut Cursor) -> std::result::Result<Vec<String>, LoadError> {
         let count = cursor.read_u32()? as usize;
         let mut names = Vec::with_capacity(count);
@@ -388,6 +389,7 @@ impl<'a> Cursor<'a> {
     }
 
     /// Check if there's remaining data
+    #[allow(dead_code)]
     fn has_remaining(&self) -> bool {
         self.pos < self.data.len()
     }

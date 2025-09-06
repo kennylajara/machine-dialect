@@ -43,7 +43,7 @@ impl RustVM {
         match self.vm.run() {
             Ok(Some(value)) => {
                 Python::with_gil(|py| {
-                    Ok(Some(self.value_to_python(py, value)))
+                    Ok(Some(self.value_to_python(py, &value)))
                 })
             }
             Ok(None) => Ok(None),
@@ -60,9 +60,12 @@ impl RustVM {
     pub fn instruction_count(&self) -> usize {
         self.vm.instruction_count
     }
+}
 
+// Helper methods implementation (not exposed to Python)
+impl RustVM {
     /// Convert a Rust value to Python
-    fn value_to_python(&self, py: Python<'_>, value: crate::values::Value) -> PyObject {
+    fn value_to_python(&self, py: Python<'_>, value: &crate::values::Value) -> PyObject {
         use crate::values::Value;
 
         match value {
@@ -79,7 +82,7 @@ impl RustVM {
 
 /// Python module for the VM
 #[pymodule]
-fn machine_dialect_vm(_py: Python, m: &PyModule) -> PyResult<()> {
+fn machine_dialect_vm(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<RustVM>()?;
     m.add("__version__", crate::VM_VERSION)?;
     Ok(())

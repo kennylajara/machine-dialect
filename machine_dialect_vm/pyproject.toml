@@ -1,17 +1,16 @@
 [build-system]
-requires = ["maturin>=1.4,<2.0"]
+requires = ["maturin>=1.7,<2.0"]
 build-backend = "maturin"
 
 [project]
-name = "machine_dialect_vm"
+name = "machine-dialect-vm"
 version = "0.1.0"
-description = "High-performance register-based VM for Machine Dialect"
+description = "High-performance Rust VM for Machine Dialect"
+readme = "README.md"
+requires-python = ">=3.9"
 authors = [
     {name = "Kenny Lajara"},
 ]
-readme = "README.md"
-license = {text = "Apache-2.0"}
-requires-python = ">=3.9"
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
@@ -28,5 +27,4 @@ classifiers = [
 
 [tool.maturin]
 features = ["pyo3"]
-python-source = "python"
 module-name = "machine_dialect_vm"

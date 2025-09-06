@@ -23,33 +23,33 @@ FLAG_LITTLE_ENDIAN = 0x0001
 class BytecodeWriter:
     """Writes bytecode in the format expected by the Rust VM."""
 
-    def __init__(self, module=None) -> None:
+    def __init__(self, module: Any = None) -> None:
         """Initialize the bytecode writer.
 
         Args:
-            module: Optional BytecodeModule to write
+            module: Optional module with bytecode data to write
         """
         self.buffer = BytesIO()
-        if module:
-            from .bytecode_builder import BytecodeModule
 
-            if isinstance(module, BytecodeModule):
-                self.constants = module.constants
-                self.instructions = module.instructions
-                self.functions = module.function_table
-                self.global_names = module.global_names
-                self.module_name = module.name
-            else:
-                self.constants: list[tuple[int, Any]] = []  # (tag, value) pairs
-                self.instructions: list[bytes] = []
-                self.functions: dict[str, int] = {}  # name -> instruction offset
-                self.global_names: list[str] = []
-                self.module_name = "main"
+        # Initialize attributes with type hints
+        self.constants: list[tuple[int, Any]]
+        self.instructions: list[bytes]
+        self.functions: dict[str, int]
+        self.global_names: list[str]
+        self.module_name: str
+
+        if module:
+            # Just use the module's attributes directly
+            self.constants = module.constants
+            self.instructions = module.instructions
+            self.functions = getattr(module, "function_table", {})
+            self.global_names = getattr(module, "global_names", [])
+            self.module_name = getattr(module, "name", "main")
         else:
-            self.constants: list[tuple[int, Any]] = []  # (tag, value) pairs
-            self.instructions: list[bytes] = []
-            self.functions: dict[str, int] = {}  # name -> instruction offset
-            self.global_names: list[str] = []
+            self.constants = []  # (tag, value) pairs
+            self.instructions = []
+            self.functions = {}  # name -> instruction offset
+            self.global_names = []
             self.module_name = "main"
 
     def set_module_name(self, name: str) -> None:

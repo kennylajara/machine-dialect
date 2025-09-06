@@ -4,27 +4,27 @@
 import os
 import struct
 import subprocess
-
-# Add parent directory to path
 import sys
 import tempfile
 from pathlib import Path
 
+# Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from machine_dialect.codegen.bytecode_builder import BytecodeBuilder
-from machine_dialect.codegen.bytecode_serializer import BytecodeWriter
-from machine_dialect.mir.instructions import (
-    BinaryOperation,
+from machine_dialect.mir import (  # noqa: E402
+    BasicBlock,
+    BinaryOp,
     Call,
-    Comparison,
     ConditionalJump,
     Jump,
-    LoadConstant,
+    LoadConst,
+    MIRFunction,
+    MIRModule,
     Phi,
     Return,
 )
-from machine_dialect.mir.mir import BasicBlock, BinaryOp, ComparisonOp, Constant, MIRFunction, MIRModule, Register
+from machine_dialect.mir.mir_types import MIRType  # noqa: E402
+from machine_dialect.mir.mir_values import Constant, Temp  # noqa: E402
 
 
 class TestEndToEndPipeline:
@@ -34,25 +34,32 @@ class TestEndToEndPipeline:
         """Create a simple MIR module that computes (10 + 20) * 2."""
         module = MIRModule("arithmetic_test")
 
-        main_func = MIRFunction("main", [], "int")
+        main_func = MIRFunction("main")
         main_block = BasicBlock("entry")
 
+        # Create temporaries for values
+        t0 = Temp(MIRType.INT)  # holds 10
+        t1 = Temp(MIRType.INT)  # holds 20
+        t2 = Temp(MIRType.INT)  # holds 2
+        t3 = Temp(MIRType.INT)  # holds 10 + 20
+        t4 = Temp(MIRType.INT)  # holds result
+
         # Load constants
-        main_block.instructions.append(LoadConstant(Register(0), Constant(10, "int")))
-        main_block.instructions.append(LoadConstant(Register(1), Constant(20, "int")))
-        main_block.instructions.append(LoadConstant(Register(2), Constant(2, "int")))
+        main_block.add_instruction(LoadConst(t0, Constant(10, MIRType.INT)))
+        main_block.add_instruction(LoadConst(t1, Constant(20, MIRType.INT)))
+        main_block.add_instruction(LoadConst(t2, Constant(2, MIRType.INT)))
 
         # Add 10 + 20
-        main_block.instructions.append(BinaryOperation(Register(3), Register(0), BinaryOp.ADD, Register(1)))
+        main_block.add_instruction(BinaryOp(t3, "+", t0, t1))
 
         # Multiply by 2
-        main_block.instructions.append(BinaryOperation(Register(4), Register(3), BinaryOp.MUL, Register(2)))
+        main_block.add_instruction(BinaryOp(t4, "*", t3, t2))
 
         # Return result
-        main_block.instructions.append(Return(Register(4)))
+        main_block.add_instruction(Return(t4))
 
-        main_func.blocks["entry"] = main_block
-        main_func.entry_block = "entry"
+        main_func.cfg.add_block(main_block)
+        main_func.cfg.set_entry_block(main_block)
         module.functions["main"] = main_func
 
         return module
@@ -61,37 +68,48 @@ class TestEndToEndPipeline:
         """Create MIR with if-else control flow."""
         module = MIRModule("control_flow_test")
 
-        main_func = MIRFunction("main", [], "int")
+        main_func = MIRFunction("main")
+
+        # Create temporaries
+        t0 = Temp(MIRType.INT)  # holds 15
+        t1 = Temp(MIRType.INT)  # holds 10
+        t2 = Temp(MIRType.BOOL)  # holds comparison result
+        t3 = Temp(MIRType.INT)  # holds branch result
+        t4 = Temp(MIRType.INT)  # holds phi result
 
         # Entry block
         entry_block = BasicBlock("entry")
-        entry_block.instructions.append(LoadConstant(Register(0), Constant(15, "int")))
-        entry_block.instructions.append(LoadConstant(Register(1), Constant(10, "int")))
-        entry_block.instructions.append(Comparison(Register(2), Register(0), ComparisonOp.GT, Register(1)))
-        entry_block.instructions.append(ConditionalJump(Register(2), "then_block", "else_block"))
+        entry_block.add_instruction(LoadConst(t0, Constant(15, MIRType.INT)))
+        entry_block.add_instruction(LoadConst(t1, Constant(10, MIRType.INT)))
+        entry_block.add_instruction(BinaryOp(t2, ">", t0, t1))
+        entry_block.add_instruction(ConditionalJump(t2, "then_block", "else_block"))
 
         # Then block
         then_block = BasicBlock("then_block")
-        then_block.instructions.append(LoadConstant(Register(3), Constant(100, "int")))
-        then_block.instructions.append(Jump("end_block"))
+        then_block.add_instruction(LoadConst(t3, Constant(100, MIRType.INT)))
+        then_block.add_instruction(Jump("end_block"))
 
         # Else block
         else_block = BasicBlock("else_block")
-        else_block.instructions.append(LoadConstant(Register(3), Constant(200, "int")))
-        else_block.instructions.append(Jump("end_block"))
+        else_block.add_instruction(LoadConst(t3, Constant(200, MIRType.INT)))
+        else_block.add_instruction(Jump("end_block"))
 
         # End block with phi
         end_block = BasicBlock("end_block")
-        end_block.instructions.append(Phi(Register(4), [(Register(3), "then_block"), (Register(3), "else_block")]))
-        end_block.instructions.append(Return(Register(4)))
+        end_block.add_instruction(Phi(t4, [(t3, "then_block"), (t3, "else_block")]))
+        end_block.add_instruction(Return(t4))
 
-        main_func.blocks = {
-            "entry": entry_block,
-            "then_block": then_block,
-            "else_block": else_block,
-            "end_block": end_block,
-        }
-        main_func.entry_block = "entry"
+        main_func.cfg.add_block(entry_block)
+        main_func.cfg.add_block(then_block)
+        main_func.cfg.add_block(else_block)
+        main_func.cfg.add_block(end_block)
+        main_func.cfg.set_entry_block(entry_block)
+
+        # Connect blocks according to control flow
+        main_func.cfg.connect(entry_block, then_block)
+        main_func.cfg.connect(entry_block, else_block)
+        main_func.cfg.connect(then_block, end_block)
+        main_func.cfg.connect(else_block, end_block)
         module.functions["main"] = main_func
 
         return module
@@ -101,22 +119,35 @@ class TestEndToEndPipeline:
         module = MIRModule("function_call_test")
 
         # Helper function: add(a, b)
-        add_func = MIRFunction("add", ["a", "b"], "int")
+        add_func = MIRFunction("add")
         add_block = BasicBlock("entry")
-        add_block.instructions.append(BinaryOperation(Register(2), Register(0), BinaryOp.ADD, Register(1)))
-        add_block.instructions.append(Return(Register(2)))
-        add_func.blocks["entry"] = add_block
-        add_func.entry_block = "entry"
+
+        # Parameters are assumed to be in t0 and t1
+        t0 = Temp(MIRType.INT)  # parameter a
+        t1 = Temp(MIRType.INT)  # parameter b
+        t2 = Temp(MIRType.INT)  # result
+
+        add_block.add_instruction(BinaryOp(t2, "+", t0, t1))
+        add_block.add_instruction(Return(t2))
+        add_func.cfg.add_block(add_block)
+        add_func.cfg.set_entry_block(add_block)
 
         # Main function: calls add(5, 7)
-        main_func = MIRFunction("main", [], "int")
+        main_func = MIRFunction("main")
         main_block = BasicBlock("entry")
-        main_block.instructions.append(LoadConstant(Register(0), Constant(5, "int")))
-        main_block.instructions.append(LoadConstant(Register(1), Constant(7, "int")))
-        main_block.instructions.append(Call(Register(2), "add", [Register(0), Register(1)]))
-        main_block.instructions.append(Return(Register(2)))
-        main_func.blocks["entry"] = main_block
-        main_func.entry_block = "entry"
+
+        t3 = Temp(MIRType.INT)  # holds 5
+        t4 = Temp(MIRType.INT)  # holds 7
+        t5 = Temp(MIRType.INT)  # holds result
+
+        from machine_dialect.mir.mir_values import FunctionRef
+
+        main_block.add_instruction(LoadConst(t3, Constant(5, MIRType.INT)))
+        main_block.add_instruction(LoadConst(t4, Constant(7, MIRType.INT)))
+        main_block.add_instruction(Call(t5, FunctionRef("add"), [t3, t4]))
+        main_block.add_instruction(Return(t5))
+        main_func.cfg.add_block(main_block)
+        main_func.cfg.set_entry_block(main_block)
 
         module.functions = {"add": add_func, "main": main_func}
 
@@ -124,15 +155,10 @@ class TestEndToEndPipeline:
 
     def compile_to_bytecode(self, mir_module: MIRModule) -> bytes:
         """Compile MIR module to bytecode."""
-        builder = BytecodeBuilder()
-        bytecode_module = builder.build(mir_module)
-
-        writer = BytecodeWriter(bytecode_module)
-        import io
-
-        stream = io.BytesIO()
-        writer.write_to_stream(stream)
-        return stream.getvalue()
+        raise NotImplementedError(
+            "MIR to bytecode compilation not yet implemented. "
+            "Need to implement BytecodeBuilder to translate MIR instructions to VM bytecode format."
+        )
 
     def run_vm(self, bytecode_path: str) -> tuple[int, str, str]:
         """Run the Rust VM with the bytecode file."""
@@ -200,7 +226,7 @@ fn main() {
             if os.path.exists("/tmp/vm_test"):
                 os.unlink("/tmp/vm_test")
 
-    def test_simple_arithmetic(self):
+    def test_simple_arithmetic(self) -> None:
         """Test simple arithmetic operations."""
         # Create MIR
         mir = self.create_simple_arithmetic_mir()
@@ -232,7 +258,7 @@ fn main() {
             if os.path.exists(bytecode_path):
                 os.unlink(bytecode_path)
 
-    def test_control_flow(self):
+    def test_control_flow(self) -> None:
         """Test control flow with if-else."""
         # Create MIR
         mir = self.create_control_flow_mir()
@@ -256,7 +282,7 @@ fn main() {
             if os.path.exists(bytecode_path):
                 os.unlink(bytecode_path)
 
-    def test_function_calls(self):
+    def test_function_calls(self) -> None:
         """Test function calls."""
         # Create MIR
         mir = self.create_function_call_mir()
@@ -280,42 +306,64 @@ fn main() {
             if os.path.exists(bytecode_path):
                 os.unlink(bytecode_path)
 
-    def test_full_pipeline(self):
+    def test_full_pipeline(self) -> None:
         """Test the complete pipeline with all features."""
         # Create a complex MIR module
         module = MIRModule("full_test")
 
         # Function: factorial(n)
-        fact_func = MIRFunction("factorial", ["n"], "int")
+        fact_func = MIRFunction("factorial")
+
+        # Temporaries
+        t0 = Temp(MIRType.INT)  # parameter n
+        t1 = Temp(MIRType.INT)  # constant 1
+        t2 = Temp(MIRType.BOOL)  # comparison result
+        t3 = Temp(MIRType.INT)  # n - 1
+        t4 = Temp(MIRType.INT)  # recursive result
+        t5 = Temp(MIRType.INT)  # final result
 
         # Entry block
         entry = BasicBlock("entry")
-        entry.instructions.append(LoadConstant(Register(1), Constant(1, "int")))
-        entry.instructions.append(Comparison(Register(2), Register(0), ComparisonOp.LTE, Register(1)))
-        entry.instructions.append(ConditionalJump(Register(2), "base_case", "recursive_case"))
+        entry.add_instruction(LoadConst(t1, Constant(1, MIRType.INT)))
+        entry.add_instruction(BinaryOp(t2, "<=", t0, t1))
+        entry.add_instruction(ConditionalJump(t2, "base_case", "recursive_case"))
 
         # Base case
         base = BasicBlock("base_case")
-        base.instructions.append(Return(Register(1)))
+        base.add_instruction(Return(t1))
 
         # Recursive case
         recursive = BasicBlock("recursive_case")
-        recursive.instructions.append(BinaryOperation(Register(3), Register(0), BinaryOp.SUB, Register(1)))
-        recursive.instructions.append(Call(Register(4), "factorial", [Register(3)]))
-        recursive.instructions.append(BinaryOperation(Register(5), Register(0), BinaryOp.MUL, Register(4)))
-        recursive.instructions.append(Return(Register(5)))
+        from machine_dialect.mir.mir_values import FunctionRef
 
-        fact_func.blocks = {"entry": entry, "base_case": base, "recursive_case": recursive}
-        fact_func.entry_block = "entry"
+        recursive.add_instruction(BinaryOp(t3, "-", t0, t1))
+        recursive.add_instruction(Call(t4, FunctionRef("factorial"), [t3]))
+        recursive.add_instruction(BinaryOp(t5, "*", t0, t4))
+        recursive.add_instruction(Return(t5))
+
+        fact_func.cfg.add_block(entry)
+        fact_func.cfg.add_block(base)
+        fact_func.cfg.add_block(recursive)
+        fact_func.cfg.set_entry_block(entry)
+
+        # Connect blocks according to control flow
+        fact_func.cfg.connect(entry, base)
+        fact_func.cfg.connect(entry, recursive)
 
         # Main function
-        main_func = MIRFunction("main", [], "int")
+        main_func = MIRFunction("main")
         main_block = BasicBlock("entry")
-        main_block.instructions.append(LoadConstant(Register(0), Constant(5, "int")))
-        main_block.instructions.append(Call(Register(1), "factorial", [Register(0)]))
-        main_block.instructions.append(Return(Register(1)))
-        main_func.blocks["entry"] = main_block
-        main_func.entry_block = "entry"
+
+        t6 = Temp(MIRType.INT)  # holds 5
+        t7 = Temp(MIRType.INT)  # holds result
+
+        from machine_dialect.mir.mir_values import FunctionRef
+
+        main_block.add_instruction(LoadConst(t6, Constant(5, MIRType.INT)))
+        main_block.add_instruction(Call(t7, FunctionRef("factorial"), [t6]))
+        main_block.add_instruction(Return(t7))
+        main_func.cfg.add_block(main_block)
+        main_func.cfg.set_entry_block(main_block)
 
         module.functions = {"factorial": fact_func, "main": main_func}
 

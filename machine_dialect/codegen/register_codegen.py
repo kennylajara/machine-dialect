@@ -231,7 +231,7 @@ class RegisterBytecodeGenerator:
     def generate_load_const(self, inst: LoadConst) -> None:
         """Generate LoadConstR instruction."""
         dst = self.get_register(inst.dest)
-        const_idx = self.add_constant(inst.value)  # type: ignore[attr-defined]
+        const_idx = self.add_constant(inst.constant)
         self.emit_opcode(0)  # LoadConstR
         self.emit_u8(dst)
         self.emit_u16(const_idx)
@@ -311,22 +311,26 @@ class RegisterBytecodeGenerator:
         """Generate JumpR instruction."""
         self.emit_opcode(22)  # JumpR
         # Record position for later resolution
-        self.pending_jumps.append((len(self.bytecode), inst.target))  # type: ignore[attr-defined]
+        self.pending_jumps.append((len(self.bytecode), inst.label))
         self.emit_i32(0)  # Placeholder offset
 
     def generate_conditional_jump(self, inst: ConditionalJump) -> None:
-        """Generate JumpIfR/JumpIfNotR instruction."""
+        """Generate JumpIfR instruction with true and false targets."""
         cond = self.get_register(inst.condition)
 
-        if inst.jump_if_true:  # type: ignore[attr-defined]
-            self.emit_opcode(23)  # JumpIfR
-        else:
-            self.emit_opcode(24)  # JumpIfNotR
-
+        # Generate jump to true target
+        self.emit_opcode(23)  # JumpIfR
         self.emit_u8(cond)
         # Record position for later resolution
-        self.pending_jumps.append((len(self.bytecode), inst.target))  # type: ignore[attr-defined]
+        self.pending_jumps.append((len(self.bytecode), inst.true_label))
         self.emit_i32(0)  # Placeholder offset
+
+        # If there's a false label, generate unconditional jump to it
+        # (this executes if the condition was false)
+        if inst.false_label:
+            self.emit_opcode(22)  # JumpR
+            self.pending_jumps.append((len(self.bytecode), inst.false_label))
+            self.emit_i32(0)  # Placeholder offset
 
     def generate_call(self, inst: Call) -> None:
         """Generate CallR instruction."""

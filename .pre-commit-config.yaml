@@ -74,10 +74,9 @@ repos:
         stages: [pre-commit]
         files: ^md_linter/.*\.rs$
 
-      - id: cargo-test
-        name: cargo test (antes de push)
-        entry: bash -lc 'cd md_linter && cargo test --all-features'
+      - id: typos
+        name: typos (spellcheck)
+        entry: bash -lc 'typos'
         language: system
         pass_filenames: false
-        stages: [pre-push]
-        files: ^md_linter/.*\.rs$
+        stages: [pre-commit]

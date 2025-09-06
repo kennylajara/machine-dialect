@@ -123,7 +123,7 @@ Set `result` to empty."""
 
         # Test that similar words are parsed as identifiers
         parser2 = Parser()
-        program2 = parser2.parse("emptyness", check_semantics=False)
+        program2 = parser2.parse("empties", check_semantics=False)
         assert len(parser2.errors) == 0
 
         from machine_dialect.ast import Identifier

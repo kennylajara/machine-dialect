@@ -1,0 +1,9 @@
+[files]
+extend-exclude = [
+    "**/test_*.py",
+    "**/tests/**/*.py",
+]
+
+[default.extend-words]
+# Test cases for case-insensitive parsing - these are intentional
+nOt = "nOt"  # Mixed case testing for NOT operator

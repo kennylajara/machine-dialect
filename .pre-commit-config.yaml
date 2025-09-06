@@ -55,3 +55,29 @@ repos:
       - id: conventional-pre-commit
         stages: [commit-msg]
         args: []
+
+  - repo: local
+    hooks:
+      - id: cargo-fmt
+        name: cargo fmt (check)
+        entry: bash -lc 'cd md_linter && cargo fmt --all -- --check'
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+        files: ^md_linter/.*\.rs$
+
+      - id: cargo-clippy
+        name: cargo clippy (deny warnings)
+        entry: bash -lc 'cd md_linter && cargo clippy --all-targets --all-features -- -D warnings'
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+        files: ^md_linter/.*\.rs$
+
+      - id: cargo-test
+        name: cargo test (antes de push)
+        entry: bash -lc 'cd md_linter && cargo test --all-features'
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
+        files: ^md_linter/.*\.rs$

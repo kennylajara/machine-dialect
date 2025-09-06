@@ -163,6 +163,16 @@ class BytecodeWriter:
         inst = struct.pack("<BB", 37, src)
         self.add_instruction(inst)
 
+    def write(self) -> bytes:
+        """Write the bytecode to bytes.
+
+        Returns:
+            The serialized bytecode as bytes.
+        """
+        buffer = BytesIO()
+        self.write_to_stream(buffer)
+        return buffer.getvalue()
+
     def write_to_file(self, path: Path) -> None:
         """Write the bytecode to a file.
 

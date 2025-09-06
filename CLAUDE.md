@@ -59,17 +59,45 @@ syntax.
 1. Include: Args, Returns, Raises, Examples sections
 1. Don't repeat type information (already in annotations)
 
+## Development Environment - CRITICAL
+
+### Virtual Environment & Package Management
+
+**MANDATORY REQUIREMENTS**:
+
+1. **ALWAYS use virtual environment** - NEVER install packages globally
+1. **UV is the ONLY package manager** - NEVER use pip directly
+1. **Virtual environment MUST be activated** before ANY operations
+
+```bash
+# ALWAYS activate virtual environment FIRST
+source .venv/bin/activate  # Linux/Mac/WSL
+# or
+.venv\Scripts\activate     # Windows
+
+# FORBIDDEN: Never use pip directly
+# ❌ pip install ...  # NEVER DO THIS
+# ❌ python -m pip install ...  # NEVER DO THIS
+
+# REQUIRED: Always use UV for package management
+# ✅ uv sync  # Sync dependencies
+# ✅ uv pip install -e .  # Install package in editable mode
+# ✅ uv pip install <package>  # Install new packages
+```
+
+**IMPORTANT**: If virtual environment is not activated, ALL operations will fail. The `.venv` directory contains the isolated Python environment for this project.
+
 ## Development Commands
 
 ### Setup Environment
 
 ```bash
-# Always activate virtual environment first
-source .venv/bin/activate  # Linux/Mac
+# Step 1: ALWAYS activate virtual environment first
+source .venv/bin/activate  # Linux/Mac/WSL
 # or
 .venv\Scripts\activate     # Windows
 
-# Install package in editable mode
+# Step 2: Install package in editable mode using UV
 uv pip install -e .
 ```
 
@@ -228,8 +256,12 @@ Tests are organized by component in `tests/` subdirectories:
 
 ## Package Management
 
-- **UV**: Primary package manager (`uv sync`, `uv pip install`)
+- **UV**: MANDATORY package manager - NEVER use pip directly
+  - `uv sync` - Sync all dependencies from pyproject.toml
+  - `uv pip install` - Install packages through UV's pip interface
+  - `uv pip install -e .` - Install project in editable mode
 - **Python 3.12+** required
+- **Virtual Environment**: ALWAYS use `.venv` - activate before ANY operations
 - **Dependencies**: rfc3986 (URL validation)
 - **Dev tools**: pytest, mypy, ruff, pre-commit, pyupgrade
 

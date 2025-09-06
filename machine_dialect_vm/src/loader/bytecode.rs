@@ -345,6 +345,43 @@ impl BytecodeLoader {
                 Ok(Instruction::ReturnR { src })
             }
 
+            // String operations
+            31 => { // ConcatStrR
+                let dst = cursor.read_u8()?;
+                let left = cursor.read_u8()?;
+                let right = cursor.read_u8()?;
+                Ok(Instruction::ConcatStrR { dst, left, right })
+            }
+            32 => { // StrLenR
+                let dst = cursor.read_u8()?;
+                let str_reg = cursor.read_u8()?;
+                Ok(Instruction::StrLenR { dst, str_reg })
+            }
+
+            // Array operations
+            33 => { // NewArrayR
+                let dst = cursor.read_u8()?;
+                let size = cursor.read_u8()?;
+                Ok(Instruction::NewArrayR { dst, size })
+            }
+            34 => { // ArrayGetR
+                let dst = cursor.read_u8()?;
+                let array = cursor.read_u8()?;
+                let index = cursor.read_u8()?;
+                Ok(Instruction::ArrayGetR { dst, array, index })
+            }
+            35 => { // ArraySetR
+                let array = cursor.read_u8()?;
+                let index = cursor.read_u8()?;
+                let value = cursor.read_u8()?;
+                Ok(Instruction::ArraySetR { array, index, value })
+            }
+            36 => { // ArrayLenR
+                let dst = cursor.read_u8()?;
+                let array = cursor.read_u8()?;
+                Ok(Instruction::ArrayLenR { dst, array })
+            }
+
             // Debug
             37 => { // DebugPrint
                 let src = cursor.read_u8()?;

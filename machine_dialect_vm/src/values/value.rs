@@ -37,6 +37,8 @@ pub enum Value {
     Function(FunctionRef),
     /// URL value
     URL(Arc<String>),
+    /// Array value (reference-counted)
+    Array(Arc<Vec<Value>>),
 }
 
 impl Value {
@@ -50,6 +52,7 @@ impl Value {
             Value::String(_) => Type::String,
             Value::Function(_) => Type::Function,
             Value::URL(_) => Type::URL,
+            Value::Array(_) => Type::Array,
         }
     }
 
@@ -61,6 +64,7 @@ impl Value {
             Value::Int(n) => *n != 0,
             Value::Float(f) => *f != 0.0 && !f.is_nan(),
             Value::String(s) => !s.is_empty(),
+            Value::Array(a) => !a.is_empty(),
             _ => true,
         }
     }
@@ -120,6 +124,10 @@ impl Value {
             Value::String(s) => s.as_ref().clone(),
             Value::Function(f) => format!("function<{}>", f.name),
             Value::URL(u) => u.as_ref().clone(),
+            Value::Array(a) => {
+                let items: Vec<String> = a.iter().map(|v| v.to_string()).collect();
+                format!("[{}]", items.join(", "))
+            }
         }
     }
 }
@@ -137,6 +145,7 @@ impl PartialEq for Value {
             (Value::String(a), Value::String(b)) => a == b,
             (Value::URL(a), Value::URL(b)) => a == b,
             (Value::Function(a), Value::Function(b)) => a == b,
+            (Value::Array(a), Value::Array(b)) => a == b,
             // Cross-type comparisons
             (Value::Int(a), Value::Float(b)) | (Value::Float(b), Value::Int(a)) => {
                 *a as f64 == *b && !b.is_nan()

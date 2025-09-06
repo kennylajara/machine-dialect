@@ -9,7 +9,10 @@ import struct
 from dataclasses import dataclass, field
 from typing import Any
 
-from machine_dialect.codegen.constpool import ConstantPool
+from machine_dialect.codegen.bytecode_module import BytecodeModule, Chunk, ChunkType, ConstantTag
+from machine_dialect.codegen.opcodes import Opcode
+
+# Note: ConstantPool is now just a list of (tag, value) tuples
 from machine_dialect.mir.mir_function import MIRFunction
 from machine_dialect.mir.mir_instructions import (
     Assert,
@@ -31,14 +34,6 @@ from machine_dialect.mir.mir_instructions import (
 )
 from machine_dialect.mir.mir_module import MIRModule
 from machine_dialect.mir.mir_values import Constant, MIRValue, Variable
-
-# TODO: Import from new bytecode module when implemented
-# from machine_dialect.codegen.objects import BytecodeModule, Chunk, ChunkType
-
-# Placeholder classes until real implementation
-BytecodeModule = Any
-Chunk = Any
-ChunkType = Any
 
 
 @dataclass
@@ -116,7 +111,7 @@ class RegisterBytecodeGenerator:
     def __init__(self) -> None:
         """Initialize the generator."""
         self.allocator = RegisterAllocator()
-        self.constants = ConstantPool()
+        self.constants: list[tuple[ConstantTag, Any]] = []
         self.bytecode: bytearray = bytearray()
         self.allocation: RegisterAllocation | None = None
         # Map from basic block labels to bytecode offsets
@@ -159,7 +154,7 @@ class RegisterBytecodeGenerator:
         """
         # Reset state
         self.bytecode = bytearray()
-        self.constants = ConstantPool()
+        self.constants = []
         self.block_offsets = {}
         self.pending_jumps = []
 
@@ -231,8 +226,13 @@ class RegisterBytecodeGenerator:
     def generate_load_const(self, inst: LoadConst) -> None:
         """Generate LoadConstR instruction."""
         dst = self.get_register(inst.dest)
-        const_idx = self.add_constant(inst.constant)
-        self.emit_opcode(0)  # LoadConstR
+        # Extract the actual value from the Constant object
+        if hasattr(inst.constant, "value"):
+            const_value = inst.constant.value
+        else:
+            const_value = inst.constant
+        const_idx = self.add_constant(const_value)
+        self.emit_opcode(Opcode.LOAD_CONST_R)
         self.emit_u8(dst)
         self.emit_u16(const_idx)
 
@@ -241,7 +241,7 @@ class RegisterBytecodeGenerator:
         dst = self.get_register(inst.dest)
         src = self.get_register(inst.source)
 
-        self.emit_opcode(1)  # MoveR
+        self.emit_opcode(Opcode.MOVE_R)
         self.emit_u8(dst)
         self.emit_u8(src)
 
@@ -250,7 +250,7 @@ class RegisterBytecodeGenerator:
         dst = self.get_register(inst.dest)
         name_idx = self.add_string_constant(inst.var.name)
 
-        self.emit_opcode(2)  # LoadGlobalR
+        self.emit_opcode(Opcode.LOAD_GLOBAL_R)
         self.emit_u8(dst)
         self.emit_u16(name_idx)
 
@@ -259,7 +259,7 @@ class RegisterBytecodeGenerator:
         src = self.get_register(inst.source)
         name_idx = self.add_string_constant(inst.var.name)
 
-        self.emit_opcode(3)  # StoreGlobalR
+        self.emit_opcode(Opcode.STORE_GLOBAL_R)
         self.emit_u8(src)
         self.emit_u16(name_idx)
 
@@ -271,19 +271,19 @@ class RegisterBytecodeGenerator:
 
         # Map operators to opcodes
         op_map = {
-            "+": 7,  # AddR
-            "-": 8,  # SubR
-            "*": 9,  # MulR
-            "/": 10,  # DivR
-            "%": 11,  # ModR
-            "and": 14,  # AndR
-            "or": 15,  # OrR
-            "==": 16,  # EqR
-            "!=": 17,  # NeqR
-            "<": 18,  # LtR
-            ">": 19,  # GtR
-            "<=": 20,  # LteR
-            ">=": 21,  # GteR
+            "+": Opcode.ADD_R,
+            "-": Opcode.SUB_R,
+            "*": Opcode.MUL_R,
+            "/": Opcode.DIV_R,
+            "%": Opcode.MOD_R,
+            "and": Opcode.AND_R,
+            "or": Opcode.OR_R,
+            "==": Opcode.EQ_R,
+            "!=": Opcode.NEQ_R,
+            "<": Opcode.LT_R,
+            ">": Opcode.GT_R,
+            "<=": Opcode.LTE_R,
+            ">=": Opcode.GTE_R,
         }
 
         if opcode := op_map.get(inst.op):
@@ -291,6 +291,9 @@ class RegisterBytecodeGenerator:
             self.emit_u8(dst)
             self.emit_u8(left)
             self.emit_u8(right)
+        else:
+            # Debug: print unmapped operator
+            print(f"Warning: Unmapped operator '{inst.op}'")
 
     def generate_unary_op(self, inst: UnaryOp) -> None:
         """Generate unary operation instruction."""
@@ -298,9 +301,9 @@ class RegisterBytecodeGenerator:
         src = self.get_register(inst.operand)
 
         if inst.op == "-":
-            self.emit_opcode(12)  # NegR
+            self.emit_opcode(Opcode.NEG_R)
         elif inst.op == "not":
-            self.emit_opcode(13)  # NotR
+            self.emit_opcode(Opcode.NOT_R)
         else:
             return
 
@@ -309,7 +312,7 @@ class RegisterBytecodeGenerator:
 
     def generate_jump(self, inst: Jump) -> None:
         """Generate JumpR instruction."""
-        self.emit_opcode(22)  # JumpR
+        self.emit_opcode(Opcode.JUMP_R)
         # Record position for later resolution
         self.pending_jumps.append((len(self.bytecode), inst.label))
         self.emit_i32(0)  # Placeholder offset
@@ -319,7 +322,7 @@ class RegisterBytecodeGenerator:
         cond = self.get_register(inst.condition)
 
         # Generate jump to true target
-        self.emit_opcode(23)  # JumpIfR
+        self.emit_opcode(Opcode.JUMP_IF_R)
         self.emit_u8(cond)
         # Record position for later resolution
         self.pending_jumps.append((len(self.bytecode), inst.true_label))
@@ -328,7 +331,7 @@ class RegisterBytecodeGenerator:
         # If there's a false label, generate unconditional jump to it
         # (this executes if the condition was false)
         if inst.false_label:
-            self.emit_opcode(22)  # JumpR
+            self.emit_opcode(Opcode.JUMP_R)
             self.pending_jumps.append((len(self.bytecode), inst.false_label))
             self.emit_i32(0)  # Placeholder offset
 
@@ -338,7 +341,7 @@ class RegisterBytecodeGenerator:
         func = self.get_register(inst.func)
         args = [self.get_register(arg) for arg in inst.args]
 
-        self.emit_opcode(25)  # CallR
+        self.emit_opcode(Opcode.CALL_R)
         self.emit_u8(func)
         self.emit_u8(dst)
         self.emit_u8(len(args))
@@ -347,7 +350,7 @@ class RegisterBytecodeGenerator:
 
     def generate_return(self, inst: Return) -> None:
         """Generate ReturnR instruction."""
-        self.emit_opcode(26)  # ReturnR
+        self.emit_opcode(Opcode.RETURN_R)
         if inst.value:
             self.emit_u8(1)  # Has return value
             self.emit_u8(self.get_register(inst.value))
@@ -364,7 +367,7 @@ class RegisterBytecodeGenerator:
             block_id = 0
             sources.append((src, block_id))
 
-        self.emit_opcode(27)  # PhiR
+        self.emit_opcode(Opcode.PHI_R)
         self.emit_u8(dst)
         self.emit_u8(len(sources))
         for src, block_id in sources:
@@ -377,7 +380,7 @@ class RegisterBytecodeGenerator:
         msg = inst.message or "Assertion failed"
         msg_idx = self.add_string_constant(msg)
 
-        self.emit_opcode(28)  # AssertR
+        self.emit_opcode(Opcode.ASSERT_R)
         self.emit_u8(reg)
         self.emit_u8(0)  # AssertType::True
         self.emit_u16(msg_idx)
@@ -386,9 +389,9 @@ class RegisterBytecodeGenerator:
         """Generate ScopeEnterR/ScopeExitR instruction."""
         scope_id = inst.scope_id  # type: ignore[attr-defined]
         if inst.action == "enter":  # type: ignore[attr-defined]
-            self.emit_opcode(29)  # ScopeEnterR
+            self.emit_opcode(Opcode.SCOPE_ENTER_R)
         else:
-            self.emit_opcode(30)  # ScopeExitR
+            self.emit_opcode(Opcode.SCOPE_EXIT_R)
 
         self.emit_u16(scope_id)
 
@@ -396,7 +399,7 @@ class RegisterBytecodeGenerator:
         """Generate DebugPrint instruction."""
         src = self.get_register(inst.value)
 
-        self.emit_opcode(37)  # DebugPrint
+        self.emit_opcode(Opcode.DEBUG_PRINT)
         self.emit_u8(src)
 
     def resolve_jumps(self) -> None:
@@ -426,8 +429,13 @@ class RegisterBytecodeGenerator:
                 raise RuntimeError("Out of registers")
             self.allocation.next_register += 1
 
-            const_idx = self.add_constant(value.value)
-            self.emit_opcode(0)  # LoadConstR
+            # Extract actual value from Constant
+            if hasattr(value, "value"):
+                const_value = value.value
+            else:
+                const_value = value
+            const_idx = self.add_constant(const_value)
+            self.emit_opcode(Opcode.LOAD_CONST_R)
             self.emit_u8(reg)
             self.emit_u16(const_idx)
             return reg
@@ -444,9 +452,36 @@ class RegisterBytecodeGenerator:
         Returns:
             Constant index.
         """
-        # For now, just add value directly to constants
-        # TODO: Implement proper constant value types
-        return len(self.bytecode)  # Placeholder
+        # Determine constant type and add to pool
+        if value is None:
+            tag = ConstantTag.EMPTY
+            val = 0
+        elif isinstance(value, bool):
+            tag = ConstantTag.BOOL
+            val = value
+        elif isinstance(value, int):
+            tag = ConstantTag.INT
+            val = value
+        elif isinstance(value, float):
+            tag = ConstantTag.FLOAT
+            val = value
+        elif isinstance(value, str):
+            tag = ConstantTag.STRING
+            val = value
+        else:
+            # Default to string representation
+            tag = ConstantTag.STRING
+            val = str(value)
+
+        # Check if constant already exists
+        for i, (t, v) in enumerate(self.constants):
+            if t == tag and v == val:
+                return i
+
+        # Add new constant
+        idx = len(self.constants)
+        self.constants.append((tag, val))
+        return idx
 
     def add_string_constant(self, value: str) -> int:
         """Add a string constant to the pool.
@@ -457,8 +492,15 @@ class RegisterBytecodeGenerator:
         Returns:
             Constant index.
         """
-        # For now, just return a placeholder
-        return len(self.bytecode)  # Placeholder
+        # Check if string already exists
+        for i, (tag, val) in enumerate(self.constants):
+            if tag == ConstantTag.STRING and val == value:
+                return i
+
+        # Add new string constant
+        idx = len(self.constants)
+        self.constants.append((ConstantTag.STRING, value))
+        return idx
 
     def emit_opcode(self, opcode: int) -> None:
         """Emit an opcode."""

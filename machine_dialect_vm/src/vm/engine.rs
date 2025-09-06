@@ -2,6 +2,8 @@
 //!
 //! This module implements the main VM execution engine.
 
+use std::sync::Arc;
+
 use crate::values::{Value, Type, ConstantPool};
 use crate::vm::{RegisterFile, VMState};
 use crate::instructions::{Instruction, AssertType};
@@ -445,21 +447,119 @@ impl VM {
                 self.registers.set(dst, result);
             }
 
-            // Arrays - TODO: Implement in Phase 2
-            Instruction::NewArrayR { dst, size: _ } => {
-                self.registers.set(dst, Value::Empty);
+            // Arrays
+            Instruction::NewArrayR { dst, size } => {
+                let size_value = self.registers.get(size);
+                let array_size = match size_value {
+                    Value::Int(n) if *n >= 0 => *n as usize,
+                    Value::Int(n) => {
+                        return Err(RuntimeError::InvalidOperation {
+                            op: "create array".to_string(),
+                            type_name: format!("negative size: {}", n),
+                        });
+                    }
+                    _ => {
+                        return Err(RuntimeError::TypeMismatch {
+                            expected: "integer".to_string(),
+                            found: size_value.type_of().to_string(),
+                        });
+                    }
+                };
+
+                let array = vec![Value::Empty; array_size];
+                self.registers.set(dst, Value::Array(Arc::new(array)));
             }
 
-            Instruction::ArrayGetR { dst, array: _, index: _ } => {
-                self.registers.set(dst, Value::Empty);
+            Instruction::ArrayGetR { dst, array, index } => {
+                let array_value = self.registers.get(array);
+                let index_value = self.registers.get(index);
+
+                match (array_value, index_value) {
+                    (Value::Array(arr), Value::Int(idx)) => {
+                        if *idx < 0 {
+                            return Err(RuntimeError::IndexOutOfBounds {
+                                index: *idx,
+                                length: arr.len(),
+                            });
+                        }
+                        let idx = *idx as usize;
+                        if idx >= arr.len() {
+                            return Err(RuntimeError::IndexOutOfBounds {
+                                index: idx as i64,
+                                length: arr.len(),
+                            });
+                        }
+                        self.registers.set(dst, arr[idx].clone());
+                    }
+                    (Value::Array(_), _) => {
+                        return Err(RuntimeError::TypeMismatch {
+                            expected: "integer index".to_string(),
+                            found: index_value.type_of().to_string(),
+                        });
+                    }
+                    _ => {
+                        return Err(RuntimeError::TypeMismatch {
+                            expected: "array".to_string(),
+                            found: array_value.type_of().to_string(),
+                        });
+                    }
+                }
             }
 
-            Instruction::ArraySetR { array: _, index: _, value: _ } => {
-                // TODO: Implement array operations
+            Instruction::ArraySetR { array, index, value } => {
+                let array_value = self.registers.get(array);
+                let index_value = self.registers.get(index);
+                let new_value = self.registers.get(value).clone();
+
+                match (array_value, index_value) {
+                    (Value::Array(arr), Value::Int(idx)) => {
+                        if *idx < 0 {
+                            return Err(RuntimeError::IndexOutOfBounds {
+                                index: *idx,
+                                length: arr.len(),
+                            });
+                        }
+                        let idx = *idx as usize;
+                        if idx >= arr.len() {
+                            return Err(RuntimeError::IndexOutOfBounds {
+                                index: idx as i64,
+                                length: arr.len(),
+                            });
+                        }
+
+                        // Create a new array with the updated value (immutable approach)
+                        let mut new_array = (**arr).clone();
+                        new_array[idx] = new_value;
+                        self.registers.set(array, Value::Array(Arc::new(new_array)));
+                    }
+                    (Value::Array(_), _) => {
+                        return Err(RuntimeError::TypeMismatch {
+                            expected: "integer index".to_string(),
+                            found: index_value.type_of().to_string(),
+                        });
+                    }
+                    _ => {
+                        return Err(RuntimeError::TypeMismatch {
+                            expected: "array".to_string(),
+                            found: array_value.type_of().to_string(),
+                        });
+                    }
+                }
             }
 
-            Instruction::ArrayLenR { dst, array: _ } => {
-                self.registers.set(dst, Value::Int(0));
+            Instruction::ArrayLenR { dst, array } => {
+                let array_value = self.registers.get(array);
+                match array_value {
+                    Value::Array(arr) => {
+                        self.registers.set(dst, Value::Int(arr.len() as i64));
+                    }
+                    _ => {
+                        return Err(RuntimeError::TypeMismatch {
+                            expected: "array".to_string(),
+                            found: array_value.type_of().to_string(),
+                        });
+                    }
+                }
             }
 
             // Debug

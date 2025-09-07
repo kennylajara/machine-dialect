@@ -114,10 +114,12 @@ class RegisterBytecodeGenerator:
         self.constants: list[tuple[ConstantTag, Any]] = []
         self.bytecode: bytearray = bytearray()
         self.allocation: RegisterAllocation | None = None
-        # Map from basic block labels to bytecode offsets
+        # Map from basic block labels to instruction indices (not byte offsets)
         self.block_offsets: dict[str, int] = {}
-        # Pending jumps to resolve
-        self.pending_jumps: list[tuple[int, str]] = []
+        # Map from instruction index to byte offset
+        self.instruction_offsets: list[int] = []
+        # Pending jumps to resolve: (byte_pos, target_label, source_inst_idx)
+        self.pending_jumps: list[tuple[int, str, int]] = []
 
     def generate(self, mir_module: MIRModule) -> BytecodeModule:
         """Generate bytecode module from MIR.
@@ -155,19 +157,22 @@ class RegisterBytecodeGenerator:
         # Reset state
         self.bytecode = bytearray()
         self.constants = []
-        self.block_offsets = {}
+        self.block_offsets = {}  # Will store instruction indices
+        self.instruction_offsets = []  # Track byte offset of each instruction
         self.pending_jumps = []
 
         # Allocate registers
         self.allocation = self.allocator.allocate_function(func)
 
-        # Generate code for each block
-        for block_name in func.cfg.blocks:
-            block = func.cfg.blocks[block_name]
-            # Record block offset
-            self.block_offsets[block.label] = len(self.bytecode)
+        # Generate code for each block in topological order
+        blocks_in_order = func.cfg.topological_sort()
+        for block in blocks_in_order:
+            # Record block offset in instruction count
+            self.block_offsets[block.label] = len(self.instruction_offsets)
             # Generate instructions
             for inst in block.instructions:
+                # Track instruction start position
+                self.instruction_offsets.append(len(self.bytecode))
                 self.generate_instruction(inst)
 
         # Resolve pending jumps
@@ -237,13 +242,22 @@ class RegisterBytecodeGenerator:
         self.emit_u16(const_idx)
 
     def generate_copy(self, inst: Copy) -> None:
-        """Generate MoveR instruction."""
+        """Generate MoveR or LoadGlobalR instruction based on source type."""
         dst = self.get_register(inst.dest)
-        src = self.get_register(inst.source)
 
-        self.emit_opcode(Opcode.MOVE_R)
-        self.emit_u8(dst)
-        self.emit_u8(src)
+        # Check if source is a variable (has a dot in the name, like x.0)
+        if isinstance(inst.source, Variable) and "." in inst.source.name:
+            # This is loading from a stored variable, use LoadGlobalR
+            name_idx = self.add_string_constant(inst.source.name)
+            self.emit_opcode(Opcode.LOAD_GLOBAL_R)
+            self.emit_u8(dst)
+            self.emit_u16(name_idx)
+        else:
+            # Regular register-to-register move
+            src = self.get_register(inst.source)
+            self.emit_opcode(Opcode.MOVE_R)
+            self.emit_u8(dst)
+            self.emit_u8(src)
 
     def generate_load_var(self, inst: LoadVar) -> None:
         """Generate LoadGlobalR instruction."""
@@ -313,8 +327,8 @@ class RegisterBytecodeGenerator:
     def generate_jump(self, inst: Jump) -> None:
         """Generate JumpR instruction."""
         self.emit_opcode(Opcode.JUMP_R)
-        # Record position for later resolution
-        self.pending_jumps.append((len(self.bytecode), inst.label))
+        # Record position for later resolution (byte pos, target, current instruction index)
+        self.pending_jumps.append((len(self.bytecode), inst.label, len(self.instruction_offsets) - 1))
         self.emit_i32(0)  # Placeholder offset
 
     def generate_conditional_jump(self, inst: ConditionalJump) -> None:
@@ -324,15 +338,19 @@ class RegisterBytecodeGenerator:
         # Generate jump to true target
         self.emit_opcode(Opcode.JUMP_IF_R)
         self.emit_u8(cond)
-        # Record position for later resolution
-        self.pending_jumps.append((len(self.bytecode), inst.true_label))
+        # Record position for later resolution (byte pos, target, current instruction index)
+        current_inst_idx = len(self.instruction_offsets) - 1
+        self.pending_jumps.append((len(self.bytecode), inst.true_label, current_inst_idx))
         self.emit_i32(0)  # Placeholder offset
 
         # If there's a false label, generate unconditional jump to it
         # (this executes if the condition was false)
         if inst.false_label:
+            # This will be a new instruction
+            self.instruction_offsets.append(len(self.bytecode))
             self.emit_opcode(Opcode.JUMP_R)
-            self.pending_jumps.append((len(self.bytecode), inst.false_label))
+            current_inst_idx = len(self.instruction_offsets) - 1
+            self.pending_jumps.append((len(self.bytecode), inst.false_label, current_inst_idx))
             self.emit_i32(0)  # Placeholder offset
 
     def generate_call(self, inst: Call) -> None:
@@ -404,13 +422,16 @@ class RegisterBytecodeGenerator:
 
     def resolve_jumps(self) -> None:
         """Resolve pending jump offsets."""
-        for jump_pos, target_label in self.pending_jumps:
+        for jump_offset_pos, target_label, source_inst_idx in self.pending_jumps:
             if target_label in self.block_offsets:
-                target_offset = self.block_offsets[target_label]
-                # Calculate relative offset
-                offset = target_offset - (jump_pos + 4)
+                target_inst_idx = self.block_offsets[target_label]
+                # The VM uses instruction-based PC, not byte offsets
+                # The offset is in instructions, relative to the NEXT instruction
+                # source_inst_idx is the index of the jump instruction itself
+                # After execution, PC will be source_inst_idx + 1
+                offset = target_inst_idx - (source_inst_idx + 1)
                 # Write offset at jump position
-                struct.pack_into("<i", self.bytecode, jump_pos, offset)
+                struct.pack_into("<i", self.bytecode, jump_offset_pos, offset)
 
     def get_register(self, value: MIRValue) -> int:
         """Get register number for a value.
@@ -453,6 +474,8 @@ class RegisterBytecodeGenerator:
             Constant index.
         """
         # Determine constant type and add to pool
+        tag: ConstantTag
+        val: Any
         if value is None:
             tag = ConstantTag.EMPTY
             val = 0

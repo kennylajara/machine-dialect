@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import struct
 from io import BytesIO
-from typing import BinaryIO
+from typing import Any, BinaryIO
 
 from machine_dialect.codegen.bytecode_module import BytecodeModule, ConstantTag
 from machine_dialect.codegen.opcodes import Opcode
@@ -38,18 +38,16 @@ class VMBytecodeSerializer:
             module: BytecodeModule to serialize.
             stream: Binary stream to write to.
         """
-        # Collect all constants and instructions from chunks
-        all_constants = []
-        all_instructions = []
+        # Collect all constants and raw bytecode from chunks
+        all_constants: list[Any] = []
+        all_bytecode = bytearray()
 
         for chunk in module.chunks:
             # Add constants
-            const_base = len(all_constants)
             all_constants.extend(chunk.constants)
 
-            # Parse and collect individual instructions
-            chunk_instructions = VMBytecodeSerializer.parse_instructions(chunk.bytecode, const_base)
-            all_instructions.extend(chunk_instructions)
+            # Just append raw bytecode
+            all_bytecode.extend(chunk.bytecode)
 
         # Calculate section sizes
         header_size = 28  # 4 (magic) + 4 (version) + 4 (flags) + 16 (4 offsets)
@@ -72,10 +70,6 @@ class VMBytecodeSerializer:
             # EMPTY has no data
 
         func_section_size = 4  # count (0 for now)
-
-        inst_section_size = 4  # count
-        for inst in all_instructions:
-            inst_section_size += len(inst)
 
         # Calculate offsets
         name_offset = header_size
@@ -116,9 +110,84 @@ class VMBytecodeSerializer:
         stream.write(struct.pack("<I", 0))
 
         # Write instructions
-        stream.write(struct.pack("<I", len(all_instructions)))
-        for inst in all_instructions:
-            stream.write(inst)
+        # The Rust loader expects the number of instructions, not bytes
+        # Count the actual number of instructions
+        instruction_count = VMBytecodeSerializer.count_instructions(all_bytecode)
+        stream.write(struct.pack("<I", instruction_count))
+        stream.write(all_bytecode)
+
+    @staticmethod
+    def count_instructions(bytecode: bytes) -> int:
+        """Count the number of instructions in bytecode.
+
+        Args:
+            bytecode: Raw bytecode bytes.
+
+        Returns:
+            Number of instructions.
+        """
+        count = 0
+        i = 0
+
+        while i < len(bytecode):
+            opcode = bytecode[i]
+            count += 1
+
+            # Determine instruction size based on opcode
+            if opcode in [Opcode.LOAD_CONST_R, Opcode.LOAD_GLOBAL_R, Opcode.STORE_GLOBAL_R]:
+                i += 4  # opcode + u8 + u16
+            elif opcode in [Opcode.MOVE_R, Opcode.NEG_R, Opcode.NOT_R]:
+                i += 3  # opcode + u8 + u8
+            elif opcode in [
+                Opcode.ADD_R,
+                Opcode.SUB_R,
+                Opcode.MUL_R,
+                Opcode.DIV_R,
+                Opcode.MOD_R,
+                Opcode.AND_R,
+                Opcode.OR_R,
+                Opcode.EQ_R,
+                Opcode.NEQ_R,
+                Opcode.LT_R,
+                Opcode.GT_R,
+                Opcode.LTE_R,
+                Opcode.GTE_R,
+                Opcode.CONCAT_STR_R,
+                Opcode.ARRAY_GET_R,
+                Opcode.ARRAY_SET_R,
+            ]:
+                i += 4  # opcode + u8 + u8 + u8
+            elif opcode == Opcode.STR_LEN_R:
+                i += 3  # opcode + u8 + u8
+            elif opcode == Opcode.JUMP_R:
+                i += 5  # opcode + i32
+            elif opcode in [Opcode.JUMP_IF_R, Opcode.JUMP_IF_NOT_R]:
+                i += 6  # opcode + u8 + i32
+            elif opcode == Opcode.RETURN_R:
+                # opcode + has_value + [src]
+                if i + 1 < len(bytecode):
+                    has_value = bytecode[i + 1]
+                    i += 3 if has_value else 2
+                else:
+                    i += 1
+            elif opcode == Opcode.CALL_R:
+                # Variable length: opcode + func + dst + num_args + args...
+                if i + 3 < len(bytecode):
+                    num_args = bytecode[i + 3]
+                    i += 4 + num_args
+                else:
+                    i += 1
+            elif opcode in [Opcode.NEW_ARRAY_R, Opcode.ARRAY_LEN_R]:
+                i += 3  # opcode + u8 + u8
+            elif opcode == Opcode.DEBUG_PRINT:
+                i += 2  # opcode + u8
+            elif opcode == Opcode.BREAKPOINT:
+                i += 1  # opcode only
+            else:
+                # Default to 1 byte for unknown opcodes
+                i += 1
+
+        return count
 
     @staticmethod
     def parse_instructions(bytecode: bytes, const_base: int = 0) -> list[bytes]:
@@ -179,8 +248,12 @@ class VMBytecodeSerializer:
                 inst_size = 6
             elif opcode == Opcode.RETURN_R:
                 # opcode + has_value + [src]
-                has_value = bytecode[i + 1] if i + 1 < len(bytecode) else 0
-                inst_size = 3 if has_value else 2
+                # Always 3 bytes in our generation, but check has_value for parsing
+                if i + 1 < len(bytecode):
+                    has_value = bytecode[i + 1]
+                    inst_size = 3 if has_value else 2
+                else:
+                    inst_size = 1
             elif opcode == Opcode.CALL_R:
                 # Variable length: opcode + func + dst + num_args + args...
                 if i + 3 < len(bytecode):

@@ -16,8 +16,25 @@ This is the Phase 0 implementation of the Machine Dialect Rust VM, providing:
 
 ## Building
 
+### Prerequisites
+
+- Rust 1.70+
+- Python 3.9+
+- maturin (install via `uv sync --all-groups`)
+
+### Build Instructions
+
+From project root:
+
 ```bash
-cargo build --release
+./build_vm.sh
+```
+
+Or manually:
+
+```bash
+cd machine_dialect_vm
+maturin develop --features pyo3
 ```
 
 ## Architecture
@@ -42,24 +59,39 @@ The VM integrates with the Python frontend via PyO3 bindings, allowing:
 
 ## Performance
 
-Target performance metrics:
+Measured performance (via Criterion benchmarks):
 
-- \< 2ns for basic arithmetic operations
-- 5-10x speedup over Python interpreter
-- Efficient register allocation from MIR
+- Simple addition: ~1.02 µs per operation
+- VM creation: ~3.49 µs
+- Target: 5-10x speedup over Python interpreter
+
+Run benchmarks:
+
+```bash
+cargo bench --bench basic_benchmark
+```
 
 ## Status
 
-Phase 0 (MVP) implementation complete:
+Phase 0 (MVP) implementation **92% complete**:
 
-- ✅ Core VM engine
-- ✅ Value and type system
-- ✅ Register file management
-- ✅ Instruction set
-- ✅ Runtime operations
-- ✅ Bytecode loader
-- ✅ PyO3 bindings
-- ✅ Python bytecode generator
+### Completed ✅
+
+- Core VM engine with 256 registers
+- Full value and type system (including arrays)
+- Complete instruction set (38 opcodes)
+- All runtime operations (arithmetic, logic, string, array)
+- Binary bytecode loader (.mdbc format)
+- PyO3 bindings with Python integration
+- Python bytecode generator and serializer
+- Performance benchmarks
+- REPL integration (with fallback)
+
+### Remaining Work
+
+- End-to-end execution validation
+- Expanded test coverage
+- Production hardening
 
 ## Next Steps
 

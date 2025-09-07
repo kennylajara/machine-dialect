@@ -8,11 +8,11 @@ use std::collections::HashMap;
 
 fn create_fibonacci_module(n: i64) -> BytecodeModule {
     let mut constants = ConstantPool::new();
-    let c0 = constants.add_int(0);
-    let c1 = constants.add_int(1);
-    let c2 = constants.add_int(2);
-    let cn = constants.add_int(n);
-    let c_one = constants.add_int(1);
+    let c0 = constants.add_float(0.0);
+    let c1 = constants.add_float(1.0);
+    let c2 = constants.add_float(2.0);
+    let cn = constants.add_float(n as f64);
+    let c_one = constants.add_float(1.0);
 
     let instructions = vec![
         // Initialize: r0 = 0 (prev), r1 = 1 (curr), r2 = 2 (i), r3 = n, r6 = 1 (increment)
@@ -81,9 +81,9 @@ fn create_arithmetic_module() -> BytecodeModule {
 }
 
 fn benchmark_fibonacci(c: &mut Criterion) {
-    let module = create_fibonacci_module(30);
+    let module = create_fibonacci_module(10);
 
-    c.bench_function("fibonacci_30", |b| {
+    c.bench_function("fibonacci_10", |b| {
         b.iter(|| {
             let mut vm = VM::new();
             vm.load_module(module.clone(), None).unwrap();

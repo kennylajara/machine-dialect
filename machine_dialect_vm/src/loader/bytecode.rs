@@ -397,6 +397,9 @@ impl BytecodeLoader {
             39 => { // Halt
                 Ok(Instruction::Halt)
             }
+            40 => { // Nop
+                Ok(Instruction::Nop)
+            }
 
             // For now, return error for unimplemented opcodes
             _ => Err(LoadError::InvalidOpcode(opcode)),

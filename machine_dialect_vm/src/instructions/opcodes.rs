@@ -117,6 +117,9 @@ pub enum Instruction {
 
     // Halt execution
     Halt,
+
+    // No operation (for optimization)
+    Nop,
 }
 
 impl Instruction {
@@ -180,6 +183,7 @@ impl Instruction {
             Instruction::DebugPrint { .. } => 2,  // opcode + src
             Instruction::BreakPoint => 1,         // opcode
             Instruction::Halt => 1,                // opcode
+            Instruction::Nop => 1,                 // opcode
         }
     }
 }

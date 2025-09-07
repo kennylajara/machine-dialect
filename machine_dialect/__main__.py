@@ -228,8 +228,7 @@ def _run_compiled(bytecode_file: str, debug: bool) -> None:
         # Load and execute bytecode
         if debug:
             click.echo(f"Loading bytecode from: {bytecode_file}")
-        with open(bytecode_file, "rb") as f:
-            vm.load_bytecode(f.read())
+        vm.load_bytecode(bytecode_file.encode())
 
         if debug:
             click.echo("Executing bytecode...")

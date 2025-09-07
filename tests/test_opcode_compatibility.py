@@ -73,6 +73,8 @@ class TestOpcodeCompatibility:
             "ARRAY_LEN_R": 36,
             "DEBUG_PRINT": 37,
             "BREAKPOINT": 38,
+            "HALT": 39,
+            "NOP": 40,
         }
 
         # First, verify the count matches
@@ -266,8 +268,7 @@ class TestOpcodeCompatibility:
 
         try:
             vm = machine_dialect_vm.RustVM()
-            with open(bytecode_path, "rb") as f:
-                vm.load_bytecode(f.read())
+            vm.load_bytecode(bytecode_path.encode())
             # If we get here without error, the VM successfully decoded all instructions
             assert True
         finally:
@@ -404,6 +405,9 @@ class TestOpcodeCompatibility:
             # Debug
             Opcode.DEBUG_PRINT: lambda: bytecode.extend([Opcode.DEBUG_PRINT, 0]),
             Opcode.BREAKPOINT: lambda: bytecode.extend([Opcode.BREAKPOINT]),
+            # System
+            Opcode.HALT: lambda: bytecode.extend([Opcode.HALT]),
+            Opcode.NOP: lambda: bytecode.extend([Opcode.NOP]),
         }
 
         # Add instructions for implemented opcodes
@@ -424,8 +428,7 @@ class TestOpcodeCompatibility:
 
         try:
             vm = machine_dialect_vm.RustVM()
-            with open(bytecode_path, "rb") as f:
-                vm.load_bytecode(f.read())
+            vm.load_bytecode(bytecode_path.encode())
             # Success means all opcodes were recognized
             assert True
         finally:

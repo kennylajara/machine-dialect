@@ -71,6 +71,10 @@ class Opcode(IntEnum):
     DEBUG_PRINT = 37  # DebugPrint { src: u8 }
     BREAKPOINT = 38  # BreakPoint
 
+    # System (39-40)
+    HALT = 39  # Halt execution
+    NOP = 40  # No operation
+
 
 # Type IDs for type operations
 class TypeId(IntEnum):

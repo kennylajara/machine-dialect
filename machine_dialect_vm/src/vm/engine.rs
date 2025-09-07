@@ -591,6 +591,10 @@ impl VM {
             Instruction::Halt => {
                 self.state.halt();
             }
+
+            Instruction::Nop => {
+                // No operation - just continue
+            }
         }
 
         Ok(None)

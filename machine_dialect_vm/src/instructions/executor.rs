@@ -51,6 +51,7 @@ impl InstructionExecutor {
             Instruction::DebugPrint { .. } => 37,
             Instruction::BreakPoint => 38,
             Instruction::Halt => 39,
+            Instruction::Nop => 40,
         }
     }
 }

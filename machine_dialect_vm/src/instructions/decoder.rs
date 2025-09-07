@@ -285,6 +285,11 @@ impl InstructionDecoder {
                 Ok(Instruction::Halt)
             }
 
+            // NOP
+            40 => { // No operation
+                Ok(Instruction::Nop)
+            }
+
             _ => Err(RuntimeError::InvalidOpcode(opcode).into()),
         }
     }

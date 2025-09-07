@@ -24,6 +24,8 @@ class MIRInstruction(ABC):
         self.is_commutative: bool = False  # Operands can be swapped
         self.is_associative: bool = False  # Can be regrouped
         self.memory_effects: set[str] = set()  # Memory locations affected
+        # Source location for error reporting
+        self.source_location: tuple[int, int] | None = None  # (line, column)
 
     @abstractmethod
     def __str__(self) -> str:

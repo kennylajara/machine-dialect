@@ -142,7 +142,6 @@ def _run_interpreted(source_path: Path, debug: bool) -> None:
     from machine_dialect.compiler.phases.hir_generation import HIRGenerationPhase
     from machine_dialect.compiler.phases.mir_generation import MIRGenerationPhase
     from machine_dialect.mir.mir_interpreter import MIRInterpreter
-    from machine_dialect.mir.optimize_mir import optimize_mir
     from machine_dialect.parser.parser import Parser
 
     try:
@@ -176,8 +175,23 @@ def _run_interpreted(source_path: Path, debug: bool) -> None:
             click.echo("Error: Failed to generate MIR", err=True)
             sys.exit(1)
 
-        # Optimize MIR (level 2 by default for interpreted mode)
-        mir_module, _ = optimize_mir(mir_module, optimization_level=2)
+        # TODO: Fix optimizer bug where it removes necessary variable stores in SSA form
+        # The optimizer incorrectly identifies stores like `n_minus_1.0 = t6` as dead code
+        # and removes them, but keeps the corresponding loads like `t10 = n_minus_1.0`,
+        # causing "Undefined variable" errors at runtime.
+        #
+        # Example of the bug:
+        # BEFORE optimization:
+        #   n_minus_1.0 = t6    # This gets removed
+        #   t10 = n_minus_1.0   # This stays, causing error
+        #
+        # Temporarily disable optimization until the dead code elimination pass
+        # is fixed to properly track SSA variable usage across basic blocks.
+        #
+        # To reproduce the bug, uncomment the line below and run:
+        # python -m machine_dialect run benchmark/fibonacci.md
+        #
+        # mir_module, _ = optimize_mir(mir_module, optimization_level=2)
 
         # Interpret MIR
         interpreter = MIRInterpreter()

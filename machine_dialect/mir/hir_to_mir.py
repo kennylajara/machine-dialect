@@ -47,6 +47,7 @@ from machine_dialect.mir.mir_instructions import (
     Copy,
     Jump,
     LoadConst,
+    MIRInstruction,
     Pop,
     Print,
     Return,
@@ -75,6 +76,20 @@ class HIRToMIRLowering:
         self.type_context: dict[str, MIRType | MIRUnionType] = {}  # Track variable types
         self.union_type_context: dict[str, MIRUnionType] = {}  # Track union types separately
         self.debug_builder = DebugInfoBuilder()  # Debug information tracking
+
+    def _add_instruction_with_location(self, instruction: "MIRInstruction", ast_node: ASTNode | None = None) -> None:
+        """Add an instruction to the current block with source location.
+
+        Args:
+            instruction: The MIR instruction to add.
+            ast_node: The AST node to extract location from.
+        """
+        if ast_node is not None:
+            location = ast_node.get_source_location()
+            if location is not None:
+                instruction.source_location = location
+        if self.current_block is not None:
+            self.current_block.add_instruction(instruction)
 
     def lower_program(self, program: Program, module_name: str = "main") -> MIRModule:
         """Lower a complete program to MIR.
@@ -541,7 +556,8 @@ class HIRToMIRLowering:
         func_ref = FunctionRef(func_name)
 
         # Call without storing result (void call)
-        self.current_block.add_instruction(Call(None, func_ref, args))
+        call_inst = Call(None, func_ref, args)
+        self._add_instruction_with_location(call_inst, stmt)
 
     def lower_say_statement(self, stmt: SayStatement) -> None:
         """Lower a say statement to MIR.
@@ -799,12 +815,19 @@ class HIRToMIRLowering:
                             args.append(val)
 
             # Get function name
-            func_name = getattr(expr, "function_name", "unknown")
+            func_name_expr = getattr(expr, "function_name", None)
+            if isinstance(func_name_expr, Identifier):
+                func_name = func_name_expr.value
+            elif isinstance(func_name_expr, StringLiteral):
+                func_name = func_name_expr.value.strip('"').strip("'")
+            else:
+                func_name = str(func_name_expr) if func_name_expr else "unknown"
             func_ref = FunctionRef(func_name)
 
             # Create temp for result
             result = self.current_function.new_temp(MIRType.UNKNOWN)
-            self.current_block.add_instruction(Call(result, func_ref, args))
+            call_inst = Call(result, func_ref, args)
+            self._add_instruction_with_location(call_inst, expr)
             return result
 
         # Default: return error value

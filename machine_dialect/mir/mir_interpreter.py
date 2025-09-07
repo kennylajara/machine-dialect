@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any
 
+from machine_dialect.errors.exceptions import MDRuntimeError
 from machine_dialect.mir.basic_block import BasicBlock
 from machine_dialect.mir.mir_function import MIRFunction
 from machine_dialect.mir.mir_instructions import (
@@ -77,7 +78,7 @@ class MIRInterpreter:
         self.output: list[str] = []
         self.trace_enabled = False
         self.step_count = 0
-        self.max_steps = 10000  # Prevent infinite loops
+        self.max_steps = 100_000_000  # Prevent infinite loops # TODO: Make it configurable
 
     def interpret_module(self, module: MIRModule, trace: bool = False) -> Any:
         """Interpret a MIR module.
@@ -134,15 +135,11 @@ class MIRInterpreter:
         self.frames.append(frame)
 
         # Execute function
-        while self.state == ExecutionState.RUNNING and self.frames and self.frames[-1] == frame:
+        while self.state == ExecutionState.RUNNING and self.frames and frame in self.frames:
             self.step()
 
-        # Pop frame and return value
-        if self.frames and self.frames[-1] == frame:
-            self.frames.pop()
-            return frame.return_value
-
-        return None
+        # Return the value (frame was already popped by Return instruction)
+        return frame.return_value
 
     def step(self) -> None:
         """Execute one instruction."""
@@ -232,8 +229,11 @@ class MIRInterpreter:
                 frame.return_value = self._load_value(inst.value)
             else:
                 frame.return_value = None
-            # Don't pop yet - let call_function handle it
-            if not self.frames or len(self.frames) == 1:
+            # For non-main functions, pop the frame immediately
+            if len(self.frames) > 1:
+                self.frames.pop()
+            else:
+                # For main function, set state to returned
                 self.state = ExecutionState.RETURNED
 
         elif isinstance(inst, Call):
@@ -252,7 +252,7 @@ class MIRInterpreter:
                             self._store_value(inst.dest, result)
                     else:
                         # Built-in function
-                        self._call_builtin(func_name, inst.args, inst.dest)
+                        self._call_builtin(func_name, inst.args, inst.dest, inst)
                 else:
                     raise RuntimeError(f"No module context for function call: {func_name}")
             else:
@@ -441,13 +441,14 @@ class MIRInterpreter:
         else:
             raise RuntimeError(f"Jump to undefined block: {label}")
 
-    def _call_builtin(self, name: str, args: list[MIRValue], dest: MIRValue | None) -> None:
+    def _call_builtin(self, name: str, args: list[MIRValue], dest: MIRValue | None, inst: MIRInstruction) -> None:
         """Call a built-in function.
 
         Args:
             name: Function name.
             args: Arguments.
             dest: Destination for result.
+            inst: The Call instruction (for error reporting).
         """
         # Evaluate arguments
         arg_values = [self._load_value(arg) for arg in args]
@@ -481,7 +482,10 @@ class MIRInterpreter:
                 if dest:
                     self._store_value(dest, result_float)
         else:
-            raise RuntimeError(f"Unknown built-in function: {name}")
+            # Get source location from instruction if available
+            line = inst.source_location[0] if inst.source_location else None
+            column = inst.source_location[1] if inst.source_location else None
+            raise MDRuntimeError(f"Unknown built-in function: `{name}`", line=line, column=column)
 
     def _trace_instruction(self, inst: MIRInstruction) -> None:
         """Trace instruction execution.

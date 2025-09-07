@@ -356,7 +356,42 @@ class RegisterBytecodeGenerator:
     def generate_call(self, inst: Call) -> None:
         """Generate CallR instruction."""
         dst = self.get_register(inst.dest) if inst.dest else 0
-        func = self.get_register(inst.func)
+
+        # Handle function reference - could be a string name, FunctionRef, or a register value
+        from machine_dialect.mir.mir_values import FunctionRef
+
+        if isinstance(inst.func, str):
+            # Function name as string - load it as a constant
+            assert self.allocation is not None
+            func_reg = self.allocation.next_register
+            if func_reg >= self.allocation.max_registers:
+                raise RuntimeError("Out of registers")
+            self.allocation.next_register += 1
+
+            # Add function name as string constant
+            const_idx = self.add_constant(inst.func)
+            self.emit_opcode(Opcode.LOAD_CONST_R)
+            self.emit_u8(func_reg)
+            self.emit_u16(const_idx)
+            func = func_reg
+        elif isinstance(inst.func, FunctionRef):
+            # FunctionRef - extract the name and load as constant
+            assert self.allocation is not None
+            func_reg = self.allocation.next_register
+            if func_reg >= self.allocation.max_registers:
+                raise RuntimeError("Out of registers")
+            self.allocation.next_register += 1
+
+            # Add function name as string constant
+            const_idx = self.add_constant(inst.func.name)
+            self.emit_opcode(Opcode.LOAD_CONST_R)
+            self.emit_u8(func_reg)
+            self.emit_u16(const_idx)
+            func = func_reg
+        else:
+            # Already a register value
+            func = self.get_register(inst.func)
+
         args = [self.get_register(arg) for arg in inst.args]
 
         self.emit_opcode(Opcode.CALL_R)

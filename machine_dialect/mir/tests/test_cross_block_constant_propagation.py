@@ -28,26 +28,26 @@ class TestCrossBlockConstantPropagation:
         block1 = BasicBlock("entry")
         x = Variable("x", MIRType.INT)
         func.add_local(x)
-        block1.add_instruction(LoadConst(x, Constant(10, MIRType.INT)))
-        block1.add_instruction(Jump("block2"))
+        block1.add_instruction(LoadConst(x, Constant(10, MIRType.INT), (1, 1)))
+        block1.add_instruction(Jump("block2", (1, 1)))
 
         # Block 2: y = x + 5
         block2 = BasicBlock("block2")
         y = Variable("y", MIRType.INT)
         func.add_local(y)
         t1 = Temp(MIRType.INT, 0)
-        block2.add_instruction(BinaryOp(t1, "+", x, Constant(5, MIRType.INT)))
-        block2.add_instruction(Copy(y, t1))
-        block2.add_instruction(Jump("block3"))
+        block2.add_instruction(BinaryOp(t1, "+", x, Constant(5, MIRType.INT), (1, 1)))
+        block2.add_instruction(Copy(y, t1, (1, 1)))
+        block2.add_instruction(Jump("block3", (1, 1)))
 
         # Block 3: z = y * 2
         block3 = BasicBlock("block3")
         z = Variable("z", MIRType.INT)
         func.add_local(z)
         t2 = Temp(MIRType.INT, 1)
-        block3.add_instruction(BinaryOp(t2, "*", y, Constant(2, MIRType.INT)))
-        block3.add_instruction(Copy(z, t2))
-        block3.add_instruction(Return(z))
+        block3.add_instruction(BinaryOp(t2, "*", y, Constant(2, MIRType.INT), (1, 1)))
+        block3.add_instruction(Copy(z, t2, (1, 1)))
+        block3.add_instruction(Return((1, 1), z))
 
         # Set up CFG
         func.cfg.add_block(block1)
@@ -80,32 +80,32 @@ class TestCrossBlockConstantPropagation:
         entry = BasicBlock("entry")
         cond = Variable("cond", MIRType.BOOL)
         func.add_local(cond)
-        entry.add_instruction(LoadConst(cond, Constant(True, MIRType.BOOL)))
-        entry.add_instruction(ConditionalJump(cond, "then", "else"))
+        entry.add_instruction(LoadConst(cond, Constant(True, MIRType.BOOL), (1, 1)))
+        entry.add_instruction(ConditionalJump(cond, "then", (1, 1), "else"))
 
         # Then block: x = 10
         then_block = BasicBlock("then")
         x_then = Temp(MIRType.INT, 0)
-        then_block.add_instruction(LoadConst(x_then, Constant(10, MIRType.INT)))
-        then_block.add_instruction(Jump("merge"))
+        then_block.add_instruction(LoadConst(x_then, Constant(10, MIRType.INT), (1, 1)))
+        then_block.add_instruction(Jump("merge", (1, 1)))
 
         # Else block: x = 10 (same value)
         else_block = BasicBlock("else")
         x_else = Temp(MIRType.INT, 1)
-        else_block.add_instruction(LoadConst(x_else, Constant(10, MIRType.INT)))
-        else_block.add_instruction(Jump("merge"))
+        else_block.add_instruction(LoadConst(x_else, Constant(10, MIRType.INT), (1, 1)))
+        else_block.add_instruction(Jump("merge", (1, 1)))
 
         # Merge block with phi node
         merge = BasicBlock("merge")
         x = Variable("x", MIRType.INT)
         func.add_local(x)
-        phi = Phi(x, [(x_then, "then"), (x_else, "else")])
+        phi = Phi(x, [(x_then, "then"), (x_else, "else")], (1, 1))
         merge.phi_nodes.append(phi)
 
         # Use x in computation
         result = Temp(MIRType.INT, 2)
-        merge.add_instruction(BinaryOp(result, "+", x, Constant(5, MIRType.INT)))
-        merge.add_instruction(Return(result))
+        merge.add_instruction(BinaryOp(result, "+", x, Constant(5, MIRType.INT), (1, 1)))
+        merge.add_instruction(Return((1, 1), result))
 
         # Set up CFG
         func.cfg.add_block(entry)
@@ -142,39 +142,39 @@ class TestCrossBlockConstantPropagation:
         func.add_local(i)
         func.add_local(sum_var)
 
-        entry.add_instruction(LoadConst(i, Constant(0, MIRType.INT)))
-        entry.add_instruction(LoadConst(sum_var, Constant(0, MIRType.INT)))
-        entry.add_instruction(Jump("loop"))
+        entry.add_instruction(LoadConst(i, Constant(0, MIRType.INT), (1, 1)))
+        entry.add_instruction(LoadConst(sum_var, Constant(0, MIRType.INT), (1, 1)))
+        entry.add_instruction(Jump("loop", (1, 1)))
 
         # Loop block
         loop = BasicBlock("loop")
         # Phi nodes for loop variables
-        i_phi = Phi(i, [(i, "entry")])  # Will have back-edge added
-        sum_phi = Phi(sum_var, [(sum_var, "entry")])
+        i_phi = Phi(i, [(i, "entry")], (1, 1))  # Will have back-edge added
+        sum_phi = Phi(sum_var, [(sum_var, "entry")], (1, 1))
         loop.phi_nodes.append(i_phi)
         loop.phi_nodes.append(sum_phi)
 
         # Check condition: i < 10
         t_cond = Temp(MIRType.BOOL, 0)
-        loop.add_instruction(BinaryOp(t_cond, "<", i, Constant(10, MIRType.INT)))
-        loop.add_instruction(ConditionalJump(t_cond, "body", "exit"))
+        loop.add_instruction(BinaryOp(t_cond, "<", i, Constant(10, MIRType.INT), (1, 1)))
+        loop.add_instruction(ConditionalJump(t_cond, "body", (1, 1), "exit"))
 
         # Loop body
         body = BasicBlock("body")
         # sum = sum + i
         t_sum = Temp(MIRType.INT, 1)
-        body.add_instruction(BinaryOp(t_sum, "+", sum_var, i))
-        body.add_instruction(Copy(sum_var, t_sum))
+        body.add_instruction(BinaryOp(t_sum, "+", sum_var, i, (1, 1)))
+        body.add_instruction(Copy(sum_var, t_sum, (1, 1)))
 
         # i = i + 1
         t_i = Temp(MIRType.INT, 2)
-        body.add_instruction(BinaryOp(t_i, "+", i, Constant(1, MIRType.INT)))
-        body.add_instruction(Copy(i, t_i))
-        body.add_instruction(Jump("loop"))
+        body.add_instruction(BinaryOp(t_i, "+", i, Constant(1, MIRType.INT), (1, 1)))
+        body.add_instruction(Copy(i, t_i, (1, 1)))
+        body.add_instruction(Jump("loop", (1, 1)))
 
         # Exit block
         exit_block = BasicBlock("exit")
-        exit_block.add_instruction(Return(sum_var))
+        exit_block.add_instruction(Return((1, 1), sum_var))
 
         # Set up CFG
         func.cfg.add_block(entry)
@@ -215,25 +215,25 @@ class TestCrossBlockConstantPropagation:
         func.add_local(x)
         func.add_local(y)
 
-        entry.add_instruction(LoadConst(x, Constant(5, MIRType.INT)))
-        entry.add_instruction(LoadConst(y, Constant(10, MIRType.INT)))
+        entry.add_instruction(LoadConst(x, Constant(5, MIRType.INT), (1, 1)))
+        entry.add_instruction(LoadConst(y, Constant(10, MIRType.INT), (1, 1)))
 
         # Compute condition: x < y (should be constant True)
         cond = Temp(MIRType.BOOL, 0)
-        entry.add_instruction(BinaryOp(cond, "<", x, y))
-        entry.add_instruction(ConditionalJump(cond, "then", "else"))
+        entry.add_instruction(BinaryOp(cond, "<", x, y, (1, 1)))
+        entry.add_instruction(ConditionalJump(cond, "then", (1, 1), "else"))
 
         # Then block (should be taken)
         then_block = BasicBlock("then")
         result_then = Temp(MIRType.INT, 1)
-        then_block.add_instruction(BinaryOp(result_then, "+", x, y))
-        then_block.add_instruction(Return(result_then))
+        then_block.add_instruction(BinaryOp(result_then, "+", x, y, (1, 1)))
+        then_block.add_instruction(Return((1, 1), result_then))
 
         # Else block (dead code)
         else_block = BasicBlock("else")
         result_else = Temp(MIRType.INT, 2)
-        else_block.add_instruction(BinaryOp(result_else, "-", y, x))
-        else_block.add_instruction(Return(result_else))
+        else_block.add_instruction(BinaryOp(result_else, "-", y, x, (1, 1)))
+        else_block.add_instruction(Return((1, 1), result_else))
 
         # Set up CFG
         func.cfg.add_block(entry)

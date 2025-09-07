@@ -30,8 +30,8 @@ class TestAlgebraicSimplificationDivision(unittest.TestCase):
         """Test x / 1 → x."""
         t0 = Temp(MIRType.INT)
         t1 = Temp(MIRType.INT)
-        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT)))
-        self.block.add_instruction(BinaryOp(t1, "/", t0, Constant(1, MIRType.INT)))
+        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT), (1, 1)))
+        self.block.add_instruction(BinaryOp(t1, "/", t0, Constant(1, MIRType.INT), (1, 1)))
 
         changed = self.opt.run_on_function(self.func)
 
@@ -47,8 +47,8 @@ class TestAlgebraicSimplificationDivision(unittest.TestCase):
         """Test x / x → 1."""
         t0 = Temp(MIRType.INT)
         t1 = Temp(MIRType.INT)
-        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT)))
-        self.block.add_instruction(BinaryOp(t1, "/", t0, t0))
+        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT), (1, 1)))
+        self.block.add_instruction(BinaryOp(t1, "/", t0, t0, (1, 1)))
 
         changed = self.opt.run_on_function(self.func)
 
@@ -63,7 +63,7 @@ class TestAlgebraicSimplificationDivision(unittest.TestCase):
     def test_zero_divided_by_x(self) -> None:
         """Test 0 / x → 0."""
         t0 = Temp(MIRType.INT)
-        self.block.add_instruction(BinaryOp(t0, "/", Constant(0, MIRType.INT), Constant(42, MIRType.INT)))
+        self.block.add_instruction(BinaryOp(t0, "/", Constant(0, MIRType.INT), Constant(42, MIRType.INT), (1, 1)))
 
         changed = self.opt.run_on_function(self.func)
 
@@ -79,8 +79,8 @@ class TestAlgebraicSimplificationDivision(unittest.TestCase):
         """Test x / -1 → -x."""
         t0 = Temp(MIRType.INT)
         t1 = Temp(MIRType.INT)
-        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT)))
-        self.block.add_instruction(BinaryOp(t1, "/", t0, Constant(-1, MIRType.INT)))
+        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT), (1, 1)))
+        self.block.add_instruction(BinaryOp(t1, "/", t0, Constant(-1, MIRType.INT), (1, 1)))
 
         changed = self.opt.run_on_function(self.func)
 
@@ -97,8 +97,8 @@ class TestAlgebraicSimplificationDivision(unittest.TestCase):
         """Test x // 1 → x."""
         t0 = Temp(MIRType.INT)
         t1 = Temp(MIRType.INT)
-        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT)))
-        self.block.add_instruction(BinaryOp(t1, "//", t0, Constant(1, MIRType.INT)))
+        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT), (1, 1)))
+        self.block.add_instruction(BinaryOp(t1, "//", t0, Constant(1, MIRType.INT), (1, 1)))
 
         changed = self.opt.run_on_function(self.func)
 
@@ -114,8 +114,8 @@ class TestAlgebraicSimplificationDivision(unittest.TestCase):
         """Test x // x → 1."""
         t0 = Temp(MIRType.INT)
         t1 = Temp(MIRType.INT)
-        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT)))
-        self.block.add_instruction(BinaryOp(t1, "//", t0, t0))
+        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT), (1, 1)))
+        self.block.add_instruction(BinaryOp(t1, "//", t0, t0, (1, 1)))
 
         changed = self.opt.run_on_function(self.func)
 

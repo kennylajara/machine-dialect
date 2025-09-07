@@ -360,36 +360,58 @@ class MIRInterpreter:
         Returns:
             The result.
         """
-        if op == "+":
-            return left + right
-        elif op == "-":
-            return left - right
-        elif op == "*":
-            return left * right
-        elif op == "/":
-            if right == 0:
-                raise RuntimeError("Division by zero")
-            return left / right if isinstance(left, float) or isinstance(right, float) else left // right
-        elif op == "%":
-            return left % right
-        elif op == "<":
-            return left < right
-        elif op == ">":
-            return left > right
-        elif op == "<=":
-            return left <= right
-        elif op == ">=":
-            return left >= right
-        elif op == "==":
-            return left == right
-        elif op == "!=":
-            return left != right
-        elif op == "&&":
-            return self._is_truthy(left) and self._is_truthy(right)
-        elif op == "||":
-            return self._is_truthy(left) or self._is_truthy(right)
-        else:
-            raise RuntimeError(f"Unsupported binary operation: {op}")
+        from machine_dialect.errors.exceptions import MDRuntimeError
+
+        try:
+            if op == "+":
+                return left + right
+            elif op == "-":
+                return left - right
+            elif op == "*":
+                return left * right
+            elif op == "/":
+                if right == 0:
+                    frame = self.frames[-1]
+                    current_inst = frame.current_block.instructions[frame.instruction_index - 1]
+                    line, column = current_inst.source_location
+                    raise MDRuntimeError("Division by zero", line=line, column=column)
+                return left / right if isinstance(left, float) or isinstance(right, float) else left // right
+            elif op == "%":
+                return left % right
+            elif op == "<":
+                return left < right
+            elif op == ">":
+                return left > right
+            elif op == "<=":
+                return left <= right
+            elif op == ">=":
+                return left >= right
+            elif op == "==":
+                return left == right
+            elif op == "!=":
+                return left != right
+            elif op == "&&":
+                return self._is_truthy(left) and self._is_truthy(right)
+            elif op == "||":
+                return self._is_truthy(left) or self._is_truthy(right)
+            else:
+                frame = self.frames[-1]
+                current_inst = frame.current_block.instructions[frame.instruction_index - 1]
+                line, column = current_inst.source_location
+                raise MDRuntimeError(f"Unsupported binary operation: {op}", line=line, column=column)
+        except TypeError as err:
+            frame = self.frames[-1]
+            current_inst = frame.current_block.instructions[frame.instruction_index - 1]
+            left_type = type(left).__name__
+            right_type = type(right).__name__
+            left_repr = repr(left) if left is not None else "None"
+            right_repr = repr(right) if right is not None else "None"
+            line, column = current_inst.source_location
+            raise MDRuntimeError(
+                f"Cannot apply '{op}' to {left_type} and {right_type}: {left_repr} {op} {right_repr}",
+                line=line,
+                column=column,
+            ) from err
 
     def _eval_unary_op(self, op: str, operand: Any) -> Any:
         """Evaluate a unary operation.
@@ -402,11 +424,32 @@ class MIRInterpreter:
             The result.
         """
         if op == "-":
-            return -operand
+            try:
+                return -operand
+            except TypeError:
+                from machine_dialect.errors.exceptions import MDRuntimeError
+
+                # Get current instruction for debugging context
+                frame = self.frames[-1]
+                current_inst = frame.current_block.instructions[frame.instruction_index - 1]
+                operand_type = type(operand).__name__
+                operand_repr = repr(operand) if operand is not None else "None"
+                # Use source_location from instruction
+                line, column = current_inst.source_location
+                raise MDRuntimeError(
+                    f"Cannot apply unary minus to {operand_type}: {operand_repr}. Instruction: {current_inst}",
+                    line=line,
+                    column=column,
+                ) from None
         elif op == "!":
             return not self._is_truthy(operand)
         else:
-            raise RuntimeError(f"Unsupported unary operation: {op}")
+            from machine_dialect.errors.exceptions import MDRuntimeError
+
+            frame = self.frames[-1]
+            current_inst = frame.current_block.instructions[frame.instruction_index - 1]
+            line, column = current_inst.source_location
+            raise MDRuntimeError(f"Unsupported unary operation: {op}", line=line, column=column)
 
     def _is_truthy(self, value: Any) -> bool:
         """Check if a value is truthy.

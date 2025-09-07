@@ -547,7 +547,7 @@ class ConstantPropagation(OptimizationPass):
                         if result is not None:
                             # Replace with LoadConst
                             const = Constant(result, self._infer_type(result))
-                            new_inst = LoadConst(inst.dest, const)
+                            new_inst = LoadConst(inst.dest, const, inst.source_location)
                             transformer.replace_instruction(block, inst, new_inst)
                             self.stats["expressions_folded"] = self.stats.get("expressions_folded", 0) + 1
 
@@ -560,7 +560,7 @@ class ConstantPropagation(OptimizationPass):
                         if result is not None:
                             # Replace with LoadConst
                             const = Constant(result, self._infer_type(result))
-                            new_inst = LoadConst(inst.dest, const)
+                            new_inst = LoadConst(inst.dest, const, inst.source_location)
                             transformer.replace_instruction(block, inst, new_inst)
                             self.stats["expressions_folded"] = self.stats.get("expressions_folded", 0) + 1
 
@@ -585,9 +585,9 @@ class ConstantPropagation(OptimizationPass):
                 if cond_val is not None:
                     # Replace with unconditional jump
                     if cond_val:
-                        new_jump = Jump(term.true_label)
+                        new_jump = Jump(term.true_label, term.source_location)
                     elif term.false_label is not None:
-                        new_jump = Jump(term.false_label)
+                        new_jump = Jump(term.false_label, term.source_location)
                     else:
                         continue  # Can't simplify without false label
 

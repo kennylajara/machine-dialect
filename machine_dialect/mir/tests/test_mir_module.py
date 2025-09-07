@@ -210,8 +210,8 @@ class TestMIRFunction(unittest.TestCase):
         # Add some blocks
         entry = BasicBlock("entry")
         t0 = Temp(MIRType.INT, temp_id=0)
-        entry.add_instruction(LoadConst(t0, 1))
-        entry.add_instruction(Return(t0))
+        entry.add_instruction(LoadConst(t0, 1, (1, 1)))
+        entry.add_instruction(Return((1, 1), t0))
 
         func.cfg.add_block(entry)
         func.cfg.set_entry_block(entry)
@@ -248,8 +248,8 @@ class TestModuleSerialization(unittest.TestCase):
         func = MIRFunction("main", return_type=MIRType.INT)
         entry = BasicBlock("entry")
         t0 = Temp(MIRType.INT, temp_id=0)
-        entry.add_instruction(LoadConst(t0, 0))
-        entry.add_instruction(Return(t0))
+        entry.add_instruction(LoadConst(t0, 0, (1, 1)))
+        entry.add_instruction(Return((1, 1), t0))
         func.cfg.add_block(entry)
         func.cfg.set_entry_block(entry)
         module.add_function(func)
@@ -557,8 +557,8 @@ class TestMIRModule(unittest.TestCase):
         main_func = MIRFunction("nonexistent_main", return_type=MIRType.INT)
         entry = BasicBlock("entry")
         t0 = Temp(MIRType.INT, temp_id=0)
-        entry.add_instruction(LoadConst(t0, 0))
-        entry.add_instruction(Return(t0))
+        entry.add_instruction(LoadConst(t0, 0, (1, 1)))
+        entry.add_instruction(Return((1, 1), t0))
         main_func.cfg.add_block(entry)
         main_func.cfg.set_entry_block(entry)
         module.add_function(main_func)
@@ -570,8 +570,8 @@ class TestMIRModule(unittest.TestCase):
         other_func = MIRFunction("other")
         other_entry = BasicBlock("entry")
         t1 = Temp(MIRType.INT, temp_id=1)
-        other_entry.add_instruction(LoadConst(t1, 0))
-        other_entry.add_instruction(Return(t1))
+        other_entry.add_instruction(LoadConst(t1, 0, (1, 1)))
+        other_entry.add_instruction(Return((1, 1), t1))
         other_func.cfg.add_block(other_entry)
         other_func.cfg.set_entry_block(other_entry)
         module.add_function(other_func)
@@ -601,7 +601,7 @@ class TestMIRModule(unittest.TestCase):
         # Add and set main function
         main_func = MIRFunction("main", return_type=MIRType.INT)
         entry = BasicBlock("entry")
-        entry.add_instruction(Return(Temp(MIRType.INT, temp_id=0)))
+        entry.add_instruction(Return((1, 1), Temp(MIRType.INT, temp_id=0)))
         main_func.cfg.add_block(entry)
         main_func.cfg.set_entry_block(entry)
         module.add_function(main_func)
@@ -626,8 +626,8 @@ class TestMIRModule(unittest.TestCase):
         main = MIRFunction("main", return_type=MIRType.INT)
         entry = BasicBlock("entry")
         t0 = Temp(MIRType.INT, temp_id=0)
-        entry.add_instruction(LoadConst(t0, 0))
-        entry.add_instruction(Return(t0))
+        entry.add_instruction(LoadConst(t0, 0, (1, 1)))
+        entry.add_instruction(Return((1, 1), t0))
 
         main.cfg.add_block(entry)
         main.cfg.set_entry_block(entry)
@@ -666,10 +666,10 @@ class TestMIRModule(unittest.TestCase):
         t0 = Temp(MIRType.INT, temp_id=0)
 
         # Entry has terminator
-        entry.add_instruction(Jump("bb1"))
+        entry.add_instruction(Jump("bb1", (1, 1)))
 
         # bb1 has instructions but no terminator
-        bb1.add_instruction(LoadConst(t0, 42))
+        bb1.add_instruction(LoadConst(t0, 42, (1, 1)))
 
         func.cfg.add_block(entry)
         func.cfg.add_block(bb1)
@@ -686,7 +686,7 @@ class TestMIRModule(unittest.TestCase):
         func = MIRFunction("bad_jump")
 
         entry = BasicBlock("entry")
-        entry.add_instruction(Jump("nonexistent"))
+        entry.add_instruction(Jump("nonexistent", (1, 1)))
 
         func.cfg.add_block(entry)
         func.cfg.set_entry_block(entry)
@@ -702,7 +702,7 @@ class TestMIRModule(unittest.TestCase):
 
         entry = BasicBlock("entry")
         t0 = Temp(MIRType.BOOL, temp_id=0)
-        entry.add_instruction(ConditionalJump(t0, "undefined1", "undefined2"))
+        entry.add_instruction(ConditionalJump(t0, "undefined1", (1, 1), "undefined2"))
 
         func.cfg.add_block(entry)
         func.cfg.set_entry_block(entry)
@@ -728,8 +728,8 @@ class TestMIRModule(unittest.TestCase):
         func = MIRFunction("main", return_type=MIRType.INT)
         entry = BasicBlock("entry")
         t0 = Temp(MIRType.INT, temp_id=0)
-        entry.add_instruction(LoadConst(t0, 0))
-        entry.add_instruction(Return(t0))
+        entry.add_instruction(LoadConst(t0, 0, (1, 1)))
+        entry.add_instruction(Return((1, 1), t0))
         func.cfg.add_block(entry)
         func.cfg.set_entry_block(entry)
         module.add_function(func)
@@ -830,10 +830,10 @@ class TestIntegration(unittest.TestCase):
         t0 = Temp(MIRType.INT, temp_id=0)
         t1 = Temp(MIRType.INT, temp_id=1)
         t2 = Temp(MIRType.INT, temp_id=2)
-        add_entry.add_instruction(LoadVar(t0, Variable("a", MIRType.INT)))
-        add_entry.add_instruction(LoadVar(t1, Variable("b", MIRType.INT)))
-        add_entry.add_instruction(BinaryOp(t2, "+", t0, t1))
-        add_entry.add_instruction(Return(t2))
+        add_entry.add_instruction(LoadVar(t0, Variable("a", MIRType.INT), (1, 1)))
+        add_entry.add_instruction(LoadVar(t1, Variable("b", MIRType.INT), (1, 1)))
+        add_entry.add_instruction(BinaryOp(t2, "+", t0, t1, (1, 1)))
+        add_entry.add_instruction(Return((1, 1), t2))
         add_func.cfg.add_block(add_entry)
         add_func.cfg.set_entry_block(add_entry)
 
@@ -841,8 +841,8 @@ class TestIntegration(unittest.TestCase):
         main_func = MIRFunction("main", return_type=MIRType.INT)
         main_entry = BasicBlock("entry")
         t3 = Temp(MIRType.INT, temp_id=3)
-        main_entry.add_instruction(LoadConst(t3, 0))
-        main_entry.add_instruction(Return(t3))
+        main_entry.add_instruction(LoadConst(t3, Constant(0, MIRType.INT), (1, 1)))
+        main_entry.add_instruction(Return((1, 1), t3))
         main_func.cfg.add_block(main_entry)
         main_func.cfg.set_entry_block(main_entry)
 

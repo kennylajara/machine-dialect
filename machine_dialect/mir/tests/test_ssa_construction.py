@@ -145,10 +145,10 @@ class TestSSAConstruction(unittest.TestCase):
 
         # Add instructions: x = 1; return x
         const1 = Constant(1, MIRType.INT)
-        entry.add_instruction(StoreVar(x, const1))
+        entry.add_instruction(StoreVar(x, const1, (1, 1)))
         temp = func.new_temp(MIRType.INT)
-        entry.add_instruction(Copy(temp, x))
-        entry.add_instruction(Return(temp))
+        entry.add_instruction(Copy(temp, x, (1, 1)))
+        entry.add_instruction(Return((1, 1), temp))
 
         # Convert to SSA
         construct_ssa(func)
@@ -185,22 +185,22 @@ class TestSSAConstruction(unittest.TestCase):
 
         # Add conditional jump in entry
         cond = func.new_temp(MIRType.BOOL)
-        entry.add_instruction(LoadConst(cond, True))
-        entry.add_instruction(ConditionalJump(cond, "then", "else"))
+        entry.add_instruction(LoadConst(cond, True, (1, 1)))
+        entry.add_instruction(ConditionalJump(cond, "then", (1, 1), "else"))
 
         # Assign different values in branches
         const1 = Constant(1, MIRType.INT)
         const2 = Constant(2, MIRType.INT)
-        then_block.add_instruction(StoreVar(x, const1))
-        then_block.add_instruction(Jump("merge"))
+        then_block.add_instruction(StoreVar(x, const1, (1, 1)))
+        then_block.add_instruction(Jump("merge", (1, 1)))
 
-        else_block.add_instruction(StoreVar(x, const2))
-        else_block.add_instruction(Jump("merge"))
+        else_block.add_instruction(StoreVar(x, const2, (1, 1)))
+        else_block.add_instruction(Jump("merge", (1, 1)))
 
         # Use x in merge
         result = func.new_temp(MIRType.INT)
-        merge_block.add_instruction(Copy(result, x))
-        merge_block.add_instruction(Return(result))
+        merge_block.add_instruction(Copy(result, x, (1, 1)))
+        merge_block.add_instruction(Return((1, 1), result))
 
         # Convert to SSA
         construct_ssa(func)
@@ -245,24 +245,24 @@ class TestSSAConstruction(unittest.TestCase):
 
         # Initialize counter in entry
         const0 = Constant(0, MIRType.INT)
-        entry.add_instruction(StoreVar(i, const0))
-        entry.add_instruction(Jump("loop_header"))
+        entry.add_instruction(StoreVar(i, const0, (1, 1)))
+        entry.add_instruction(Jump("loop_header", (1, 1)))
 
         # Loop header checks condition
         cond = func.new_temp(MIRType.BOOL)
         ten = Constant(10, MIRType.INT)
-        loop_header.add_instruction(BinaryOp(cond, "<", i, ten))
-        loop_header.add_instruction(ConditionalJump(cond, "loop_body", "exit"))
+        loop_header.add_instruction(BinaryOp(cond, "<", i, ten, (1, 1)))
+        loop_header.add_instruction(ConditionalJump(cond, "loop_body", (1, 1), "exit"))
 
         # Loop body increments counter
         one = Constant(1, MIRType.INT)
         new_i = func.new_temp(MIRType.INT)
-        loop_body.add_instruction(BinaryOp(new_i, "+", i, one))
-        loop_body.add_instruction(StoreVar(i, new_i))
-        loop_body.add_instruction(Jump("loop_header"))
+        loop_body.add_instruction(BinaryOp(new_i, "+", i, one, (1, 1)))
+        loop_body.add_instruction(StoreVar(i, new_i, (1, 1)))
+        loop_body.add_instruction(Jump("loop_header", (1, 1)))
 
         # Exit
-        exit_block.add_instruction(Return())
+        exit_block.add_instruction(Return((1, 1)))
 
         # Convert to SSA
         construct_ssa(func)
@@ -304,19 +304,19 @@ class TestSSAConstruction(unittest.TestCase):
         const1 = Constant(1, MIRType.INT)
         const2 = Constant(2, MIRType.INT)
 
-        entry.add_instruction(StoreVar(x, const1))
-        entry.add_instruction(StoreVar(y, const2))
+        entry.add_instruction(StoreVar(x, const1, (1, 1)))
+        entry.add_instruction(StoreVar(y, const2, (1, 1)))
 
         # Compute z = x + y
         temp = func.new_temp(MIRType.INT)
-        entry.add_instruction(BinaryOp(temp, "+", x, y))
-        entry.add_instruction(StoreVar(z, temp))
-        entry.add_instruction(Jump("block1"))
+        entry.add_instruction(BinaryOp(temp, "+", x, y, (1, 1)))
+        entry.add_instruction(StoreVar(z, temp, (1, 1)))
+        entry.add_instruction(Jump("block1", (1, 1)))
 
         # Use all variables in block1
         result = func.new_temp(MIRType.INT)
-        block1.add_instruction(BinaryOp(result, "+", z, x))
-        block1.add_instruction(Return(result))
+        block1.add_instruction(BinaryOp(result, "+", z, x, (1, 1)))
+        block1.add_instruction(Return((1, 1), result))
 
         # Convert to SSA
         construct_ssa(func)
@@ -355,21 +355,21 @@ class TestSSAConstruction(unittest.TestCase):
 
         # Add instructions
         cond = func.new_temp(MIRType.BOOL)
-        entry.add_instruction(LoadConst(cond, True))
-        entry.add_instruction(ConditionalJump(cond, "then", "else"))
+        entry.add_instruction(LoadConst(cond, True, (1, 1)))
+        entry.add_instruction(ConditionalJump(cond, "then", (1, 1), "else"))
 
         const1 = Constant(1, MIRType.INT)
         const2 = Constant(2, MIRType.INT)
 
-        then_block.add_instruction(StoreVar(x, const1))
-        then_block.add_instruction(Jump("merge"))
+        then_block.add_instruction(StoreVar(x, const1, (1, 1)))
+        then_block.add_instruction(Jump("merge", (1, 1)))
 
-        else_block.add_instruction(StoreVar(x, const2))
-        else_block.add_instruction(Jump("merge"))
+        else_block.add_instruction(StoreVar(x, const2, (1, 1)))
+        else_block.add_instruction(Jump("merge", (1, 1)))
 
         result = func.new_temp(MIRType.INT)
-        merge_block.add_instruction(Copy(result, x))
-        merge_block.add_instruction(Return(result))
+        merge_block.add_instruction(Copy(result, x, (1, 1)))
+        merge_block.add_instruction(Return((1, 1), result))
 
         # Convert to SSA
         construct_ssa(func)

@@ -242,7 +242,7 @@ class MIRTransformer:
 
         # Add jump instruction if needed
         if not block.get_terminator():
-            block.add_instruction(Jump(new_label))
+            block.add_instruction(Jump(new_label, (0, 0)))
 
         # Add new block to CFG
         self.function.cfg.add_block(new_block)

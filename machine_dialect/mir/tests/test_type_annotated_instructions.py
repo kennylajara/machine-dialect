@@ -158,7 +158,7 @@ class TestTypeAnnotatedInstructions:
         int_var = Variable("x", MIRType.INT)
         float_temp = Temp(MIRType.FLOAT, 8)
 
-        block.add_instruction(LoadConst(int_var, Constant(42, MIRType.INT)))
+        block.add_instruction(LoadConst(int_var, Constant(42, MIRType.INT), (1, 1)))
         block.add_instruction(TypeCast(float_temp, int_var, MIRType.FLOAT))
 
         func.cfg.add_block(block)

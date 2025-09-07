@@ -169,7 +169,7 @@ class CommonSubexpressionElimination(OptimizationPass):
                     # Replace with copy of existing value
                     result = self._get_result(inst)
                     if result:
-                        new_inst = Copy(result, existing)
+                        new_inst = Copy(result, existing, inst.source_location)
                         transformer.replace_instruction(block, inst, new_inst)
                         self.stats["local_cse_eliminated"] = self.stats.get("local_cse_eliminated", 0) + 1
                 else:
@@ -241,7 +241,8 @@ class CommonSubexpressionElimination(OptimizationPass):
                         # Replace with copy
                         result = self._get_result(inst)
                         if result:
-                            new_inst = Copy(result, existing)
+                            source_loc = inst.source_location if hasattr(inst, "source_location") else (0, 0)
+                            new_inst = Copy(result, existing, source_loc)
                             transformer.replace_instruction(block, inst, new_inst)
                             self.stats["global_cse_eliminated"] = self.stats.get("global_cse_eliminated", 0) + 1
                     else:

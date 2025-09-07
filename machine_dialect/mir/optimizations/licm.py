@@ -165,7 +165,8 @@ class LoopInvariantCodeMotion(OptimizationPass):
             # Update the jump/branch instruction in predecessor
             for i, inst in enumerate(pred.instructions):
                 if isinstance(inst, Jump) and inst.label == header.label:
-                    pred.instructions[i] = Jump(preheader.label)
+                    source_loc = inst.source_location if hasattr(inst, "source_location") else (0, 0)
+                    pred.instructions[i] = Jump(preheader.label, source_loc)
                 elif isinstance(inst, ConditionalJump):
                     if inst.true_label == header.label:
                         inst.true_label = preheader.label
@@ -181,7 +182,8 @@ class LoopInvariantCodeMotion(OptimizationPass):
             preheader.predecessors.append(pred)
 
         # Add unconditional jump from preheader to header
-        preheader.instructions.append(Jump(header.label))
+        # TODO: Verify if (0, 0) is the right approach for synthetic instructions
+        preheader.instructions.append(Jump(header.label, (0, 0)))
         preheader.successors.append(header)
         header.predecessors.append(preheader)
 

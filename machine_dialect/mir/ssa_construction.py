@@ -196,7 +196,8 @@ class SSAConstructor:
 
                         # Create phi node
                         phi_var = self._new_version(var)
-                        phi = Phi(phi_var, [])
+                        # TODO: Review if (0, 0) is the best approach for generated phi nodes' source location
+                        phi = Phi(phi_var, [], (0, 0))  # Default source location for generated phi nodes
 
                         # Insert phi in phi_nodes list
                         df_block.phi_nodes.append(phi)

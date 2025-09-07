@@ -136,7 +136,7 @@ class AlgebraicSimplification(OptimizationPass):
             # This requires def-use chain analysis
             defining_inst = self._get_defining_instruction(inst.operand, block)
             if isinstance(defining_inst, UnaryOp) and defining_inst.op == "-":
-                new_inst = Copy(inst.dest, defining_inst.operand)
+                new_inst = Copy(inst.dest, defining_inst.operand, inst.source_location)
                 transformer.replace_instruction(block, inst, new_inst)
                 self.stats["double_negation_eliminated"] = self.stats.get("double_negation_eliminated", 0) + 1
                 return
@@ -145,7 +145,7 @@ class AlgebraicSimplification(OptimizationPass):
         elif inst.op == "not":
             defining_inst = self._get_defining_instruction(inst.operand, block)
             if isinstance(defining_inst, UnaryOp) and defining_inst.op == "not":
-                new_inst = Copy(inst.dest, defining_inst.operand)
+                new_inst = Copy(inst.dest, defining_inst.operand, inst.source_location)
                 transformer.replace_instruction(block, inst, new_inst)
                 self.stats["double_not_eliminated"] = self.stats.get("double_not_eliminated", 0) + 1
                 return
@@ -170,27 +170,27 @@ class AlgebraicSimplification(OptimizationPass):
         if self._values_equal(inst.left, inst.right):
             if inst.op == "==":
                 true_const = Constant(True, MIRType.BOOL)
-                new_inst = LoadConst(inst.dest, true_const)
+                new_inst = LoadConst(inst.dest, true_const, inst.source_location)
                 transformer.replace_instruction(block, inst, new_inst)
                 self.stats["comparison_simplified"] = self.stats.get("comparison_simplified", 0) + 1
                 return True
             elif inst.op == "!=":
                 false_const = Constant(False, MIRType.BOOL)
-                new_inst = LoadConst(inst.dest, false_const)
+                new_inst = LoadConst(inst.dest, false_const, inst.source_location)
                 transformer.replace_instruction(block, inst, new_inst)
                 self.stats["comparison_simplified"] = self.stats.get("comparison_simplified", 0) + 1
                 return True
             elif inst.op in ["<", ">"]:
                 # x < x → false, x > x → false
                 false_const = Constant(False, MIRType.BOOL)
-                new_inst = LoadConst(inst.dest, false_const)
+                new_inst = LoadConst(inst.dest, false_const, inst.source_location)
                 transformer.replace_instruction(block, inst, new_inst)
                 self.stats["comparison_simplified"] = self.stats.get("comparison_simplified", 0) + 1
                 return True
             elif inst.op in ["<=", ">="]:
                 # x <= x → true, x >= x → true
                 true_const = Constant(True, MIRType.BOOL)
-                new_inst = LoadConst(inst.dest, true_const)
+                new_inst = LoadConst(inst.dest, true_const, inst.source_location)
                 transformer.replace_instruction(block, inst, new_inst)
                 self.stats["comparison_simplified"] = self.stats.get("comparison_simplified", 0) + 1
                 return True
@@ -219,24 +219,24 @@ class AlgebraicSimplification(OptimizationPass):
         if inst.op == "&":
             if self._is_zero(inst.right) or self._is_zero(inst.left):
                 zero = Constant(0, MIRType.INT)
-                new_inst = LoadConst(inst.dest, zero)
+                new_inst = LoadConst(inst.dest, zero, inst.source_location)
                 transformer.replace_instruction(block, inst, new_inst)
                 self.stats["bitwise_simplified"] = self.stats.get("bitwise_simplified", 0) + 1
                 return True
             # x & x → x
             elif self._values_equal(inst.left, inst.right):
-                new_inst = Copy(inst.dest, inst.left)
+                new_inst = Copy(inst.dest, inst.left, inst.source_location)
                 transformer.replace_instruction(block, inst, new_inst)
                 self.stats["bitwise_simplified"] = self.stats.get("bitwise_simplified", 0) + 1
                 return True
             # x & ~0 → x (all ones)
             elif self._is_all_ones(inst.right):
-                new_inst = Copy(inst.dest, inst.left)
+                new_inst = Copy(inst.dest, inst.left, inst.source_location)
                 transformer.replace_instruction(block, inst, new_inst)
                 self.stats["bitwise_simplified"] = self.stats.get("bitwise_simplified", 0) + 1
                 return True
             elif self._is_all_ones(inst.left):
-                new_inst = Copy(inst.dest, inst.right)
+                new_inst = Copy(inst.dest, inst.right, inst.source_location)
                 transformer.replace_instruction(block, inst, new_inst)
                 self.stats["bitwise_simplified"] = self.stats.get("bitwise_simplified", 0) + 1
                 return True
@@ -244,25 +244,25 @@ class AlgebraicSimplification(OptimizationPass):
         # x | 0 → x
         elif inst.op == "|":
             if self._is_zero(inst.right):
-                new_inst = Copy(inst.dest, inst.left)
+                new_inst = Copy(inst.dest, inst.left, inst.source_location)
                 transformer.replace_instruction(block, inst, new_inst)
                 self.stats["bitwise_simplified"] = self.stats.get("bitwise_simplified", 0) + 1
                 return True
             elif self._is_zero(inst.left):
-                new_inst = Copy(inst.dest, inst.right)
+                new_inst = Copy(inst.dest, inst.right, inst.source_location)
                 transformer.replace_instruction(block, inst, new_inst)
                 self.stats["bitwise_simplified"] = self.stats.get("bitwise_simplified", 0) + 1
                 return True
             # x | x → x
             elif self._values_equal(inst.left, inst.right):
-                new_inst = Copy(inst.dest, inst.left)
+                new_inst = Copy(inst.dest, inst.left, inst.source_location)
                 transformer.replace_instruction(block, inst, new_inst)
                 self.stats["bitwise_simplified"] = self.stats.get("bitwise_simplified", 0) + 1
                 return True
             # x | ~0 → ~0 (all ones)
             elif self._is_all_ones(inst.right) or self._is_all_ones(inst.left):
                 all_ones = Constant(-1, MIRType.INT)
-                new_inst = LoadConst(inst.dest, all_ones)
+                new_inst = LoadConst(inst.dest, all_ones, inst.source_location)
                 transformer.replace_instruction(block, inst, new_inst)
                 self.stats["bitwise_simplified"] = self.stats.get("bitwise_simplified", 0) + 1
                 return True
@@ -270,19 +270,19 @@ class AlgebraicSimplification(OptimizationPass):
         # x ^ 0 → x
         elif inst.op == "^":
             if self._is_zero(inst.right):
-                new_inst = Copy(inst.dest, inst.left)
+                new_inst = Copy(inst.dest, inst.left, inst.source_location)
                 transformer.replace_instruction(block, inst, new_inst)
                 self.stats["bitwise_simplified"] = self.stats.get("bitwise_simplified", 0) + 1
                 return True
             elif self._is_zero(inst.left):
-                new_inst = Copy(inst.dest, inst.right)
+                new_inst = Copy(inst.dest, inst.right, inst.source_location)
                 transformer.replace_instruction(block, inst, new_inst)
                 self.stats["bitwise_simplified"] = self.stats.get("bitwise_simplified", 0) + 1
                 return True
             # x ^ x → 0
             elif self._values_equal(inst.left, inst.right):
                 zero = Constant(0, MIRType.INT)
-                new_inst = LoadConst(inst.dest, zero)
+                new_inst = LoadConst(inst.dest, zero, inst.source_location)
                 transformer.replace_instruction(block, inst, new_inst)
                 self.stats["bitwise_simplified"] = self.stats.get("bitwise_simplified", 0) + 1
                 return True
@@ -290,7 +290,7 @@ class AlgebraicSimplification(OptimizationPass):
         # x << 0 → x, x >> 0 → x
         elif inst.op in ["<<", ">>"]:
             if self._is_zero(inst.right):
-                new_inst = Copy(inst.dest, inst.left)
+                new_inst = Copy(inst.dest, inst.left, inst.source_location)
                 transformer.replace_instruction(block, inst, new_inst)
                 self.stats["shift_simplified"] = self.stats.get("shift_simplified", 0) + 1
                 return True
@@ -318,21 +318,21 @@ class AlgebraicSimplification(OptimizationPass):
         # x ** 0 → 1
         if self._is_zero(inst.right):
             one = Constant(1, MIRType.INT)
-            new_inst = LoadConst(inst.dest, one)
+            new_inst = LoadConst(inst.dest, one, inst.source_location)
             transformer.replace_instruction(block, inst, new_inst)
             self.stats["power_simplified"] = self.stats.get("power_simplified", 0) + 1
             return True
 
         # x ** 1 → x
         elif self._is_one(inst.right):
-            new_inst = Copy(inst.dest, inst.left)
+            new_inst = Copy(inst.dest, inst.left, inst.source_location)
             transformer.replace_instruction(block, inst, new_inst)
             self.stats["power_simplified"] = self.stats.get("power_simplified", 0) + 1
             return True
 
         # x ** 2 → x * x (more efficient)
         elif self._is_constant_value(inst.right, 2):
-            new_inst = BinaryOp(inst.dest, "*", inst.left, inst.left)
+            new_inst = BinaryOp(inst.dest, "*", inst.left, inst.left, inst.source_location)
             transformer.replace_instruction(block, inst, new_inst)
             self.stats["power_to_multiply"] = self.stats.get("power_to_multiply", 0) + 1
             return True
@@ -340,7 +340,7 @@ class AlgebraicSimplification(OptimizationPass):
         # 0 ** x → 0 (for x > 0)
         elif self._is_zero(inst.left):
             zero = Constant(0, MIRType.INT)
-            new_inst = LoadConst(inst.dest, zero)
+            new_inst = LoadConst(inst.dest, zero, inst.source_location)
             transformer.replace_instruction(block, inst, new_inst)
             self.stats["power_simplified"] = self.stats.get("power_simplified", 0) + 1
             return True
@@ -348,7 +348,7 @@ class AlgebraicSimplification(OptimizationPass):
         # 1 ** x → 1
         elif self._is_one(inst.left):
             one = Constant(1, MIRType.INT)
-            new_inst = LoadConst(inst.dest, one)
+            new_inst = LoadConst(inst.dest, one, inst.source_location)
             transformer.replace_instruction(block, inst, new_inst)
             self.stats["power_simplified"] = self.stats.get("power_simplified", 0) + 1
             return True
@@ -376,7 +376,7 @@ class AlgebraicSimplification(OptimizationPass):
         # x % 1 → 0
         if self._is_one(inst.right):
             zero = Constant(0, MIRType.INT)
-            new_inst = LoadConst(inst.dest, zero)
+            new_inst = LoadConst(inst.dest, zero, inst.source_location)
             transformer.replace_instruction(block, inst, new_inst)
             self.stats["modulo_simplified"] = self.stats.get("modulo_simplified", 0) + 1
             return True
@@ -384,7 +384,7 @@ class AlgebraicSimplification(OptimizationPass):
         # x % x → 0 (assuming x != 0)
         elif self._values_equal(inst.left, inst.right):
             zero = Constant(0, MIRType.INT)
-            new_inst = LoadConst(inst.dest, zero)
+            new_inst = LoadConst(inst.dest, zero, inst.source_location)
             transformer.replace_instruction(block, inst, new_inst)
             self.stats["modulo_simplified"] = self.stats.get("modulo_simplified", 0) + 1
             return True
@@ -392,7 +392,7 @@ class AlgebraicSimplification(OptimizationPass):
         # 0 % x → 0
         elif self._is_zero(inst.left):
             zero = Constant(0, MIRType.INT)
-            new_inst = LoadConst(inst.dest, zero)
+            new_inst = LoadConst(inst.dest, zero, inst.source_location)
             transformer.replace_instruction(block, inst, new_inst)
             self.stats["modulo_simplified"] = self.stats.get("modulo_simplified", 0) + 1
             return True
@@ -419,7 +419,7 @@ class AlgebraicSimplification(OptimizationPass):
 
         # x / 1 → x
         if self._is_one(inst.right):
-            new_inst = Copy(inst.dest, inst.left)
+            new_inst = Copy(inst.dest, inst.left, inst.source_location)
             transformer.replace_instruction(block, inst, new_inst)
             self.stats["division_simplified"] = self.stats.get("division_simplified", 0) + 1
             return True
@@ -427,7 +427,7 @@ class AlgebraicSimplification(OptimizationPass):
         # x / x → 1 (assuming x != 0)
         elif self._values_equal(inst.left, inst.right):
             one = Constant(1, inst.dest.type if hasattr(inst.dest, "type") else MIRType.INT)
-            new_inst = LoadConst(inst.dest, one)
+            new_inst = LoadConst(inst.dest, one, inst.source_location)
             transformer.replace_instruction(block, inst, new_inst)
             self.stats["division_simplified"] = self.stats.get("division_simplified", 0) + 1
             return True
@@ -435,14 +435,14 @@ class AlgebraicSimplification(OptimizationPass):
         # 0 / x → 0 (assuming x != 0)
         elif self._is_zero(inst.left):
             zero = Constant(0, inst.dest.type if hasattr(inst.dest, "type") else MIRType.INT)
-            new_inst = LoadConst(inst.dest, zero)
+            new_inst = LoadConst(inst.dest, zero, inst.source_location)
             transformer.replace_instruction(block, inst, new_inst)
             self.stats["division_simplified"] = self.stats.get("division_simplified", 0) + 1
             return True
 
         # x / -1 → -x
         elif self._is_constant_value(inst.right, -1):
-            new_inst = UnaryOp(inst.dest, "-", inst.left)
+            new_inst = UnaryOp(inst.dest, "-", inst.left, inst.source_location)
             transformer.replace_instruction(block, inst, new_inst)
             self.stats["division_simplified"] = self.stats.get("division_simplified", 0) + 1
             return True
@@ -470,12 +470,12 @@ class AlgebraicSimplification(OptimizationPass):
             left_def = self._get_defining_instruction(inst.left, block)
             if isinstance(left_def, BinaryOp) and left_def.op == "+":
                 if self._values_equal(left_def.right, inst.right):
-                    new_inst = Copy(inst.dest, left_def.left)
+                    new_inst = Copy(inst.dest, left_def.left, inst.source_location)
                     transformer.replace_instruction(block, inst, new_inst)
                     self.stats["complex_pattern_matched"] = self.stats.get("complex_pattern_matched", 0) + 1
                     return True
                 elif self._values_equal(left_def.left, inst.right):
-                    new_inst = Copy(inst.dest, left_def.right)
+                    new_inst = Copy(inst.dest, left_def.right, inst.source_location)
                     transformer.replace_instruction(block, inst, new_inst)
                     self.stats["complex_pattern_matched"] = self.stats.get("complex_pattern_matched", 0) + 1
                     return True
@@ -485,7 +485,9 @@ class AlgebraicSimplification(OptimizationPass):
                 if isinstance(left_def.right, Constant) and isinstance(inst.right, Constant):
                     new_const_val = left_def.right.value + inst.right.value
                     new_const = Constant(new_const_val, inst.right.type)
-                    binary_inst: MIRInstruction = BinaryOp(inst.dest, "-", left_def.left, new_const)
+                    binary_inst: MIRInstruction = BinaryOp(
+                        inst.dest, "-", left_def.left, new_const, inst.source_location
+                    )
                     transformer.replace_instruction(block, inst, binary_inst)
                     self.stats["complex_pattern_matched"] = self.stats.get("complex_pattern_matched", 0) + 1
                     return True
@@ -495,7 +497,7 @@ class AlgebraicSimplification(OptimizationPass):
             left_def = self._get_defining_instruction(inst.left, block)
             if isinstance(left_def, BinaryOp) and left_def.op == "-":
                 if self._values_equal(left_def.right, inst.right):
-                    new_inst = Copy(inst.dest, left_def.left)
+                    new_inst = Copy(inst.dest, left_def.left, inst.source_location)
                     transformer.replace_instruction(block, inst, new_inst)
                     self.stats["complex_pattern_matched"] = self.stats.get("complex_pattern_matched", 0) + 1
                     return True
@@ -504,7 +506,7 @@ class AlgebraicSimplification(OptimizationPass):
             right_def = self._get_defining_instruction(inst.right, block)
             if isinstance(right_def, BinaryOp) and right_def.op == "-":
                 if self._values_equal(right_def.right, inst.left):
-                    copy_inst: MIRInstruction = Copy(inst.dest, right_def.left)
+                    copy_inst: MIRInstruction = Copy(inst.dest, right_def.left, inst.source_location)
                     transformer.replace_instruction(block, inst, copy_inst)
                     self.stats["complex_pattern_matched"] = self.stats.get("complex_pattern_matched", 0) + 1
                     return True
@@ -514,12 +516,12 @@ class AlgebraicSimplification(OptimizationPass):
             left_def = self._get_defining_instruction(inst.left, block)
             if isinstance(left_def, BinaryOp) and left_def.op == "*":
                 if self._values_equal(left_def.right, inst.right):
-                    new_inst = Copy(inst.dest, left_def.left)
+                    new_inst = Copy(inst.dest, left_def.left, inst.source_location)
                     transformer.replace_instruction(block, inst, new_inst)
                     self.stats["complex_pattern_matched"] = self.stats.get("complex_pattern_matched", 0) + 1
                     return True
                 elif self._values_equal(left_def.left, inst.right):
-                    new_inst = Copy(inst.dest, left_def.right)
+                    new_inst = Copy(inst.dest, left_def.right, inst.source_location)
                     transformer.replace_instruction(block, inst, new_inst)
                     self.stats["complex_pattern_matched"] = self.stats.get("complex_pattern_matched", 0) + 1
                     return True
@@ -529,7 +531,7 @@ class AlgebraicSimplification(OptimizationPass):
             left_def = self._get_defining_instruction(inst.left, block)
             if isinstance(left_def, BinaryOp) and left_def.op in ["/", "//"]:
                 if self._values_equal(left_def.right, inst.right):
-                    new_inst = Copy(inst.dest, left_def.left)
+                    new_inst = Copy(inst.dest, left_def.left, inst.source_location)
                     transformer.replace_instruction(block, inst, new_inst)
                     self.stats["complex_pattern_matched"] = self.stats.get("complex_pattern_matched", 0) + 1
                     return True
@@ -538,14 +540,14 @@ class AlgebraicSimplification(OptimizationPass):
             right_def = self._get_defining_instruction(inst.right, block)
             if isinstance(right_def, BinaryOp) and right_def.op in ["/", "//"]:
                 if self._values_equal(right_def.right, inst.left):
-                    new_inst = Copy(inst.dest, right_def.left)
+                    new_inst = Copy(inst.dest, right_def.left, inst.source_location)
                     transformer.replace_instruction(block, inst, new_inst)
                     self.stats["complex_pattern_matched"] = self.stats.get("complex_pattern_matched", 0) + 1
                     return True
 
         # Pattern: 0 - x → -x
         if inst.op == "-" and self._is_zero(inst.left):
-            unary_inst: MIRInstruction = UnaryOp(inst.dest, "-", inst.right)
+            unary_inst: MIRInstruction = UnaryOp(inst.dest, "-", inst.right, inst.source_location)
             transformer.replace_instruction(block, inst, unary_inst)
             self.stats["complex_pattern_matched"] = self.stats.get("complex_pattern_matched", 0) + 1
             return True
@@ -585,7 +587,7 @@ class AlgebraicSimplification(OptimizationPass):
                     new_const_val = left_def.right.value * inst.right.value
 
                 new_const = Constant(new_const_val, inst.right.type)
-                new_inst = BinaryOp(inst.dest, inst.op, left_def.left, new_const)
+                new_inst = BinaryOp(inst.dest, inst.op, left_def.left, new_const, inst.source_location)
                 transformer.replace_instruction(block, inst, new_inst)
                 self.stats["associativity_applied"] = self.stats.get("associativity_applied", 0) + 1
                 return True
@@ -605,7 +607,7 @@ class AlgebraicSimplification(OptimizationPass):
                     new_const_val = inst.left.value * right_def.right.value
 
                 new_const = Constant(new_const_val, inst.left.type)
-                new_inst = BinaryOp(inst.dest, inst.op, new_const, right_def.left)
+                new_inst = BinaryOp(inst.dest, inst.op, new_const, right_def.left, inst.source_location)
                 transformer.replace_instruction(block, inst, new_inst)
                 self.stats["associativity_applied"] = self.stats.get("associativity_applied", 0) + 1
                 return True

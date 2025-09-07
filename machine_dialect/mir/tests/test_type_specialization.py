@@ -131,8 +131,8 @@ class TestTypeSpecialization(unittest.TestCase):
         a = Variable("a", MIRType.UNKNOWN)
         b = Variable("b", MIRType.UNKNOWN)
         result = Temp(MIRType.UNKNOWN)
-        self.block.add_instruction(BinaryOp(result, "+", a, b))
-        self.block.add_instruction(Return(result))
+        self.block.add_instruction(BinaryOp(result, "+", a, b, (1, 1)))
+        self.block.add_instruction(Return((1, 1), result))
 
         self.func.cfg.add_block(self.block)
         self.func.cfg.entry_block = self.block
@@ -164,15 +164,15 @@ class TestTypeSpecialization(unittest.TestCase):
 
         # Call add(1, 2) - both int
         t1 = Temp(MIRType.INT)
-        block.add_instruction(Call(t1, "add", [Constant(1, MIRType.INT), Constant(2, MIRType.INT)]))
+        block.add_instruction(Call(t1, "add", [Constant(1, MIRType.INT), Constant(2, MIRType.INT)], (1, 1)))
 
         # Call add(1.0, 2.0) - both float
         t2 = Temp(MIRType.FLOAT)
-        block.add_instruction(Call(t2, "add", [Constant(1.0, MIRType.FLOAT), Constant(2.0, MIRType.FLOAT)]))
+        block.add_instruction(Call(t2, "add", [Constant(1.0, MIRType.FLOAT), Constant(2.0, MIRType.FLOAT)], (1, 1)))
 
         # Call add(1, 2) again - int
         t3 = Temp(MIRType.INT)
-        block.add_instruction(Call(t3, "add", [Constant(1, MIRType.INT), Constant(2, MIRType.INT)]))
+        block.add_instruction(Call(t3, "add", [Constant(1, MIRType.INT), Constant(2, MIRType.INT)], (1, 1)))
 
         caller.cfg.add_block(block)
         caller.cfg.entry_block = block
@@ -277,7 +277,7 @@ class TestTypeSpecialization(unittest.TestCase):
         block = BasicBlock("entry")
 
         t1 = Temp(MIRType.INT)
-        call_inst = Call(t1, "add", [Constant(1, MIRType.INT), Constant(2, MIRType.INT)])
+        call_inst = Call(t1, "add", [Constant(1, MIRType.INT), Constant(2, MIRType.INT)], (1, 1))
         block.add_instruction(call_inst)
 
         caller.cfg.add_block(block)
@@ -330,7 +330,7 @@ class TestTypeSpecialization(unittest.TestCase):
         # Multiple calls with int types
         for _ in range(5):
             t = Temp(MIRType.INT)
-            block.add_instruction(Call(t, "add", [Constant(1, MIRType.INT), Constant(2, MIRType.INT)]))
+            block.add_instruction(Call(t, "add", [Constant(1, MIRType.INT), Constant(2, MIRType.INT)], (1, 1)))
 
         caller.cfg.add_block(block)
         caller.cfg.entry_block = block
@@ -355,7 +355,7 @@ class TestTypeSpecialization(unittest.TestCase):
         block = BasicBlock("entry")
 
         t = Temp(MIRType.INT)
-        block.add_instruction(Call(t, "add", [Constant(1, MIRType.INT), Constant(2, MIRType.INT)]))
+        block.add_instruction(Call(t, "add", [Constant(1, MIRType.INT), Constant(2, MIRType.INT)], (1, 1)))
 
         caller.cfg.add_block(block)
         caller.cfg.entry_block = block
@@ -382,8 +382,8 @@ class TestTypeSpecialization(unittest.TestCase):
         x = Variable("x", MIRType.UNKNOWN)
         y = Variable("y", MIRType.UNKNOWN)
         result = Temp(MIRType.UNKNOWN)
-        block.add_instruction(BinaryOp(result, "*", x, y))
-        block.add_instruction(Return(result))
+        block.add_instruction(BinaryOp(result, "*", x, y, (1, 1)))
+        block.add_instruction(Return((1, 1), result))
         mul_func.cfg.add_block(block)
         mul_func.cfg.entry_block = block
         self.module.add_function(mul_func)
@@ -395,12 +395,14 @@ class TestTypeSpecialization(unittest.TestCase):
         # Call add multiple times
         for _ in range(3):
             t = Temp(MIRType.INT)
-            block.add_instruction(Call(t, "add", [Constant(1, MIRType.INT), Constant(2, MIRType.INT)]))
+            block.add_instruction(Call(t, "add", [Constant(1, MIRType.INT), Constant(2, MIRType.INT)], (1, 1)))
 
         # Call multiply multiple times
         for _ in range(3):
             t = Temp(MIRType.FLOAT)
-            block.add_instruction(Call(t, "multiply", [Constant(1.0, MIRType.FLOAT), Constant(2.0, MIRType.FLOAT)]))
+            block.add_instruction(
+                Call(t, "multiply", [Constant(1.0, MIRType.FLOAT), Constant(2.0, MIRType.FLOAT)], (1, 1))
+            )
 
         caller.cfg.add_block(block)
         caller.cfg.entry_block = block

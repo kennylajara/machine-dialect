@@ -44,7 +44,7 @@ class TestTypeSpecificOptimization:
 
         # Add integer arithmetic: result = 5 + 3
         result = Temp(MIRType.INT, 0)
-        block.add_instruction(BinaryOp(result, "+", Constant(5, MIRType.INT), Constant(3, MIRType.INT)))
+        block.add_instruction(BinaryOp(result, "+", Constant(5, MIRType.INT), Constant(3, MIRType.INT), (1, 1)))
 
         func.cfg.add_block(block)
         func.cfg.set_entry_block(block)
@@ -68,7 +68,9 @@ class TestTypeSpecificOptimization:
 
         # Add float arithmetic: result = 3.14 * 2.0
         result = Temp(MIRType.FLOAT, 0)
-        block.add_instruction(BinaryOp(result, "*", Constant(3.14, MIRType.FLOAT), Constant(2.0, MIRType.FLOAT)))
+        block.add_instruction(
+            BinaryOp(result, "*", Constant(3.14, MIRType.FLOAT), Constant(2.0, MIRType.FLOAT), (1, 1))
+        )
 
         func.cfg.add_block(block)
         func.cfg.set_entry_block(block)
@@ -93,7 +95,7 @@ class TestTypeSpecificOptimization:
         # Add boolean operation: result = False and x
         x = Variable("x", MIRType.BOOL)
         result = Temp(MIRType.BOOL, 0)
-        block.add_instruction(BinaryOp(result, "and", Constant(False, MIRType.BOOL), x))
+        block.add_instruction(BinaryOp(result, "and", Constant(False, MIRType.BOOL), x, (1, 1)))
 
         func.cfg.add_block(block)
         func.cfg.set_entry_block(block)
@@ -118,7 +120,7 @@ class TestTypeSpecificOptimization:
         # Add boolean operation: result = True or x
         x = Variable("x", MIRType.BOOL)
         result = Temp(MIRType.BOOL, 0)
-        block.add_instruction(BinaryOp(result, "or", Constant(True, MIRType.BOOL), x))
+        block.add_instruction(BinaryOp(result, "or", Constant(True, MIRType.BOOL), x, (1, 1)))
 
         func.cfg.add_block(block)
         func.cfg.set_entry_block(block)
@@ -145,7 +147,7 @@ class TestTypeSpecificOptimization:
 
         # Add operation: result = x + 0
         result = Temp(MIRType.INT, 0)
-        block.add_instruction(BinaryOp(result, "+", x, Constant(0, MIRType.INT)))
+        block.add_instruction(BinaryOp(result, "+", x, Constant(0, MIRType.INT), (1, 1)))
 
         func.cfg.add_block(block)
         func.cfg.set_entry_block(block)
@@ -172,7 +174,7 @@ class TestTypeSpecificOptimization:
 
         # Add operation: result = x * 0
         result = Temp(MIRType.INT, 0)
-        block.add_instruction(BinaryOp(result, "*", x, Constant(0, MIRType.INT)))
+        block.add_instruction(BinaryOp(result, "*", x, Constant(0, MIRType.INT), (1, 1)))
 
         func.cfg.add_block(block)
         func.cfg.set_entry_block(block)
@@ -195,7 +197,7 @@ class TestTypeSpecificOptimization:
 
         # Add unary operation: result = -42
         result = Temp(MIRType.INT, 0)
-        block.add_instruction(UnaryOp(result, "-", Constant(42, MIRType.INT)))
+        block.add_instruction(UnaryOp(result, "-", Constant(42, MIRType.INT), (1, 1)))
 
         func.cfg.add_block(block)
         func.cfg.set_entry_block(block)
@@ -223,7 +225,7 @@ class TestTypeSpecificOptimization:
 
         # Add operation with union type variable
         result = Temp(MIRType.UNKNOWN, 0)
-        block.add_instruction(BinaryOp(result, "+", x, Constant(1, MIRType.INT)))
+        block.add_instruction(BinaryOp(result, "+", x, Constant(1, MIRType.INT), (1, 1)))
 
         func.cfg.add_block(block)
         func.cfg.set_entry_block(block)
@@ -246,7 +248,7 @@ class TestTypeSpecificOptimization:
         # Add string concatenation: result = "Hello, " + "World!"
         result = Temp(MIRType.STRING, 0)
         block.add_instruction(
-            BinaryOp(result, "+", Constant("Hello, ", MIRType.STRING), Constant("World!", MIRType.STRING))
+            BinaryOp(result, "+", Constant("Hello, ", MIRType.STRING), Constant("World!", MIRType.STRING), (1, 1))
         )
 
         func.cfg.add_block(block)
@@ -270,7 +272,7 @@ class TestTypeSpecificOptimization:
 
         # Add comparison: result = 5 < 10
         result = Temp(MIRType.BOOL, 0)
-        block.add_instruction(BinaryOp(result, "<", Constant(5, MIRType.INT), Constant(10, MIRType.INT)))
+        block.add_instruction(BinaryOp(result, "<", Constant(5, MIRType.INT), Constant(10, MIRType.INT), (1, 1)))
 
         func.cfg.add_block(block)
         func.cfg.set_entry_block(block)
@@ -327,7 +329,7 @@ class TestTypeSpecificOptimization:
 
         # Add operation: result = x * 8
         result = Temp(MIRType.INT, 0)
-        block.add_instruction(BinaryOp(result, "*", x, Constant(8, MIRType.INT)))
+        block.add_instruction(BinaryOp(result, "*", x, Constant(8, MIRType.INT), (1, 1)))
 
         func.cfg.add_block(block)
         func.cfg.set_entry_block(block)
@@ -358,7 +360,7 @@ class TestTypeSpecificOptimization:
 
         # Add operation: result = x / 16
         result = Temp(MIRType.INT, 0)
-        block.add_instruction(BinaryOp(result, "/", x, Constant(16, MIRType.INT)))
+        block.add_instruction(BinaryOp(result, "/", x, Constant(16, MIRType.INT), (1, 1)))
 
         func.cfg.add_block(block)
         func.cfg.set_entry_block(block)
@@ -389,7 +391,7 @@ class TestTypeSpecificOptimization:
 
         # Add operation: result = x % 32
         result = Temp(MIRType.INT, 0)
-        block.add_instruction(BinaryOp(result, "%", x, Constant(32, MIRType.INT)))
+        block.add_instruction(BinaryOp(result, "%", x, Constant(32, MIRType.INT), (1, 1)))
 
         func.cfg.add_block(block)
         func.cfg.set_entry_block(block)
@@ -418,7 +420,7 @@ class TestTypeSpecificOptimization:
 
         # Add operation: result = x - x
         result = Temp(MIRType.INT, 0)
-        block.add_instruction(BinaryOp(result, "-", x, x))
+        block.add_instruction(BinaryOp(result, "-", x, x, (1, 1)))
 
         func.cfg.add_block(block)
         func.cfg.set_entry_block(block)
@@ -445,7 +447,7 @@ class TestTypeSpecificOptimization:
 
         # Add operation: result = x / x
         result = Temp(MIRType.INT, 0)
-        block.add_instruction(BinaryOp(result, "/", x, x))
+        block.add_instruction(BinaryOp(result, "/", x, x, (1, 1)))
 
         func.cfg.add_block(block)
         func.cfg.set_entry_block(block)
@@ -472,7 +474,7 @@ class TestTypeSpecificOptimization:
 
         # Add operation: result = x == x
         result = Temp(MIRType.BOOL, 0)
-        block.add_instruction(BinaryOp(result, "==", x, x))
+        block.add_instruction(BinaryOp(result, "==", x, x, (1, 1)))
 
         func.cfg.add_block(block)
         func.cfg.set_entry_block(block)
@@ -499,7 +501,7 @@ class TestTypeSpecificOptimization:
 
         # Add operation: result = x * 2
         result = Temp(MIRType.INT, 0)
-        block.add_instruction(BinaryOp(result, "*", x, Constant(2, MIRType.INT)))
+        block.add_instruction(BinaryOp(result, "*", x, Constant(2, MIRType.INT), (1, 1)))
 
         func.cfg.add_block(block)
         func.cfg.set_entry_block(block)
@@ -528,7 +530,7 @@ class TestTypeSpecificOptimization:
 
         # Add operation: result = x and x
         result = Temp(MIRType.BOOL, 0)
-        block.add_instruction(BinaryOp(result, "and", x, x))
+        block.add_instruction(BinaryOp(result, "and", x, x, (1, 1)))
 
         func.cfg.add_block(block)
         func.cfg.set_entry_block(block)

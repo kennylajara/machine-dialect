@@ -33,16 +33,16 @@ class TestAlgebraicAssociativity(unittest.TestCase):
         t2 = Temp(MIRType.INT)
 
         # t0 = x, t1 = t0 + 2, t2 = t1 + 3
-        self.block.add_instruction(LoadConst(t0, Constant(10, MIRType.INT)))
-        self.block.add_instruction(BinaryOp(t1, "+", t0, Constant(2, MIRType.INT)))
-        self.block.add_instruction(BinaryOp(t2, "+", t1, Constant(3, MIRType.INT)))
+        self.block.add_instruction(LoadConst(t0, Constant(10, MIRType.INT), (1, 1)))
+        self.block.add_instruction(BinaryOp(t1, "+", t0, Constant(2, MIRType.INT), (1, 1)))
+        self.block.add_instruction(BinaryOp(t2, "+", t1, Constant(3, MIRType.INT), (1, 1)))
 
         changed = self.opt.run_on_function(self.func)
 
         self.assertTrue(changed)
         self.assertEqual(self.opt.stats.get("associativity_applied", 0), 1)
         instructions = list(self.block.instructions)
-        # The last instruction should be BinaryOp(t2, "+", t0, Constant(5))
+        # The last instruction should be BinaryOp(t2, "+", t0, Constant(5, (1, 1)))
         self.assertIsInstance(instructions[2], BinaryOp)
         binary_inst = instructions[2]
         assert isinstance(binary_inst, BinaryOp)
@@ -59,16 +59,16 @@ class TestAlgebraicAssociativity(unittest.TestCase):
         t2 = Temp(MIRType.INT)
 
         # t0 = x, t1 = t0 * 2, t2 = t1 * 3
-        self.block.add_instruction(LoadConst(t0, Constant(10, MIRType.INT)))
-        self.block.add_instruction(BinaryOp(t1, "*", t0, Constant(2, MIRType.INT)))
-        self.block.add_instruction(BinaryOp(t2, "*", t1, Constant(3, MIRType.INT)))
+        self.block.add_instruction(LoadConst(t0, Constant(10, MIRType.INT), (1, 1)))
+        self.block.add_instruction(BinaryOp(t1, "*", t0, Constant(2, MIRType.INT), (1, 1)))
+        self.block.add_instruction(BinaryOp(t2, "*", t1, Constant(3, MIRType.INT), (1, 1)))
 
         changed = self.opt.run_on_function(self.func)
 
         self.assertTrue(changed)
         self.assertEqual(self.opt.stats.get("associativity_applied", 0), 1)
         instructions = list(self.block.instructions)
-        # The last instruction should be BinaryOp(t2, "*", t0, Constant(6))
+        # The last instruction should be BinaryOp(t2, "*", t0, Constant(6, (1, 1)))
         self.assertIsInstance(instructions[2], BinaryOp)
         binary_inst = instructions[2]
         assert isinstance(binary_inst, BinaryOp)
@@ -85,9 +85,9 @@ class TestAlgebraicAssociativity(unittest.TestCase):
         t2 = Temp(MIRType.INT)
 
         # t0 = x, t1 = t0 + 2, t2 = 3 + t1
-        self.block.add_instruction(LoadConst(t0, Constant(10, MIRType.INT)))
-        self.block.add_instruction(BinaryOp(t1, "+", t0, Constant(2, MIRType.INT)))
-        self.block.add_instruction(BinaryOp(t2, "+", Constant(3, MIRType.INT), t1))
+        self.block.add_instruction(LoadConst(t0, Constant(10, MIRType.INT), (1, 1)))
+        self.block.add_instruction(BinaryOp(t1, "+", t0, Constant(2, MIRType.INT), (1, 1)))
+        self.block.add_instruction(BinaryOp(t2, "+", Constant(3, MIRType.INT), t1, (1, 1)))
 
         changed = self.opt.run_on_function(self.func)
 
@@ -111,9 +111,9 @@ class TestAlgebraicAssociativity(unittest.TestCase):
         t2 = Temp(MIRType.INT)
 
         # t0 = x, t1 = t0 * 2, t2 = 3 * t1
-        self.block.add_instruction(LoadConst(t0, Constant(10, MIRType.INT)))
-        self.block.add_instruction(BinaryOp(t1, "*", t0, Constant(2, MIRType.INT)))
-        self.block.add_instruction(BinaryOp(t2, "*", Constant(3, MIRType.INT), t1))
+        self.block.add_instruction(LoadConst(t0, Constant(10, MIRType.INT), (1, 1)))
+        self.block.add_instruction(BinaryOp(t1, "*", t0, Constant(2, MIRType.INT), (1, 1)))
+        self.block.add_instruction(BinaryOp(t2, "*", Constant(3, MIRType.INT), t1, (1, 1)))
 
         changed = self.opt.run_on_function(self.func)
 
@@ -138,10 +138,10 @@ class TestAlgebraicAssociativity(unittest.TestCase):
         t3 = Temp(MIRType.INT)
 
         # t0 = x, t1 = t0 + 1, t2 = t1 + 2, t3 = t2 + 3
-        self.block.add_instruction(LoadConst(t0, Constant(10, MIRType.INT)))
-        self.block.add_instruction(BinaryOp(t1, "+", t0, Constant(1, MIRType.INT)))
-        self.block.add_instruction(BinaryOp(t2, "+", t1, Constant(2, MIRType.INT)))
-        self.block.add_instruction(BinaryOp(t3, "+", t2, Constant(3, MIRType.INT)))
+        self.block.add_instruction(LoadConst(t0, Constant(10, MIRType.INT), (1, 1)))
+        self.block.add_instruction(BinaryOp(t1, "+", t0, Constant(1, MIRType.INT), (1, 1)))
+        self.block.add_instruction(BinaryOp(t2, "+", t1, Constant(2, MIRType.INT), (1, 1)))
+        self.block.add_instruction(BinaryOp(t3, "+", t2, Constant(3, MIRType.INT), (1, 1)))
 
         # Run optimization - should fold nested additions in single pass
         changed = self.opt.run_on_function(self.func)
@@ -186,11 +186,11 @@ class TestAlgebraicAssociativity(unittest.TestCase):
         t4 = Temp(MIRType.INT)
 
         # All variables, no constants
-        self.block.add_instruction(LoadConst(t0, Constant(10, MIRType.INT)))
-        self.block.add_instruction(LoadConst(t1, Constant(20, MIRType.INT)))
-        self.block.add_instruction(LoadConst(t2, Constant(30, MIRType.INT)))
-        self.block.add_instruction(BinaryOp(t3, "+", t0, t1))
-        self.block.add_instruction(BinaryOp(t4, "+", t3, t2))
+        self.block.add_instruction(LoadConst(t0, Constant(10, MIRType.INT), (1, 1)))
+        self.block.add_instruction(LoadConst(t1, Constant(20, MIRType.INT), (1, 1)))
+        self.block.add_instruction(LoadConst(t2, Constant(30, MIRType.INT), (1, 1)))
+        self.block.add_instruction(BinaryOp(t3, "+", t0, t1, (1, 1)))
+        self.block.add_instruction(BinaryOp(t4, "+", t3, t2, (1, 1)))
 
         changed = self.opt.run_on_function(self.func)
 

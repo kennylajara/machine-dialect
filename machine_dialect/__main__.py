@@ -156,7 +156,12 @@ def _run_interpreted(source_path: Path, debug: bool) -> None:
         parser = Parser()
         ast = parser.parse(source)
         if ast is None:
-            click.echo("Error: Failed to parse source", err=True)
+            # Check if parser has errors and display them
+            if parser.has_errors():
+                for error in parser.errors:
+                    click.echo(f"Parse error: {error}", err=True)
+            else:
+                click.echo("Error: Failed to parse source", err=True)
             sys.exit(1)
 
         # Generate HIR
@@ -242,7 +247,7 @@ def _run_compiled(bytecode_file: str, debug: bool) -> None:
         # Load and execute bytecode
         if debug:
             click.echo(f"Loading bytecode from: {bytecode_file}")
-        vm.load_bytecode(bytecode_file.encode())
+        vm.load_bytecode(bytecode_file)
 
         if debug:
             click.echo("Executing bytecode...")

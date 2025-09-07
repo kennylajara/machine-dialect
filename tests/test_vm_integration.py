@@ -19,6 +19,7 @@ from machine_dialect.mir.mir_instructions import (
     Return,
 )
 from machine_dialect.mir.mir_module import MIRModule
+from machine_dialect.mir.mir_types import MIRType
 from machine_dialect.mir.mir_values import Constant, Variable
 
 
@@ -34,15 +35,15 @@ def test_simple_arithmetic() -> None:
     block = BasicBlock("entry")
 
     # Create variables for the computation
-    a = Variable("a", "int")
-    b = Variable("b", "int")
-    result = Variable("result", "int")
+    a = Variable("a", MIRType.INT)
+    b = Variable("b", MIRType.INT)
+    result = Variable("result", MIRType.INT)
 
     # Add instructions: result = 2 + 3
-    block.add_instruction(LoadConst(a, Constant(2)))
-    block.add_instruction(LoadConst(b, Constant(3)))
-    block.add_instruction(BinaryOp(result, "+", a, b))
-    block.add_instruction(Return(result))
+    block.add_instruction(LoadConst(a, Constant(2), (1, 1)))
+    block.add_instruction(LoadConst(b, Constant(3), (1, 1)))
+    block.add_instruction(BinaryOp(result, "+", a, b, (1, 1)))
+    block.add_instruction(Return((1, 1), result))
 
     # Add block to function
     func.cfg.add_block(block)

@@ -63,6 +63,15 @@ impl VM {
             return Err(RuntimeError::ModuleNotLoaded);
         }
 
+        // Check if there's a main function and start there
+        if let Some(module) = &self.module {
+            if let Some(&main_offset) = module.function_table.get("main") {
+                // Jump to main function
+                self.state.pc = main_offset;
+            }
+            // Otherwise, start at PC = 0 (for modules without explicit main)
+        }
+
         let mut last_value = None;
 
         while self.state.is_running() && self.state.pc < self.instructions.len() {
@@ -294,53 +303,6 @@ impl VM {
                         }
                     }
                     _ => {
-                        // If no function table, try to use module's function table
-                        if let Some(module) = &self.module {
-                            if let Some(&func_offset) = module.function_table.get("main") {
-                                // Jump to function
-                                let saved_pc = self.state.pc;
-                                let saved_fp = self.state.fp;
-
-                                // Create new call frame
-                                let mut frame = crate::vm::CallFrame::new(saved_pc, saved_fp);
-
-                                // Save argument registers
-                                for (i, &arg_reg) in args.iter().enumerate() {
-                                    let value = self.registers.get(arg_reg).clone();
-                                    // Copy to parameter registers (r0-r15 are argument registers)
-                                    if i < 16 {
-                                        frame.saved_registers.push((i as u8, self.registers.get(i as u8).clone()));
-                                        self.registers.set(i as u8, value);
-                                    }
-                                }
-
-                                // Push frame
-                                self.state.push_frame(frame)?;
-
-                                // Jump to function
-                                self.state.pc = func_offset;
-
-                                // Continue execution until return
-                                let mut return_value = Value::Empty;
-                                while self.state.pc < self.instructions.len() {
-                                    match self.step()? {
-                                        Some(value) => {
-                                            return_value = value;
-                                            break;
-                                        }
-                                        None => {
-                                            if !self.state.is_running() {
-                                                break;
-                                            }
-                                        }
-                                    }
-                                }
-
-                                // Store return value
-                                self.registers.set(dst, return_value);
-                                return Ok(None);
-                            }
-                        }
                         return Err(RuntimeError::UndefinedFunction("no function specified".to_string()));
                     }
                 };

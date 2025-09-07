@@ -42,7 +42,13 @@ class VMBytecodeSerializer:
         all_constants: list[Any] = []
         all_bytecode = bytearray()
 
-        for chunk in module.chunks:
+        # Track bytecode offsets for each chunk
+        chunk_offsets: dict[int, int] = {}
+
+        for i, chunk in enumerate(module.chunks):
+            # Record the starting bytecode offset for this chunk
+            chunk_offsets[i] = len(all_bytecode)
+
             # Add constants
             all_constants.extend(chunk.constants)
 
@@ -69,7 +75,11 @@ class VMBytecodeSerializer:
                 const_section_size += 1  # u8
             # EMPTY has no data
 
-        func_section_size = 4  # count (0 for now)
+        # Calculate function table section size
+        func_section_size = 4  # count
+        for func_name in module.function_table:
+            func_name_bytes = func_name.encode("utf-8")
+            func_section_size += 4 + len(func_name_bytes) + 4  # name length + name + offset
 
         # Calculate offsets
         name_offset = header_size
@@ -106,8 +116,17 @@ class VMBytecodeSerializer:
                 stream.write(struct.pack("<B", 1 if value else 0))
             # EMPTY has no data
 
-        # Write function table (empty for now)
-        stream.write(struct.pack("<I", 0))
+        # Write function table (convert chunk indices to bytecode offsets)
+        stream.write(struct.pack("<I", len(module.function_table)))
+        for func_name, chunk_idx in module.function_table.items():
+            func_name_bytes = func_name.encode("utf-8")
+            stream.write(struct.pack("<I", len(func_name_bytes)))
+            stream.write(func_name_bytes)
+            # Convert chunk index to bytecode offset (instruction index)
+            bytecode_offset = chunk_offsets.get(chunk_idx, 0)
+            # Convert byte offset to instruction offset
+            inst_offset = VMBytecodeSerializer.count_instructions(all_bytecode[:bytecode_offset])
+            stream.write(struct.pack("<I", inst_offset))
 
         # Write instructions
         # The Rust loader expects the number of instructions, not bytes

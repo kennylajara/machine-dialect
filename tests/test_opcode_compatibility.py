@@ -268,7 +268,7 @@ class TestOpcodeCompatibility:
 
         try:
             vm = machine_dialect_vm.RustVM()
-            vm.load_bytecode(bytecode_path.encode())
+            vm.load_bytecode(bytecode_path)
             # If we get here without error, the VM successfully decoded all instructions
             assert True
         finally:
@@ -287,10 +287,10 @@ class TestOpcodeCompatibility:
         v2 = Variable("v2", MIRType.INT)
         v3 = Variable("v3", MIRType.INT)
 
-        block.add_instruction(LoadConst(v1, Constant(10)))
-        block.add_instruction(LoadConst(v2, Constant(20)))
-        block.add_instruction(BinaryOp(v3, "+", v1, v2))
-        block.add_instruction(Return(v3))
+        block.add_instruction(LoadConst(v1, Constant(10), (1, 1)))
+        block.add_instruction(LoadConst(v2, Constant(20), (1, 1)))
+        block.add_instruction(BinaryOp(v3, "+", v1, v2, (1, 1)))
+        block.add_instruction(Return((1, 1), v3))
 
         func.cfg.add_block(block)
         func.cfg.set_entry_block(block)
@@ -428,7 +428,7 @@ class TestOpcodeCompatibility:
 
         try:
             vm = machine_dialect_vm.RustVM()
-            vm.load_bytecode(bytecode_path.encode())
+            vm.load_bytecode(bytecode_path)
             # Success means all opcodes were recognized
             assert True
         finally:

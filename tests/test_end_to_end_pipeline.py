@@ -45,18 +45,18 @@ class TestEndToEndPipeline:
         t4 = Temp(MIRType.INT)  # holds result
 
         # Load constants
-        main_block.add_instruction(LoadConst(t0, Constant(10, MIRType.INT)))
-        main_block.add_instruction(LoadConst(t1, Constant(20, MIRType.INT)))
-        main_block.add_instruction(LoadConst(t2, Constant(2, MIRType.INT)))
+        main_block.add_instruction(LoadConst(t0, Constant(10, MIRType.INT), (1, 1)))
+        main_block.add_instruction(LoadConst(t1, Constant(20, MIRType.INT), (1, 1)))
+        main_block.add_instruction(LoadConst(t2, Constant(2, MIRType.INT), (1, 1)))
 
         # Add 10 + 20
-        main_block.add_instruction(BinaryOp(t3, "+", t0, t1))
+        main_block.add_instruction(BinaryOp(t3, "+", t0, t1, (1, 1)))
 
         # Multiply by 2
-        main_block.add_instruction(BinaryOp(t4, "*", t3, t2))
+        main_block.add_instruction(BinaryOp(t4, "*", t3, t2, (1, 1)))
 
         # Return result
-        main_block.add_instruction(Return(t4))
+        main_block.add_instruction(Return((1, 1), t4))
 
         main_func.cfg.add_block(main_block)
         main_func.cfg.set_entry_block(main_block)
@@ -79,25 +79,25 @@ class TestEndToEndPipeline:
 
         # Entry block
         entry_block = BasicBlock("entry")
-        entry_block.add_instruction(LoadConst(t0, Constant(15, MIRType.INT)))
-        entry_block.add_instruction(LoadConst(t1, Constant(10, MIRType.INT)))
-        entry_block.add_instruction(BinaryOp(t2, ">", t0, t1))
-        entry_block.add_instruction(ConditionalJump(t2, "then_block", "else_block"))
+        entry_block.add_instruction(LoadConst(t0, Constant(15, MIRType.INT), (1, 1)))
+        entry_block.add_instruction(LoadConst(t1, Constant(10, MIRType.INT), (1, 1)))
+        entry_block.add_instruction(BinaryOp(t2, ">", t0, t1, (1, 1)))
+        entry_block.add_instruction(ConditionalJump(t2, "then_block", (1, 1), "else_block"))
 
         # Then block
         then_block = BasicBlock("then_block")
-        then_block.add_instruction(LoadConst(t3, Constant(100, MIRType.INT)))
-        then_block.add_instruction(Jump("end_block"))
+        then_block.add_instruction(LoadConst(t3, Constant(100, MIRType.INT), (1, 1)))
+        then_block.add_instruction(Jump("end_block", (1, 1)))
 
         # Else block
         else_block = BasicBlock("else_block")
-        else_block.add_instruction(LoadConst(t3, Constant(200, MIRType.INT)))
-        else_block.add_instruction(Jump("end_block"))
+        else_block.add_instruction(LoadConst(t3, Constant(200, MIRType.INT), (1, 1)))
+        else_block.add_instruction(Jump("end_block", (1, 1)))
 
         # End block with phi
         end_block = BasicBlock("end_block")
-        end_block.add_instruction(Phi(t4, [(t3, "then_block"), (t3, "else_block")]))
-        end_block.add_instruction(Return(t4))
+        end_block.add_instruction(Phi(t4, [(t3, "then_block"), (t3, "else_block")], (1, 1)))
+        end_block.add_instruction(Return((1, 1), t4))
 
         main_func.cfg.add_block(entry_block)
         main_func.cfg.add_block(then_block)
@@ -127,8 +127,8 @@ class TestEndToEndPipeline:
         t1 = Temp(MIRType.INT)  # parameter b
         t2 = Temp(MIRType.INT)  # result
 
-        add_block.add_instruction(BinaryOp(t2, "+", t0, t1))
-        add_block.add_instruction(Return(t2))
+        add_block.add_instruction(BinaryOp(t2, "+", t0, t1, (1, 1)))
+        add_block.add_instruction(Return((1, 1), t2))
         add_func.cfg.add_block(add_block)
         add_func.cfg.set_entry_block(add_block)
 
@@ -142,10 +142,10 @@ class TestEndToEndPipeline:
 
         from machine_dialect.mir.mir_values import FunctionRef
 
-        main_block.add_instruction(LoadConst(t3, Constant(5, MIRType.INT)))
-        main_block.add_instruction(LoadConst(t4, Constant(7, MIRType.INT)))
-        main_block.add_instruction(Call(t5, FunctionRef("add"), [t3, t4]))
-        main_block.add_instruction(Return(t5))
+        main_block.add_instruction(LoadConst(t3, Constant(5, MIRType.INT), (1, 1)))
+        main_block.add_instruction(LoadConst(t4, Constant(7, MIRType.INT), (1, 1)))
+        main_block.add_instruction(Call(t5, FunctionRef("add"), [t3, t4], (1, 1)))
+        main_block.add_instruction(Return((1, 1), t5))
         main_func.cfg.add_block(main_block)
         main_func.cfg.set_entry_block(main_block)
 
@@ -334,22 +334,22 @@ fn main() {
 
         # Entry block
         entry = BasicBlock("entry")
-        entry.add_instruction(LoadConst(t1, Constant(1, MIRType.INT)))
-        entry.add_instruction(BinaryOp(t2, "<=", t0, t1))
-        entry.add_instruction(ConditionalJump(t2, "base_case", "recursive_case"))
+        entry.add_instruction(LoadConst(t1, Constant(1, MIRType.INT), (1, 1)))
+        entry.add_instruction(BinaryOp(t2, "<=", t0, t1, (1, 1)))
+        entry.add_instruction(ConditionalJump(t2, "base_case", (1, 1), "recursive_case"))
 
         # Base case
         base = BasicBlock("base_case")
-        base.add_instruction(Return(t1))
+        base.add_instruction(Return((1, 1), t1))
 
         # Recursive case
         recursive = BasicBlock("recursive_case")
         from machine_dialect.mir.mir_values import FunctionRef
 
-        recursive.add_instruction(BinaryOp(t3, "-", t0, t1))
-        recursive.add_instruction(Call(t4, FunctionRef("factorial"), [t3]))
-        recursive.add_instruction(BinaryOp(t5, "*", t0, t4))
-        recursive.add_instruction(Return(t5))
+        recursive.add_instruction(BinaryOp(t3, "-", t0, t1, (1, 1)))
+        recursive.add_instruction(Call(t4, FunctionRef("factorial"), [t3], (1, 1)))
+        recursive.add_instruction(BinaryOp(t5, "*", t0, t4, (1, 1)))
+        recursive.add_instruction(Return((1, 1), t5))
 
         fact_func.cfg.add_block(entry)
         fact_func.cfg.add_block(base)
@@ -369,9 +369,9 @@ fn main() {
 
         from machine_dialect.mir.mir_values import FunctionRef
 
-        main_block.add_instruction(LoadConst(t6, Constant(5, MIRType.INT)))
-        main_block.add_instruction(Call(t7, FunctionRef("factorial"), [t6]))
-        main_block.add_instruction(Return(t7))
+        main_block.add_instruction(LoadConst(t6, Constant(5, MIRType.INT), (1, 1)))
+        main_block.add_instruction(Call(t7, FunctionRef("factorial"), [t6], (1, 1)))
+        main_block.add_instruction(Return((1, 1), t7))
         main_func.cfg.add_block(main_block)
         main_func.cfg.set_entry_block(main_block)
 

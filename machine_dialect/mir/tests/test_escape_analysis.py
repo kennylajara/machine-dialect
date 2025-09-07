@@ -36,9 +36,9 @@ def create_simple_function() -> MIRFunction:
     b_var = Variable("b", MIRType.INT)
 
     entry.instructions = [
-        LoadConst(a_var, Constant(10)),
-        BinaryOp(b_var, "+", a_var, x_var),
-        Return(b_var),
+        LoadConst(a_var, Constant(10), (1, 1)),
+        BinaryOp(b_var, "+", a_var, x_var, (1, 1)),
+        Return((1, 1), b_var),
     ]
 
     return func
@@ -63,9 +63,9 @@ def create_escaping_function() -> MIRFunction:
     b_var = Variable("b", MIRType.INT)
 
     entry.instructions = [
-        LoadConst(a_var, Constant(10)),
-        Call(b_var, FunctionRef("foo"), [a_var]),
-        Return(b_var),
+        LoadConst(a_var, Constant(10), (1, 1)),
+        Call(b_var, FunctionRef("foo"), [a_var], (1, 1)),
+        Return((1, 1), b_var),
     ]
 
     return func
@@ -93,10 +93,10 @@ def create_aliasing_function() -> MIRFunction:
     c_var = Variable("c", MIRType.INT)
 
     entry.instructions = [
-        LoadConst(a_var, Constant(10)),
-        Copy(b_var, a_var),  # b = a
-        Copy(c_var, b_var),  # c = b
-        Return(c_var),
+        LoadConst(a_var, Constant(10), (1, 1)),
+        Copy(b_var, a_var, (1, 1)),  # b = a
+        Copy(c_var, b_var, (1, 1)),  # c = b
+        Return((1, 1), c_var),
     ]
 
     return func
@@ -120,9 +120,9 @@ def create_heap_escape_function() -> MIRFunction:
     a_var = Variable("a", MIRType.INT)
 
     entry.instructions = [
-        LoadConst(a_var, Constant(10)),
+        LoadConst(a_var, Constant(10), (1, 1)),
         SetAttr(obj_var, "field", a_var),
-        Return(obj_var),
+        Return((1, 1), obj_var),
     ]
 
     return func

@@ -34,8 +34,8 @@ def create_simple_module() -> MIRModule:
     b_var = Variable("b", MIRType.INT)
     result = Temp(MIRType.INT, 0)
     add_entry.instructions = [
-        BinaryOp(result, "+", a_var, b_var),
-        Return(result),
+        BinaryOp(result, "+", a_var, b_var, (1, 1)),
+        Return((1, 1), result),
     ]
     module.functions["add"] = add_func
 
@@ -46,8 +46,8 @@ def create_simple_module() -> MIRModule:
     y_var = Variable("y", MIRType.INT)
     result2 = Temp(MIRType.INT, 1)
     mul_entry.instructions = [
-        BinaryOp(result2, "*", x_var, y_var),
-        Return(result2),
+        BinaryOp(result2, "*", x_var, y_var, (1, 1)),
+        Return((1, 1), result2),
     ]
     module.functions["multiply"] = mul_func
 
@@ -59,10 +59,10 @@ def create_simple_module() -> MIRModule:
     prod_result = Temp(MIRType.INT, 11)
     final_result = Temp(MIRType.INT, 12)
     compute_entry.instructions = [
-        Call(sum_result, "add", [n_var, Constant(10)]),
-        Call(prod_result, "multiply", [sum_result, Constant(2)]),
-        BinaryOp(final_result, "+", prod_result, Constant(5)),
-        Return(final_result),
+        Call(sum_result, "add", [n_var, Constant(10)], (1, 1)),
+        Call(prod_result, "multiply", [sum_result, Constant(2)], (1, 1)),
+        BinaryOp(final_result, "+", prod_result, Constant(5), (1, 1)),
+        Return((1, 1), final_result),
     ]
     module.functions["compute"] = compute_func
 
@@ -93,29 +93,29 @@ def create_conditional_module() -> MIRModule:
 
     # Entry: check if x < 0
     entry.instructions = [
-        BinaryOp(is_negative, "<", x_var, Constant(0)),
-        ConditionalJump(is_negative, "negative", "positive"),
+        BinaryOp(is_negative, "<", x_var, Constant(0), (1, 1)),
+        ConditionalJump(is_negative, "negative", (1, 1), "positive"),
     ]
     abs_func.cfg.connect(entry, negative)
     abs_func.cfg.connect(entry, positive)
 
     # Negative branch: result = -x
     negative.instructions = [
-        UnaryOp(neg_x, "-", x_var),
-        Copy(result_var, neg_x),
-        Jump("exit"),
+        UnaryOp(neg_x, "-", x_var, (1, 1)),
+        Copy(result_var, neg_x, (1, 1)),
+        Jump("exit", (1, 1)),
     ]
     abs_func.cfg.connect(negative, exit_block)
 
     # Positive branch: result = x
     positive.instructions = [
-        Copy(result_var, x_var),
-        Jump("exit"),
+        Copy(result_var, x_var, (1, 1)),
+        Jump("exit", (1, 1)),
     ]
     abs_func.cfg.connect(positive, exit_block)
 
     # Exit: return result
-    exit_block.instructions = [Return(result_var)]
+    exit_block.instructions = [Return((1, 1), result_var)]
 
     module.functions["abs"] = abs_func
 
@@ -126,9 +126,9 @@ def create_conditional_module() -> MIRModule:
     abs_result = Temp(MIRType.INT, 30)
     doubled = Temp(MIRType.INT, 31)
     process_entry.instructions = [
-        Call(abs_result, "abs", [x_param]),
-        BinaryOp(doubled, "*", abs_result, Constant(2)),
-        Return(doubled),
+        Call(abs_result, "abs", [x_param], (1, 1)),
+        BinaryOp(doubled, "*", abs_result, Constant(2), (1, 1)),
+        Return((1, 1), doubled),
     ]
     module.functions["process"] = process_func
 
@@ -148,9 +148,9 @@ def create_large_function_module() -> MIRModule:
     current: MIRValue = x_var
     for i in range(100):  # Create 100 instructions
         temp = Temp(MIRType.INT, 100 + i)
-        instructions.append(BinaryOp(temp, "+", current, Constant(i)))
+        instructions.append(BinaryOp(temp, "+", current, Constant(i), (1, 1)))
         current = temp
-    instructions.append(Return(current))
+    instructions.append(Return((1, 1), current))
     entry.instructions = instructions
 
     module.functions["large_func"] = large_func
@@ -161,8 +161,8 @@ def create_large_function_module() -> MIRModule:
     n_var = Variable("n", MIRType.INT)
     result = Temp(MIRType.INT, 500)
     caller_entry.instructions = [
-        Call(result, "large_func", [n_var]),
-        Return(result),
+        Call(result, "large_func", [n_var], (1, 1)),
+        Return((1, 1), result),
     ]
     module.functions["caller"] = caller_func
 
@@ -187,21 +187,21 @@ def create_recursive_module() -> MIRModule:
 
     # Entry: check if n <= 1
     entry.instructions = [
-        BinaryOp(is_base, "<=", n_var, Constant(1)),
-        ConditionalJump(is_base, "base_case", "recursive_case"),
+        BinaryOp(is_base, "<=", n_var, Constant(1), (1, 1)),
+        ConditionalJump(is_base, "base_case", (1, 1), "recursive_case"),
     ]
     fact_func.cfg.connect(entry, base_case)
     fact_func.cfg.connect(entry, recursive_case)
 
     # Base case: return 1
-    base_case.instructions = [Return(Constant(1))]
+    base_case.instructions = [Return((1, 1), Constant(1))]
 
     # Recursive case: return n * factorial(n-1)
     recursive_case.instructions = [
-        BinaryOp(n_minus_one, "-", n_var, Constant(1)),
-        Call(recursive_result, "factorial", [n_minus_one]),
-        BinaryOp(final_result, "*", n_var, recursive_result),
-        Return(final_result),
+        BinaryOp(n_minus_one, "-", n_var, Constant(1), (1, 1)),
+        Call(recursive_result, "factorial", [n_minus_one], (1, 1)),
+        BinaryOp(final_result, "*", n_var, recursive_result, (1, 1)),
+        Return((1, 1), final_result),
     ]
 
     module.functions["factorial"] = fact_func
@@ -374,8 +374,8 @@ class TestFunctionInlining:
         x_var = Variable("x", MIRType.INT)
         result = Temp(MIRType.INT, 60)
         entry.instructions = [
-            BinaryOp(result, "*", x_var, Constant(2)),
-            Return(result),
+            BinaryOp(result, "*", x_var, Constant(2), (1, 1)),
+            Return((1, 1), result),
         ]
         module.functions["simple"] = simple_func
 
@@ -384,8 +384,8 @@ class TestFunctionInlining:
         caller_entry = caller_func.cfg.get_or_create_block("entry")
         call_result = Temp(MIRType.INT, 61)
         caller_entry.instructions = [
-            Call(call_result, "simple", [Constant(5)]),  # Constant argument
-            Return(call_result),
+            Call(call_result, "simple", [Constant(5)], (1, 1)),  # Constant argument
+            Return((1, 1), call_result),
         ]
         module.functions["caller"] = caller_func
 
@@ -419,8 +419,8 @@ class TestFunctionInlining:
         x_var = Variable("x", MIRType.INT)
         result = Temp(MIRType.INT, 70)
         entry.instructions = [
-            BinaryOp(result, "*", x_var, Constant(2)),
-            Return(result),
+            BinaryOp(result, "*", x_var, Constant(2), (1, 1)),
+            Return((1, 1), result),
         ]
         module.functions["no_calls"] = func
 

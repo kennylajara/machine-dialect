@@ -34,17 +34,17 @@ class TestAlgebraicComplexPatterns(unittest.TestCase):
         t3 = Temp(MIRType.INT)
 
         # a = 10, b = 5, t2 = a + b, t3 = t2 - b
-        self.block.add_instruction(LoadConst(t0, Constant(10, MIRType.INT)))
-        self.block.add_instruction(LoadConst(t1, Constant(5, MIRType.INT)))
-        self.block.add_instruction(BinaryOp(t2, "+", t0, t1))
-        self.block.add_instruction(BinaryOp(t3, "-", t2, t1))
+        self.block.add_instruction(LoadConst(t0, Constant(10, MIRType.INT), (1, 1)))
+        self.block.add_instruction(LoadConst(t1, Constant(5, MIRType.INT), (1, 1)))
+        self.block.add_instruction(BinaryOp(t2, "+", t0, t1, (1, 1)))
+        self.block.add_instruction(BinaryOp(t3, "-", t2, t1, (1, 1)))
 
         changed = self.opt.run_on_function(self.func)
 
         self.assertTrue(changed)
         self.assertEqual(self.opt.stats.get("complex_pattern_matched", 0), 1)
         instructions = list(self.block.instructions)
-        # The last instruction should be Copy(t3, t0)
+        # The last instruction should be Copy(t3, t0, (1, 1))
         self.assertIsInstance(instructions[3], Copy)
         copy_inst = instructions[3]
         assert isinstance(copy_inst, Copy)
@@ -59,17 +59,17 @@ class TestAlgebraicComplexPatterns(unittest.TestCase):
         t3 = Temp(MIRType.INT)
 
         # a = 10, b = 5, t2 = a - b, t3 = t2 + b
-        self.block.add_instruction(LoadConst(t0, Constant(10, MIRType.INT)))
-        self.block.add_instruction(LoadConst(t1, Constant(5, MIRType.INT)))
-        self.block.add_instruction(BinaryOp(t2, "-", t0, t1))
-        self.block.add_instruction(BinaryOp(t3, "+", t2, t1))
+        self.block.add_instruction(LoadConst(t0, Constant(10, MIRType.INT), (1, 1)))
+        self.block.add_instruction(LoadConst(t1, Constant(5, MIRType.INT), (1, 1)))
+        self.block.add_instruction(BinaryOp(t2, "-", t0, t1, (1, 1)))
+        self.block.add_instruction(BinaryOp(t3, "+", t2, t1, (1, 1)))
 
         changed = self.opt.run_on_function(self.func)
 
         self.assertTrue(changed)
         self.assertEqual(self.opt.stats.get("complex_pattern_matched", 0), 1)
         instructions = list(self.block.instructions)
-        # The last instruction should be Copy(t3, t0)
+        # The last instruction should be Copy(t3, t0, (1, 1))
         self.assertIsInstance(instructions[3], Copy)
         copy_inst = instructions[3]
         assert isinstance(copy_inst, Copy)
@@ -84,17 +84,17 @@ class TestAlgebraicComplexPatterns(unittest.TestCase):
         t3 = Temp(MIRType.INT)
 
         # a = 10, b = 5, t2 = a * b, t3 = t2 / b
-        self.block.add_instruction(LoadConst(t0, Constant(10, MIRType.INT)))
-        self.block.add_instruction(LoadConst(t1, Constant(5, MIRType.INT)))
-        self.block.add_instruction(BinaryOp(t2, "*", t0, t1))
-        self.block.add_instruction(BinaryOp(t3, "/", t2, t1))
+        self.block.add_instruction(LoadConst(t0, Constant(10, MIRType.INT), (1, 1)))
+        self.block.add_instruction(LoadConst(t1, Constant(5, MIRType.INT), (1, 1)))
+        self.block.add_instruction(BinaryOp(t2, "*", t0, t1, (1, 1)))
+        self.block.add_instruction(BinaryOp(t3, "/", t2, t1, (1, 1)))
 
         changed = self.opt.run_on_function(self.func)
 
         self.assertTrue(changed)
         self.assertEqual(self.opt.stats.get("complex_pattern_matched", 0), 1)
         instructions = list(self.block.instructions)
-        # The last instruction should be Copy(t3, t0)
+        # The last instruction should be Copy(t3, t0, (1, 1))
         self.assertIsInstance(instructions[3], Copy)
         copy_inst = instructions[3]
         assert isinstance(copy_inst, Copy)
@@ -109,17 +109,17 @@ class TestAlgebraicComplexPatterns(unittest.TestCase):
         t3 = Temp(MIRType.INT)
 
         # a = 10, b = 5, t2 = a / b, t3 = t2 * b
-        self.block.add_instruction(LoadConst(t0, Constant(10, MIRType.INT)))
-        self.block.add_instruction(LoadConst(t1, Constant(5, MIRType.INT)))
-        self.block.add_instruction(BinaryOp(t2, "/", t0, t1))
-        self.block.add_instruction(BinaryOp(t3, "*", t2, t1))
+        self.block.add_instruction(LoadConst(t0, Constant(10, MIRType.INT), (1, 1)))
+        self.block.add_instruction(LoadConst(t1, Constant(5, MIRType.INT), (1, 1)))
+        self.block.add_instruction(BinaryOp(t2, "/", t0, t1, (1, 1)))
+        self.block.add_instruction(BinaryOp(t3, "*", t2, t1, (1, 1)))
 
         changed = self.opt.run_on_function(self.func)
 
         self.assertTrue(changed)
         self.assertEqual(self.opt.stats.get("complex_pattern_matched", 0), 1)
         instructions = list(self.block.instructions)
-        # The last instruction should be Copy(t3, t0)
+        # The last instruction should be Copy(t3, t0, (1, 1))
         self.assertIsInstance(instructions[3], Copy)
         copy_inst = instructions[3]
         assert isinstance(copy_inst, Copy)
@@ -131,8 +131,8 @@ class TestAlgebraicComplexPatterns(unittest.TestCase):
         t0 = Temp(MIRType.INT)
         t1 = Temp(MIRType.INT)
 
-        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT)))
-        self.block.add_instruction(BinaryOp(t1, "-", Constant(0, MIRType.INT), t0))
+        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT), (1, 1)))
+        self.block.add_instruction(BinaryOp(t1, "-", Constant(0, MIRType.INT), t0, (1, 1)))
 
         changed = self.opt.run_on_function(self.func)
 
@@ -153,16 +153,16 @@ class TestAlgebraicComplexPatterns(unittest.TestCase):
         t2 = Temp(MIRType.INT)
 
         # a = t0, t1 = a - 3, t2 = t1 - 2 → t2 = a - 5
-        self.block.add_instruction(LoadConst(t0, Constant(10, MIRType.INT)))
-        self.block.add_instruction(BinaryOp(t1, "-", t0, Constant(3, MIRType.INT)))
-        self.block.add_instruction(BinaryOp(t2, "-", t1, Constant(2, MIRType.INT)))
+        self.block.add_instruction(LoadConst(t0, Constant(10, MIRType.INT), (1, 1)))
+        self.block.add_instruction(BinaryOp(t1, "-", t0, Constant(3, MIRType.INT), (1, 1)))
+        self.block.add_instruction(BinaryOp(t2, "-", t1, Constant(2, MIRType.INT), (1, 1)))
 
         changed = self.opt.run_on_function(self.func)
 
         self.assertTrue(changed)
         self.assertEqual(self.opt.stats.get("complex_pattern_matched", 0), 1)
         instructions = list(self.block.instructions)
-        # The last instruction should be BinaryOp(t2, "-", t0, Constant(5))
+        # The last instruction should be BinaryOp(t2, "-", t0, Constant(5, (1, 1)))
         self.assertIsInstance(instructions[2], BinaryOp)
         binary_inst = instructions[2]
         assert isinstance(binary_inst, BinaryOp)
@@ -180,17 +180,17 @@ class TestAlgebraicComplexPatterns(unittest.TestCase):
         t3 = Temp(MIRType.INT)
 
         # a = 10, b = 5, t2 = b + a, t3 = t2 - b
-        self.block.add_instruction(LoadConst(t0, Constant(10, MIRType.INT)))
-        self.block.add_instruction(LoadConst(t1, Constant(5, MIRType.INT)))
-        self.block.add_instruction(BinaryOp(t2, "+", t1, t0))
-        self.block.add_instruction(BinaryOp(t3, "-", t2, t1))
+        self.block.add_instruction(LoadConst(t0, Constant(10, MIRType.INT), (1, 1)))
+        self.block.add_instruction(LoadConst(t1, Constant(5, MIRType.INT), (1, 1)))
+        self.block.add_instruction(BinaryOp(t2, "+", t1, t0, (1, 1)))
+        self.block.add_instruction(BinaryOp(t3, "-", t2, t1, (1, 1)))
 
         changed = self.opt.run_on_function(self.func)
 
         self.assertTrue(changed)
         self.assertEqual(self.opt.stats.get("complex_pattern_matched", 0), 1)
         instructions = list(self.block.instructions)
-        # The last instruction should be Copy(t3, t0)
+        # The last instruction should be Copy(t3, t0, (1, 1))
         self.assertIsInstance(instructions[3], Copy)
         copy_inst = instructions[3]
         assert isinstance(copy_inst, Copy)
@@ -205,17 +205,17 @@ class TestAlgebraicComplexPatterns(unittest.TestCase):
         t3 = Temp(MIRType.INT)
 
         # a = 10, b = 5, t2 = b * a, t3 = t2 / b
-        self.block.add_instruction(LoadConst(t0, Constant(10, MIRType.INT)))
-        self.block.add_instruction(LoadConst(t1, Constant(5, MIRType.INT)))
-        self.block.add_instruction(BinaryOp(t2, "*", t1, t0))
-        self.block.add_instruction(BinaryOp(t3, "/", t2, t1))
+        self.block.add_instruction(LoadConst(t0, Constant(10, MIRType.INT), (1, 1)))
+        self.block.add_instruction(LoadConst(t1, Constant(5, MIRType.INT), (1, 1)))
+        self.block.add_instruction(BinaryOp(t2, "*", t1, t0, (1, 1)))
+        self.block.add_instruction(BinaryOp(t3, "/", t2, t1, (1, 1)))
 
         changed = self.opt.run_on_function(self.func)
 
         self.assertTrue(changed)
         self.assertEqual(self.opt.stats.get("complex_pattern_matched", 0), 1)
         instructions = list(self.block.instructions)
-        # The last instruction should be Copy(t3, t0)
+        # The last instruction should be Copy(t3, t0, (1, 1))
         self.assertIsInstance(instructions[3], Copy)
         copy_inst = instructions[3]
         assert isinstance(copy_inst, Copy)

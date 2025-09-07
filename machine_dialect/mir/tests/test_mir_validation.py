@@ -38,7 +38,7 @@ class TestMIRValidation(unittest.TestCase):
         entry = BasicBlock("entry")
         main_func.cfg.add_block(entry)
         main_func.cfg.entry_block = entry
-        entry.add_instruction(Return())
+        entry.add_instruction(Return((1, 1)))
 
         module.add_function(main_func)
         module.set_main_function("main")
@@ -74,7 +74,7 @@ class TestMIRValidation(unittest.TestCase):
         entry = BasicBlock("entry")
         from machine_dialect.mir.mir_instructions import Return
 
-        entry.add_instruction(Return())
+        entry.add_instruction(Return((1, 1)))
         func.cfg.entry_block = entry
         func.cfg.add_block(entry)
 
@@ -141,7 +141,7 @@ class TestMIRValidation(unittest.TestCase):
         func.cfg.add_block(unreachable)
         func.cfg.entry_block = entry
 
-        entry.add_instruction(Return())
+        entry.add_instruction(Return((1, 1)))
 
         success, errors, warnings = validate_function(func)
         self.assertTrue(success)  # Should still pass
@@ -160,8 +160,8 @@ class TestMIRValidation(unittest.TestCase):
         t2 = func.new_temp(MIRType.INT)
         result = func.new_temp(MIRType.INT)
 
-        entry.add_instruction(BinaryOp(result, "invalid_op", t1, t2))
-        entry.add_instruction(Return())
+        entry.add_instruction(BinaryOp(result, "invalid_op", t1, t2, (1, 1)))
+        entry.add_instruction(Return((1, 1)))
 
         success, errors, warnings = validate_function(func)
         self.assertFalse(success)
@@ -176,7 +176,7 @@ class TestMIRValidation(unittest.TestCase):
         func.cfg.entry_block = entry
 
         # Jump to block that doesn't exist
-        entry.add_instruction(Jump("nonexistent"))
+        entry.add_instruction(Jump("nonexistent", (1, 1)))
 
         success, errors, warnings = validate_function(func)
         self.assertFalse(success)
@@ -196,7 +196,7 @@ class TestMIRValidation(unittest.TestCase):
         cond = func.new_temp(MIRType.BOOL)
 
         # Invalid: false_label doesn't exist
-        entry.add_instruction(ConditionalJump(cond, "then", "nonexistent"))
+        entry.add_instruction(ConditionalJump(cond, "then", (1, 1), "nonexistent"))
 
         success, errors, warnings = validate_function(func)
         self.assertFalse(success)
@@ -225,9 +225,9 @@ class TestMIRValidation(unittest.TestCase):
 
         # Add terminators
         cond = func.new_temp(MIRType.BOOL)
-        entry.add_instruction(ConditionalJump(cond, "then", "else"))
-        then_block.add_instruction(Jump("merge"))
-        else_block.add_instruction(Jump("merge"))
+        entry.add_instruction(ConditionalJump(cond, "then", (1, 1), "else"))
+        then_block.add_instruction(Jump("merge", (1, 1)))
+        else_block.add_instruction(Jump("merge", (1, 1)))
 
         # Add phi with wrong predecessor
         result = func.new_temp(MIRType.INT)
@@ -235,9 +235,9 @@ class TestMIRValidation(unittest.TestCase):
         val2 = Constant(2, MIRType.INT)
 
         # Invalid: "wrong_block" is not a predecessor
-        phi = Phi(result, [(val1, "then"), (val2, "wrong_block")])
+        phi = Phi(result, [(val1, "then"), (val2, "wrong_block")], (1, 1))
         merge.add_instruction(phi)
-        merge.add_instruction(Return())
+        merge.add_instruction(Return((1, 1)))
 
         success, errors, warnings = validate_function(func)
         self.assertFalse(success)
@@ -266,16 +266,16 @@ class TestMIRValidation(unittest.TestCase):
 
         # Add terminators
         cond = func.new_temp(MIRType.BOOL)
-        entry.add_instruction(ConditionalJump(cond, "then", "else"))
-        then_block.add_instruction(Jump("merge"))
-        else_block.add_instruction(Jump("merge"))
+        entry.add_instruction(ConditionalJump(cond, "then", (1, 1), "else"))
+        then_block.add_instruction(Jump("merge", (1, 1)))
+        else_block.add_instruction(Jump("merge", (1, 1)))
 
         # Phi missing value from "else"
         result = func.new_temp(MIRType.INT)
         val1 = Constant(1, MIRType.INT)
-        phi = Phi(result, [(val1, "then")])  # Missing "else"
+        phi = Phi(result, [(val1, "then")], (1, 1))  # Missing "else"
         merge.add_instruction(phi)
-        merge.add_instruction(Return())
+        merge.add_instruction(Return((1, 1)))
 
         success, errors, warnings = validate_function(func)
         self.assertTrue(success)  # Should pass with warning
@@ -291,7 +291,7 @@ class TestMIRValidation(unittest.TestCase):
         func.cfg.entry_block = entry
 
         val = func.new_temp(MIRType.INT)
-        entry.add_instruction(Return(val))
+        entry.add_instruction(Return((1, 1), val))
 
         success, errors, warnings = validate_function(func)
         self.assertTrue(success)  # Should pass with warning
@@ -311,10 +311,10 @@ class TestMIRValidation(unittest.TestCase):
 
         # block1 has successor but no jump instruction
         t = func.new_temp(MIRType.INT)
-        block1.add_instruction(LoadConst(t, 1))
+        block1.add_instruction(LoadConst(t, 1, (1, 1)))
         # No terminator!
 
-        block2.add_instruction(Return())
+        block2.add_instruction(Return((1, 1)))
 
         success, errors, warnings = validate_function(func)
         self.assertTrue(success)  # Should pass with warning
@@ -333,8 +333,8 @@ class TestMIRValidation(unittest.TestCase):
         arg = func.new_temp(MIRType.INT)
         result = func.new_temp(MIRType.INT)
 
-        entry.add_instruction(Call(result, func_ref, [arg]))
-        entry.add_instruction(Return())
+        entry.add_instruction(Call(result, func_ref, [arg], (1, 1)))
+        entry.add_instruction(Return((1, 1)))
 
         success, errors, warnings = validate_function(func)
         self.assertTrue(success)
@@ -353,8 +353,8 @@ class TestMIRValidation(unittest.TestCase):
         helper_ref = FunctionRef("helper")
         arg = Constant(42, MIRType.INT)
         result = main.new_temp(MIRType.INT)
-        entry.add_instruction(Call(result, helper_ref, [arg]))
-        entry.add_instruction(Return())
+        entry.add_instruction(Call(result, helper_ref, [arg], (1, 1)))
+        entry.add_instruction(Return((1, 1)))
 
         # Add helper function
         param = Variable("x", MIRType.INT)
@@ -367,8 +367,8 @@ class TestMIRValidation(unittest.TestCase):
         # Double the parameter
         doubled = helper.new_temp(MIRType.INT)
         two = Constant(2, MIRType.INT)
-        helper_entry.add_instruction(BinaryOp(doubled, "*", param, two))
-        helper_entry.add_instruction(Return(doubled))
+        helper_entry.add_instruction(BinaryOp(doubled, "*", param, two, (1, 1)))
+        helper_entry.add_instruction(Return((1, 1), doubled))
 
         module.add_function(main)
         module.add_function(helper)

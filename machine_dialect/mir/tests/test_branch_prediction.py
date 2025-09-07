@@ -30,7 +30,7 @@ class TestBranchInfo(unittest.TestCase):
         """Test creating BranchInfo."""
         block = BasicBlock("test_block")
         temp = Temp(MIRType.BOOL)
-        jump = ConditionalJump(temp, "then_block", "else_block")
+        jump = ConditionalJump(temp, "then_block", (1, 1), "else_block")
 
         info = BranchInfo(
             block=block,
@@ -50,7 +50,7 @@ class TestBranchInfo(unittest.TestCase):
         """Test BranchInfo default values."""
         block = BasicBlock("test_block")
         temp = Temp(MIRType.BOOL)
-        jump = ConditionalJump(temp, "then_block", "else_block")
+        jump = ConditionalJump(temp, "then_block", (1, 1), "else_block")
 
         info = BranchInfo(
             block=block,
@@ -84,20 +84,20 @@ class TestBranchPredictionOptimization(unittest.TestCase):
         result = Temp(MIRType.INT)
 
         # Entry block
-        self.entry_block.add_instruction(LoadConst(x, Constant(10, MIRType.INT)))
-        self.entry_block.add_instruction(BinaryOp(cond, ">", x, Constant(5, MIRType.INT)))
-        self.entry_block.add_instruction(ConditionalJump(cond, "then", "else"))
+        self.entry_block.add_instruction(LoadConst(x, Constant(10, MIRType.INT), (1, 1)))
+        self.entry_block.add_instruction(BinaryOp(cond, ">", x, Constant(5, MIRType.INT), (1, 1)))
+        self.entry_block.add_instruction(ConditionalJump(cond, "then", (1, 1), "else"))
 
         # Then block
-        self.then_block.add_instruction(LoadConst(result, Constant(1, MIRType.INT)))
-        self.then_block.add_instruction(Jump("merge"))
+        self.then_block.add_instruction(LoadConst(result, Constant(1, MIRType.INT), (1, 1)))
+        self.then_block.add_instruction(Jump("merge", (1, 1)))
 
         # Else block
-        self.else_block.add_instruction(LoadConst(result, Constant(0, MIRType.INT)))
-        self.else_block.add_instruction(Jump("merge"))
+        self.else_block.add_instruction(LoadConst(result, Constant(0, MIRType.INT), (1, 1)))
+        self.else_block.add_instruction(Jump("merge", (1, 1)))
 
         # Merge block
-        self.merge_block.add_instruction(Return(result))
+        self.merge_block.add_instruction(Return((1, 1), result))
 
         # Add blocks to CFG
         self.func.cfg.add_block(self.entry_block)
@@ -249,16 +249,16 @@ class TestBranchPredictionOptimization(unittest.TestCase):
         result = Temp(MIRType.INT)
 
         # Simple pattern: result = cond ? 1 : 0
-        entry.add_instruction(LoadConst(cond, Constant(True, MIRType.BOOL)))
-        entry.add_instruction(ConditionalJump(cond, "then", "else"))
+        entry.add_instruction(LoadConst(cond, Constant(True, MIRType.BOOL), (1, 1)))
+        entry.add_instruction(ConditionalJump(cond, "then", (1, 1), "else"))
 
-        then_block.add_instruction(LoadConst(result, Constant(1, MIRType.INT)))
-        then_block.add_instruction(Jump("merge"))
+        then_block.add_instruction(LoadConst(result, Constant(1, MIRType.INT), (1, 1)))
+        then_block.add_instruction(Jump("merge", (1, 1)))
 
-        else_block.add_instruction(LoadConst(result, Constant(0, MIRType.INT)))
-        else_block.add_instruction(Jump("merge"))
+        else_block.add_instruction(LoadConst(result, Constant(0, MIRType.INT), (1, 1)))
+        else_block.add_instruction(Jump("merge", (1, 1)))
 
-        merge.add_instruction(Return(result))
+        merge.add_instruction(Return((1, 1), result))
 
         func.cfg.add_block(entry)
         func.cfg.add_block(then_block)
@@ -298,19 +298,19 @@ class TestBranchPredictionOptimization(unittest.TestCase):
         cond = Temp(MIRType.BOOL)
 
         # Entry
-        entry.add_instruction(LoadConst(i, Constant(0, MIRType.INT)))
-        entry.add_instruction(Jump("loop_header"))
+        entry.add_instruction(LoadConst(i, Constant(0, MIRType.INT), (1, 1)))
+        entry.add_instruction(Jump("loop_header", (1, 1)))
 
         # Loop header (condition check)
-        loop_header.add_instruction(BinaryOp(cond, "<", i, Constant(10, MIRType.INT)))
-        loop_header.add_instruction(ConditionalJump(cond, "loop_body", "loop_exit"))
+        loop_header.add_instruction(BinaryOp(cond, "<", i, Constant(10, MIRType.INT), (1, 1)))
+        loop_header.add_instruction(ConditionalJump(cond, "loop_body", (1, 1), "loop_exit"))
 
         # Loop body
-        loop_body.add_instruction(BinaryOp(i, "+", i, Constant(1, MIRType.INT)))
-        loop_body.add_instruction(Jump("loop_header"))
+        loop_body.add_instruction(BinaryOp(i, "+", i, Constant(1, MIRType.INT), (1, 1)))
+        loop_body.add_instruction(Jump("loop_header", (1, 1)))
 
         # Loop exit
-        loop_exit.add_instruction(Return(i))
+        loop_exit.add_instruction(Return((1, 1), i))
 
         func.cfg.add_block(entry)
         func.cfg.add_block(loop_header)
@@ -421,15 +421,15 @@ class TestBranchPredictionOptimization(unittest.TestCase):
             block = BasicBlock(f"block_{i}")
             if i < 4:
                 cond = Temp(MIRType.BOOL)
-                block.add_instruction(LoadConst(cond, Constant(True, MIRType.BOOL)))
-                block.add_instruction(ConditionalJump(cond, f"block_{i + 1}", "exit"))
+                block.add_instruction(LoadConst(cond, Constant(True, MIRType.BOOL), (1, 1)))
+                block.add_instruction(ConditionalJump(cond, f"block_{i + 1}", (1, 1), "exit"))
             else:
-                block.add_instruction(Return(Constant(0, MIRType.INT)))
+                block.add_instruction(Return((1, 1), Constant(0, MIRType.INT)))
             blocks.append(block)
             func.cfg.add_block(block)
 
         exit_block = BasicBlock("exit")
-        exit_block.add_instruction(Return(Constant(1, MIRType.INT)))
+        exit_block.add_instruction(Return((1, 1), Constant(1, MIRType.INT)))
         func.cfg.add_block(exit_block)
 
         func.cfg.entry_block = blocks[0]
@@ -452,7 +452,7 @@ class TestBranchPredictionOptimization(unittest.TestCase):
         # Function with no branches
         no_branch_func = MIRFunction("no_branch", [], MIRType.INT)
         block = BasicBlock("entry")
-        block.add_instruction(Return(Constant(42, MIRType.INT)))
+        block.add_instruction(Return((1, 1), Constant(42, MIRType.INT)))
         no_branch_func.cfg.add_block(block)
         no_branch_func.cfg.entry_block = block
 

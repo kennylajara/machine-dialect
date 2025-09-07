@@ -73,8 +73,8 @@ class TestHIRToMIRSimple(unittest.TestCase):
 
         # Add some instructions
         t0 = func.new_temp(MIRType.INT)
-        entry.add_instruction(LoadConst(t0, 42))
-        entry.add_instruction(Return(t0))
+        entry.add_instruction(LoadConst(t0, 42, (1, 1)))
+        entry.add_instruction(Return((1, 1), t0))
 
         # Add function to module
         module.add_function(func)
@@ -117,8 +117,8 @@ class TestHIRToMIRSimple(unittest.TestCase):
 
         # Create condition
         cond = func.new_temp(MIRType.BOOL)
-        entry.add_instruction(LoadConst(cond, True))
-        entry.add_instruction(ConditionalJump(cond, "then", "else"))
+        entry.add_instruction(LoadConst(cond, True, (1, 1)))
+        entry.add_instruction(ConditionalJump(cond, "then", (1, 1), "else"))
 
         # Connect blocks
         func.cfg.connect(entry, then_block)

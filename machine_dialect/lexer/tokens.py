@@ -55,6 +55,8 @@ class TokenType(Enum):
     PUNCT_HASH_DOUBLE = auto()
     PUNCT_HASH_TRIPLE = auto()
     PUNCT_HASH_QUAD = auto()
+    PUNCT_BACKSLASH = auto()
+    PUNCT_FRONTMATTER = auto()  # Triple dash (---) for YAML frontmatter
 
     # Literals
     LIT_FLOAT = auto()

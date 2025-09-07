@@ -4,7 +4,6 @@ This module implements the translation from HIR (desugared AST) to MIR
 (Three-Address Code representation).
 """
 
-
 from machine_dialect.ast import (
     ActionStatement,
     Arguments,

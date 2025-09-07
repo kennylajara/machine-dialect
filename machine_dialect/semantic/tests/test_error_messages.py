@@ -3,7 +3,6 @@
 This module tests the generation of helpful error messages with suggestions.
 """
 
-
 from machine_dialect.semantic.error_messages import ErrorMessageGenerator
 
 

@@ -1,6 +1,5 @@
 """Tests for type-annotated MIR instructions."""
 
-
 from machine_dialect.lexer.tokens import Token, TokenType
 from machine_dialect.mir.basic_block import BasicBlock
 from machine_dialect.mir.mir_function import MIRFunction

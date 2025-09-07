@@ -1,6 +1,5 @@
 """Tests for the pass manager and optimization framework."""
 
-
 from machine_dialect.mir.basic_block import BasicBlock
 from machine_dialect.mir.mir_function import MIRFunction
 from machine_dialect.mir.mir_instructions import (

@@ -1,6 +1,5 @@
 """Tests for type-specific MIR optimization pass."""
 
-
 from machine_dialect.ast import (
     DefineStatement,
     Identifier,

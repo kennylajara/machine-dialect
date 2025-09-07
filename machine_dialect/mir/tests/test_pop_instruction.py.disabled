@@ -13,7 +13,7 @@ from machine_dialect.ast import (
     SetStatement,
     WholeNumberLiteral,
 )
-from machine_dialect.codegen.isa import Opcode
+from machine_dialect.codegen.opcodes import Opcode
 from machine_dialect.compiler.config import CompilerConfig, OptimizationLevel
 from machine_dialect.compiler.context import CompilationContext
 from machine_dialect.compiler.phases.codegen import CodeGenerationPhase

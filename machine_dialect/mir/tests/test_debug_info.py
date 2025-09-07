@@ -1,6 +1,5 @@
 """Tests for debug information tracking."""
 
-
 from machine_dialect.ast import (
     BlockStatement,
     Expression,

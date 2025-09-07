@@ -4,7 +4,6 @@ This module provides validation and verification for MIR programs,
 ensuring correctness and well-formedness of the intermediate representation.
 """
 
-
 from machine_dialect.mir.basic_block import CFG, BasicBlock
 from machine_dialect.mir.mir_function import MIRFunction
 from machine_dialect.mir.mir_instructions import (

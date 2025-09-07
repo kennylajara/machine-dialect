@@ -89,7 +89,7 @@ impl RustVM {
 
 /// Python module for the VM
 #[pymodule]
-fn machine_dialect_vm(m: &Bound<'_, PyModule>) -> PyResult<()> {
+pub fn machine_dialect_vm(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<RustVM>()?;
     m.add("__version__", crate::VM_VERSION)?;
     Ok(())

@@ -1,6 +1,5 @@
 """Tests for function inlining optimization."""
 
-
 from machine_dialect.mir.mir_function import MIRFunction
 from machine_dialect.mir.mir_instructions import (
     BinaryOp,

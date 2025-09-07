@@ -3,7 +3,6 @@
 This module implements type inference and propagation for MIR values.
 """
 
-
 from machine_dialect.ast import (
     ASTNode,
     EmptyLiteral,

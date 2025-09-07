@@ -36,8 +36,12 @@ pub struct BytecodeLoader;
 impl BytecodeLoader {
     /// Load a module from file
     pub fn load_module(path: &Path) -> std::result::Result<(BytecodeModule, Option<MetadataFile>), LoadError> {
-        // Load bytecode file
-        let bytecode_path = path.with_extension("mdbc");
+        // Load bytecode file - use path as-is if it already has .mdbc extension
+        let bytecode_path = if path.extension().and_then(|s| s.to_str()) == Some("mdbc") {
+            path.to_path_buf()
+        } else {
+            path.with_extension("mdbc")
+        };
         let bytecode_data = fs::read(&bytecode_path)?;
 
         // Load optional metadata file

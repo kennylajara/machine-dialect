@@ -6,6 +6,7 @@ Provides commands for compiling, running, and interacting with Machine Dialect p
 """
 
 import sys
+from pathlib import Path
 
 import click
 
@@ -26,7 +27,7 @@ def cli() -> None:
     "-o",
     "--output",
     type=click.Path(),
-    help="Output file path (default: source.mdc)",
+    help="Output file path (default: source.mdbc)",
 )
 @click.option(
     "-d",
@@ -108,19 +109,148 @@ def compile(
 
 
 @cli.command()
-@click.argument("bytecode_file", type=click.Path(exists=True))
+@click.argument("file", type=click.Path(exists=True))
 @click.option(
     "-d",
     "--debug",
     is_flag=True,
     help="Enable debug mode",
 )
-def run(bytecode_file: str, debug: bool) -> None:
-    """Run a compiled Machine Dialect bytecode file."""
-    # TODO: Implement execution with new Rust VM
-    click.echo("Error: Bytecode execution not yet implemented with new Rust VM", err=True)
-    click.echo("The Python VM has been removed in preparation for the Rust VM implementation.", err=True)
-    sys.exit(1)
+def run(file: str, debug: bool) -> None:
+    """Run a Machine Dialect file (source .md or compiled .mdbc)."""
+    from pathlib import Path
+
+    file_path = Path(file)
+    extension = file_path.suffix.lower()
+
+    if extension == ".md":
+        # Run source file with MIR interpreter
+        _run_interpreted(file_path, debug)
+    elif extension == ".mdbc":
+        # Run compiled bytecode with Rust VM
+        _run_compiled(file, debug)
+    else:
+        click.echo(f"Error: Unsupported file type '{extension}'", err=True)
+        click.echo("Supported extensions: .md (source), .mdbc (compiled bytecode)", err=True)
+        sys.exit(1)
+
+
+def _run_interpreted(source_path: Path, debug: bool) -> None:
+    """Run source file with MIR interpreter."""
+    from machine_dialect.compiler.config import CompilerConfig
+    from machine_dialect.compiler.context import CompilationContext
+    from machine_dialect.compiler.phases.hir_generation import HIRGenerationPhase
+    from machine_dialect.compiler.phases.mir_generation import MIRGenerationPhase
+    from machine_dialect.mir.mir_interpreter import MIRInterpreter
+    from machine_dialect.mir.optimize_mir import optimize_mir
+    from machine_dialect.parser.parser import Parser
+
+    try:
+        # Read source file
+        with open(source_path, encoding="utf-8") as f:
+            source = f.read()
+
+        if debug:
+            click.echo(f"Interpreting {source_path}...")
+
+        # Parse to AST
+        parser = Parser()
+        ast = parser.parse(source)
+        if ast is None:
+            click.echo("Error: Failed to parse source", err=True)
+            sys.exit(1)
+
+        # Generate HIR
+        config = CompilerConfig(verbose=debug)
+        context = CompilationContext(source_path=source_path, config=config, source_content=source)
+        hir_phase = HIRGenerationPhase()
+        hir = hir_phase.run(context, ast)
+        if hir is None:
+            click.echo("Error: Failed to generate HIR", err=True)
+            sys.exit(1)
+
+        # Generate MIR
+        mir_phase = MIRGenerationPhase()
+        mir_module = mir_phase.run(context, hir)
+        if mir_module is None:
+            click.echo("Error: Failed to generate MIR", err=True)
+            sys.exit(1)
+
+        # Optimize MIR (level 2 by default for interpreted mode)
+        mir_module, _ = optimize_mir(mir_module, optimization_level=2)
+
+        # Interpret MIR
+        interpreter = MIRInterpreter()
+        result = interpreter.interpret_module(mir_module, trace=debug)
+
+        # Display result only in debug mode
+        if debug and result is not None:
+            click.echo(f"Result: {result}")
+
+        # Display output if any
+        output = interpreter.get_output()
+        if output:
+            for line in output:
+                click.echo(line)
+
+    except Exception as e:
+        click.echo(f"Runtime error: {e}", err=True)
+        if debug:
+            import traceback
+
+            traceback.print_exc()
+        sys.exit(1)
+
+
+def _run_compiled(bytecode_file: str, debug: bool) -> None:
+    """Run compiled bytecode with Rust VM."""
+    try:
+        # Import the Rust VM module
+        # Add the site-packages path to ensure we get the compiled module
+        import site
+        import sys as _sys
+
+        site_packages = site.getsitepackages()
+        for path in site_packages:
+            if path not in _sys.path:
+                _sys.path.insert(0, path)
+
+        import machine_dialect_vm
+
+        # Create VM instance
+        vm = machine_dialect_vm.RustVM()
+
+        # Enable debug mode if requested
+        if debug:
+            vm.set_debug(True)
+            click.echo("Debug mode enabled")
+
+        # Load and execute bytecode
+        if debug:
+            click.echo(f"Loading bytecode from: {bytecode_file}")
+        with open(bytecode_file, "rb") as f:
+            vm.load_bytecode(f.read())
+
+        if debug:
+            click.echo("Executing bytecode...")
+        result = vm.execute()
+
+        # Display result only in debug mode
+        if debug and result is not None:
+            click.echo(f"Result: {result}")
+
+        if debug:
+            click.echo(f"Instructions executed: {vm.instruction_count()}")
+
+    except ImportError as e:
+        click.echo("Error: Rust VM module not found", err=True)
+        click.echo("Please build the Rust VM first:", err=True)
+        click.echo("  ./build_vm.sh", err=True)
+        click.echo(f"Details: {e}", err=True)
+        sys.exit(1)
+    except Exception as e:
+        click.echo(f"Runtime error: {e}", err=True)
+        sys.exit(1)
 
 
 @cli.command()

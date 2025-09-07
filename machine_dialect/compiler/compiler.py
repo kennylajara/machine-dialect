@@ -6,7 +6,6 @@ compilation process.
 
 from pathlib import Path
 
-from machine_dialect.codegen.serializer import serialize_module
 from machine_dialect.compiler.config import CompilerConfig
 from machine_dialect.compiler.context import CompilationContext
 from machine_dialect.compiler.pipeline import CompilationPipeline
@@ -116,9 +115,10 @@ class Compiler:
             # Set module name
             context.bytecode_module.name = context.get_module_name()
 
-            # Serialize and save
+            # Serialize and save using VM serializer
+            bytecode_data = context.bytecode_module.serialize()
             with open(output_path, "wb") as f:
-                serialize_module(context.bytecode_module, f)
+                f.write(bytecode_data)
 
             if self.config.verbose:
                 print(f"Wrote compiled module to {output_path}")

@@ -13,6 +13,10 @@ pub mod errors;
 #[cfg(feature = "pyo3")]
 pub mod bindings;
 
+// Re-export the PyO3 module function at the crate level
+#[cfg(feature = "pyo3")]
+pub use bindings::pyo3_vm::machine_dialect_vm;
+
 pub use vm::VM;
 pub use values::{Value, Type};
 pub use errors::{RuntimeError, Result};

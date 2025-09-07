@@ -4,7 +4,6 @@ This module tests the semantic analysis capabilities including type checking,
 variable usage validation, and error detection.
 """
 
-
 from machine_dialect.errors import MDNameError, MDTypeError
 from machine_dialect.parser import Parser
 from machine_dialect.semantic.analyzer import SemanticAnalyzer

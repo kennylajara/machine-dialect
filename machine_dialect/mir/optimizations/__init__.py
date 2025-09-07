@@ -13,7 +13,8 @@ from machine_dialect.mir.optimizations.inlining import FunctionInlining
 from machine_dialect.mir.optimizations.jump_threading import JumpThreadingOptimizer, JumpThreadingPass
 from machine_dialect.mir.optimizations.licm import LoopInvariantCodeMotion
 from machine_dialect.mir.optimizations.loop_unrolling import LoopUnrolling
-from machine_dialect.mir.optimizations.peephole_optimizer import PeepholeOptimizer, PeepholePass
+
+# from machine_dialect.mir.optimizations.peephole_optimizer import PeepholeOptimizer  # Disabled - needs update
 from machine_dialect.mir.optimizations.strength_reduction import StrengthReduction
 from machine_dialect.mir.optimizations.tail_call import TailCallOptimization
 from machine_dialect.mir.optimizations.type_narrowing import TypeNarrowing
@@ -34,8 +35,8 @@ __all__ = [
     "JumpThreadingPass",
     "LoopInvariantCodeMotion",
     "LoopUnrolling",
-    "PeepholeOptimizer",
-    "PeepholePass",
+    # "PeepholeOptimizer",  # Disabled
+    # "PeepholePass",  # Disabled
     "StrengthReduction",
     "TailCallOptimization",
     "TypeNarrowing",
@@ -80,4 +81,4 @@ def register_all_passes(pass_manager: PassManager) -> None:
     pass_manager.register_pass(LoopUnrolling)
     pass_manager.register_pass(BranchPredictionOptimization)
     pass_manager.register_pass(JumpThreadingPass)
-    pass_manager.register_pass(PeepholePass)
+    # pass_manager.register_pass(PeepholePass)  # Disabled - needs update for new opcodes

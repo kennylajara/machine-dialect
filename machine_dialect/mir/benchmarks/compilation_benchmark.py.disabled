@@ -320,7 +320,7 @@ Instructions:       {result1.instruction_count}    {result2.instruction_count}  
             Number of instructions.
         """
         # This is approximate - counts opcodes only
-        from machine_dialect.codegen.isa import Opcode
+        from machine_dialect.codegen.opcodes import Opcode
 
         count = 0
         i = 0

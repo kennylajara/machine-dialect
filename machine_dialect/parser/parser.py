@@ -142,6 +142,9 @@ class Parser:
         self._advance_tokens()
         self._advance_tokens()
 
+        # Skip frontmatter if present
+        self._skip_frontmatter()
+
         # Parse the program
         program: Program = Program(statements=[])
 
@@ -207,6 +210,25 @@ class Parser:
         """
         return self._errors
 
+    def _skip_frontmatter(self) -> None:
+        """Skip YAML frontmatter section if present at the beginning of the document.
+
+        Frontmatter starts with --- and ends with another --- on its own line.
+        Everything between these delimiters is skipped.
+        """
+        # Check if we're at the beginning with a frontmatter delimiter
+        if self._current_token and self._current_token.type == TokenType.PUNCT_FRONTMATTER:
+            # Skip tokens until we find the closing frontmatter delimiter
+            self._advance_tokens()
+
+            while self._current_token and self._current_token.type != TokenType.MISC_EOF:  # type: ignore[comparison-overlap]
+                if self._current_token.type == TokenType.PUNCT_FRONTMATTER:
+                    # Found closing delimiter, skip it and exit
+                    self._advance_tokens()
+                    break
+                # Skip any token that's not a closing frontmatter delimiter
+                self._advance_tokens()
+
     def _advance_tokens(self) -> None:
         """Advance to the next token in the stream.
 
@@ -225,8 +247,8 @@ class Parser:
 
                 self._token_buffer.advance()
 
-                # If it's not a stopword, we're done
-                if self._peek_token.type != TokenType.MISC_STOPWORD:
+                # Skip stopwords and backslashes
+                if self._peek_token.type not in (TokenType.MISC_STOPWORD, TokenType.PUNCT_BACKSLASH):
                     break
         else:
             # No buffer available
@@ -1522,7 +1544,7 @@ class Parser:
         return if_statement
 
     def _parse_action_interaction_or_utility(
-        self
+        self,
     ) -> ActionStatement | InteractionStatement | UtilityStatement | ErrorStatement:
         """Parse an Action, Interaction, or Utility statement.
 

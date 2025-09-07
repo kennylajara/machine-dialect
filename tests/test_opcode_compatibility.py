@@ -30,7 +30,7 @@ from machine_dialect.mir.mir_values import Constant, Variable
 class TestOpcodeCompatibility:
     """Test that Python opcodes match Rust VM expectations."""
 
-    def test_opcode_values(self):
+    def test_opcode_values(self) -> None:
         """Verify all opcode values match expected values."""
         # These values MUST match the Rust VM's instruction decoder
         expected_opcodes = {
@@ -93,7 +93,7 @@ class TestOpcodeCompatibility:
         for name in python_opcodes:
             assert name in expected_opcodes, f"Unexpected opcode in Python: {name} = {getattr(Opcode, name)}"
 
-    def test_instruction_encoding_load_const(self):
+    def test_instruction_encoding_load_const(self) -> None:
         """Test LoadConstR instruction encoding."""
         bytecode = bytearray()
 
@@ -107,7 +107,7 @@ class TestOpcodeCompatibility:
         assert bytecode[1] == 0  # dst register
         assert struct.unpack("<H", bytecode[2:4])[0] == 0  # const index
 
-    def test_instruction_encoding_arithmetic(self):
+    def test_instruction_encoding_arithmetic(self) -> None:
         """Test arithmetic instruction encoding."""
         bytecode = bytearray()
 
@@ -123,7 +123,7 @@ class TestOpcodeCompatibility:
         assert bytecode[2] == 0  # left register
         assert bytecode[3] == 1  # right register
 
-    def test_instruction_encoding_array_ops(self):
+    def test_instruction_encoding_array_ops(self) -> None:
         """Test array operation instruction encoding."""
         # NewArrayR - 3 bytes
         new_array = bytearray()
@@ -154,7 +154,7 @@ class TestOpcodeCompatibility:
         assert len(array_set) == 4
         assert array_set[0] == 35  # ARRAY_SET_R opcode
 
-    def test_instruction_encoding_control_flow(self):
+    def test_instruction_encoding_control_flow(self) -> None:
         """Test control flow instruction encoding."""
         # JumpR - 5 bytes
         jump = bytearray()
@@ -190,7 +190,7 @@ class TestOpcodeCompatibility:
         assert len(ret_void) == 2
         assert ret_void[0] == 26  # RETURN_R opcode
 
-    def test_vm_can_decode_all_instructions(self):
+    def test_vm_can_decode_all_instructions(self) -> None:
         """Test that the Rust VM can decode all instruction types we emit."""
         module = BytecodeModule("opcode_test")
 
@@ -266,22 +266,25 @@ class TestOpcodeCompatibility:
 
         try:
             vm = machine_dialect_vm.RustVM()
-            vm.load_bytecode(bytecode_path)
+            with open(bytecode_path, "rb") as f:
+                vm.load_bytecode(f.read())
             # If we get here without error, the VM successfully decoded all instructions
             assert True
         finally:
             Path(bytecode_path).unlink()
 
-    def test_mir_to_bytecode_opcode_mapping(self):
+    def test_mir_to_bytecode_opcode_mapping(self) -> None:
         """Test that MIR instructions map to correct opcodes."""
         module = MIRModule("test")
         func = MIRFunction("main")
         block = BasicBlock("entry")
 
         # Create various MIR instructions
-        v1 = Variable("v1", "int")
-        v2 = Variable("v2", "int")
-        v3 = Variable("v3", "int")
+        from machine_dialect.mir.mir_types import MIRType
+
+        v1 = Variable("v1", MIRType.INT)
+        v2 = Variable("v2", MIRType.INT)
+        v3 = Variable("v3", MIRType.INT)
 
         block.add_instruction(LoadConst(v1, Constant(10)))
         block.add_instruction(LoadConst(v2, Constant(20)))
@@ -321,7 +324,7 @@ class TestOpcodeCompatibility:
         assert Opcode.ADD_R in opcodes_found
         assert Opcode.RETURN_R in opcodes_found
 
-    def test_constant_tag_compatibility(self):
+    def test_constant_tag_compatibility(self) -> None:
         """Test that constant tags match between Python and Rust."""
         expected_tags = {
             "INT": 0x01,
@@ -337,7 +340,7 @@ class TestOpcodeCompatibility:
                 actual_value == expected_value
             ), f"ConstantTag.{name} = {actual_value:#x}, expected {expected_value:#x}"
 
-    def test_rust_vm_recognizes_all_opcodes(self):
+    def test_rust_vm_recognizes_all_opcodes(self) -> None:
         """Test that the Rust VM's decoder handles all opcodes we define."""
         # This test creates a bytecode file with every single opcode
         # to ensure the Rust VM's loader can handle them all
@@ -386,9 +389,9 @@ class TestOpcodeCompatibility:
             Opcode.LTE_R: lambda: bytecode.extend([Opcode.LTE_R, 2, 0, 1]),
             Opcode.GTE_R: lambda: bytecode.extend([Opcode.GTE_R, 2, 0, 1]),
             # Control flow
-            Opcode.JUMP_R: lambda: bytecode.extend([Opcode.JUMP_R] + list(struct.pack("<i", 0))),
-            Opcode.JUMP_IF_R: lambda: bytecode.extend([Opcode.JUMP_IF_R, 0] + list(struct.pack("<i", 0))),
-            Opcode.JUMP_IF_NOT_R: lambda: bytecode.extend([Opcode.JUMP_IF_NOT_R, 0] + list(struct.pack("<i", 0))),
+            Opcode.JUMP_R: lambda: bytecode.extend([Opcode.JUMP_R, *list(struct.pack("<i", 0))]),
+            Opcode.JUMP_IF_R: lambda: bytecode.extend([Opcode.JUMP_IF_R, 0, *list(struct.pack("<i", 0))]),
+            Opcode.JUMP_IF_NOT_R: lambda: bytecode.extend([Opcode.JUMP_IF_NOT_R, 0, *list(struct.pack("<i", 0))]),
             Opcode.CALL_R: lambda: bytecode.extend([Opcode.CALL_R, 0, 0, 0]),  # func, dst, 0 args
             # String ops
             Opcode.CONCAT_STR_R: lambda: bytecode.extend([Opcode.CONCAT_STR_R, 2, 0, 1]),
@@ -404,8 +407,8 @@ class TestOpcodeCompatibility:
         }
 
         # Add instructions for implemented opcodes
-        for opcode, add_instruction in implemented_opcodes.items():
-            add_instruction()
+        for _opcode, add_instruction in implemented_opcodes.items():
+            add_instruction()  # type: ignore[no-untyped-call]
 
         # End with return
         bytecode.extend([Opcode.RETURN_R, 0])  # no value
@@ -421,7 +424,8 @@ class TestOpcodeCompatibility:
 
         try:
             vm = machine_dialect_vm.RustVM()
-            vm.load_bytecode(bytecode_path)
+            with open(bytecode_path, "rb") as f:
+                vm.load_bytecode(f.read())
             # Success means all opcodes were recognized
             assert True
         finally:

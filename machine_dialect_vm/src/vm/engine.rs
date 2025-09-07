@@ -565,7 +565,20 @@ impl VM {
             // Debug
             Instruction::DebugPrint { src } => {
                 let value = self.registers.get(src);
-                println!("DEBUG: {:?}", value);
+                // Only show "DEBUG:" prefix when in debug mode
+                if self.debug_mode {
+                    println!("DEBUG: {:?}", value);
+                } else {
+                    // In normal mode, print clean output
+                    match value {
+                        Value::String(s) => println!("{}", s),
+                        Value::Int(i) => println!("{}", i),
+                        Value::Float(f) => println!("{}", f),
+                        Value::Bool(b) => println!("{}", b),
+                        Value::Empty => {}, // Empty should not print anything
+                        _ => println!("{:?}", value),
+                    }
+                }
             }
 
             Instruction::BreakPoint => {

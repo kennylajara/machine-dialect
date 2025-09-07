@@ -3,7 +3,7 @@
 //! This module provides Python bindings for the VM.
 
 #[cfg(feature = "pyo3")]
-mod pyo3_vm;
+pub mod pyo3_vm;
 
 #[cfg(feature = "pyo3")]
 pub use pyo3_vm::RustVM;

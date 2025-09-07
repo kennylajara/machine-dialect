@@ -24,6 +24,7 @@ from machine_dialect.mir.mir_instructions import (
     MIRInstruction,
     Nop,
     Phi,
+    Pop,
     Print,
     Return,
     Scope,
@@ -289,6 +290,11 @@ class MIRInterpreter:
         elif isinstance(inst, Scope):
             # Scope markers don't affect execution
             pass
+
+        elif isinstance(inst, Pop):
+            # Pop instruction - just load the value to evaluate it
+            # but don't store it anywhere (side effects only)
+            self._load_value(inst.value)
 
         elif isinstance(inst, Nop):
             # No operation

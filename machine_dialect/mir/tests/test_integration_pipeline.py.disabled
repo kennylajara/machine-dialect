@@ -28,7 +28,7 @@ from machine_dialect.ast import (
     WholeNumberLiteral,
     YesNoLiteral,
 )
-from machine_dialect.codegen.isa import Opcode
+from machine_dialect.codegen.opcodes import Opcode
 from machine_dialect.lexer import Token, TokenType
 from machine_dialect.mir.hir_to_mir import lower_to_mir
 from machine_dialect.mir.mir_to_bytecode import generate_bytecode

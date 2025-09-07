@@ -4,7 +4,6 @@ This module implements type-aware optimizations that leverage type information
 from variable definitions to generate more efficient MIR code.
 """
 
-
 from machine_dialect.mir.analyses.dominance_analysis import DominanceAnalysis
 from machine_dialect.mir.analyses.use_def_chains import UseDefChains, UseDefChainsAnalysis
 from machine_dialect.mir.basic_block import BasicBlock

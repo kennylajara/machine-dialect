@@ -422,7 +422,7 @@ class TestBranchPredictionOptimization(unittest.TestCase):
             if i < 4:
                 cond = Temp(MIRType.BOOL)
                 block.add_instruction(LoadConst(cond, Constant(True, MIRType.BOOL)))
-                block.add_instruction(ConditionalJump(cond, f"block_{i+1}", "exit"))
+                block.add_instruction(ConditionalJump(cond, f"block_{i + 1}", "exit"))
             else:
                 block.add_instruction(Return(Constant(0, MIRType.INT)))
             blocks.append(block)

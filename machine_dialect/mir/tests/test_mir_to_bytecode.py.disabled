@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import unittest
 
-from machine_dialect.codegen.isa import Opcode
+from machine_dialect.codegen.opcodes import Opcode
 from machine_dialect.mir.basic_block import BasicBlock
 from machine_dialect.mir.mir_function import MIRFunction
 from machine_dialect.mir.mir_instructions import (

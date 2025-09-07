@@ -78,6 +78,33 @@ class TestLexer:
             ("actions", [Token(TokenType.KW_ACTION, "actions", line=1, position=1)]),
             # "apply" is reserved for future use, currently not mapped
             ("behavior", [Token(TokenType.KW_BEHAVIOR, "behavior", line=1, position=1)]),
+            # Backslash
+            ("\\", [Token(TokenType.PUNCT_BACKSLASH, "\\", line=1, position=1)]),
+            (
+                "x\\y",
+                [
+                    Token(TokenType.MISC_IDENT, "x", line=1, position=1),
+                    Token(TokenType.PUNCT_BACKSLASH, "\\", line=1, position=2),
+                    Token(TokenType.MISC_IDENT, "y", line=1, position=3),
+                ],
+            ),
+            # Frontmatter delimiter
+            ("---", [Token(TokenType.PUNCT_FRONTMATTER, "---", line=1, position=1)]),
+            (
+                "-- -",
+                [
+                    Token(TokenType.OP_MINUS, "-", line=1, position=1),
+                    Token(TokenType.OP_MINUS, "-", line=1, position=2),
+                    Token(TokenType.OP_MINUS, "-", line=1, position=4),
+                ],
+            ),
+            (
+                "--",
+                [
+                    Token(TokenType.OP_MINUS, "-", line=1, position=1),
+                    Token(TokenType.OP_MINUS, "-", line=1, position=2),
+                ],
+            ),
             ("behaviors", [Token(TokenType.KW_BEHAVIOR, "behaviors", line=1, position=1)]),
             ("behaviour", [Token(TokenType.KW_BEHAVIOR, "behaviour", line=1, position=1)]),
             ("behaviours", [Token(TokenType.KW_BEHAVIOR, "behaviours", line=1, position=1)]),

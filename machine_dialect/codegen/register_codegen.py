@@ -368,11 +368,27 @@ class RegisterBytecodeGenerator:
 
     def generate_return(self, inst: Return) -> None:
         """Generate ReturnR instruction."""
-        self.emit_opcode(Opcode.RETURN_R)
         if inst.value:
-            self.emit_u8(1)  # Has return value
-            self.emit_u8(self.get_register(inst.value))
+            # If the value is a constant, we need to load it first
+            if isinstance(inst.value, Constant):
+                # Load constant into register 0 (return register)
+                const_value = inst.value.value if hasattr(inst.value, "value") else inst.value
+                const_idx = self.add_constant(const_value)
+                self.emit_opcode(Opcode.LOAD_CONST_R)
+                self.emit_u8(0)  # Use register 0 for return
+                self.emit_u16(const_idx)
+
+                # Now return from register 0
+                self.emit_opcode(Opcode.RETURN_R)
+                self.emit_u8(1)  # Has return value
+                self.emit_u8(0)  # Return from register 0
+            else:
+                # Value is already in a register
+                self.emit_opcode(Opcode.RETURN_R)
+                self.emit_u8(1)  # Has return value
+                self.emit_u8(self.get_register(inst.value))
         else:
+            self.emit_opcode(Opcode.RETURN_R)
             self.emit_u8(0)  # No return value
 
     def generate_phi(self, inst: Phi) -> None:

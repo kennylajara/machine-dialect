@@ -1,6 +1,5 @@
 """Advanced tests for enhanced type-specific MIR optimization pass."""
 
-
 from machine_dialect.mir.basic_block import BasicBlock
 from machine_dialect.mir.mir_function import MIRFunction
 from machine_dialect.mir.mir_instructions import (

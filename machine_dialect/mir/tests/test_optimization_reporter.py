@@ -1,6 +1,5 @@
 """Tests for optimization reporter."""
 
-
 from machine_dialect.mir.reporting.optimization_reporter import (
     ModuleMetrics,
     OptimizationReporter,

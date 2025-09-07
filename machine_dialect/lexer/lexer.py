@@ -846,6 +846,12 @@ class Lexer:
                             return Token(TokenType.PUNCT_HASH_QUAD, "####", token_line, token_column)
                         return Token(TokenType.PUNCT_HASH_TRIPLE, "###", token_line, token_column)
                     return Token(TokenType.PUNCT_HASH_DOUBLE, "##", token_line, token_column)
+            elif char == "-":
+                # Check for --- (frontmatter delimiter)
+                if self.current_char == "-" and self.peek() == "-":
+                    self.advance()  # Second dash
+                    self.advance()  # Third dash
+                    return Token(TokenType.PUNCT_FRONTMATTER, "---", token_line, token_column)
 
             # Single character token
             token_type = CHAR_TO_TOKEN_MAP[char]

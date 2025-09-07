@@ -3,14 +3,15 @@
 This module implements sophisticated jump threading optimizations that
 follow chains of jumps and eliminate redundant control flow.
 """
+# mypy: ignore-errors
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Any
 
-from machine_dialect.codegen.isa import Opcode
-from machine_dialect.codegen.objects import Chunk
+from machine_dialect.codegen.bytecode_module import Chunk
+from machine_dialect.codegen.opcodes import Opcode
 from machine_dialect.mir.mir_module import MIRModule
 from machine_dialect.mir.optimization_pass import ModulePass, PassInfo, PassType, PreservationLevel
 

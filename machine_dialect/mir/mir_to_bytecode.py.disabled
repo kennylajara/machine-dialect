@@ -6,8 +6,8 @@ It performs register allocation, stack scheduling, and efficient bytecode genera
 
 from typing import Any
 
-from machine_dialect.codegen.isa import Opcode
-from machine_dialect.codegen.objects import Chunk, ChunkType, Module
+from machine_dialect.codegen.bytecode_module import BytecodeModule, Chunk, ChunkType
+from machine_dialect.codegen.opcodes import Opcode
 from machine_dialect.mir.basic_block import BasicBlock
 from machine_dialect.mir.debug_info import DebugInfo, LineMapping
 from machine_dialect.mir.mir_function import MIRFunction
@@ -58,7 +58,7 @@ class BytecodeGenerator:
 
     def __init__(self) -> None:
         """Initialize the bytecode generator."""
-        self.module: Module | None = None
+        self.module: BytecodeModule | None = None
         self.current_chunk: Chunk | None = None
         self.current_function: MIRFunction | None = None
 
@@ -131,7 +131,7 @@ class BytecodeGenerator:
         """
         return self.temp_usage_counts.get(value, 0) == 1
 
-    def generate_module(self, mir_module: MIRModule, debug_info: DebugInfo | None = None) -> Module:
+    def generate_module(self, mir_module: MIRModule, debug_info: DebugInfo | None = None) -> BytecodeModule:
         """Generate bytecode module from MIR module.
 
         Args:
@@ -148,7 +148,8 @@ class BytecodeGenerator:
         main_chunk = Chunk("__main__")
 
         # Create bytecode module with main chunk
-        self.module = Module(mir_module.name, main_chunk)
+        self.module = BytecodeModule(mir_module.name)
+        self.module.add_chunk(main_chunk)
 
         # Find and generate main function
         main_func = mir_module.get_function("main")
@@ -915,7 +916,7 @@ class BytecodeGenerator:
         self.current_stack_depth = max(0, self.current_stack_depth - 1)
 
 
-def generate_bytecode(mir_module: MIRModule, debug_info: DebugInfo | None = None) -> Module:
+def generate_bytecode(mir_module: MIRModule, debug_info: DebugInfo | None = None) -> BytecodeModule:
     """Generate bytecode from MIR module.
 
     Args:

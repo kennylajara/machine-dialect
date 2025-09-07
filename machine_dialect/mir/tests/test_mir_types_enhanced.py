@@ -1,6 +1,5 @@
 """Tests for enhanced MIR type system."""
 
-
 from machine_dialect.mir.mir_types import (
     MIRType,
     MIRUnionType,

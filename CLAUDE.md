@@ -85,7 +85,8 @@ source .venv/bin/activate  # Linux/Mac/WSL
 # ✅ uv pip install <package>  # Install new packages
 ```
 
-**IMPORTANT**: If virtual environment is not activated, ALL operations will fail. The `.venv` directory contains the isolated Python environment for this project.
+**IMPORTANT**: If virtual environment is not activated, ALL operations will fail. The `.venv`
+directory contains the isolated Python environment for this project.
 
 ## Development Commands
 

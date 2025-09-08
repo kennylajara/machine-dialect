@@ -309,8 +309,8 @@ class SSAConstructor:
         version = self.version_counters[base_name]
         self.version_counters[base_name] += 1
 
-        # Create new variable with version suffix
-        new_var = Variable(f"{base_name}.{version}", var.type)
+        # Create new variable with version number
+        new_var = Variable(base_name, var.type, version=version)
         return new_var
 
 

@@ -116,7 +116,7 @@ class Variable(MIRValue):
     def __str__(self) -> str:
         """Return string representation."""
         if self.version > 0:
-            return f"{self.name}_{self.version}"
+            return f"{self.name}.{self.version}"
         return self.name
 
     def __eq__(self, other: object) -> bool:

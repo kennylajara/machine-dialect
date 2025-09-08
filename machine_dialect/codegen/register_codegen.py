@@ -108,8 +108,12 @@ class RegisterAllocator:
 class RegisterBytecodeGenerator:
     """Generate register-based bytecode from MIR."""
 
-    def __init__(self) -> None:
-        """Initialize the generator."""
+    def __init__(self, debug: bool = False) -> None:
+        """Initialize the generator.
+
+        Args:
+            debug: Enable debug output for bytecode generation.
+        """
         self.allocator = RegisterAllocator()
         self.constants: list[tuple[ConstantTag, Any]] = []
         self.bytecode: bytearray = bytearray()
@@ -120,6 +124,22 @@ class RegisterBytecodeGenerator:
         self.instruction_offsets: list[int] = []
         # Pending jumps to resolve: (byte_pos, target_label, source_inst_idx)
         self.pending_jumps: list[tuple[int, str, int]] = []
+        self.debug = debug
+
+    def is_ssa_variable(self, var: MIRValue) -> bool:
+        """Check if a variable is an SSA-renamed variable.
+
+        SSA variables have version > 0, indicating they've been
+        renamed during SSA construction. Non-SSA variables (globals,
+        original parameters) have version 0.
+
+        Args:
+            var: The MIR value to check.
+
+        Returns:
+            True if the variable is an SSA-renamed variable.
+        """
+        return isinstance(var, Variable) and var.version > 0
 
     def generate(self, mir_module: MIRModule) -> BytecodeModule:
         """Generate bytecode module from MIR.
@@ -163,6 +183,16 @@ class RegisterBytecodeGenerator:
 
         # Allocate registers
         self.allocation = self.allocator.allocate_function(func)
+
+        # Debug output for register allocation
+        if self.debug:
+            print(f"\nDEBUG Function {func.name}:")
+            print(f"  Parameters: {[p.name for p in func.params]}")
+            for param in func.params:
+                if param in self.allocation.value_to_register:
+                    print(f"    {param.name} -> r{self.allocation.value_to_register[param]}")
+                else:
+                    print(f"    {param.name} -> NOT ALLOCATED!")
 
         # Generate code for each block in topological order
         blocks_in_order = func.cfg.topological_sort()
@@ -242,46 +272,156 @@ class RegisterBytecodeGenerator:
         self.emit_u16(const_idx)
 
     def generate_copy(self, inst: Copy) -> None:
-        """Generate MoveR or LoadGlobalR instruction based on source type."""
+        """Generate MoveR or LoadGlobalR instruction based on source type.
+
+        This method handles both SSA-renamed variables (version > 0) and
+        regular variables (version = 0). SSA variables should always be
+        allocated to registers during the allocation phase, while regular
+        variables may be globals that need to be loaded by name.
+        """
         dst = self.get_register(inst.dest)
 
-        # Check if source is a variable (has a dot in the name, like x.0)
-        if isinstance(inst.source, Variable) and "." in inst.source.name:
-            # This is loading from a stored variable, use LoadGlobalR
+        # Debug output
+        if self.debug:
+            print(f"DEBUG Copy: source={inst.source}, dest={inst.dest}")
+            if isinstance(inst.source, Variable):
+                print(f"  source is Variable, name={inst.source.name}, version={inst.source.version}")
+                if self.allocation:
+                    print(f"  in allocation? {inst.source in self.allocation.value_to_register}")
+
+        # Check if source is already in a register (local variable, parameter, or SSA variable)
+        if self.allocation and inst.source in self.allocation.value_to_register:
+            # This is a local variable, parameter, or SSA variable in a register
+            src = self.allocation.value_to_register[inst.source]
+            self.emit_opcode(Opcode.MOVE_R)
+            self.emit_u8(dst)
+            self.emit_u8(src)
+            if self.debug:
+                print(f"  -> Generated MoveR from r{src} to r{dst}")
+        elif isinstance(inst.source, Variable):
+            # Check if this is an SSA variable that should have been allocated
+            if self.is_ssa_variable(inst.source):
+                raise RuntimeError(
+                    f"SSA variable {inst.source} (version {inst.source.version}) not allocated to register"
+                )
+
+            # This is a true global variable that needs to be loaded by name
             name_idx = self.add_string_constant(inst.source.name)
             self.emit_opcode(Opcode.LOAD_GLOBAL_R)
             self.emit_u8(dst)
             self.emit_u16(name_idx)
+            if self.debug:
+                print(f"  -> Generated LoadGlobalR for {inst.source.name}")
         else:
-            # Regular register-to-register move
+            # Handle other types (constants, etc.)
             src = self.get_register(inst.source)
             self.emit_opcode(Opcode.MOVE_R)
             self.emit_u8(dst)
             self.emit_u8(src)
+            if self.debug:
+                print(f"  -> Generated MoveR from r{src} to r{dst}")
 
     def generate_load_var(self, inst: LoadVar) -> None:
-        """Generate LoadGlobalR instruction."""
-        dst = self.get_register(inst.dest)
-        name_idx = self.add_string_constant(inst.var.name)
+        """Generate LoadGlobalR instruction for variables or MoveR for parameters.
 
-        self.emit_opcode(Opcode.LOAD_GLOBAL_R)
-        self.emit_u8(dst)
-        self.emit_u16(name_idx)
+        SSA variables (version > 0) and function parameters are expected to be
+        in registers. Global variables (version = 0) need to be loaded by name
+        from the global scope.
+        """
+        dst = self.get_register(inst.dest)
+
+        # Debug output
+        if self.debug:
+            print(f"DEBUG LoadVar: var={inst.var}, var.name={inst.var.name}, version={inst.var.version}")
+            if self.allocation:
+                print(f"  in allocation? {inst.var in self.allocation.value_to_register}")
+                if inst.var in self.allocation.value_to_register:
+                    print(f"  allocated to register {self.allocation.value_to_register[inst.var]}")
+
+        # Check if the variable is already in a register (function parameter, local var, or SSA var)
+        if self.allocation and inst.var in self.allocation.value_to_register:
+            # This is a function parameter, local variable, or SSA variable in a register
+            src = self.allocation.value_to_register[inst.var]
+            self.emit_opcode(Opcode.MOVE_R)
+            self.emit_u8(dst)
+            self.emit_u8(src)
+        else:
+            # Check if this is an SSA variable that should have been allocated
+            if self.is_ssa_variable(inst.var):
+                raise RuntimeError(f"SSA variable {inst.var} (version {inst.var.version}) not allocated to register")
+
+            # This is a true global variable that needs to be loaded by name
+            name_idx = self.add_string_constant(inst.var.name)
+            self.emit_opcode(Opcode.LOAD_GLOBAL_R)
+            self.emit_u8(dst)
+            self.emit_u16(name_idx)
 
     def generate_store_var(self, inst: StoreVar) -> None:
-        """Generate StoreGlobalR instruction."""
-        src = self.get_register(inst.source)
-        name_idx = self.add_string_constant(inst.var.name)
+        """Generate StoreGlobalR instruction or register move for SSA variables.
 
-        self.emit_opcode(Opcode.STORE_GLOBAL_R)
-        self.emit_u8(src)
-        self.emit_u16(name_idx)
+        SSA variables (version > 0) are stored in registers using MoveR.
+        Global variables (version = 0) are stored to the global scope using
+        StoreGlobalR with the variable name.
+        """
+        if self.debug:
+            print(f"DEBUG StoreVar: var={inst.var}, source={inst.source}")
+        src = self.get_register(inst.source)
+
+        # Check if the destination variable is allocated to a register (SSA or local)
+        if self.allocation and inst.var in self.allocation.value_to_register:
+            # This is an SSA or local variable - use register move
+            dst = self.allocation.value_to_register[inst.var]
+            self.emit_opcode(Opcode.MOVE_R)
+            self.emit_u8(dst)
+            self.emit_u8(src)
+            if self.debug:
+                print(f"  -> Generated MoveR from r{src} to r{dst} for {inst.var}")
+        else:
+            # Check if this is an SSA variable that should have been allocated
+            if self.is_ssa_variable(inst.var):
+                raise RuntimeError(f"SSA variable {inst.var} (version {inst.var.version}) not allocated to register")
+
+            # This is a true global variable
+            name_idx = self.add_string_constant(inst.var.name if hasattr(inst.var, "name") else str(inst.var))
+            self.emit_opcode(Opcode.STORE_GLOBAL_R)
+            self.emit_u8(src)
+            self.emit_u16(name_idx)
+            if self.debug:
+                print(f"  -> Generated StoreGlobalR for {inst.var}")
 
     def generate_binary_op(self, inst: BinaryOp) -> None:
         """Generate binary operation instruction."""
+        # Load constants first if needed
+        if isinstance(inst.left, Constant):
+            left = self.get_register(inst.left)
+            const_val = inst.left.value if hasattr(inst.left, "value") else inst.left
+            const_idx = self.add_constant(const_val)
+            self.emit_opcode(Opcode.LOAD_CONST_R)
+            self.emit_u8(left)
+            self.emit_u16(const_idx)
+        else:
+            left = self.get_register(inst.left)
+
+        if isinstance(inst.right, Constant):
+            right = self.get_register(inst.right)
+            const_val = inst.right.value if hasattr(inst.right, "value") else inst.right
+            const_idx = self.add_constant(const_val)
+            self.emit_opcode(Opcode.LOAD_CONST_R)
+            self.emit_u8(right)
+            self.emit_u16(const_idx)
+        else:
+            right = self.get_register(inst.right)
+
+        # Get destination register
         dst = self.get_register(inst.dest)
-        left = self.get_register(inst.left)
-        right = self.get_register(inst.right)
+
+        if self.debug:
+            print(
+                f"DEBUG BinaryOp: op={inst.op}, left={inst.left} "
+                f"(type={type(inst.left).__name__}), "
+                f"right={inst.right} (type={type(inst.right).__name__})"
+            )
+            print(f"  left register: r{left}, right register: r{right}, dest register: r{dst}")
 
         # Map operators to opcodes
         op_map = {
@@ -307,7 +447,8 @@ class RegisterBytecodeGenerator:
             self.emit_u8(right)
         else:
             # Debug: print unmapped operator
-            print(f"Warning: Unmapped operator '{inst.op}'")
+            if self.debug:
+                print(f"Warning: Unmapped operator '{inst.op}'")
 
     def generate_unary_op(self, inst: UnaryOp) -> None:
         """Generate unary operation instruction."""
@@ -355,6 +496,8 @@ class RegisterBytecodeGenerator:
 
     def generate_call(self, inst: Call) -> None:
         """Generate CallR instruction."""
+        if self.debug:
+            print(f"DEBUG Call: func={inst.func}, args={inst.args}, dest={inst.dest}")
         dst = self.get_register(inst.dest) if inst.dest else 0
 
         # Handle function reference - could be a string name, FunctionRef, or a register value
@@ -369,6 +512,8 @@ class RegisterBytecodeGenerator:
             self.allocation.next_register += 1
 
             # Add function name as string constant
+            if self.debug:
+                print(f"  DEBUG: Loading function name '{inst.func}' as constant into r{func_reg}")
             const_idx = self.add_constant(inst.func)
             self.emit_opcode(Opcode.LOAD_CONST_R)
             self.emit_u8(func_reg)
@@ -383,6 +528,8 @@ class RegisterBytecodeGenerator:
             self.allocation.next_register += 1
 
             # Add function name as string constant
+            if self.debug:
+                print(f"  DEBUG: Loading FunctionRef '{inst.func.name}' as constant into r{func_reg}")
             const_idx = self.add_constant(inst.func.name)
             self.emit_opcode(Opcode.LOAD_CONST_R)
             self.emit_u8(func_reg)
@@ -390,16 +537,34 @@ class RegisterBytecodeGenerator:
             func = func_reg
         else:
             # Already a register value
+            if self.debug:
+                print(f"  DEBUG: Function is already in register: {inst.func}")
             func = self.get_register(inst.func)
 
-        args = [self.get_register(arg) for arg in inst.args]
+        # Load argument constants if needed
+        args = []
+        for arg in inst.args:
+            if isinstance(arg, Constant):
+                arg_reg = self.get_register(arg)
+                const_val = arg.value if hasattr(arg, "value") else arg
+                const_idx = self.add_constant(const_val)
+                self.emit_opcode(Opcode.LOAD_CONST_R)
+                self.emit_u8(arg_reg)
+                self.emit_u16(const_idx)
+                args.append(arg_reg)
+            else:
+                args.append(self.get_register(arg))
+
+        if self.debug:
+            print(f"  Function register: r{func}, dest register: r{dst}")
+            print(f"  Argument registers: {[f'r{a}' for a in args]}")
 
         self.emit_opcode(Opcode.CALL_R)
         self.emit_u8(func)
         self.emit_u8(dst)
         self.emit_u8(len(args))
-        for arg in args:
-            self.emit_u8(arg)
+        for arg_reg in args:
+            self.emit_u8(arg_reg)
 
     def generate_return(self, inst: Return) -> None:
         """Generate ReturnR instruction."""
@@ -487,6 +652,10 @@ class RegisterBytecodeGenerator:
     def get_register(self, value: MIRValue) -> int:
         """Get register number for a value.
 
+        For constants, this allocates a register and remembers it,
+        but does NOT emit the LOAD_CONST_R instruction.
+        The caller is responsible for loading constants.
+
         Args:
             value: MIR value.
 
@@ -494,22 +663,22 @@ class RegisterBytecodeGenerator:
             Register number.
         """
         if isinstance(value, Constant):
-            # Load constant into a register
+            # Check if we already allocated a register for this constant
+            if self.allocation and value in self.allocation.value_to_register:
+                return self.allocation.value_to_register[value]
+
+            # Allocate a new register for this constant
             assert self.allocation is not None
             reg = self.allocation.next_register
             if reg >= self.allocation.max_registers:
                 raise RuntimeError("Out of registers")
             self.allocation.next_register += 1
+            self.allocation.value_to_register[value] = reg
 
-            # Extract actual value from Constant
-            if hasattr(value, "value"):
-                const_value = value.value
-            else:
-                const_value = value
-            const_idx = self.add_constant(const_value)
-            self.emit_opcode(Opcode.LOAD_CONST_R)
-            self.emit_u8(reg)
-            self.emit_u16(const_idx)
+            # Note: We do NOT emit LOAD_CONST_R here!
+            # The caller must handle loading the constant
+            if self.debug:
+                print(f"  DEBUG: Allocated r{reg} for constant {value.value if hasattr(value, 'value') else value}")
             return reg
 
         assert self.allocation is not None
@@ -761,18 +930,21 @@ class MetadataCollector:
         return var_names
 
 
-def generate_bytecode_from_mir(mir_module: MIRModule) -> tuple[BytecodeModule, dict[str, Any] | None]:
+def generate_bytecode_from_mir(
+    mir_module: MIRModule, debug: bool = False
+) -> tuple[BytecodeModule, dict[str, Any] | None]:
     """Generate bytecode and metadata from MIR module.
 
     This is the main entry point for bytecode generation.
 
     Args:
         mir_module: MIR module to generate bytecode from.
+        debug: Enable debug output for bytecode generation.
 
     Returns:
         Tuple of (bytecode module, metadata).
     """
-    generator = RegisterBytecodeGenerator()
+    generator = RegisterBytecodeGenerator(debug=debug)
     bytecode = generator.generate(mir_module)
 
     # Collect metadata

@@ -196,7 +196,7 @@ class TestLoadVar(unittest.TestCase):
         v = Variable("x", MIRType.INT, version=2)
 
         load = LoadVar(t0, v, (1, 1))
-        self.assertEqual(str(load), "t0 = x_2")
+        self.assertEqual(str(load), "t0 = x.2")
 
     def test_load_var_uses_and_defs(self) -> None:
         """Test uses and defs for load variable."""

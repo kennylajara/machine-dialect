@@ -24,6 +24,8 @@ pub struct CallFrame {
     pub function: Option<FunctionRef>,
     /// Local variable name to register mapping
     pub local_symbols: HashMap<String, u8>,
+    /// Destination register for return value
+    pub return_dst: Option<u8>,
 }
 
 impl CallFrame {
@@ -35,6 +37,7 @@ impl CallFrame {
             saved_registers: Vec::new(),
             function: None,
             local_symbols: HashMap::new(),
+            return_dst: None,
         }
     }
 }

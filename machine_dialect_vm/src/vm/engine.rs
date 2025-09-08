@@ -284,6 +284,12 @@ impl VM {
             }
 
             Instruction::CallR { func, args, dst } => {
+                if self.debug_mode {
+                    println!("CallR: func=r{}, dst=r{}, args={:?}", func, dst, args);
+                    for (i, &arg_reg) in args.iter().enumerate() {
+                        println!("  arg[{}]: r{} = {:?}", i, arg_reg, self.registers.get(arg_reg));
+                    }
+                }
                 // Get function entry point
                 let func_value = self.registers.get(func);
 
@@ -317,13 +323,22 @@ impl VM {
                         // Create new call frame
                         let mut frame = crate::vm::CallFrame::new(saved_pc, saved_fp);
 
-                        // Save and set argument registers
+                        // Save the destination register for the return value
+                        frame.return_dst = Some(dst);
+
+                        // First: Save all registers that will be overwritten (r0-r15)
+                        for i in 0..args.len().min(16) {
+                            frame.saved_registers.push((i as u8, self.registers.get(i as u8).clone()));
+                        }
+
+                        // Then: Copy arguments to parameter registers
                         for (i, &arg_reg) in args.iter().enumerate() {
-                            let value = self.registers.get(arg_reg).clone();
-                            // Copy to parameter registers (r0-r15 are argument registers)
                             if i < 16 {
-                                frame.saved_registers.push((i as u8, self.registers.get(i as u8).clone()));
-                                self.registers.set(i as u8, value);
+                                let value = self.registers.get(arg_reg).clone();
+                                self.registers.set(i as u8, value.clone());
+                                if self.debug_mode {
+                                    println!("  Set r{} = {:?} (from r{})", i, value, arg_reg);
+                                }
                             }
                         }
 
@@ -347,11 +362,15 @@ impl VM {
                     self.state.pc = frame.return_address;
                     self.state.fp = frame.saved_fp;
                     self.registers.restore_registers(&frame.saved_registers);
+
+                    // Store return value in the destination register if specified
+                    if let (Some(return_dst), Some(ref ret_val)) = (frame.return_dst, &value) {
+                        self.registers.set(return_dst, ret_val.clone());
+                    }
                 } else {
                     self.state.halt();
+                    return Ok(value);
                 }
-
-                return Ok(value);
             }
 
             // MIR Support
@@ -631,5 +650,117 @@ impl VM {
 impl Default for VM {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::instructions::Instruction;
+    use crate::values::{Value, ConstantValue, ConstantPool};
+    use crate::loader::BytecodeModule;
+    use std::collections::HashMap;
+
+    #[test]
+    fn test_call_r_parameter_passing() {
+        // This test verifies that CallR correctly passes parameters to functions
+        // and that the bug with register saving/restoring is fixed
+
+        let mut vm = VM::new();
+
+        // Create a simple module with a function table
+        let mut module = BytecodeModule {
+            name: "test".to_string(),
+            version: 1,
+            flags: 0,
+            constants: ConstantPool::new(),
+            instructions: vec![
+                // Main code (at offset 0):
+                // Load 42 into r0
+                Instruction::LoadConstR { dst: 0, const_idx: 0 },
+                // Load 10 into r1
+                Instruction::LoadConstR { dst: 1, const_idx: 1 },
+                // Load function name into r2
+                Instruction::LoadConstR { dst: 2, const_idx: 2 },
+                // Call test_func(r0, r1) and put result in r3
+                Instruction::CallR { func: 2, args: vec![0, 1], dst: 3 },
+                // Return r3
+                Instruction::ReturnR { src: Some(3) },
+
+                // test_func code (at offset 5):
+                // At this point r0=42, r1=10 (parameters)
+                // Add r0 + r1 -> r2
+                Instruction::AddR { dst: 2, left: 0, right: 1 },
+                // Return r2
+                Instruction::ReturnR { src: Some(2) },
+            ],
+            function_table: HashMap::new(),
+            global_names: vec![],
+        };
+
+        // Add constants
+        module.constants.add(ConstantValue::Int(42));
+        module.constants.add(ConstantValue::Int(10));
+        module.constants.add(ConstantValue::String("test_func".to_string()));
+
+        // Add function to table
+        module.function_table.insert("test_func".to_string(), 5);
+
+        // Load module
+        vm.load_module(module, None).unwrap();
+
+        // Run the VM
+        let result = vm.run().unwrap();
+
+        // The result should be 42 + 10 = 52
+        assert_eq!(result, Some(Value::Int(52)));
+    }
+
+    #[test]
+    fn test_call_r_self_referential() {
+        // Test case where r0 is both source and destination
+        // This tests the edge case where a register passes itself as parameter
+
+        let mut vm = VM::new();
+
+        let mut module = BytecodeModule {
+            name: "test".to_string(),
+            version: 1,
+            flags: 0,
+            constants: ConstantPool::new(),
+            instructions: vec![
+                // Main code:
+                // Load 100 into r0
+                Instruction::LoadConstR { dst: 0, const_idx: 0 },
+                // Load function name into r1
+                Instruction::LoadConstR { dst: 1, const_idx: 1 },
+                // Call identity(r0) with r0 as both arg and dst
+                Instruction::CallR { func: 1, args: vec![0], dst: 0 },
+                // Return r0
+                Instruction::ReturnR { src: Some(0) },
+
+                // identity function (at offset 4):
+                // Just return r0 (the parameter)
+                Instruction::ReturnR { src: Some(0) },
+            ],
+            function_table: HashMap::new(),
+            global_names: vec![],
+        };
+
+        // Add constants
+        module.constants.add(ConstantValue::Int(100));
+        module.constants.add(ConstantValue::String("identity".to_string()));
+
+        // Add function to table
+        module.function_table.insert("identity".to_string(), 4);
+
+        // Load module
+        vm.load_module(module, None).unwrap();
+
+        // Run the VM
+        let result = vm.run().unwrap();
+
+        // The result should still be 100
+        assert_eq!(result, Some(Value::Int(100)));
     }
 }

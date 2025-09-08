@@ -6,19 +6,17 @@
 > If `n` is less than or equal to _1_:
 >
 > > Give back `n`.
->
-> Else:
->
-> > Define `n_minus_1` as Whole Number.
-> > Set `n_minus_1` to `n` - _1_.
-> > Define `n_minus_2` as Whole Number.
-> > Set `n_minus_2` to `n` - _2_.
-> > Define `fib_1` as Whole Number.
-> > Set `fib_1` using `Fibonacci` with `n_minus_1`.
-> > Define `fib_2` as Whole Number.
-> > Set `fib_2` using `Fibonacci` with `n_minus_2`.
-> > Define `result` as Whole Number.
-> > Set `result` to `fib_1` + `fib_2`.
+> > Else:
+> > Define `n_minus_1` as Whole Number. \
+> > Set `n_minus_1` to `n` - _1_. \
+> > Define `n_minus_2` as Whole Number. \
+> > Set `n_minus_2` to `n` - _2_. \
+> > Define `fib_1` as Whole Number. \
+> > Set `fib_1` using `Fibonacci` with `n_minus_1`. \
+> > Define `fib_2` as Whole Number. \
+> > Set `fib_2` using `Fibonacci` with `n_minus_2`. \
+> > Define `result` as Whole Number. \
+> > Set `result` to `fib_1` + `fib_2`. \
 > > Give back `result`.
 
 </details>

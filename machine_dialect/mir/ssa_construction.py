@@ -4,11 +4,11 @@ This module implements SSA construction with dominance frontier calculation
 and phi node insertion for the MIR representation.
 """
 
-from collections import defaultdict
+from collections import OrderedDict, defaultdict
 
 from machine_dialect.mir.basic_block import CFG, BasicBlock
 from machine_dialect.mir.mir_function import MIRFunction
-from machine_dialect.mir.mir_instructions import Copy, LoadVar, Phi, StoreVar
+from machine_dialect.mir.mir_instructions import Copy, LoadConst, LoadVar, MIRInstruction, Phi, StoreVar
 from machine_dialect.mir.mir_values import Variable
 
 
@@ -239,12 +239,25 @@ class SSAConstructor:
                         self.variable_stacks[var].append(phi.dest)
                     break
 
+        # Rebuild instruction list, preserving LoadConst and other non-Variable instructions
+        new_instructions: list[MIRInstruction] = []
+        temp_definitions = OrderedDict()  # Track LoadConst for ordering
+
         # Rename uses and definitions
         for inst in block.instructions:
             if isinstance(inst, Phi):
-                continue  # Already handled
+                continue  # Already handled in phi_nodes list
 
-            # Rename uses
+            # Special handling for LoadConst - preserve as-is
+            if isinstance(inst, LoadConst):
+                # LoadConst defines a Temp, not a Variable, so don't rename
+                # Just preserve the instruction
+                new_instructions.append(inst)
+                if hasattr(inst.dest, "name"):
+                    temp_definitions[inst.dest] = inst
+                continue
+
+            # Rename uses for Variable-based instructions
             if isinstance(inst, StoreVar):
                 # Special case: StoreVar uses source, defines var
                 if isinstance(inst.source, Variable):
@@ -271,6 +284,11 @@ class SSAConstructor:
                         inst.dest = new_var
                     # Push new version
                     self.variable_stacks[def_val].append(new_var)
+
+            new_instructions.append(inst)
+
+        # Replace the instruction list with the rebuilt one
+        block.instructions = new_instructions
 
         # Update phi nodes in successors
         for succ in block.successors:

@@ -468,7 +468,7 @@ class VMBytecodeSerializer:
 
             # Remap this chunk's bytecode
             try:
-                remapped = remapper.remap_chunk(i, chunk.bytecode)
+                remapped = remapper.remap_chunk(i, bytes(chunk.bytecode))
                 all_bytecode.extend(remapped)
             except RemappingError as e:
                 # Add module context to error
@@ -547,12 +547,12 @@ class VMBytecodeSerializer:
             # Convert chunk index to bytecode offset (instruction index)
             bytecode_offset = chunk_offsets.get(chunk_idx, 0)
             # Convert byte offset to instruction offset
-            inst_offset = VMBytecodeSerializer.count_instructions(all_bytecode[:bytecode_offset])
+            inst_offset = VMBytecodeSerializer.count_instructions(bytes(all_bytecode[:bytecode_offset]))
             stream.write(struct.pack("<I", inst_offset))
 
         # Write instructions
         # The Rust loader expects the number of instructions, not bytes
-        instruction_count = VMBytecodeSerializer.count_instructions(all_bytecode)
+        instruction_count = VMBytecodeSerializer.count_instructions(bytes(all_bytecode))
         stream.write(struct.pack("<I", instruction_count))
         stream.write(all_bytecode)
 

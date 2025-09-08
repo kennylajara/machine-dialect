@@ -73,12 +73,18 @@ class RegisterAllocator:
                 # Allocate for definitions
                 for value in inst.get_defs():
                     if value not in allocation.value_to_register:
+                        # Skip global variables (Variables with version=0)
+                        if RegisterBytecodeGenerator.is_global_variable(value):
+                            continue  # Skip global variables
                         self.allocate_register(value, allocation)
 
                 # Ensure uses are allocated
                 for value in inst.get_uses():
                     if value not in allocation.value_to_register:
                         if not isinstance(value, Constant):
+                            # Skip global variables (Variables with version=0)
+                            if RegisterBytecodeGenerator.is_global_variable(value):
+                                continue  # Skip global variables
                             self.allocate_register(value, allocation)
 
         return allocation
@@ -126,7 +132,8 @@ class RegisterBytecodeGenerator:
         self.pending_jumps: list[tuple[int, str, int]] = []
         self.debug = debug
 
-    def is_ssa_variable(self, var: MIRValue) -> bool:
+    @staticmethod
+    def is_ssa_variable(var: MIRValue) -> bool:
         """Check if a variable is an SSA-renamed variable.
 
         SSA variables have version > 0, indicating they've been
@@ -140,6 +147,22 @@ class RegisterBytecodeGenerator:
             True if the variable is an SSA-renamed variable.
         """
         return isinstance(var, Variable) and var.version > 0
+
+    @staticmethod
+    def is_global_variable(var: MIRValue) -> bool:
+        """Check if a variable is a global variable.
+
+        Global variables are Variables with version 0, which means
+        they haven't been renamed during SSA construction and should
+        be accessed by name from the global scope.
+
+        Args:
+            var: The MIR value to check.
+
+        Returns:
+            True if the variable is a global variable.
+        """
+        return isinstance(var, Variable) and var.version == 0
 
     def generate(self, mir_module: MIRModule) -> BytecodeModule:
         """Generate bytecode module from MIR.
@@ -682,7 +705,13 @@ class RegisterBytecodeGenerator:
             return reg
 
         assert self.allocation is not None
-        return self.allocation.value_to_register.get(value, 0)
+        if value not in self.allocation.value_to_register:
+            # Check if this is an SSA variable that should have been allocated
+            if self.is_ssa_variable(value) and isinstance(value, Variable):
+                raise RuntimeError(f"SSA variable {value.name} (version {value.version}) not allocated to register")
+            # For non-SSA variables or other cases, return 0 as default
+            return 0
+        return self.allocation.value_to_register[value]
 
     def add_constant(self, value: Any) -> int:
         """Add a constant to the pool.

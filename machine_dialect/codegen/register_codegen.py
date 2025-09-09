@@ -276,8 +276,8 @@ class RegisterBytecodeGenerator:
             self.block_offsets[block.label] = len(self.instruction_offsets)
             # Generate instructions
             for inst in block.instructions:
-                # Track instruction start position
-                self.instruction_offsets.append(len(self.bytecode))
+                # Note: Each generate_* method is responsible for tracking
+                # the VM instructions it generates using track_vm_instruction()
                 self.generate_instruction(inst)
 
         # Resolve pending jumps
@@ -342,6 +342,7 @@ class RegisterBytecodeGenerator:
         else:
             const_value = inst.constant
         const_idx = self.add_constant(const_value)
+        self.track_vm_instruction()
         self.emit_opcode(Opcode.LOAD_CONST_R)
         self.emit_u8(dst)
         self.emit_u16(const_idx)
@@ -372,6 +373,7 @@ class RegisterBytecodeGenerator:
             # First check if the ScopedVariable itself is allocated
             if self.allocation and inst.source in self.allocation.value_to_register:
                 src = self.allocation.value_to_register[inst.source]
+                self.track_vm_instruction()
                 self.emit_opcode(Opcode.MOVE_R)
                 self.emit_u8(dst)
                 self.emit_u8(src)
@@ -384,6 +386,7 @@ class RegisterBytecodeGenerator:
                     if param.name == inst.source.name:
                         if self.allocation and param in self.allocation.value_to_register:
                             src = self.allocation.value_to_register[param]
+                            self.track_vm_instruction()
                             self.emit_opcode(Opcode.MOVE_R)
                             self.emit_u8(dst)
                             self.emit_u8(src)
@@ -395,6 +398,7 @@ class RegisterBytecodeGenerator:
         if self.allocation and inst.source in self.allocation.value_to_register:
             # This is a local variable, parameter, or SSA variable in a register
             src = self.allocation.value_to_register[inst.source]
+            self.track_vm_instruction()
             self.emit_opcode(Opcode.MOVE_R)
             self.emit_u8(dst)
             self.emit_u8(src)
@@ -408,6 +412,7 @@ class RegisterBytecodeGenerator:
                         # This is a parameter - find its register
                         if self.allocation and param in self.allocation.value_to_register:
                             src = self.allocation.value_to_register[param]
+                            self.track_vm_instruction()
                             self.emit_opcode(Opcode.MOVE_R)
                             self.emit_u8(dst)
                             self.emit_u8(src)
@@ -424,6 +429,7 @@ class RegisterBytecodeGenerator:
 
             # This is a true global variable that needs to be loaded by name
             name_idx = self.add_string_constant(inst.source.name)
+            self.track_vm_instruction()
             self.emit_opcode(Opcode.LOAD_GLOBAL_R)
             self.emit_u8(dst)
             self.emit_u16(name_idx)
@@ -432,6 +438,7 @@ class RegisterBytecodeGenerator:
         else:
             # Handle other types (constants, etc.)
             src = self.get_register(inst.source)
+            self.track_vm_instruction()
             self.emit_opcode(Opcode.MOVE_R)
             self.emit_u8(dst)
             self.emit_u8(src)
@@ -462,6 +469,7 @@ class RegisterBytecodeGenerator:
         if self.allocation and inst.var in self.allocation.value_to_register:
             # This is a function parameter, local variable, or SSA variable in a register
             src = self.allocation.value_to_register[inst.var]
+            self.track_vm_instruction()
             self.emit_opcode(Opcode.MOVE_R)
             self.emit_u8(dst)
             self.emit_u8(src)
@@ -487,6 +495,7 @@ class RegisterBytecodeGenerator:
                             src = self.allocation.value_to_register[param]
                             if self.debug:
                                 print(f"  Found parameter {inst.var.name} in register {src}!")
+                            self.track_vm_instruction()
                             self.emit_opcode(Opcode.MOVE_R)
                             self.emit_u8(dst)
                             self.emit_u8(src)
@@ -501,6 +510,7 @@ class RegisterBytecodeGenerator:
 
             # This is a true global variable that needs to be loaded by name
             name_idx = self.add_string_constant(inst.var.name)
+            self.track_vm_instruction()
             self.emit_opcode(Opcode.LOAD_GLOBAL_R)
             self.emit_u8(dst)
             self.emit_u16(name_idx)
@@ -520,6 +530,7 @@ class RegisterBytecodeGenerator:
         if self.allocation and inst.var in self.allocation.value_to_register:
             # This is an SSA or local variable - use register move
             dst = self.allocation.value_to_register[inst.var]
+            self.track_vm_instruction()
             self.emit_opcode(Opcode.MOVE_R)
             self.emit_u8(dst)
             self.emit_u8(src)
@@ -532,6 +543,7 @@ class RegisterBytecodeGenerator:
 
             # This is a true global variable
             name_idx = self.add_string_constant(inst.var.name if hasattr(inst.var, "name") else str(inst.var))
+            self.track_vm_instruction()
             self.emit_opcode(Opcode.STORE_GLOBAL_R)
             self.emit_u8(src)
             self.emit_u16(name_idx)
@@ -545,6 +557,7 @@ class RegisterBytecodeGenerator:
             left = self.get_register(inst.left)
             const_val = inst.left.value if hasattr(inst.left, "value") else inst.left
             const_idx = self.add_constant(const_val)
+            self.track_vm_instruction()
             self.emit_opcode(Opcode.LOAD_CONST_R)
             self.emit_u8(left)
             self.emit_u16(const_idx)
@@ -555,6 +568,7 @@ class RegisterBytecodeGenerator:
             right = self.get_register(inst.right)
             const_val = inst.right.value if hasattr(inst.right, "value") else inst.right
             const_idx = self.add_constant(const_val)
+            self.track_vm_instruction()
             self.emit_opcode(Opcode.LOAD_CONST_R)
             self.emit_u8(right)
             self.emit_u16(const_idx)
@@ -590,6 +604,7 @@ class RegisterBytecodeGenerator:
         }
 
         if opcode := op_map.get(inst.op):
+            self.track_vm_instruction()
             self.emit_opcode(opcode)
             self.emit_u8(dst)
             self.emit_u8(left)
@@ -605,8 +620,10 @@ class RegisterBytecodeGenerator:
         src = self.get_register(inst.operand)
 
         if inst.op == "-":
+            self.track_vm_instruction()
             self.emit_opcode(Opcode.NEG_R)
         elif inst.op == "not":
+            self.track_vm_instruction()
             self.emit_opcode(Opcode.NOT_R)
         else:
             return
@@ -616,6 +633,7 @@ class RegisterBytecodeGenerator:
 
     def generate_jump(self, inst: Jump) -> None:
         """Generate JumpR instruction."""
+        self.track_vm_instruction()
         self.emit_opcode(Opcode.JUMP_R)
         # Record position for later resolution (byte pos, target, current instruction index)
         self.pending_jumps.append((len(self.bytecode), inst.label, len(self.instruction_offsets) - 1))
@@ -626,6 +644,7 @@ class RegisterBytecodeGenerator:
         cond = self.get_register(inst.condition)
 
         # Generate jump to true target
+        self.track_vm_instruction()
         self.emit_opcode(Opcode.JUMP_IF_R)
         self.emit_u8(cond)
         # Record position for later resolution (byte pos, target, current instruction index)
@@ -637,7 +656,7 @@ class RegisterBytecodeGenerator:
         # (this executes if the condition was false)
         if inst.false_label:
             # This will be a new instruction
-            self.instruction_offsets.append(len(self.bytecode))
+            self.track_vm_instruction()
             self.emit_opcode(Opcode.JUMP_R)
             current_inst_idx = len(self.instruction_offsets) - 1
             self.pending_jumps.append((len(self.bytecode), inst.false_label, current_inst_idx))
@@ -664,6 +683,7 @@ class RegisterBytecodeGenerator:
             if self.debug:
                 print(f"  DEBUG: Loading function name '{inst.func}' as constant into r{func_reg}")
             const_idx = self.add_constant(inst.func)
+            self.track_vm_instruction()
             self.emit_opcode(Opcode.LOAD_CONST_R)
             self.emit_u8(func_reg)
             self.emit_u16(const_idx)
@@ -680,6 +700,7 @@ class RegisterBytecodeGenerator:
             if self.debug:
                 print(f"  DEBUG: Loading FunctionRef '{inst.func.name}' as constant into r{func_reg}")
             const_idx = self.add_constant(inst.func.name)
+            self.track_vm_instruction()
             self.emit_opcode(Opcode.LOAD_CONST_R)
             self.emit_u8(func_reg)
             self.emit_u16(const_idx)
@@ -697,6 +718,7 @@ class RegisterBytecodeGenerator:
                 arg_reg = self.get_register(arg)
                 const_val = arg.value if hasattr(arg, "value") else arg
                 const_idx = self.add_constant(const_val)
+                self.track_vm_instruction()
                 self.emit_opcode(Opcode.LOAD_CONST_R)
                 self.emit_u8(arg_reg)
                 self.emit_u16(const_idx)
@@ -708,6 +730,7 @@ class RegisterBytecodeGenerator:
             print(f"  Function register: r{func}, dest register: r{dst}")
             print(f"  Argument registers: {[f'r{a}' for a in args]}")
 
+        self.track_vm_instruction()
         self.emit_opcode(Opcode.CALL_R)
         self.emit_u8(func)
         self.emit_u8(dst)
@@ -740,11 +763,13 @@ class RegisterBytecodeGenerator:
                 const_idx = self.add_constant(const_value)
                 if self.debug:
                     print(f"  -> Loading constant {const_value} into r0 for return")
+                self.track_vm_instruction()
                 self.emit_opcode(Opcode.LOAD_CONST_R)
                 self.emit_u8(0)  # Use register 0 for return
                 self.emit_u16(const_idx)
 
                 # Now return from register 0
+                self.track_vm_instruction()
                 self.emit_opcode(Opcode.RETURN_R)
                 self.emit_u8(1)  # Has return value
                 self.emit_u8(0)  # Return from register 0
@@ -753,12 +778,14 @@ class RegisterBytecodeGenerator:
                 reg = self.get_register(inst.value)
                 if self.debug:
                     print(f"  -> Returning from register r{reg}")
+                self.track_vm_instruction()
                 self.emit_opcode(Opcode.RETURN_R)
                 self.emit_u8(1)  # Has return value
                 self.emit_u8(reg)
         else:
             if self.debug:
                 print("  -> Returning with no value")
+            self.track_vm_instruction()
             self.emit_opcode(Opcode.RETURN_R)
             self.emit_u8(0)  # No return value
 
@@ -772,6 +799,7 @@ class RegisterBytecodeGenerator:
             block_id = 0
             sources.append((src, block_id))
 
+        self.track_vm_instruction()
         self.emit_opcode(Opcode.PHI_R)
         self.emit_u8(dst)
         self.emit_u8(len(sources))
@@ -785,6 +813,7 @@ class RegisterBytecodeGenerator:
         msg = inst.message or "Assertion failed"
         msg_idx = self.add_string_constant(msg)
 
+        self.track_vm_instruction()
         self.emit_opcode(Opcode.ASSERT_R)
         self.emit_u8(reg)
         self.emit_u8(0)  # AssertType::True
@@ -794,8 +823,10 @@ class RegisterBytecodeGenerator:
         """Generate ScopeEnterR/ScopeExitR instruction."""
         scope_id = inst.scope_id  # type: ignore[attr-defined]
         if inst.action == "enter":  # type: ignore[attr-defined]
+            self.track_vm_instruction()
             self.emit_opcode(Opcode.SCOPE_ENTER_R)
         else:
+            self.track_vm_instruction()
             self.emit_opcode(Opcode.SCOPE_EXIT_R)
 
         self.emit_u16(scope_id)
@@ -804,6 +835,7 @@ class RegisterBytecodeGenerator:
         """Generate DebugPrint instruction."""
         src = self.get_register(inst.value)
 
+        self.track_vm_instruction()
         self.emit_opcode(Opcode.DEBUG_PRINT)
         self.emit_u8(src)
 
@@ -861,9 +893,8 @@ class RegisterBytecodeGenerator:
                         # Found the parameter, look it up in allocation
                         if param in self.allocation.value_to_register:
                             if self.debug:
-                                print(
-                                    f"  DEBUG: Found parameter {value.name} by name -> r{self.allocation.value_to_register[param]}"
-                                )
+                                reg = self.allocation.value_to_register[param]
+                                print(f"  DEBUG: Found parameter {value.name} by name -> r{reg}")
                             return self.allocation.value_to_register[param]
                         else:
                             raise RuntimeError(f"Parameter {value.name} not allocated to register")
@@ -939,6 +970,14 @@ class RegisterBytecodeGenerator:
         idx = len(self.constants)
         self.constants.append((ConstantTag.STRING, value))
         return idx
+
+    def track_vm_instruction(self) -> None:
+        """Track the start of a new VM instruction.
+
+        This must be called before emitting each VM instruction to maintain
+        proper instruction offset tracking for jump resolution.
+        """
+        self.instruction_offsets.append(len(self.bytecode))
 
     def emit_opcode(self, opcode: int) -> None:
         """Emit an opcode."""

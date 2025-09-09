@@ -283,9 +283,10 @@ class HIRToMIRLowering:
 
         # Initialize parameter variables
         self.variable_map.clear()
-        for var in params:
-            self.variable_map[var.name] = var
-            mir_func.add_local(var)
+        param_var: Variable | ScopedVariable
+        for param_var in params:
+            self.variable_map[param_var.name] = param_var
+            mir_func.add_local(param_var)
 
         # Lower function body
         last_stmt = None

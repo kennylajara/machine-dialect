@@ -341,8 +341,10 @@ impl VM {
                         // Save the destination register for the return value
                         frame.return_dst = Some(dst);
 
-                        // First: Save all registers that will be overwritten (r0-r15)
-                        for i in 0..args.len().min(16) {
+                        // Save ALL registers that might be used by the called function
+                        // We need to save all registers because recursive calls can use many registers
+                        // TODO: Optimize this by only saving registers actually used by the target function
+                        for i in 0..64 {  // Save up to 64 registers (should be enough for most functions)
                             frame.saved_registers.push((i as u8, self.registers.get(i as u8).clone()));
                         }
 

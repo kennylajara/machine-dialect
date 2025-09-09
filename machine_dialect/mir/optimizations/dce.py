@@ -68,6 +68,10 @@ class DeadCodeElimination(OptimizationPass):
         # Phase 2: Remove dead stores
         dead_stores = self._find_dead_stores(function, use_def_chains)
         for block, inst in dead_stores:
+            # When removing a StoreVar, replace uses of the variable with the source value
+            if isinstance(inst, StoreVar):
+                # Replace all uses of the variable with the source value
+                transformer.replace_uses(inst.var, inst.source)
             transformer.remove_instruction(block, inst)
             self.stats["dead_stores_removed"] = self.stats.get("dead_stores_removed", 0) + 1
 

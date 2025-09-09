@@ -130,7 +130,7 @@ INSTRUCTION_FORMATS = {
     0x1A: InstructionFormat(0x1A, "RETURN_R", -1, False, ""),  # Variable size
     # MIR Support
     0x1B: InstructionFormat(0x1B, "PHI_R", -1, False, ""),  # Variable size
-    0x1C: InstructionFormat(0x1C, "ASSERT_R", 4, True, "BH"),  # reg + msg_idx
+    0x1C: InstructionFormat(0x1C, "ASSERT_R", 5, True, "BBH"),  # reg + assert_type + msg_idx
     0x1D: InstructionFormat(0x1D, "SCOPE_ENTER_R", 3, False, "H"),
     0x1E: InstructionFormat(0x1E, "SCOPE_EXIT_R", 3, False, "H"),
     # String operations
@@ -361,19 +361,20 @@ class BytecodeRemapper:
             return bytes([reg]) + struct.pack("<H", new_idx)
 
         elif opcode == Opcode.ASSERT_R:
-            # Format: cond_reg(u8) + msg_idx(u16)
+            # Format: cond_reg(u8) + assert_type(u8) + msg_idx(u16)
             # Message index references string constant for assertion message
-            if len(operands) < 3:
+            if len(operands) < 4:
                 raise InvalidBytecodeError("ASSERT_R operands too short", offset=offset, chunk_idx=chunk_idx)
             cond_reg = operands[0]
-            old_idx = struct.unpack("<H", operands[1:3])[0]
+            assert_type = operands[1]
+            old_idx = struct.unpack("<H", operands[2:4])[0]
             new_idx = chunk_map.get(old_idx, old_idx)
 
             # Validate the message index is valid
             if new_idx >= len(self.mapping.global_constants):
                 raise ConstantIndexError(new_idx, len(self.mapping.global_constants) - 1, chunk_idx, offset)
 
-            return bytes([cond_reg]) + struct.pack("<H", new_idx)
+            return bytes([cond_reg, assert_type]) + struct.pack("<H", new_idx)
 
         # Other opcodes don't reference constants
         return operands

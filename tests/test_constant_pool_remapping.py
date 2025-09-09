@@ -222,13 +222,14 @@ class TestBytecodeRemapping:
         mapping = build_test_mapping()
         remapper = BytecodeRemapper(mapping)
 
-        # Create bytecode with ASSERT_R
+        # Create bytecode with ASSERT_R (5 bytes: opcode, reg, assert_type, msg_idx)
         bytecode = bytearray(
             [
                 Opcode.ASSERT_R,
-                0,
-                2,
-                0,  # Assert reg[0], msg at const[2]
+                0,  # condition register
+                0,  # assert_type (0 = AssertType::True)
+                2,  # msg_idx low byte
+                0,  # msg_idx high byte - Assert reg[0], msg at const[2]
             ]
         )
 
@@ -243,8 +244,8 @@ class TestBytecodeRemapping:
 
         remapped = remapper.remap_chunk(0, bytecode)
 
-        # Verify message index unchanged (already correct)
-        assert struct.unpack("<H", remapped[2:4])[0] == 2
+        # Verify message index unchanged (already correct) - now at bytes 3:5 due to assert_type
+        assert struct.unpack("<H", remapped[3:5])[0] == 2
 
     def test_global_var_remapping(self) -> None:
         """Test LOAD_GLOBAL_R/STORE_GLOBAL_R remapping."""
@@ -323,13 +324,14 @@ class TestBytecodeRemapping:
 
         remapper = BytecodeRemapper(mapping)
 
-        # ASSERT_R with invalid message index
+        # ASSERT_R with invalid message index (5 bytes format)
         bytecode = bytearray(
             [
                 Opcode.ASSERT_R,
-                0,
-                5,
-                0,  # msg_idx=5 but only 1 constant exists
+                0,  # condition register
+                0,  # assert_type
+                5,  # msg_idx low byte
+                0,  # msg_idx high byte - msg_idx=5 but only 1 constant exists
             ]
         )
 

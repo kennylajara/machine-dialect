@@ -23,8 +23,9 @@ class CodeGenerationPhase:
             Bytecode module or None if generation failed.
         """
         try:
-            # Create bytecode generator
-            generator = RegisterBytecodeGenerator()
+            # Create bytecode generator with debug if verbose mode is on
+            debug = context.config.verbose if context.config else False
+            generator = RegisterBytecodeGenerator(debug=debug)
 
             # Generate bytecode from MIR
             bytecode_module = generator.generate(mir_module)

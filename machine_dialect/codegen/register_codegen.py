@@ -51,6 +51,33 @@ class RegisterAllocation:
 class RegisterAllocator:
     """Allocates registers for MIR values."""
 
+    def _is_global_variable(self, var: MIRValue, func: MIRFunction) -> bool:
+        """Check if a variable is a global variable.
+
+        Global variables are Variables with version 0 that are NOT function parameters
+        or function-local variables. Function parameters and locals are allocated to registers.
+
+        Args:
+            var: The MIR value to check.
+            func: The current function.
+
+        Returns:
+            True if the variable is a global variable.
+        """
+        if not isinstance(var, Variable) or var.version != 0:
+            return False
+
+        # Check if it's a function parameter by name (not object identity)
+        for param in func.params:
+            if param.name == var.name:
+                return False
+
+        # Check if it's a function-local variable by name
+        if var.name in func.locals:
+            return False
+
+        return True
+
     def allocate_function(self, func: MIRFunction) -> RegisterAllocation:
         """Allocate registers for a function.
 
@@ -73,8 +100,8 @@ class RegisterAllocator:
                 # Allocate for definitions
                 for value in inst.get_defs():
                     if value not in allocation.value_to_register:
-                        # Skip global variables (Variables with version=0)
-                        if RegisterBytecodeGenerator.is_global_variable(value):
+                        # Skip global variables (Variables with version=0 that are not parameters)
+                        if self._is_global_variable(value, func):
                             continue  # Skip global variables
                         self.allocate_register(value, allocation)
 
@@ -82,8 +109,8 @@ class RegisterAllocator:
                 for value in inst.get_uses():
                     if value not in allocation.value_to_register:
                         if not isinstance(value, Constant):
-                            # Skip global variables (Variables with version=0)
-                            if RegisterBytecodeGenerator.is_global_variable(value):
+                            # Skip global variables (Variables with version=0 that are not parameters)
+                            if self._is_global_variable(value, func):
                                 continue  # Skip global variables
                             self.allocate_register(value, allocation)
 
@@ -131,6 +158,7 @@ class RegisterBytecodeGenerator:
         # Pending jumps to resolve: (byte_pos, target_label, source_inst_idx)
         self.pending_jumps: list[tuple[int, str, int]] = []
         self.debug = debug
+        self.current_function: MIRFunction | None = None
 
     @staticmethod
     def is_ssa_variable(var: MIRValue) -> bool:
@@ -148,13 +176,11 @@ class RegisterBytecodeGenerator:
         """
         return isinstance(var, Variable) and var.version > 0
 
-    @staticmethod
-    def is_global_variable(var: MIRValue) -> bool:
+    def is_global_variable(self, var: MIRValue) -> bool:
         """Check if a variable is a global variable.
 
-        Global variables are Variables with version 0, which means
-        they haven't been renamed during SSA construction and should
-        be accessed by name from the global scope.
+        Global variables are Variables with version 0 that are NOT function parameters
+        or function-local variables. Function parameters and locals are allocated to registers.
 
         Args:
             var: The MIR value to check.
@@ -162,7 +188,20 @@ class RegisterBytecodeGenerator:
         Returns:
             True if the variable is a global variable.
         """
-        return isinstance(var, Variable) and var.version == 0
+        if not isinstance(var, Variable) or var.version != 0:
+            return False
+
+        # Check if it's a function parameter by name (not object identity)
+        if self.current_function:
+            for param in self.current_function.params:
+                if param.name == var.name:
+                    return False
+
+            # Check if it's a function-local variable by name
+            if var.name in self.current_function.locals:
+                return False
+
+        return True
 
     def generate(self, mir_module: MIRModule) -> BytecodeModule:
         """Generate bytecode module from MIR.
@@ -203,6 +242,7 @@ class RegisterBytecodeGenerator:
         self.block_offsets = {}  # Will store instruction indices
         self.instruction_offsets = []  # Track byte offset of each instruction
         self.pending_jumps = []
+        self.current_function = func
 
         # Allocate registers
         self.allocation = self.allocator.allocate_function(func)
@@ -360,6 +400,9 @@ class RegisterBytecodeGenerator:
                 print(f"  in allocation? {inst.var in self.allocation.value_to_register}")
                 if inst.var in self.allocation.value_to_register:
                     print(f"  allocated to register {self.allocation.value_to_register[inst.var]}")
+            if self.current_function:
+                print(f"  function params: {[p.name for p in self.current_function.params]}")
+                print(f"  is param? {inst.var in self.current_function.params}")
 
         # Check if the variable is already in a register (function parameter, local var, or SSA var)
         if self.allocation and inst.var in self.allocation.value_to_register:
@@ -372,6 +415,35 @@ class RegisterBytecodeGenerator:
             # Check if this is an SSA variable that should have been allocated
             if self.is_ssa_variable(inst.var):
                 raise RuntimeError(f"SSA variable {inst.var} (version {inst.var.version}) not allocated to register")
+
+            # Check if this variable is a function parameter by name
+            # Parameters have version 0 but should be in registers
+            is_param = False
+            if self.current_function and self.allocation:
+                if self.debug:
+                    print(f"  Checking if {inst.var.name} is a parameter...")
+                    print(f"  Allocation keys: {list(self.allocation.value_to_register.keys())}")
+                for param in self.current_function.params:
+                    if self.debug:
+                        print(f"    Comparing {param.name} == {inst.var.name}: {param.name == inst.var.name}")
+                    if param.name == inst.var.name:
+                        is_param = True
+                        # Try to find the parameter's register
+                        if param in self.allocation.value_to_register:
+                            src = self.allocation.value_to_register[param]
+                            if self.debug:
+                                print(f"  Found parameter {inst.var.name} in register {src}!")
+                            self.emit_opcode(Opcode.MOVE_R)
+                            self.emit_u8(dst)
+                            self.emit_u8(src)
+                            return
+                        else:
+                            if self.debug:
+                                print(f"  Parameter {inst.var.name} not in allocation!")
+                            raise RuntimeError(f"Function parameter {inst.var.name} not allocated to register")
+
+            if is_param:
+                raise RuntimeError(f"Function parameter {inst.var.name} handling failed")
 
             # This is a true global variable that needs to be loaded by name
             name_idx = self.add_string_constant(inst.var.name)
@@ -591,12 +663,23 @@ class RegisterBytecodeGenerator:
 
     def generate_return(self, inst: Return) -> None:
         """Generate ReturnR instruction."""
+        if self.debug:
+            print(f"DEBUG Return: value={inst.value}")
+            if inst.value:
+                print(f"  value type: {type(inst.value)}")
+                if hasattr(inst.value, "name"):
+                    print(f"  value name: {inst.value.name}")
+                if hasattr(inst.value, "version"):
+                    print(f"  value version: {inst.value.version}")
+
         if inst.value:
             # If the value is a constant, we need to load it first
             if isinstance(inst.value, Constant):
                 # Load constant into register 0 (return register)
                 const_value = inst.value.value if hasattr(inst.value, "value") else inst.value
                 const_idx = self.add_constant(const_value)
+                if self.debug:
+                    print(f"  -> Loading constant {const_value} into r0 for return")
                 self.emit_opcode(Opcode.LOAD_CONST_R)
                 self.emit_u8(0)  # Use register 0 for return
                 self.emit_u16(const_idx)
@@ -607,10 +690,15 @@ class RegisterBytecodeGenerator:
                 self.emit_u8(0)  # Return from register 0
             else:
                 # Value is already in a register
+                reg = self.get_register(inst.value)
+                if self.debug:
+                    print(f"  -> Returning from register r{reg}")
                 self.emit_opcode(Opcode.RETURN_R)
                 self.emit_u8(1)  # Has return value
-                self.emit_u8(self.get_register(inst.value))
+                self.emit_u8(reg)
         else:
+            if self.debug:
+                print("  -> Returning with no value")
             self.emit_opcode(Opcode.RETURN_R)
             self.emit_u8(0)  # No return value
 

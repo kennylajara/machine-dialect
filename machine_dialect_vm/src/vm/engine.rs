@@ -110,6 +110,11 @@ impl VM {
                 let value = self.constants.get(const_idx)
                     .ok_or(RuntimeError::InvalidConstant(const_idx))?
                     .to_value();
+
+                if self.debug_mode {
+                    println!("  LoadConstR: r{} = constants[{}] = {:?}", dst, const_idx, value);
+                }
+
                 self.registers.set(dst, value);
             }
 
@@ -247,7 +252,17 @@ impl VM {
             Instruction::LteR { dst, left, right } => {
                 let lval = self.registers.get(left);
                 let rval = self.registers.get(right);
+
+                if self.debug_mode {
+                    println!("  LteR: r{} = r{} ({:?}) <= r{} ({:?})", dst, left, lval, right, rval);
+                }
+
                 let result = ArithmeticOps::lte(lval, rval)?;
+
+                if self.debug_mode {
+                    println!("    Result: {:?}", result);
+                }
+
                 self.registers.set(dst, Value::Bool(result));
             }
 

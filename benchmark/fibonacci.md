@@ -4,9 +4,8 @@
 <summary>Calculate the nth Fibonacci number recursively</summary>
 
 > If `n` is less than or equal to _1_:
->
 > > Give back `n`.
-> > Else:
+> Else:
 > > Define `n_minus_1` as Whole Number. \
 > > Set `n_minus_1` to `n` - _1_. \
 > > Define `n_minus_2` as Whole Number. \
@@ -21,11 +20,11 @@
 
 </details>
 
-#### Inputs
+#### Inputs:
 
 - `n` **as** Whole Number (required)
 
-#### Outputs
+#### Outputs:
 
 - `result`
 

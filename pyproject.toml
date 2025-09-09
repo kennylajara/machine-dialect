@@ -99,7 +99,13 @@ branch = true
 omit = [
     "*/tests/*",
     "*/test_*.py",
+    "**/tests/*",
+    "**/test_*.py",
+    "machine_dialect/*/tests/*",
+    "machine_dialect/**/tests/*",
     "*/__main__.py",
+    "*/benchmarks/*",
+    "**/benchmarks/*",
 ]
 
 [tool.coverage.report]
@@ -128,7 +134,7 @@ test-watch = "python -m pytest-watch"
 # Coverage commands
 "cov:report" = "python -m pytest --cov=machine_dialect --cov-report=term-missing:skip-covered --cov-report=html --cov-report=xml -q && echo '\n📊 Coverage report generated in htmlcov/index.html'"
 "cov:html" = "python -m pytest --cov=machine_dialect --cov-report=html -q && python -m webbrowser htmlcov/index.html"
-"cov:low" = "python -m pytest --cov=machine_dialect --cov-report=term 2>/dev/null | grep -E '^machine_dialect.*%.*$' | awk '{print $NF, $1}' | sort -t% -k1 -n | head -20"
+"cov:low" = "python -m pytest --cov=machine_dialect --cov-report= -q 2>/dev/null && coverage report --omit='*/tests/*,**/tests/*,*/test_*.py,**/test_*.py,*/__main__.py,*/benchmarks/*,**/benchmarks/*' --sort=cover | grep -E '^machine_dialect' | grep -v '/tests/' | head -20"
 
 # Type checking
 typecheck = "mypy machine_dialect --strict"

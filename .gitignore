@@ -323,3 +323,11 @@ http-client.private.env.json
 BUSINESS_ROADMAP.md
 TECH_SPEC_RUST_VM.md
 docs/prd/*
+
+# Benchmark generated files
+benchmark/fib.*
+benchmark/fib_*
+benchmark/Fib.*
+benchmark/*.class
+benchmark/*.mdbc
+benchmark/benchmark_results.json

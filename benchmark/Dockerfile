@@ -1,5 +1,5 @@
 # Multi-stage build for optimized image size
-FROM alpine:3.19 AS builder
+FROM alpine:3.20 AS builder
 
 # Build stage for compiled language toolchains
 RUN apk add --no-cache curl wget tar xz
@@ -14,12 +14,12 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | \
     sh -s -- -y --profile minimal --default-toolchain stable
 
 # Runtime stage
-FROM alpine:3.19
+FROM alpine:3.20
 
 # Install runtime dependencies
 RUN apk add --no-cache \
     # System essentials
-    bash curl ca-certificates \
+    bash curl ca-certificates coreutils bc \
     # C/C++ toolchain
     gcc g++ musl-dev make \
     # Interpreted languages
@@ -27,32 +27,50 @@ RUN apk add --no-cache \
     python3 py3-pip py3-setuptools \
     ruby ruby-dev \
     perl perl-dev \
-    # Java runtime
-    openjdk17-jre-headless \
+    # Java JDK (includes compiler and runtime)
+    openjdk17 \
     # .NET dependencies
     libgcc libssl3 libstdc++ icu-libs
 
-# Install .NET Runtime
+# Install .NET SDK (not just runtime)
 RUN wget https://dot.net/v1/dotnet-install.sh && \
     chmod +x dotnet-install.sh && \
-    ./dotnet-install.sh --channel 8.0 --runtime dotnet \
+    ./dotnet-install.sh --channel 8.0 \
         --install-dir /usr/share/dotnet && \
     rm dotnet-install.sh && \
     ln -s /usr/share/dotnet/dotnet /usr/local/bin/dotnet
 
 # Copy compiled language binaries from builder
 COPY --from=builder /usr/local/go /usr/local/go
-COPY --from=builder /root/.cargo/bin/rustc /usr/local/bin/rustc
-COPY --from=builder /root/.rustup/toolchains/stable-*/lib /usr/local/lib/rust
+# Copy entire Rust toolchain
+COPY --from=builder /root/.cargo /root/.cargo
+COPY --from=builder /root/.rustup /root/.rustup
 
-ENV PATH="/usr/local/go/bin:${PATH}"
+ENV PATH="/usr/local/go/bin:/root/.cargo/bin:${PATH}"
+ENV RUSTUP_HOME=/root/.rustup
+ENV CARGO_HOME=/root/.cargo
 
-# Install Machine Dialect (placeholder - will need to be updated with actual package)
-# For now, we'll copy the local implementation into the container
+# Ensure Rust toolchain is properly configured
+RUN /root/.cargo/bin/rustup default stable || true
+
+# Install Machine Dialect and build Rust VM
 WORKDIR /machine_dialect
 COPY ../machine_dialect /machine_dialect/machine_dialect
 COPY ../pyproject.toml /machine_dialect/
-RUN pip3 install --no-cache-dir -e /machine_dialect
+COPY ../machine_dialect_vm /machine_dialect/machine_dialect_vm
+COPY ../build_vm.sh /machine_dialect/
+
+# Install patchelf (required by maturin on Linux) and maturin for building Rust Python extensions
+RUN apk add --no-cache patchelf && \
+    pip3 install --no-cache-dir --break-system-packages maturin
+
+# Build the Rust VM
+RUN cd /machine_dialect/machine_dialect_vm && \
+    maturin build --release --out /tmp && \
+    pip3 install --no-cache-dir --break-system-packages /tmp/machine_dialect_vm*.whl
+
+# Install Machine Dialect
+RUN pip3 install --no-cache-dir --break-system-packages -e /machine_dialect
 
 WORKDIR /workspace
 

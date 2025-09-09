@@ -30,3 +30,6 @@ echo "✅ Build complete!"
 echo ""
 echo "You can now import the VM in Python:"
 echo "  import machine_dialect_vm"
+
+# Change to rood directory
+cd ..

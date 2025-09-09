@@ -9,9 +9,9 @@ from machine_dialect.mir.reporting.report_formatter import (
 )
 
 __all__ = [
+    "HTMLReportFormatter",
+    "JSONReportFormatter",
     "OptimizationReporter",
     "ReportFormatter",
     "TextReportFormatter",
-    "HTMLReportFormatter",
-    "JSONReportFormatter",
 ]

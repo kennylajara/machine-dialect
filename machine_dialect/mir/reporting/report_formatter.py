@@ -129,9 +129,9 @@ class TextReportFormatter(ReportFormatter):
                     lines.append("    Impact:")
                     for key, before, after, improvement in improvements:
                         if improvement > 0:
-                            lines.append(f"      - {key}: {before} → {after} " f"(-{improvement:.1f}%)")
+                            lines.append(f"      - {key}: {before} → {after} (-{improvement:.1f}%)")
                         else:
-                            lines.append(f"      - {key}: {before} → {after} " f"(+{-improvement:.1f}%)")
+                            lines.append(f"      - {key}: {before} → {after} (+{-improvement:.1f}%)")
 
         # Function metrics
         if metrics.function_metrics:

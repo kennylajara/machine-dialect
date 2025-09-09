@@ -278,7 +278,7 @@ class TypeNarrowing(FunctionPass):
             if value_type == inst.target_type:
                 # Cast is redundant, replace with copy
                 self.stats["casts_eliminated"] += 1
-                return Copy(inst.dest, inst.value)
+                return Copy(inst.dest, inst.value, inst.source_location)
 
         return inst
 
@@ -301,7 +301,7 @@ class TypeNarrowing(FunctionPass):
 
                 if narrowed_type == inst.check_type:
                     # Check will always succeed
-                    new_inst = LoadConst(inst.dest, Constant(True, MIRType.BOOL))
+                    new_inst = LoadConst(inst.dest, Constant(True, MIRType.BOOL), inst.source_location)
                     new_instructions.append(new_inst)
                     self.stats["checks_eliminated"] += 1
                     modified = True
@@ -309,7 +309,7 @@ class TypeNarrowing(FunctionPass):
                     # Check if types are incompatible
                     if self._types_incompatible(narrowed_type, inst.check_type):
                         # Check will always fail
-                        new_inst = LoadConst(inst.dest, Constant(False, MIRType.BOOL))
+                        new_inst = LoadConst(inst.dest, Constant(False, MIRType.BOOL), inst.source_location)
                         new_instructions.append(new_inst)
                         self.stats["checks_eliminated"] += 1
                         modified = True

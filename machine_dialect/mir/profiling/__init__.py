@@ -16,11 +16,11 @@ from machine_dialect.mir.profiling.profile_reader import ProfileReader
 from machine_dialect.mir.profiling.profile_writer import ProfileWriter
 
 __all__ = [
+    "BranchProfile",
+    "FunctionProfile",
+    "LoopProfile",
     "ProfileCollector",
     "ProfileData",
-    "FunctionProfile",
-    "BranchProfile",
-    "LoopProfile",
     "ProfileReader",
     "ProfileWriter",
 ]

@@ -145,10 +145,10 @@ class TestSSAConstruction(unittest.TestCase):
 
         # Add instructions: x = 1; return x
         const1 = Constant(1, MIRType.INT)
-        entry.add_instruction(StoreVar(x, const1))
+        entry.add_instruction(StoreVar(x, const1, (1, 1)))
         temp = func.new_temp(MIRType.INT)
-        entry.add_instruction(Copy(temp, x))
-        entry.add_instruction(Return(temp))
+        entry.add_instruction(Copy(temp, x, (1, 1)))
+        entry.add_instruction(Return((1, 1), temp))
 
         # Convert to SSA
         construct_ssa(func)
@@ -185,22 +185,22 @@ class TestSSAConstruction(unittest.TestCase):
 
         # Add conditional jump in entry
         cond = func.new_temp(MIRType.BOOL)
-        entry.add_instruction(LoadConst(cond, True))
-        entry.add_instruction(ConditionalJump(cond, "then", "else"))
+        entry.add_instruction(LoadConst(cond, True, (1, 1)))
+        entry.add_instruction(ConditionalJump(cond, "then", (1, 1), "else"))
 
         # Assign different values in branches
         const1 = Constant(1, MIRType.INT)
         const2 = Constant(2, MIRType.INT)
-        then_block.add_instruction(StoreVar(x, const1))
-        then_block.add_instruction(Jump("merge"))
+        then_block.add_instruction(StoreVar(x, const1, (1, 1)))
+        then_block.add_instruction(Jump("merge", (1, 1)))
 
-        else_block.add_instruction(StoreVar(x, const2))
-        else_block.add_instruction(Jump("merge"))
+        else_block.add_instruction(StoreVar(x, const2, (1, 1)))
+        else_block.add_instruction(Jump("merge", (1, 1)))
 
         # Use x in merge
         result = func.new_temp(MIRType.INT)
-        merge_block.add_instruction(Copy(result, x))
-        merge_block.add_instruction(Return(result))
+        merge_block.add_instruction(Copy(result, x, (1, 1)))
+        merge_block.add_instruction(Return((1, 1), result))
 
         # Convert to SSA
         construct_ssa(func)
@@ -245,24 +245,24 @@ class TestSSAConstruction(unittest.TestCase):
 
         # Initialize counter in entry
         const0 = Constant(0, MIRType.INT)
-        entry.add_instruction(StoreVar(i, const0))
-        entry.add_instruction(Jump("loop_header"))
+        entry.add_instruction(StoreVar(i, const0, (1, 1)))
+        entry.add_instruction(Jump("loop_header", (1, 1)))
 
         # Loop header checks condition
         cond = func.new_temp(MIRType.BOOL)
         ten = Constant(10, MIRType.INT)
-        loop_header.add_instruction(BinaryOp(cond, "<", i, ten))
-        loop_header.add_instruction(ConditionalJump(cond, "loop_body", "exit"))
+        loop_header.add_instruction(BinaryOp(cond, "<", i, ten, (1, 1)))
+        loop_header.add_instruction(ConditionalJump(cond, "loop_body", (1, 1), "exit"))
 
         # Loop body increments counter
         one = Constant(1, MIRType.INT)
         new_i = func.new_temp(MIRType.INT)
-        loop_body.add_instruction(BinaryOp(new_i, "+", i, one))
-        loop_body.add_instruction(StoreVar(i, new_i))
-        loop_body.add_instruction(Jump("loop_header"))
+        loop_body.add_instruction(BinaryOp(new_i, "+", i, one, (1, 1)))
+        loop_body.add_instruction(StoreVar(i, new_i, (1, 1)))
+        loop_body.add_instruction(Jump("loop_header", (1, 1)))
 
         # Exit
-        exit_block.add_instruction(Return())
+        exit_block.add_instruction(Return((1, 1)))
 
         # Convert to SSA
         construct_ssa(func)
@@ -304,19 +304,19 @@ class TestSSAConstruction(unittest.TestCase):
         const1 = Constant(1, MIRType.INT)
         const2 = Constant(2, MIRType.INT)
 
-        entry.add_instruction(StoreVar(x, const1))
-        entry.add_instruction(StoreVar(y, const2))
+        entry.add_instruction(StoreVar(x, const1, (1, 1)))
+        entry.add_instruction(StoreVar(y, const2, (1, 1)))
 
         # Compute z = x + y
         temp = func.new_temp(MIRType.INT)
-        entry.add_instruction(BinaryOp(temp, "+", x, y))
-        entry.add_instruction(StoreVar(z, temp))
-        entry.add_instruction(Jump("block1"))
+        entry.add_instruction(BinaryOp(temp, "+", x, y, (1, 1)))
+        entry.add_instruction(StoreVar(z, temp, (1, 1)))
+        entry.add_instruction(Jump("block1", (1, 1)))
 
         # Use all variables in block1
         result = func.new_temp(MIRType.INT)
-        block1.add_instruction(BinaryOp(result, "+", z, x))
-        block1.add_instruction(Return(result))
+        block1.add_instruction(BinaryOp(result, "+", z, x, (1, 1)))
+        block1.add_instruction(Return((1, 1), result))
 
         # Convert to SSA
         construct_ssa(func)
@@ -355,21 +355,21 @@ class TestSSAConstruction(unittest.TestCase):
 
         # Add instructions
         cond = func.new_temp(MIRType.BOOL)
-        entry.add_instruction(LoadConst(cond, True))
-        entry.add_instruction(ConditionalJump(cond, "then", "else"))
+        entry.add_instruction(LoadConst(cond, True, (1, 1)))
+        entry.add_instruction(ConditionalJump(cond, "then", (1, 1), "else"))
 
         const1 = Constant(1, MIRType.INT)
         const2 = Constant(2, MIRType.INT)
 
-        then_block.add_instruction(StoreVar(x, const1))
-        then_block.add_instruction(Jump("merge"))
+        then_block.add_instruction(StoreVar(x, const1, (1, 1)))
+        then_block.add_instruction(Jump("merge", (1, 1)))
 
-        else_block.add_instruction(StoreVar(x, const2))
-        else_block.add_instruction(Jump("merge"))
+        else_block.add_instruction(StoreVar(x, const2, (1, 1)))
+        else_block.add_instruction(Jump("merge", (1, 1)))
 
         result = func.new_temp(MIRType.INT)
-        merge_block.add_instruction(Copy(result, x))
-        merge_block.add_instruction(Return(result))
+        merge_block.add_instruction(Copy(result, x, (1, 1)))
+        merge_block.add_instruction(Return((1, 1), result))
 
         # Convert to SSA
         construct_ssa(func)
@@ -383,6 +383,56 @@ class TestSSAConstruction(unittest.TestCase):
         for block in func.cfg.blocks.values():
             returns.extend([inst for inst in block.instructions if isinstance(inst, Return)])
         self.assertEqual(len(returns), 1)
+
+    def test_loadconst_preservation(self) -> None:
+        """Test that SSA construction preserves LoadConst instructions."""
+        # Create function with LoadConst instructions for constants
+        func = MIRFunction("test_const", [], MIRType.INT)
+
+        # Create simple CFG: entry -> exit
+        entry = BasicBlock("entry")
+        func.cfg.add_block(entry)
+        func.cfg.set_entry_block(entry)
+
+        # Create temporaries for constants
+        t0 = func.new_temp(MIRType.INT)
+        t1 = func.new_temp(MIRType.INT)
+        t2 = func.new_temp(MIRType.BOOL)
+
+        # Add LoadConst instructions
+        const5 = Constant(5, MIRType.INT)
+        const1 = Constant(1, MIRType.INT)
+
+        entry.add_instruction(LoadConst(t0, const5, (1, 1)))
+        entry.add_instruction(LoadConst(t1, const1, (1, 1)))
+
+        # Add binary operation using the loaded constants
+        entry.add_instruction(BinaryOp(t2, "<=", t0, t1, (1, 1)))
+
+        # Return the result
+        entry.add_instruction(Return((1, 1), t2))
+
+        # Count LoadConst instructions before SSA
+        loadconst_before = []
+        for block in func.cfg.blocks.values():
+            loadconst_before.extend([inst for inst in block.instructions if isinstance(inst, LoadConst)])
+
+        # Apply SSA construction
+        construct_ssa(func)
+
+        # Count LoadConst instructions after SSA
+        loadconst_after = []
+        for block in func.cfg.blocks.values():
+            loadconst_after.extend([inst for inst in block.instructions if isinstance(inst, LoadConst)])
+
+        # Verify LoadConst instructions are preserved
+        self.assertEqual(len(loadconst_before), 2, "Should have 2 LoadConst instructions before SSA")
+        self.assertEqual(len(loadconst_after), 2, "Should have 2 LoadConst instructions after SSA")
+
+        # Verify the constants are still correct
+        const_values = [inst.constant.value for inst in loadconst_after if hasattr(inst.constant, "value")]
+        self.assertIn(5, const_values, "Constant 5 should be preserved")
+        self.assertIn(1, const_values, "Constant 1 should be preserved")
 
 
 if __name__ == "__main__":

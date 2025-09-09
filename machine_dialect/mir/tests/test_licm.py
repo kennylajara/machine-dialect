@@ -44,16 +44,16 @@ def create_simple_loop_function() -> MIRFunction:
     i_var = Variable("i", MIRType.INT)
     n_var = Variable("n", MIRType.INT)
     entry.instructions = [
-        LoadConst(i_var, Constant(0)),
-        Jump("loop_header"),
+        LoadConst(i_var, Constant(0), (1, 1)),
+        Jump("loop_header", (1, 1)),
     ]
     func.cfg.connect(entry, loop_header)
 
     # Loop header: if i < n goto body else exit
     cond_temp = Temp(MIRType.BOOL, 0)
     loop_header.instructions = [
-        BinaryOp(cond_temp, "<", i_var, n_var),
-        ConditionalJump(cond_temp, "loop_body", "loop_exit"),
+        BinaryOp(cond_temp, "<", i_var, n_var, (1, 1)),
+        ConditionalJump(cond_temp, "loop_body", (1, 1), "loop_exit"),
     ]
     func.cfg.connect(loop_header, loop_body)
     func.cfg.connect(loop_header, loop_exit)
@@ -64,17 +64,17 @@ def create_simple_loop_function() -> MIRFunction:
     z_var = Variable("z", MIRType.INT)
     i_plus_one = Temp(MIRType.INT, 1)
     loop_body.instructions = [
-        LoadConst(x_var, Constant(10)),  # Invariant
-        BinaryOp(y_var, "*", x_var, Constant(2)),  # Invariant
-        BinaryOp(z_var, "+", i_var, y_var),  # Not invariant
-        BinaryOp(i_plus_one, "+", i_var, Constant(1)),
-        Copy(i_var, i_plus_one),
-        Jump("loop_header"),
+        LoadConst(x_var, Constant(10), (1, 1)),  # Invariant
+        BinaryOp(y_var, "*", x_var, Constant(2), (1, 1)),  # Invariant
+        BinaryOp(z_var, "+", i_var, y_var, (1, 1)),  # Not invariant
+        BinaryOp(i_plus_one, "+", i_var, Constant(1), (1, 1)),
+        Copy(i_var, i_plus_one, (1, 1)),
+        Jump("loop_header", (1, 1)),
     ]
     func.cfg.connect(loop_body, loop_header)
 
     # Loop exit: return z
-    loop_exit.instructions = [Return(z_var)]
+    loop_exit.instructions = [Return((1, 1), z_var)]
 
     return func
 
@@ -119,34 +119,34 @@ def create_nested_loop_function() -> MIRFunction:
 
     # Entry: result = 0, i = 0
     entry.instructions = [
-        LoadConst(result_var, Constant(0)),
-        LoadConst(i_var, Constant(0)),
-        Jump("outer_header"),
+        LoadConst(result_var, Constant(0), (1, 1)),
+        LoadConst(i_var, Constant(0), (1, 1)),
+        Jump("outer_header", (1, 1)),
     ]
     func.cfg.connect(entry, outer_header)
 
     # Outer header: if i < n goto outer_body else outer_exit
     outer_cond = Temp(MIRType.BOOL, 10)
     outer_header.instructions = [
-        BinaryOp(outer_cond, "<", i_var, n_var),
-        ConditionalJump(outer_cond, "outer_body", "outer_exit"),
+        BinaryOp(outer_cond, "<", i_var, n_var, (1, 1)),
+        ConditionalJump(outer_cond, "outer_body", (1, 1), "outer_exit"),
     ]
     func.cfg.connect(outer_header, outer_body)
     func.cfg.connect(outer_header, outer_exit)
 
     # Outer body: x = n * 2, j = 0
     outer_body.instructions = [
-        BinaryOp(x_var, "*", n_var, Constant(2)),  # Invariant to inner loop
-        LoadConst(j_var, Constant(0)),
-        Jump("inner_header"),
+        BinaryOp(x_var, "*", n_var, Constant(2), (1, 1)),  # Invariant to inner loop
+        LoadConst(j_var, Constant(0), (1, 1)),
+        Jump("inner_header", (1, 1)),
     ]
     func.cfg.connect(outer_body, inner_header)
 
     # Inner header: if j < m goto inner_body else inner_exit
     inner_cond = Temp(MIRType.BOOL, 11)
     inner_header.instructions = [
-        BinaryOp(inner_cond, "<", j_var, m_var),
-        ConditionalJump(inner_cond, "inner_body", "inner_exit"),
+        BinaryOp(inner_cond, "<", j_var, m_var, (1, 1)),
+        ConditionalJump(inner_cond, "inner_body", (1, 1), "inner_exit"),
     ]
     func.cfg.connect(inner_header, inner_body)
     func.cfg.connect(inner_header, inner_exit)
@@ -157,29 +157,29 @@ def create_nested_loop_function() -> MIRFunction:
     temp3 = Temp(MIRType.INT, 14)
     j_plus_one = Temp(MIRType.INT, 16)
     inner_body.instructions = [
-        BinaryOp(y_var, "*", m_var, Constant(3)),  # Invariant
-        BinaryOp(z_var, "+", x_var, y_var),  # Invariant
-        BinaryOp(temp1, "+", result_var, z_var),
-        BinaryOp(temp2, "+", temp1, i_var),
-        BinaryOp(temp3, "+", temp2, j_var),
-        Copy(result_var, temp3),
-        BinaryOp(j_plus_one, "+", j_var, Constant(1)),
-        Copy(j_var, j_plus_one),
-        Jump("inner_header"),
+        BinaryOp(y_var, "*", m_var, Constant(3), (1, 1)),  # Invariant
+        BinaryOp(z_var, "+", x_var, y_var, (1, 1)),  # Invariant
+        BinaryOp(temp1, "+", result_var, z_var, (1, 1)),
+        BinaryOp(temp2, "+", temp1, i_var, (1, 1)),
+        BinaryOp(temp3, "+", temp2, j_var, (1, 1)),
+        Copy(result_var, temp3, (1, 1)),
+        BinaryOp(j_plus_one, "+", j_var, Constant(1), (1, 1)),
+        Copy(j_var, j_plus_one, (1, 1)),
+        Jump("inner_header", (1, 1)),
     ]
     func.cfg.connect(inner_body, inner_header)
 
     # Inner exit: i = i + 1, goto outer_header
     i_plus_one = Temp(MIRType.INT, 17)
     inner_exit.instructions = [
-        BinaryOp(i_plus_one, "+", i_var, Constant(1)),
-        Copy(i_var, i_plus_one),
-        Jump("outer_header"),
+        BinaryOp(i_plus_one, "+", i_var, Constant(1), (1, 1)),
+        Copy(i_var, i_plus_one, (1, 1)),
+        Jump("outer_header", (1, 1)),
     ]
     func.cfg.connect(inner_exit, outer_header)
 
     # Outer exit: return result
-    outer_exit.instructions = [Return(result_var)]
+    outer_exit.instructions = [Return((1, 1), result_var)]
 
     return func
 
@@ -216,16 +216,16 @@ def create_loop_with_side_effects() -> MIRFunction:
 
     # Entry block
     entry.instructions = [
-        LoadConst(i_var, Constant(0)),
-        Jump("loop_header"),
+        LoadConst(i_var, Constant(0), (1, 1)),
+        Jump("loop_header", (1, 1)),
     ]
     func.cfg.connect(entry, loop_header)
 
     # Loop header
     cond_temp = Temp(MIRType.BOOL, 20)
     loop_header.instructions = [
-        BinaryOp(cond_temp, "<", i_var, n_var),
-        ConditionalJump(cond_temp, "loop_body", "loop_exit"),
+        BinaryOp(cond_temp, "<", i_var, n_var, (1, 1)),
+        ConditionalJump(cond_temp, "loop_body", (1, 1), "loop_exit"),
     ]
     func.cfg.connect(loop_header, loop_body)
     func.cfg.connect(loop_header, loop_exit)
@@ -233,17 +233,17 @@ def create_loop_with_side_effects() -> MIRFunction:
     # Loop body
     i_plus_one = Temp(MIRType.INT, 21)
     loop_body.instructions = [
-        LoadConst(x_var, Constant(10)),  # Invariant
-        Print(x_var),  # Side effect - don't hoist
-        BinaryOp(y_var, "*", x_var, Constant(2)),  # Invariant but after print
-        BinaryOp(i_plus_one, "+", i_var, Constant(1)),
-        Copy(i_var, i_plus_one),
-        Jump("loop_header"),
+        LoadConst(x_var, Constant(10), (1, 1)),  # Invariant
+        Print(x_var, (1, 1)),  # Side effect - don't hoist
+        BinaryOp(y_var, "*", x_var, Constant(2), (1, 1)),  # Invariant but after print
+        BinaryOp(i_plus_one, "+", i_var, Constant(1), (1, 1)),
+        Copy(i_var, i_plus_one, (1, 1)),
+        Jump("loop_header", (1, 1)),
     ]
     func.cfg.connect(loop_body, loop_header)
 
     # Loop exit
-    loop_exit.instructions = [Return(i_var)]
+    loop_exit.instructions = [Return((1, 1), i_var)]
 
     return func
 
@@ -385,8 +385,8 @@ class TestLICM:
         x_var = Variable("x", MIRType.INT)
         result = Temp(MIRType.INT, 30)
         entry.instructions = [
-            BinaryOp(result, "*", x_var, Constant(2)),
-            Return(result),
+            BinaryOp(result, "*", x_var, Constant(2), (1, 1)),
+            Return((1, 1), result),
         ]
 
         # Run LICM with proper analysis setup
@@ -427,16 +427,16 @@ class TestLICM:
 
         # Entry
         entry.instructions = [
-            LoadConst(i_var, Constant(0)),
-            Jump("header"),
+            LoadConst(i_var, Constant(0), (1, 1)),
+            Jump("header", (1, 1)),
         ]
         func.cfg.connect(entry, header)
 
         # Header
         cond = Temp(MIRType.BOOL, 40)
         header.instructions = [
-            BinaryOp(cond, "<", i_var, n_var),
-            ConditionalJump(cond, "body", "exit"),
+            BinaryOp(cond, "<", i_var, n_var, (1, 1)),
+            ConditionalJump(cond, "body", (1, 1), "exit"),
         ]
         func.cfg.connect(header, body)
         func.cfg.connect(header, exit_block)
@@ -444,16 +444,16 @@ class TestLICM:
         # Body - all depend on i
         i_plus_one = Temp(MIRType.INT, 41)
         body.instructions = [
-            BinaryOp(x_var, "*", i_var, Constant(2)),  # Depends on i
-            BinaryOp(y_var, "+", x_var, i_var),  # Depends on i and x
-            BinaryOp(i_plus_one, "+", i_var, Constant(1)),
-            Copy(i_var, i_plus_one),
-            Jump("header"),
+            BinaryOp(x_var, "*", i_var, Constant(2), (1, 1)),  # Depends on i
+            BinaryOp(y_var, "+", x_var, i_var, (1, 1)),  # Depends on i and x
+            BinaryOp(i_plus_one, "+", i_var, Constant(1), (1, 1)),
+            Copy(i_var, i_plus_one, (1, 1)),
+            Jump("header", (1, 1)),
         ]
         func.cfg.connect(body, header)
 
         # Exit
-        exit_block.instructions = [Return(y_var)]
+        exit_block.instructions = [Return((1, 1), y_var)]
 
         # Run LICM with proper analysis setup
         from machine_dialect.mir.tests.test_optimization_helpers import run_optimization_with_analyses

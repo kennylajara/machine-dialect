@@ -88,6 +88,13 @@ class FunctionInlining(ModulePass):
         self.stats = {"inlined": 0, "call_sites_processed": 0}
         self.inlining_depth: dict[str, int] = defaultdict(int)
 
+    def initialize(self) -> None:
+        """Initialize the pass before running."""
+        super().initialize()
+        # Re-initialize stats after base class clears them
+        self.stats = {"inlined": 0, "call_sites_processed": 0}
+        self.inlining_depth = defaultdict(int)
+
     def get_info(self) -> PassInfo:
         """Get pass information.
 
@@ -301,7 +308,7 @@ class FunctionInlining(ModulePass):
             succ.predecessors.append(cont_block)
 
         # Modify call block to jump to inlined entry
-        call_block.instructions = [*pre_call, Jump(entry_block.label)]
+        call_block.instructions = [*pre_call, Jump(entry_block.label, call_inst.source_location)]
         call_block.successors = [entry_block]
         entry_block.predecessors.append(call_block)
 
@@ -314,16 +321,18 @@ class FunctionInlining(ModulePass):
                 ret_inst = ret_block.instructions[-1]
                 assert isinstance(ret_inst, Return)
                 if ret_inst.value:
-                    ret_block.instructions[-1] = Copy(return_value_var, ret_inst.value)
-                    ret_block.instructions.append(Jump(cont_block.label))
+                    ret_block.instructions[-1] = Copy(return_value_var, ret_inst.value, ret_inst.source_location)
+                    ret_block.instructions.append(Jump(cont_block.label, ret_inst.source_location))
                 else:
-                    ret_block.instructions[-1] = Jump(cont_block.label)
+                    ret_block.instructions[-1] = Jump(cont_block.label, ret_inst.source_location)
                 ret_block.successors = [cont_block]
                 cont_block.predecessors.append(ret_block)
         else:
             # No return value - just jump to continuation
             for ret_block in return_blocks:
-                ret_block.instructions[-1] = Jump(cont_block.label)
+                ret_inst = ret_block.instructions[-1]
+                source_loc = ret_inst.source_location if hasattr(ret_inst, "source_location") else (0, 0)
+                ret_block.instructions[-1] = Jump(cont_block.label, source_loc)
                 ret_block.successors = [cont_block]
                 cont_block.predecessors.append(ret_block)
 
@@ -443,36 +452,43 @@ class FunctionInlining(ModulePass):
                 inst.op,
                 map_value(inst.left),
                 map_value(inst.right),
+                inst.source_location,
             )
         elif isinstance(inst, UnaryOp):
             return UnaryOp(
                 map_value(inst.dest),
                 inst.op,
                 map_value(inst.operand),
+                inst.source_location,
             )
         elif isinstance(inst, Copy):
             return Copy(
                 map_value(inst.dest),
                 map_value(inst.source),
+                inst.source_location,
             )
         elif isinstance(inst, LoadConst):
             return LoadConst(
                 map_value(inst.dest),
                 inst.constant.value if hasattr(inst.constant, "value") else inst.constant,  # Use the constant value
+                inst.source_location,
             )
         elif isinstance(inst, StoreVar):
             return StoreVar(
                 inst.var,  # Variable names stay the same
                 map_value(inst.source),
+                inst.source_location,
             )
         elif isinstance(inst, Call):
             return Call(
                 map_value(inst.dest) if inst.dest else None,
                 inst.func,
                 [map_value(arg) for arg in inst.args],
+                inst.source_location,
             )
         elif isinstance(inst, Return):
             return Return(
+                inst.source_location,
                 map_value(inst.value) if inst.value else None,
             )
         elif isinstance(inst, ConditionalJump):
@@ -487,6 +503,7 @@ class FunctionInlining(ModulePass):
             return ConditionalJump(
                 map_value(inst.condition),
                 true_block.label if true_block else inst.true_label,
+                inst.source_location,
                 false_block.label if false_block else inst.false_label,
             )
         elif isinstance(inst, Jump):
@@ -498,6 +515,7 @@ class FunctionInlining(ModulePass):
                     break
             return Jump(
                 target_block.label if target_block else inst.label,
+                inst.source_location,
             )
         elif isinstance(inst, Phi):
             new_incoming = []
@@ -509,9 +527,9 @@ class FunctionInlining(ModulePass):
                         new_label = new_b.label
                         break
                 new_incoming.append((map_value(value), new_label))
-            return Phi(map_value(inst.dest), new_incoming)
+            return Phi(map_value(inst.dest), new_incoming, inst.source_location)
         elif isinstance(inst, Print):
-            return Print(map_value(inst.value))
+            return Print(map_value(inst.value), inst.source_location)
         else:
             # For any other instruction types, return as-is
             # This is conservative - may need to extend for new instruction types

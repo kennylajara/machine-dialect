@@ -56,8 +56,8 @@ class TestMIRValues(unittest.TestCase):
         v3 = Variable("x", MIRType.INT, version=2)
 
         self.assertEqual(str(v1), "x")
-        self.assertEqual(str(v2), "y_1")
-        self.assertEqual(str(v3), "x_2")
+        self.assertEqual(str(v2), "y.1")
+        self.assertEqual(str(v3), "x.2")
         self.assertEqual(v1.type, MIRType.INT)
         self.assertEqual(v2.type, MIRType.STRING)
 
@@ -86,8 +86,8 @@ class TestMIRValues(unittest.TestCase):
         self.assertEqual(v1.type, v2.type)
         self.assertEqual(v2.version, 2)
         self.assertEqual(v3.version, 3)
-        self.assertEqual(str(v2), "x_2")
-        self.assertEqual(str(v3), "x_3")
+        self.assertEqual(str(v2), "x.2")
+        self.assertEqual(str(v3), "x.3")
 
     def test_constant_creation(self) -> None:
         """Test constant creation."""

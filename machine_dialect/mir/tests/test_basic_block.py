@@ -6,7 +6,6 @@ from machine_dialect.mir.basic_block import CFG, BasicBlock
 from machine_dialect.mir.mir_instructions import (
     BinaryOp,
     ConditionalJump,
-    Copy,
     Jump,
     LoadConst,
     Return,
@@ -27,22 +26,6 @@ class TestBasicBlock(unittest.TestCase):
         self.assertEqual(block.predecessors, [])
         self.assertEqual(block.successors, [])
 
-    def test_add_instruction(self) -> None:
-        """Test adding instructions to block."""
-        block = BasicBlock("bb1")
-        t0 = Temp(MIRType.INT, temp_id=0)
-        t1 = Temp(MIRType.INT, temp_id=1)
-
-        load = LoadConst(t0, 10)
-        copy = Copy(t1, t0)
-
-        block.add_instruction(load)
-        block.add_instruction(copy)
-
-        self.assertEqual(len(block.instructions), 2)
-        self.assertEqual(block.instructions[0], load)
-        self.assertEqual(block.instructions[1], copy)
-
     def test_is_terminated(self) -> None:
         """Test checking if block is terminated."""
         block = BasicBlock("bb1")
@@ -52,11 +35,11 @@ class TestBasicBlock(unittest.TestCase):
         self.assertFalse(block.is_terminated())
 
         # Block with non-terminator is not terminated
-        block.add_instruction(LoadConst(t0, 42))
+        block.add_instruction(LoadConst(t0, 42, (1, 1)))
         self.assertFalse(block.is_terminated())
 
         # Block with terminator is terminated
-        block.add_instruction(Return(t0))
+        block.add_instruction(Return((1, 1), t0))
         self.assertTrue(block.is_terminated())
 
     def test_get_terminator(self) -> None:
@@ -68,11 +51,11 @@ class TestBasicBlock(unittest.TestCase):
         self.assertIsNone(block.get_terminator())
 
         # Add instructions
-        block.add_instruction(LoadConst(t0, 5))
+        block.add_instruction(LoadConst(t0, 5, (1, 1)))
         self.assertIsNone(block.get_terminator())
 
         # Add terminator
-        ret = Return(t0)
+        ret = Return((1, 1), t0)
         block.add_instruction(ret)
         self.assertEqual(block.get_terminator(), ret)
 
@@ -80,20 +63,20 @@ class TestBasicBlock(unittest.TestCase):
         """Test different terminator types."""
         # Test Jump
         block1 = BasicBlock("bb1")
-        jump = Jump("bb2")
+        jump = Jump("bb2", (1, 1))
         block1.add_instruction(jump)
         self.assertTrue(block1.is_terminated())
 
         # Test ConditionalJump
         block2 = BasicBlock("bb2")
         t0 = Temp(MIRType.BOOL, temp_id=0)
-        cjump = ConditionalJump(t0, "then", "else")
+        cjump = ConditionalJump(t0, "then", (1, 1), "else")
         block2.add_instruction(cjump)
         self.assertTrue(block2.is_terminated())
 
         # Test Return
         block3 = BasicBlock("bb3")
-        ret = Return()
+        ret = Return((1, 1))
         block3.add_instruction(ret)
         self.assertTrue(block3.is_terminated())
 
@@ -116,9 +99,9 @@ class TestBasicBlock(unittest.TestCase):
         t0 = Temp(MIRType.INT, temp_id=0)
         t1 = Temp(MIRType.INT, temp_id=1)
 
-        block.add_instruction(LoadConst(t0, 1))
-        block.add_instruction(BinaryOp(t1, "+", t0, t0))
-        block.add_instruction(Jump("loop_body"))
+        block.add_instruction(LoadConst(t0, 1, (1, 1)))
+        block.add_instruction(BinaryOp(t1, "+", t0, t0, (1, 1)))
+        block.add_instruction(Jump("loop_body", (1, 1)))
 
         expected = """loop_body:
   t0 = 1
@@ -366,10 +349,10 @@ class TestCFG(unittest.TestCase):
         bb1 = BasicBlock("bb1")
 
         t0 = Temp(MIRType.INT, temp_id=0)
-        entry.add_instruction(LoadConst(t0, 1))
-        entry.add_instruction(Jump("bb1"))
+        entry.add_instruction(LoadConst(t0, 1, (1, 1)))
+        entry.add_instruction(Jump("bb1", (1, 1)))
 
-        bb1.add_instruction(Return(t0))
+        bb1.add_instruction(Return((1, 1), t0))
 
         cfg.add_block(entry)
         cfg.add_block(bb1)

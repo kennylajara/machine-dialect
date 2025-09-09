@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from machine_dialect.ast.ast_node import ASTNode
-from machine_dialect.codegen.objects import Module as BytecodeModule
+from machine_dialect.codegen.bytecode_module import BytecodeModule
 from machine_dialect.compiler.config import CompilerConfig
 from machine_dialect.mir.mir_module import MIRModule
 from machine_dialect.mir.profiling.profile_data import ProfileData
@@ -87,7 +87,7 @@ class CompilationContext:
         """
         if self.config.output_path:
             return self.config.output_path
-        return self.source_path.with_suffix(".mdc")
+        return self.source_path.with_suffix(".mdbc")
 
     def should_optimize(self) -> bool:
         """Check if optimization should be performed.
@@ -144,6 +144,6 @@ class CompilationContext:
             stats["optimizations"] = self.optimization_reporter.generate_summary()
 
         if self.bytecode_module:
-            stats["bytecode_chunks"] = 1 + len(self.bytecode_module.functions)
+            stats["bytecode_chunks"] = len(self.bytecode_module.chunks)
 
         return stats

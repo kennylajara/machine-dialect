@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  benchmark:
+    build:
+      context: ..
+      dockerfile: benchmark/Dockerfile
+    container_name: machine_dialect_benchmark
+    volumes:
+      - ./:/workspace
+      - ../machine_dialect:/machine_dialect/machine_dialect
+      - ../pyproject.toml:/machine_dialect/pyproject.toml
+    cpus: 1.0
+    mem_limit: 2g
+    mem_reservation: 1g
+    command: /workspace/benchmark.sh
+    environment:
+      - PYTHONUNBUFFERED=1

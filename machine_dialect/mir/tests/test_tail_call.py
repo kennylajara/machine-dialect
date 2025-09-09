@@ -1,6 +1,5 @@
 """Tests for tail call optimization."""
 
-
 from machine_dialect.mir.basic_block import BasicBlock
 from machine_dialect.mir.mir_function import MIRFunction
 from machine_dialect.mir.mir_instructions import Call, Copy, Return
@@ -22,11 +21,11 @@ def test_simple_tail_call() -> None:
 
     # result = call factorial(n-1)
     result = Temp(MIRType.INT, 0)
-    call_inst = Call(result, "factorial", [Variable("n", MIRType.INT)])
+    call_inst = Call(result, "factorial", [Variable("n", MIRType.INT)], (1, 1))
     block.add_instruction(call_inst)
 
     # return result
-    block.add_instruction(Return(result))
+    block.add_instruction(Return((1, 1), result))
 
     func.cfg.add_block(block)
     func.cfg.entry_block = block
@@ -52,15 +51,15 @@ def test_tail_call_with_copy() -> None:
 
     # temp = call helper(x)
     temp = Temp(MIRType.INT, 0)
-    call_inst = Call(temp, "helper", [Variable("x", MIRType.INT)])
+    call_inst = Call(temp, "helper", [Variable("x", MIRType.INT)], (1, 1))
     block.add_instruction(call_inst)
 
     # result = temp
     result = Variable("result", MIRType.INT)
-    block.add_instruction(Copy(result, temp))
+    block.add_instruction(Copy(result, temp, (1, 1)))
 
     # return result
-    block.add_instruction(Return(result))
+    block.add_instruction(Return((1, 1), result))
 
     func.cfg.add_block(block)
     func.cfg.entry_block = block
@@ -84,11 +83,11 @@ def test_void_tail_call() -> None:
     block = BasicBlock("entry")
 
     # call finalize()
-    call_inst = Call(None, "finalize", [])
+    call_inst = Call(None, "finalize", [], (1, 1))
     block.add_instruction(call_inst)
 
     # return
-    block.add_instruction(Return(None))
+    block.add_instruction(Return((1, 1), None))
 
     func.cfg.add_block(block)
     func.cfg.entry_block = block
@@ -113,14 +112,14 @@ def test_non_tail_call() -> None:
 
     # temp = call helper(x)
     temp = Temp(MIRType.INT, 0)
-    call_inst = Call(temp, "helper", [Variable("x", MIRType.INT)])
+    call_inst = Call(temp, "helper", [Variable("x", MIRType.INT)], (1, 1))
     block.add_instruction(call_inst)
 
     # result = temp + 1 (additional computation after call)
     # We would add a BinaryOp here in real code
 
     # return something else
-    block.add_instruction(Return(Constant(42, MIRType.INT)))
+    block.add_instruction(Return((1, 1), Constant(42, MIRType.INT)))
 
     func.cfg.add_block(block)
     func.cfg.entry_block = block
@@ -144,16 +143,16 @@ def test_multiple_tail_calls() -> None:
     # Block 1: tail call to fib(n-1)
     block1 = BasicBlock("block1")
     temp1 = Temp(MIRType.INT, 0)
-    call1 = Call(temp1, "fibonacci", [Variable("n", MIRType.INT)])
+    call1 = Call(temp1, "fibonacci", [Variable("n", MIRType.INT)], (1, 1))
     block1.add_instruction(call1)
-    block1.add_instruction(Return(temp1))
+    block1.add_instruction(Return((1, 1), temp1))
 
     # Block 2: tail call to fib(n-2)
     block2 = BasicBlock("block2")
     temp2 = Temp(MIRType.INT, 1)
-    call2 = Call(temp2, "fibonacci", [Variable("n", MIRType.INT)])
+    call2 = Call(temp2, "fibonacci", [Variable("n", MIRType.INT)], (1, 1))
     block2.add_instruction(call2)
-    block2.add_instruction(Return(temp2))
+    block2.add_instruction(Return((1, 1), temp2))
 
     func.cfg.add_block(block1)
     func.cfg.add_block(block2)
@@ -179,9 +178,9 @@ def test_mutual_recursion() -> None:
     even_func = MIRFunction("even", [Variable("n", MIRType.INT)])
     even_block = BasicBlock("entry")
     even_result = Temp(MIRType.BOOL, 0)
-    even_call = Call(even_result, "odd", [Variable("n", MIRType.INT)])
+    even_call = Call(even_result, "odd", [Variable("n", MIRType.INT)], (1, 1))
     even_block.add_instruction(even_call)
-    even_block.add_instruction(Return(even_result))
+    even_block.add_instruction(Return((1, 1), even_result))
     even_func.cfg.add_block(even_block)
     even_func.cfg.entry_block = even_block
     module.add_function(even_func)
@@ -190,9 +189,9 @@ def test_mutual_recursion() -> None:
     odd_func = MIRFunction("odd", [Variable("n", MIRType.INT)])
     odd_block = BasicBlock("entry")
     odd_result = Temp(MIRType.BOOL, 1)
-    odd_call = Call(odd_result, "even", [Variable("n", MIRType.INT)])
+    odd_call = Call(odd_result, "even", [Variable("n", MIRType.INT)], (1, 1))
     odd_block.add_instruction(odd_call)
-    odd_block.add_instruction(Return(odd_result))
+    odd_block.add_instruction(Return((1, 1), odd_result))
     odd_func.cfg.add_block(odd_block)
     odd_func.cfg.entry_block = odd_block
     module.add_function(odd_func)
@@ -220,9 +219,9 @@ def test_already_optimized() -> None:
 
     # Create a call already marked as tail call
     result = Temp(MIRType.INT, 0)
-    call_inst = Call(result, "helper", [], is_tail_call=True)
+    call_inst = Call(result, "helper", [], (1, 1), is_tail_call=True)
     block.add_instruction(call_inst)
-    block.add_instruction(Return(result))
+    block.add_instruction(Return((1, 1), result))
 
     func.cfg.add_block(block)
     func.cfg.entry_block = block

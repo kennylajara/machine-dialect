@@ -2,20 +2,20 @@
 """Machine Dialect REPL (Read-Eval-Print Loop).
 
 This module provides an interactive REPL for the Machine Dialect language.
-It can operate in two modes:
-- Default: Parses input and displays the AST
+It can operate in multiple modes:
+- Default: Execute code using the Rust VM
 - Debug tokens (--debug-tokens): Tokenizes input and displays tokens
+- AST mode (--ast): Show HIR/AST without executing
 """
 
 import readline  # noqa
 import argparse
 import sys
+from typing import Any
 
 from machine_dialect.compiler.config import CompilerConfig
 from machine_dialect.compiler.context import CompilationContext
 from machine_dialect.compiler.phases.hir_generation import HIRGenerationPhase
-from machine_dialect.interpreter.evaluator import evaluate
-from machine_dialect.interpreter.objects import Environment
 from machine_dialect.lexer.lexer import Lexer
 from machine_dialect.lexer.tokens import Token
 from machine_dialect.parser.parser import Parser
@@ -48,8 +48,21 @@ class REPL:
         self.accumulated_source = ""
         self.multiline_buffer = ""
         self.in_multiline_mode = False
-        self.env = Environment()  # Persistent environment for variables
         self.hir_phase = HIRGenerationPhase()  # HIR generation phase for desugaring
+        self.vm_runner: Any = None
+        self._init_vm_runner()
+
+    def _init_vm_runner(self) -> None:
+        """Initialize the VM runner if not in token/AST debug modes."""
+        if not self.debug_tokens and not self.show_ast:
+            try:
+                from machine_dialect.compiler.vm_runner import VMRunner
+
+                self.vm_runner = VMRunner(debug=False, optimize=True)
+            except (ImportError, RuntimeError) as e:
+                print(f"Warning: Rust VM not available: {e}")
+                print("Falling back to AST display mode.")
+                self.show_ast = True
 
     def print_welcome(self) -> None:
         """Print the welcome message when REPL starts."""
@@ -57,9 +70,11 @@ class REPL:
         if self.debug_tokens:
             mode = "Token Debug Mode"
         elif self.show_ast:
-            mode = "HIR Mode (desugared AST)"
+            mode = "HIR/AST Display Mode"
+        elif self.vm_runner:
+            mode = "Rust VM Execution Mode"
         else:
-            mode = "Evaluation Mode"
+            mode = "HIR Mode (desugared AST)"
         print(f"Mode: {mode}")
         print("Type 'exit' to exit, 'help' for help")
         print("-" * 50)
@@ -78,8 +93,11 @@ class REPL:
         elif self.show_ast:
             print("\nEnter Machine Dialect code to see its HIR (desugared AST).")
             print("Source is accumulated across lines until an error occurs.")
+        elif self.vm_runner:
+            print("\nEnter Machine Dialect code to execute it on the Rust VM.")
+            print("Source is accumulated across lines until an error occurs.")
         else:
-            print("\nEnter Machine Dialect code to see its evaluation result.")
+            print("\nEnter Machine Dialect code to see its HIR (desugared AST).")
             print("Source is accumulated across lines until an error occurs.")
 
         print("\nMulti-line input:")
@@ -232,8 +250,24 @@ class REPL:
             context = CompilationContext(source_path=Path("<repl>"), source_content=test_source, config=config)
             hir = self.hir_phase.run(context, ast)
 
-            if self.show_ast:
-                # Show HIR (desugared AST)
+            # Execute or show AST based on mode
+            if self.vm_runner:
+                # Execute using Rust VM
+                try:
+                    result = self.vm_runner.execute(self.accumulated_source)
+                    print("\nExecution Result:")
+                    print("-" * 50)
+                    if result is not None:
+                        print(f"  {result}")
+                    else:
+                        print("  (no return value)")
+                    print("-" * 50)
+                    print()
+                except Exception as e:
+                    print(f"\nExecution Error: {e}")
+                    print()
+            else:
+                # Show HIR/AST
                 print("\nHIR (desugared AST):")
                 print("-" * 50)
                 if isinstance(hir, Program) and hir.statements:
@@ -243,14 +277,6 @@ class REPL:
                     print("  (empty)")
                 print("-" * 50)
                 print()
-            else:
-                # Evaluate the HIR and show result
-                result = evaluate(hir, self.env)
-
-                if result is not None:
-                    print(result.inspect())
-                else:
-                    print("None")
 
     def run(self) -> int:
         """Main REPL loop. Returns exit code."""

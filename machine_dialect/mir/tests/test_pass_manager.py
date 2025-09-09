@@ -1,6 +1,5 @@
 """Tests for the pass manager and optimization framework."""
 
-
 from machine_dialect.mir.basic_block import BasicBlock
 from machine_dialect.mir.mir_function import MIRFunction
 from machine_dialect.mir.mir_instructions import (
@@ -43,16 +42,16 @@ def create_test_module() -> MIRModule:
     t4 = Temp(MIRType.INT, 4)
 
     # Constant folding opportunity: 2 + 3 = 5
-    entry.add_instruction(LoadConst(t0, Constant(2, MIRType.INT)))
-    entry.add_instruction(LoadConst(t1, Constant(3, MIRType.INT)))
-    entry.add_instruction(BinaryOp(t2, "+", t0, t1))
+    entry.add_instruction(LoadConst(t0, Constant(2, MIRType.INT), (1, 1)))
+    entry.add_instruction(LoadConst(t1, Constant(3, MIRType.INT), (1, 1)))
+    entry.add_instruction(BinaryOp(t2, "+", t0, t1, (1, 1)))
 
     # Strength reduction opportunity: x * 4 -> x << 2
-    entry.add_instruction(LoadConst(t3, Constant(4, MIRType.INT)))
-    entry.add_instruction(BinaryOp(t4, "*", t2, t3))
+    entry.add_instruction(LoadConst(t3, Constant(4, MIRType.INT), (1, 1)))
+    entry.add_instruction(BinaryOp(t4, "*", t2, t3, (1, 1)))
 
     # Return result
-    entry.add_instruction(Return(t4))
+    entry.add_instruction(Return((1, 1), t4))
 
     module.add_function(main_func)
     return module
@@ -158,9 +157,9 @@ def test_dead_code_elimination() -> None:
     # Dead instruction: result not used
     t0 = Temp(MIRType.INT, 0)
     t1 = Temp(MIRType.INT, 1)
-    entry.add_instruction(LoadConst(t0, Constant(42, MIRType.INT)))
-    entry.add_instruction(BinaryOp(t1, "+", t0, t0))  # Dead if t1 not used
-    entry.add_instruction(Return(t0))  # Only t0 is used
+    entry.add_instruction(LoadConst(t0, Constant(42, MIRType.INT), (1, 1)))
+    entry.add_instruction(BinaryOp(t1, "+", t0, t0, (1, 1)))  # Dead if t1 not used
+    entry.add_instruction(Return((1, 1), t0))  # Only t0 is used
 
     # First build use-def chains
     use_def = UseDefChainsAnalysis()
@@ -189,9 +188,9 @@ def test_strength_reduction() -> None:
     # Multiplication by power of 2
     t0 = Temp(MIRType.INT, 0)
     t1 = Temp(MIRType.INT, 1)
-    entry.add_instruction(LoadConst(t0, Constant(10, MIRType.INT)))
-    entry.add_instruction(BinaryOp(t1, "*", t0, Constant(8, MIRType.INT)))
-    entry.add_instruction(Return(t1))
+    entry.add_instruction(LoadConst(t0, Constant(10, MIRType.INT), (1, 1)))
+    entry.add_instruction(BinaryOp(t1, "*", t0, Constant(8, MIRType.INT), (1, 1)))
+    entry.add_instruction(Return((1, 1), t1))
 
     # Run strength reduction
     sr_pass = StrengthReduction()
@@ -219,11 +218,11 @@ def test_cse() -> None:
     t2 = Temp(MIRType.INT, 2)
     t3 = Temp(MIRType.INT, 3)
 
-    entry.add_instruction(LoadConst(t0, Constant(5, MIRType.INT)))
-    entry.add_instruction(LoadConst(t1, Constant(7, MIRType.INT)))
-    entry.add_instruction(BinaryOp(t2, "+", t0, t1))  # First computation
-    entry.add_instruction(BinaryOp(t3, "+", t0, t1))  # Same computation
-    entry.add_instruction(Return(t3))
+    entry.add_instruction(LoadConst(t0, Constant(5, MIRType.INT), (1, 1)))
+    entry.add_instruction(LoadConst(t1, Constant(7, MIRType.INT), (1, 1)))
+    entry.add_instruction(BinaryOp(t2, "+", t0, t1, (1, 1)))  # First computation
+    entry.add_instruction(BinaryOp(t3, "+", t0, t1, (1, 1)))  # Same computation
+    entry.add_instruction(Return((1, 1), t3))
 
     # Run CSE
     cse_pass = CommonSubexpressionElimination()

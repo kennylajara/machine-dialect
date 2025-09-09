@@ -4,7 +4,6 @@ These tests verify that the parser properly integrates with the symbol table
 to track variable definitions and validate variable usage.
 """
 
-
 from machine_dialect.ast import DefineStatement, SetStatement
 from machine_dialect.errors.exceptions import MDNameError, MDSyntaxError, MDTypeError
 from machine_dialect.parser import Parser

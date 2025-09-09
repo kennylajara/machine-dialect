@@ -44,8 +44,12 @@ dev = [
     "mypy>=1.17.1",
     "pre-commit>=4.2.0",
     "pytest>=8.4.1",
+    "pytest-cov>=6.0.0",
     "pyupgrade>=3.20.0",
     "ruff>=0.12.7",
+    "maturin>=1.7.0",
+    "setuptools-rust>=1.10.0",
+    "patchelf>=0.17.0",
 ]
 
 [tool.ruff]
@@ -78,7 +82,7 @@ module = [
 disable_error_code = ["misc"]
 
 [tool.pytest.ini_options]
-testpaths = ["machine_dialect"]
+testpaths = ["machine_dialect", "machine_dialect_vm", "tests"]
 pythonpath = []
 addopts = [
     "--cov=machine_dialect",

@@ -6,7 +6,7 @@ in the MIR, including its parameters, locals, temporaries, and CFG.
 
 from .basic_block import CFG
 from .mir_types import MIRType, MIRUnionType
-from .mir_values import Temp, Variable
+from .mir_values import ScopedVariable, Temp, Variable
 
 
 class MIRFunction:
@@ -19,7 +19,7 @@ class MIRFunction:
     def __init__(
         self,
         name: str,
-        params: list[Variable] | None = None,
+        params: list[Variable | ScopedVariable] | None = None,
         return_type: MIRType = MIRType.EMPTY,
     ) -> None:
         """Initialize a MIR function.
@@ -46,6 +46,22 @@ class MIRFunction:
             var: The variable to add.
         """
         self.locals[var.name] = var
+
+    def declare_local(self, name: str, mir_type: MIRType) -> Variable:
+        """Declare a function-local variable.
+
+        Args:
+            name: The variable name.
+            mir_type: The type of the variable.
+
+        Returns:
+            A ScopedVariable with LOCAL scope.
+        """
+        from .mir_values import ScopedVariable, VariableScope
+
+        var = ScopedVariable(name, VariableScope.LOCAL, mir_type)
+        self.locals[name] = var
+        return var
 
     def get_local(self, name: str) -> Variable | None:
         """Get a local variable by name.

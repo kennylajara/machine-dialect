@@ -55,7 +55,7 @@ class TestMIRPrinter(unittest.TestCase):
         entry = BasicBlock("entry")
         main.cfg.add_block(entry)
         main.cfg.set_entry_block(entry)
-        entry.add_instruction(Return())
+        entry.add_instruction(Return((1, 1)))
 
         # Add helper function with parameters
         param = Variable("x", MIRType.INT)
@@ -63,7 +63,7 @@ class TestMIRPrinter(unittest.TestCase):
         helper_entry = BasicBlock("entry")
         helper.cfg.add_block(helper_entry)
         helper.cfg.set_entry_block(helper_entry)
-        helper_entry.add_instruction(Return(param))
+        helper_entry.add_instruction(Return((1, 1), param))
 
         module.add_function(main)
         module.add_function(helper)
@@ -93,7 +93,7 @@ class TestMIRPrinter(unittest.TestCase):
         entry = BasicBlock("entry")
         func.cfg.add_block(entry)
         func.cfg.set_entry_block(entry)
-        entry.add_instruction(Return())
+        entry.add_instruction(Return((1, 1)))
 
         output = dump_mir_function(func)
 
@@ -120,9 +120,9 @@ class TestMIRPrinter(unittest.TestCase):
         func.cfg.connect(block1, exit_block)
 
         # Add instructions
-        entry.add_instruction(Jump("block1"))
-        block1.add_instruction(Jump("exit"))
-        exit_block.add_instruction(Return())
+        entry.add_instruction(Jump("block1", (1, 1)))
+        block1.add_instruction(Jump("exit", (1, 1)))
+        exit_block.add_instruction(Return((1, 1)))
 
         output = dump_mir_function(func)
 
@@ -146,17 +146,17 @@ class TestMIRPrinter(unittest.TestCase):
         Constant(42, MIRType.INT)
 
         # Add various instructions
-        entry.add_instruction(LoadConst(t1, 42))
-        entry.add_instruction(StoreVar(x, t1))
-        entry.add_instruction(LoadVar(t1, x))
-        entry.add_instruction(Copy(y, x))
-        entry.add_instruction(BinaryOp(t1, "+", x, y))
-        entry.add_instruction(UnaryOp(t1, "-", x))
-        entry.add_instruction(Print(x))
-        entry.add_instruction(Assert(t2, "check failed"))
-        entry.add_instruction(Scope(is_begin=True))
-        entry.add_instruction(Scope(is_begin=False))
-        entry.add_instruction(Select(t1, t2, x, y))
+        entry.add_instruction(LoadConst(t1, 42, (1, 1)))
+        entry.add_instruction(StoreVar(x, t1, (1, 1)))
+        entry.add_instruction(LoadVar(t1, x, (1, 1)))
+        entry.add_instruction(Copy(y, x, (1, 1)))
+        entry.add_instruction(BinaryOp(t1, "+", x, y, (1, 1)))
+        entry.add_instruction(UnaryOp(t1, "-", x, (1, 1)))
+        entry.add_instruction(Print(x, (1, 1)))
+        entry.add_instruction(Assert(t2, (1, 1), "check failed"))
+        entry.add_instruction(Scope((1, 1), is_begin=True))
+        entry.add_instruction(Scope((1, 1), is_begin=False))
+        entry.add_instruction(Select(t1, t2, x, y, (1, 1)))
 
         # Object operations
         obj = func.new_temp(MIRType.UNKNOWN)
@@ -164,7 +164,7 @@ class TestMIRPrinter(unittest.TestCase):
         entry.add_instruction(SetAttr(obj, "field", t1))
 
         # Control flow
-        entry.add_instruction(Jump("next"))
+        entry.add_instruction(Jump("next", (1, 1)))
 
         output = dump_mir_function(func)
 
@@ -205,10 +205,10 @@ class TestMIRPrinter(unittest.TestCase):
         result = func.new_temp(MIRType.INT)
         val1 = Constant(1, MIRType.INT)
         val2 = Constant(2, MIRType.INT)
-        phi = Phi(result, [(val1, "then"), (val2, "else")])
+        phi = Phi(result, [(val1, "then"), (val2, "else")], (1, 1))
 
         merge.add_instruction(phi)
-        merge.add_instruction(Return(result))
+        merge.add_instruction(Return((1, 1), result))
 
         output = dump_mir_function(func)
 
@@ -224,11 +224,11 @@ class TestMIRPrinter(unittest.TestCase):
         func.cfg.set_entry_block(entry)
 
         # Test different constant types
-        entry.add_instruction(LoadConst(func.new_temp(MIRType.INT), 42))
-        entry.add_instruction(LoadConst(func.new_temp(MIRType.STRING), "hello"))
-        entry.add_instruction(LoadConst(func.new_temp(MIRType.BOOL), True))
-        entry.add_instruction(LoadConst(func.new_temp(MIRType.BOOL), False))
-        entry.add_instruction(LoadConst(func.new_temp(MIRType.EMPTY), None))
+        entry.add_instruction(LoadConst(func.new_temp(MIRType.INT), 42, (1, 1)))
+        entry.add_instruction(LoadConst(func.new_temp(MIRType.STRING), "hello", (1, 1)))
+        entry.add_instruction(LoadConst(func.new_temp(MIRType.BOOL), True, (1, 1)))
+        entry.add_instruction(LoadConst(func.new_temp(MIRType.BOOL), False, (1, 1)))
+        entry.add_instruction(LoadConst(func.new_temp(MIRType.EMPTY), None, (1, 1)))
 
         output = dump_mir_function(func)
 
@@ -244,7 +244,7 @@ class TestMIRPrinter(unittest.TestCase):
         entry = BasicBlock("entry")
         func.cfg.add_block(entry)
         func.cfg.set_entry_block(entry)
-        entry.add_instruction(Return())
+        entry.add_instruction(Return((1, 1)))
 
         # Print to custom stream
         output_stream = io.StringIO()
@@ -269,8 +269,8 @@ class TestMIRDotExporter(unittest.TestCase):
         func.cfg.set_entry_block(entry)
         func.cfg.connect(entry, exit_block)
 
-        entry.add_instruction(Jump("exit"))
-        exit_block.add_instruction(Return())
+        entry.add_instruction(Jump("exit", (1, 1)))
+        exit_block.add_instruction(Return((1, 1)))
 
         dot = export_cfg_dot(func)
 
@@ -302,10 +302,10 @@ class TestMIRDotExporter(unittest.TestCase):
 
         # Add conditional jump
         cond = func.new_temp(MIRType.BOOL)
-        entry.add_instruction(ConditionalJump(cond, "then", "else"))
-        then_block.add_instruction(Jump("merge"))
-        else_block.add_instruction(Jump("merge"))
-        merge.add_instruction(Return())
+        entry.add_instruction(ConditionalJump(cond, "then", (1, 1), "else"))
+        then_block.add_instruction(Jump("merge", (1, 1)))
+        else_block.add_instruction(Jump("merge", (1, 1)))
+        merge.add_instruction(Return((1, 1)))
 
         dot = export_cfg_dot(func)
 
@@ -327,9 +327,9 @@ class TestMIRDotExporter(unittest.TestCase):
         # Add many instructions
         for i in range(10):
             t = func.new_temp(MIRType.INT)
-            entry.add_instruction(LoadConst(t, i))
+            entry.add_instruction(LoadConst(t, i, (1, 1)))
 
-        entry.add_instruction(Return())
+        entry.add_instruction(Return((1, 1)))
 
         dot = export_cfg_dot(func)
 
@@ -356,13 +356,13 @@ class TestMIRDotExporter(unittest.TestCase):
         func.cfg.connect(loop_header, exit_block)
         func.cfg.connect(loop_body, loop_header)  # Back edge
 
-        entry.add_instruction(Jump("loop_header"))
+        entry.add_instruction(Jump("loop_header", (1, 1)))
 
         cond = func.new_temp(MIRType.BOOL)
-        loop_header.add_instruction(ConditionalJump(cond, "loop_body", "exit"))
+        loop_header.add_instruction(ConditionalJump(cond, "loop_body", (1, 1), "exit"))
 
-        loop_body.add_instruction(Jump("loop_header"))
-        exit_block.add_instruction(Return())
+        loop_body.add_instruction(Jump("loop_header", (1, 1)))
+        exit_block.add_instruction(Return((1, 1)))
 
         dot = export_cfg_dot(func)
 
@@ -379,8 +379,8 @@ class TestMIRDotExporter(unittest.TestCase):
 
         # Add instruction with quotes
         t = func.new_temp(MIRType.STRING)
-        entry.add_instruction(LoadConst(t, 'string with "quotes"'))
-        entry.add_instruction(Return())
+        entry.add_instruction(LoadConst(t, 'string with "quotes"', (1, 1)))
+        entry.add_instruction(Return((1, 1)))
 
         dot = export_cfg_dot(func)
 

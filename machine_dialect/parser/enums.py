@@ -25,7 +25,7 @@ class Precedence(IntEnum):
     REL_ASYM_COMP = 9
     # Bitwise Shift
     BITWISE_SHIFT = 10
-    # Mathematical Addition, substraction
+    # Mathematical Addition, subtraction
     MATH_ADD_SUB = 11
     # Mathematical product, division, and modulus
     MATH_PROD_DIV_MOD = 12

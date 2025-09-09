@@ -4,7 +4,6 @@ This module implements type-aware optimizations that leverage type information
 from variable definitions to generate more efficient MIR code.
 """
 
-
 from machine_dialect.mir.analyses.dominance_analysis import DominanceAnalysis
 from machine_dialect.mir.analyses.use_def_chains import UseDefChains, UseDefChainsAnalysis
 from machine_dialect.mir.basic_block import BasicBlock
@@ -339,47 +338,47 @@ class TypeSpecificOptimization(FunctionPass):
                 # False and x => False
                 if isinstance(inst.left, Constant) and inst.left.value is False:
                     self.stats["boolean_optimized"] += 1
-                    return LoadConst(inst.dest, Constant(False, MIRType.BOOL))
+                    return LoadConst(inst.dest, Constant(False, MIRType.BOOL), inst.source_location)
                 # x and False => False
                 if isinstance(inst.right, Constant) and inst.right.value is False:
                     self.stats["boolean_optimized"] += 1
-                    return LoadConst(inst.dest, Constant(False, MIRType.BOOL))
+                    return LoadConst(inst.dest, Constant(False, MIRType.BOOL), inst.source_location)
                 # True and x => x
                 if isinstance(inst.left, Constant) and inst.left.value is True:
                     self.stats["boolean_optimized"] += 1
-                    return Copy(inst.dest, inst.right)
+                    return Copy(inst.dest, inst.right, inst.source_location)
                 # x and True => x
                 if isinstance(inst.right, Constant) and inst.right.value is True:
                     self.stats["boolean_optimized"] += 1
-                    return Copy(inst.dest, inst.left)
+                    return Copy(inst.dest, inst.left, inst.source_location)
                 # x and x => x (idempotent)
                 if inst.left == inst.right:
                     self.stats["boolean_optimized"] += 1
-                    return Copy(inst.dest, inst.left)
+                    return Copy(inst.dest, inst.left, inst.source_location)
             elif inst.op == "or":
                 # True or x => True
                 if isinstance(inst.left, Constant) and inst.left.value is True:
                     self.stats["boolean_optimized"] += 1
-                    return LoadConst(inst.dest, Constant(True, MIRType.BOOL))
+                    return LoadConst(inst.dest, Constant(True, MIRType.BOOL), inst.source_location)
                 # x or True => True
                 if isinstance(inst.right, Constant) and inst.right.value is True:
                     self.stats["boolean_optimized"] += 1
-                    return LoadConst(inst.dest, Constant(True, MIRType.BOOL))
+                    return LoadConst(inst.dest, Constant(True, MIRType.BOOL), inst.source_location)
                 # False or x => x
                 if isinstance(inst.left, Constant) and inst.left.value is False:
                     self.stats["boolean_optimized"] += 1
-                    return Copy(inst.dest, inst.right)
+                    return Copy(inst.dest, inst.right, inst.source_location)
                 # x or False => x
                 if isinstance(inst.right, Constant) and inst.right.value is False:
                     self.stats["boolean_optimized"] += 1
-                    return Copy(inst.dest, inst.left)
+                    return Copy(inst.dest, inst.left, inst.source_location)
 
             # Try constant folding
             if isinstance(inst.left, Constant) and isinstance(inst.right, Constant):
                 folded = self._fold_binary_constant(inst.op, inst.left, inst.right)
                 if folded:
                     self.stats["constant_folded"] += 1
-                    return LoadConst(inst.dest, folded)
+                    return LoadConst(inst.dest, folded, inst.source_location)
 
             # Pattern-based optimizations
             pattern_opt = self._optimize_patterns(inst, type_contexts)
@@ -416,7 +415,7 @@ class TypeSpecificOptimization(FunctionPass):
             # Self-equality optimization (x == x => True)
             if inst.op == "==" and inst.left == inst.right:
                 self.stats["boolean_optimized"] += 1
-                return LoadConst(inst.dest, Constant(True, MIRType.BOOL))
+                return LoadConst(inst.dest, Constant(True, MIRType.BOOL), inst.source_location)
 
         elif isinstance(inst, UnaryOp):
             # Double negation elimination
@@ -427,13 +426,13 @@ class TypeSpecificOptimization(FunctionPass):
                     if isinstance(def_inst, UnaryOp) and def_inst.op == "not":
                         # not(not(x)) -> x
                         self.stats["boolean_optimized"] += 1
-                        return Copy(inst.dest, def_inst.operand)
+                        return Copy(inst.dest, def_inst.operand, inst.source_location)
                     # Check for comparison inversion: not(x op y) -> x inv_op y
                     elif isinstance(def_inst, BinaryOp):
                         inverted_op = self._invert_comparison(def_inst.op)
                         if inverted_op:
                             self.stats["boolean_optimized"] += 1
-                            return BinaryOp(inst.dest, inverted_op, def_inst.left, def_inst.right)
+                            return BinaryOp(inst.dest, inverted_op, def_inst.left, def_inst.right, inst.source_location)
             elif inst.op == "-":
                 # Check for double negation: -(-x) -> x
                 if self.use_def_chains:
@@ -441,14 +440,14 @@ class TypeSpecificOptimization(FunctionPass):
                     if isinstance(def_inst, UnaryOp) and def_inst.op == "-":
                         # -(-x) -> x
                         self.stats["integer_optimized"] += 1
-                        return Copy(inst.dest, def_inst.operand)
+                        return Copy(inst.dest, def_inst.operand, inst.source_location)
 
             # Constant folding
             if isinstance(inst.operand, Constant):
                 folded = self._fold_unary_constant(inst.op, inst.operand)
                 if folded:
                     self.stats["constant_folded"] += 1
-                    return LoadConst(inst.dest, folded)
+                    return LoadConst(inst.dest, folded, inst.source_location)
 
         elif isinstance(inst, ConditionalJump):
             # Optimize conditional jumps with known conditions
@@ -459,14 +458,16 @@ class TypeSpecificOptimization(FunctionPass):
 
                     self.stats["constant_folded"] += 1
                     if inst.true_label:
-                        return Jump(inst.true_label)
+                        # TODO: Verify if using inst.source_location is correct for optimization-generated instructions
+                        return Jump(inst.true_label, inst.source_location)
                 else:
                     # Always false - convert to jump to false label
                     from machine_dialect.mir.mir_instructions import Jump
 
                     self.stats["constant_folded"] += 1
                     if inst.false_label:
-                        return Jump(inst.false_label)
+                        # TODO: Verify if using inst.source_location is correct for optimization-generated instructions
+                        return Jump(inst.false_label, inst.source_location)
 
         return inst
 
@@ -519,11 +520,12 @@ class TypeSpecificOptimization(FunctionPass):
         # Pattern: min(a + b, MAX_INT) => saturating_add(a, b)
         if inst.op == "+" and self._is_saturating_pattern(inst, type_contexts):
             self.stats["specialized_instructions"] += 1
+            # SaturatingAddOp doesn't take source_location - it's an optimization-generated instruction
             return SaturatingAddOp(inst.dest, inst.left, inst.right)
 
         # Identity operations
         if self._is_identity_operation(inst):
-            return Copy(inst.dest, inst.left if inst.op in ["+", "-", "*", "/"] else inst.right)
+            return Copy(inst.dest, inst.left if inst.op in ["+", "-", "*", "/"] else inst.right, inst.source_location)
 
         return inst
 
@@ -552,11 +554,11 @@ class TypeSpecificOptimization(FunctionPass):
                 if inst.op == "<" and left_ctx.range.max is not None and right_ctx.range.min is not None:
                     if left_ctx.range.max < right_ctx.range.min:
                         # Always true
-                        return LoadConst(inst.dest, Constant(True, MIRType.BOOL))
+                        return LoadConst(inst.dest, Constant(True, MIRType.BOOL), inst.source_location)
                     elif left_ctx.range.min is not None and right_ctx.range.max is not None:
                         if left_ctx.range.min >= right_ctx.range.max:
                             # Always false
-                            return LoadConst(inst.dest, Constant(False, MIRType.BOOL))
+                            return LoadConst(inst.dest, Constant(False, MIRType.BOOL), inst.source_location)
 
         # Division by power of 2 optimization
         if inst.op == "/" and right_ctx.range and right_ctx.range.is_constant():
@@ -564,7 +566,7 @@ class TypeSpecificOptimization(FunctionPass):
             if isinstance(val, int) and val > 0 and (val & (val - 1)) == 0:
                 # Power of 2 - use shift
                 shift_amount = val.bit_length() - 1
-                return ShiftOp(inst.dest, inst.left, Constant(shift_amount, MIRType.INT), ">>")
+                return ShiftOp(inst.dest, inst.left, Constant(shift_amount, MIRType.INT), ">>", inst.source_location)
 
         return inst
 
@@ -584,50 +586,54 @@ class TypeSpecificOptimization(FunctionPass):
                 # Multiplication optimizations
                 if inst.op == "*":
                     if val == 0:
-                        return LoadConst(inst.dest, Constant(0, MIRType.INT))
+                        return LoadConst(inst.dest, Constant(0, MIRType.INT), inst.source_location)
                     elif val == 1:
-                        return Copy(inst.dest, inst.left)
+                        return Copy(inst.dest, inst.left, inst.source_location)
                     elif val == 2:
-                        return BinaryOp(inst.dest, "+", inst.left, inst.left)
+                        return BinaryOp(inst.dest, "+", inst.left, inst.left, inst.source_location)
                     elif val == -1:
-                        return UnaryOp(inst.dest, "-", inst.left)
+                        return UnaryOp(inst.dest, "-", inst.left, inst.source_location)
                     elif val > 2 and (val & (val - 1)) == 0:
                         # Power of 2 - use shift
                         shift_amount = val.bit_length() - 1
-                        return ShiftOp(inst.dest, inst.left, Constant(shift_amount, MIRType.INT), "<<")
+                        return ShiftOp(
+                            inst.dest, inst.left, Constant(shift_amount, MIRType.INT), "<<", inst.source_location
+                        )
 
                 # Division by power of 2
                 elif inst.op == "/" and val > 0 and (val & (val - 1)) == 0:
                     shift_amount = val.bit_length() - 1
-                    return ShiftOp(inst.dest, inst.left, Constant(shift_amount, MIRType.INT), ">>")
+                    return ShiftOp(
+                        inst.dest, inst.left, Constant(shift_amount, MIRType.INT), ">>", inst.source_location
+                    )
 
                 # Modulo by power of 2
                 elif inst.op == "%" and val > 0 and (val & (val - 1)) == 0:
                     mask_val = val - 1
-                    return BinaryOp(inst.dest, "&", inst.left, Constant(mask_val, MIRType.INT))
+                    return BinaryOp(inst.dest, "&", inst.left, Constant(mask_val, MIRType.INT), inst.source_location)
 
                 # Power optimizations
                 elif inst.op == "**":
                     if val == 0:
                         # x ** 0 -> 1
-                        return LoadConst(inst.dest, Constant(1, MIRType.INT))
+                        return LoadConst(inst.dest, Constant(1, MIRType.INT), inst.source_location)
                     elif val == 1:
                         # x ** 1 -> x
-                        return Copy(inst.dest, inst.left)
+                        return Copy(inst.dest, inst.left, inst.source_location)
                     elif val == 2:
                         # x ** 2 -> x * x
-                        return BinaryOp(inst.dest, "*", inst.left, inst.left)
+                        return BinaryOp(inst.dest, "*", inst.left, inst.left, inst.source_location)
 
         # Self operations
         if inst.left == inst.right:
             if inst.op == "-":
-                return LoadConst(inst.dest, Constant(0, MIRType.INT))
+                return LoadConst(inst.dest, Constant(0, MIRType.INT), inst.source_location)
             elif inst.op == "/" and inst.left != Constant(0, MIRType.INT):
-                return LoadConst(inst.dest, Constant(1, MIRType.INT))
+                return LoadConst(inst.dest, Constant(1, MIRType.INT), inst.source_location)
             elif inst.op == "^":  # XOR
-                return LoadConst(inst.dest, Constant(0, MIRType.INT))
+                return LoadConst(inst.dest, Constant(0, MIRType.INT), inst.source_location)
             elif inst.op == "%":  # x % x => 0
-                return LoadConst(inst.dest, Constant(0, MIRType.INT))
+                return LoadConst(inst.dest, Constant(0, MIRType.INT), inst.source_location)
 
         return inst
 

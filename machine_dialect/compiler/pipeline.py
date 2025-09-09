@@ -7,6 +7,7 @@ from pathlib import Path
 
 from machine_dialect.compiler.config import CompilerConfig
 from machine_dialect.compiler.context import CompilationContext
+from machine_dialect.compiler.phases.bytecode_optimization import BytecodeOptimizationPhase
 from machine_dialect.compiler.phases.codegen import CodeGenerationPhase
 from machine_dialect.compiler.phases.hir_generation import HIRGenerationPhase
 from machine_dialect.compiler.phases.mir_generation import MIRGenerationPhase
@@ -32,6 +33,7 @@ class CompilationPipeline:
         self.mir_phase = MIRGenerationPhase()
         self.optimization_phase = OptimizationPhase()
         self.codegen_phase = CodeGenerationPhase()
+        self.bytecode_optimization_phase = BytecodeOptimizationPhase()
 
     def compile_file(self, source_path: Path) -> CompilationContext:
         """Compile a source file.
@@ -115,6 +117,13 @@ class CompilationPipeline:
                 context.bytecode_module = bytecode_module
             else:
                 return context
+        else:
+            return context
+
+        # Phase 6: Bytecode Optimization (after code generation)
+        if not context.has_errors() and context.bytecode_module and context.should_optimize():
+            optimized_bytecode = self.bytecode_optimization_phase.run(context, context.bytecode_module)
+            context.bytecode_module = optimized_bytecode
 
         return context
 

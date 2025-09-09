@@ -1,40 +1,40 @@
 {
   "@context": "https://schema.org",
   "@type": "Legislation",
-  "name": "Leyes de la Robótica de Asimov",
+  "name": "Asimov's Laws of Robotics",
   "creator": {
     "@type": "Person",
     "name": "Isaac Asimov",
-    "sameAs": "https://es.wikipedia.org/wiki/Isaac_Asimov"
+    "sameAs": "https://en.wikipedia.org/wiki/Isaac_Asimov"
   },
   "datePublished": "1942-03",
-  "inLanguage": "es",
+  "inLanguage": "en",
   "legislationType": "fictional-law",
   "legislationLegalValue": "UnofficialLegalValue",
   "hasPart": [
     {
       "@type": "Legislation",
-      "name": "Primera Ley de la Robótica",
+      "name": "First Law of Robotics",
       "identifier": "1",
       "legislationType": "fictional-law",
       "legislationLegalValue": "UnofficialLegalValue",
-      "text": "Un robot no hará daño a un ser humano ni, por inacción, permitirá que un ser humano sufra daño."
+      "text": "A robot may not injure a human being or, through inaction, allow a human being to come to harm."
     },
     {
       "@type": "Legislation",
-      "name": "Segunda Ley de la Robótica",
+      "name": "Second Law of Robotics",
       "identifier": "2",
       "legislationType": "fictional-law",
       "legislationLegalValue": "UnofficialLegalValue",
-      "text": "Un robot debe obedecer las órdenes dadas por los seres humanos, excepto si dichas órdenes entran en conflicto con la Primera Ley."
+      "text": "A robot must obey the orders given it by human beings except where such orders would conflict with the First Law."
     },
     {
       "@type": "Legislation",
-      "name": "Tercera Ley de la Robótica",
+      "name": "Third Law of Robotics",
       "identifier": "3",
       "legislationType": "fictional-law",
       "legislationLegalValue": "UnofficialLegalValue",
-      "text": "Un robot debe proteger su propia existencia en la medida en que esta protección no entre en conflicto con la Primera o la Segunda Ley."
+      "text": "A robot must protect its own existence as long as such protection does not conflict with the First or Second Law."
     }
   ]
 }

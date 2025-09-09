@@ -1,6 +1,5 @@
 """Test custom optimization passes functionality."""
 
-
 from machine_dialect.mir.basic_block import BasicBlock
 from machine_dialect.mir.mir_function import MIRFunction
 from machine_dialect.mir.mir_instructions import LoadConst, Return
@@ -20,8 +19,8 @@ def create_simple_module() -> MIRModule:
     module = MIRModule("test")
     func = MIRFunction("main", [], MIRType.INT)
     entry = BasicBlock("entry")
-    entry.add_instruction(LoadConst(Temp(MIRType.INT), 42))
-    entry.add_instruction(Return())
+    entry.add_instruction(LoadConst(Temp(MIRType.INT), 42, (1, 1)))
+    entry.add_instruction(Return((1, 1)))
     func.cfg.add_block(entry)
     func.cfg.entry = entry  # type: ignore[attr-defined]
     module.add_function(func)

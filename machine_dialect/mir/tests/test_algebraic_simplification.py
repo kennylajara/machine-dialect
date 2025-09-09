@@ -31,8 +31,8 @@ class TestAlgebraicSimplificationComparison(unittest.TestCase):
         """Test x == x → true."""
         t0 = Temp(MIRType.INT)
         t1 = Temp(MIRType.BOOL)
-        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT)))
-        self.block.add_instruction(BinaryOp(t1, "==", t0, t0))
+        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT), (1, 1)))
+        self.block.add_instruction(BinaryOp(t1, "==", t0, t0, (1, 1)))
 
         changed = self.opt.run_on_function(self.func)
 
@@ -48,8 +48,8 @@ class TestAlgebraicSimplificationComparison(unittest.TestCase):
         """Test x != x → false."""
         t0 = Temp(MIRType.INT)
         t1 = Temp(MIRType.BOOL)
-        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT)))
-        self.block.add_instruction(BinaryOp(t1, "!=", t0, t0))
+        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT), (1, 1)))
+        self.block.add_instruction(BinaryOp(t1, "!=", t0, t0, (1, 1)))
 
         changed = self.opt.run_on_function(self.func)
 
@@ -65,8 +65,8 @@ class TestAlgebraicSimplificationComparison(unittest.TestCase):
         """Test x < x → false."""
         t0 = Temp(MIRType.INT)
         t1 = Temp(MIRType.BOOL)
-        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT)))
-        self.block.add_instruction(BinaryOp(t1, "<", t0, t0))
+        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT), (1, 1)))
+        self.block.add_instruction(BinaryOp(t1, "<", t0, t0, (1, 1)))
 
         changed = self.opt.run_on_function(self.func)
 
@@ -82,8 +82,8 @@ class TestAlgebraicSimplificationComparison(unittest.TestCase):
         """Test x > x → false."""
         t0 = Temp(MIRType.INT)
         t1 = Temp(MIRType.BOOL)
-        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT)))
-        self.block.add_instruction(BinaryOp(t1, ">", t0, t0))
+        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT), (1, 1)))
+        self.block.add_instruction(BinaryOp(t1, ">", t0, t0, (1, 1)))
 
         changed = self.opt.run_on_function(self.func)
 
@@ -99,8 +99,8 @@ class TestAlgebraicSimplificationComparison(unittest.TestCase):
         """Test x <= x → true."""
         t0 = Temp(MIRType.INT)
         t1 = Temp(MIRType.BOOL)
-        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT)))
-        self.block.add_instruction(BinaryOp(t1, "<=", t0, t0))
+        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT), (1, 1)))
+        self.block.add_instruction(BinaryOp(t1, "<=", t0, t0, (1, 1)))
 
         changed = self.opt.run_on_function(self.func)
 
@@ -116,8 +116,8 @@ class TestAlgebraicSimplificationComparison(unittest.TestCase):
         """Test x >= x → true."""
         t0 = Temp(MIRType.INT)
         t1 = Temp(MIRType.BOOL)
-        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT)))
-        self.block.add_instruction(BinaryOp(t1, ">=", t0, t0))
+        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT), (1, 1)))
+        self.block.add_instruction(BinaryOp(t1, ">=", t0, t0, (1, 1)))
 
         changed = self.opt.run_on_function(self.func)
 
@@ -134,9 +134,9 @@ class TestAlgebraicSimplificationComparison(unittest.TestCase):
         t0 = Temp(MIRType.INT)
         t1 = Temp(MIRType.INT)
         t2 = Temp(MIRType.BOOL)
-        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT)))
-        self.block.add_instruction(LoadConst(t1, Constant(43, MIRType.INT)))
-        self.block.add_instruction(BinaryOp(t2, "==", t0, t1))
+        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT), (1, 1)))
+        self.block.add_instruction(LoadConst(t1, Constant(43, MIRType.INT), (1, 1)))
+        self.block.add_instruction(BinaryOp(t2, "==", t0, t1, (1, 1)))
 
         changed = self.opt.run_on_function(self.func)
 
@@ -164,8 +164,8 @@ class TestAlgebraicSimplificationBitwise(unittest.TestCase):
         """Test x & 0 → 0."""
         t0 = Temp(MIRType.INT)
         t1 = Temp(MIRType.INT)
-        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT)))
-        self.block.add_instruction(BinaryOp(t1, "&", t0, Constant(0, MIRType.INT)))
+        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT), (1, 1)))
+        self.block.add_instruction(BinaryOp(t1, "&", t0, Constant(0, MIRType.INT), (1, 1)))
 
         changed = self.opt.run_on_function(self.func)
 
@@ -181,8 +181,8 @@ class TestAlgebraicSimplificationBitwise(unittest.TestCase):
         """Test x & x → x."""
         t0 = Temp(MIRType.INT)
         t1 = Temp(MIRType.INT)
-        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT)))
-        self.block.add_instruction(BinaryOp(t1, "&", t0, t0))
+        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT), (1, 1)))
+        self.block.add_instruction(BinaryOp(t1, "&", t0, t0, (1, 1)))
 
         changed = self.opt.run_on_function(self.func)
 
@@ -198,8 +198,8 @@ class TestAlgebraicSimplificationBitwise(unittest.TestCase):
         """Test x & -1 → x (all ones)."""
         t0 = Temp(MIRType.INT)
         t1 = Temp(MIRType.INT)
-        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT)))
-        self.block.add_instruction(BinaryOp(t1, "&", t0, Constant(-1, MIRType.INT)))
+        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT), (1, 1)))
+        self.block.add_instruction(BinaryOp(t1, "&", t0, Constant(-1, MIRType.INT), (1, 1)))
 
         changed = self.opt.run_on_function(self.func)
 
@@ -215,8 +215,8 @@ class TestAlgebraicSimplificationBitwise(unittest.TestCase):
         """Test x | 0 → x."""
         t0 = Temp(MIRType.INT)
         t1 = Temp(MIRType.INT)
-        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT)))
-        self.block.add_instruction(BinaryOp(t1, "|", t0, Constant(0, MIRType.INT)))
+        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT), (1, 1)))
+        self.block.add_instruction(BinaryOp(t1, "|", t0, Constant(0, MIRType.INT), (1, 1)))
 
         changed = self.opt.run_on_function(self.func)
 
@@ -232,8 +232,8 @@ class TestAlgebraicSimplificationBitwise(unittest.TestCase):
         """Test x | x → x."""
         t0 = Temp(MIRType.INT)
         t1 = Temp(MIRType.INT)
-        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT)))
-        self.block.add_instruction(BinaryOp(t1, "|", t0, t0))
+        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT), (1, 1)))
+        self.block.add_instruction(BinaryOp(t1, "|", t0, t0, (1, 1)))
 
         changed = self.opt.run_on_function(self.func)
 
@@ -249,8 +249,8 @@ class TestAlgebraicSimplificationBitwise(unittest.TestCase):
         """Test x | -1 → -1 (all ones)."""
         t0 = Temp(MIRType.INT)
         t1 = Temp(MIRType.INT)
-        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT)))
-        self.block.add_instruction(BinaryOp(t1, "|", t0, Constant(-1, MIRType.INT)))
+        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT), (1, 1)))
+        self.block.add_instruction(BinaryOp(t1, "|", t0, Constant(-1, MIRType.INT), (1, 1)))
 
         changed = self.opt.run_on_function(self.func)
 
@@ -266,8 +266,8 @@ class TestAlgebraicSimplificationBitwise(unittest.TestCase):
         """Test x ^ 0 → x."""
         t0 = Temp(MIRType.INT)
         t1 = Temp(MIRType.INT)
-        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT)))
-        self.block.add_instruction(BinaryOp(t1, "^", t0, Constant(0, MIRType.INT)))
+        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT), (1, 1)))
+        self.block.add_instruction(BinaryOp(t1, "^", t0, Constant(0, MIRType.INT), (1, 1)))
 
         changed = self.opt.run_on_function(self.func)
 
@@ -283,8 +283,8 @@ class TestAlgebraicSimplificationBitwise(unittest.TestCase):
         """Test x ^ x → 0."""
         t0 = Temp(MIRType.INT)
         t1 = Temp(MIRType.INT)
-        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT)))
-        self.block.add_instruction(BinaryOp(t1, "^", t0, t0))
+        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT), (1, 1)))
+        self.block.add_instruction(BinaryOp(t1, "^", t0, t0, (1, 1)))
 
         changed = self.opt.run_on_function(self.func)
 
@@ -300,8 +300,8 @@ class TestAlgebraicSimplificationBitwise(unittest.TestCase):
         """Test x << 0 → x."""
         t0 = Temp(MIRType.INT)
         t1 = Temp(MIRType.INT)
-        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT)))
-        self.block.add_instruction(BinaryOp(t1, "<<", t0, Constant(0, MIRType.INT)))
+        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT), (1, 1)))
+        self.block.add_instruction(BinaryOp(t1, "<<", t0, Constant(0, MIRType.INT), (1, 1)))
 
         changed = self.opt.run_on_function(self.func)
 
@@ -317,8 +317,8 @@ class TestAlgebraicSimplificationBitwise(unittest.TestCase):
         """Test x >> 0 → x."""
         t0 = Temp(MIRType.INT)
         t1 = Temp(MIRType.INT)
-        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT)))
-        self.block.add_instruction(BinaryOp(t1, ">>", t0, Constant(0, MIRType.INT)))
+        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT), (1, 1)))
+        self.block.add_instruction(BinaryOp(t1, ">>", t0, Constant(0, MIRType.INT), (1, 1)))
 
         changed = self.opt.run_on_function(self.func)
 
@@ -349,8 +349,8 @@ class TestAlgebraicSimplificationModulo(unittest.TestCase):
         """Test x % 1 → 0."""
         t0 = Temp(MIRType.INT)
         t1 = Temp(MIRType.INT)
-        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT)))
-        self.block.add_instruction(BinaryOp(t1, "%", t0, Constant(1, MIRType.INT)))
+        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT), (1, 1)))
+        self.block.add_instruction(BinaryOp(t1, "%", t0, Constant(1, MIRType.INT), (1, 1)))
 
         changed = self.opt.run_on_function(self.func)
 
@@ -366,8 +366,8 @@ class TestAlgebraicSimplificationModulo(unittest.TestCase):
         """Test x % x → 0."""
         t0 = Temp(MIRType.INT)
         t1 = Temp(MIRType.INT)
-        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT)))
-        self.block.add_instruction(BinaryOp(t1, "%", t0, t0))
+        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT), (1, 1)))
+        self.block.add_instruction(BinaryOp(t1, "%", t0, t0, (1, 1)))
 
         changed = self.opt.run_on_function(self.func)
 
@@ -382,7 +382,7 @@ class TestAlgebraicSimplificationModulo(unittest.TestCase):
     def test_zero_modulo(self) -> None:
         """Test 0 % x → 0."""
         t0 = Temp(MIRType.INT)
-        self.block.add_instruction(BinaryOp(t0, "%", Constant(0, MIRType.INT), Constant(42, MIRType.INT)))
+        self.block.add_instruction(BinaryOp(t0, "%", Constant(0, MIRType.INT), Constant(42, MIRType.INT), (1, 1)))
 
         changed = self.opt.run_on_function(self.func)
 
@@ -399,9 +399,9 @@ class TestAlgebraicSimplificationModulo(unittest.TestCase):
         t0 = Temp(MIRType.INT)
         t1 = Temp(MIRType.INT)
         t2 = Temp(MIRType.INT)
-        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT)))
-        self.block.add_instruction(LoadConst(t1, Constant(5, MIRType.INT)))
-        self.block.add_instruction(BinaryOp(t2, "%", t0, t1))
+        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT), (1, 1)))
+        self.block.add_instruction(LoadConst(t1, Constant(5, MIRType.INT), (1, 1)))
+        self.block.add_instruction(BinaryOp(t2, "%", t0, t1, (1, 1)))
 
         changed = self.opt.run_on_function(self.func)
 
@@ -434,16 +434,16 @@ class TestAlgebraicSimplificationUnary(unittest.TestCase):
         t2 = Temp(MIRType.INT)
 
         # Create x = 42, t1 = -x, t2 = -t1
-        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT)))
-        self.block.add_instruction(UnaryOp(t1, "-", t0))
-        self.block.add_instruction(UnaryOp(t2, "-", t1))
+        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT), (1, 1)))
+        self.block.add_instruction(UnaryOp(t1, "-", t0, (1, 1)))
+        self.block.add_instruction(UnaryOp(t2, "-", t1, (1, 1)))
 
         changed = self.opt.run_on_function(self.func)
 
         self.assertTrue(changed)
         self.assertEqual(self.opt.stats.get("double_negation_eliminated", 0), 1)
         instructions = list(self.block.instructions)
-        # The last instruction should be Copy(t2, t0)
+        # The last instruction should be Copy(t2, t0, (1, 1))
         self.assertIsInstance(instructions[2], Copy)
         copy_inst = instructions[2]
         assert isinstance(copy_inst, Copy)
@@ -459,16 +459,16 @@ class TestAlgebraicSimplificationUnary(unittest.TestCase):
         t2 = Temp(MIRType.BOOL)
 
         # Create x = true, t1 = not x, t2 = not t1
-        self.block.add_instruction(LoadConst(t0, Constant(True, MIRType.BOOL)))
-        self.block.add_instruction(UnaryOp(t1, "not", t0))
-        self.block.add_instruction(UnaryOp(t2, "not", t1))
+        self.block.add_instruction(LoadConst(t0, Constant(True, MIRType.BOOL), (1, 1)))
+        self.block.add_instruction(UnaryOp(t1, "not", t0, (1, 1)))
+        self.block.add_instruction(UnaryOp(t2, "not", t1, (1, 1)))
 
         changed = self.opt.run_on_function(self.func)
 
         self.assertTrue(changed)
         self.assertEqual(self.opt.stats.get("double_not_eliminated", 0), 1)
         instructions = list(self.block.instructions)
-        # The last instruction should be Copy(t2, t0)
+        # The last instruction should be Copy(t2, t0, (1, 1))
         self.assertIsInstance(instructions[2], Copy)
         copy_inst = instructions[2]
         assert isinstance(copy_inst, Copy)
@@ -494,7 +494,7 @@ class TestAlgebraicSimplificationPower(unittest.TestCase):
         """Test x ** 0 → 1."""
         # Create: t0 = 5 ** 0 (using constants directly)
         t0 = Temp(MIRType.INT)
-        self.block.add_instruction(BinaryOp(t0, "**", Constant(5, MIRType.INT), Constant(0, MIRType.INT)))
+        self.block.add_instruction(BinaryOp(t0, "**", Constant(5, MIRType.INT), Constant(0, MIRType.INT), (1, 1)))
 
         # Run optimization
         changed = self.opt.run_on_function(self.func)
@@ -516,8 +516,8 @@ class TestAlgebraicSimplificationPower(unittest.TestCase):
         t0 = Temp(MIRType.INT)
         t1 = Temp(MIRType.INT)
 
-        self.block.add_instruction(LoadConst(t0, Constant(7, MIRType.INT)))
-        self.block.add_instruction(BinaryOp(t1, "**", t0, Constant(1, MIRType.INT)))
+        self.block.add_instruction(LoadConst(t0, Constant(7, MIRType.INT), (1, 1)))
+        self.block.add_instruction(BinaryOp(t1, "**", t0, Constant(1, MIRType.INT), (1, 1)))
 
         # Run optimization
         changed = self.opt.run_on_function(self.func)
@@ -539,8 +539,8 @@ class TestAlgebraicSimplificationPower(unittest.TestCase):
         t0 = Temp(MIRType.INT)
         t1 = Temp(MIRType.INT)
 
-        self.block.add_instruction(LoadConst(t0, Constant(3, MIRType.INT)))
-        self.block.add_instruction(BinaryOp(t1, "**", t0, Constant(2, MIRType.INT)))
+        self.block.add_instruction(LoadConst(t0, Constant(3, MIRType.INT), (1, 1)))
+        self.block.add_instruction(BinaryOp(t1, "**", t0, Constant(2, MIRType.INT), (1, 1)))
 
         # Run optimization
         changed = self.opt.run_on_function(self.func)
@@ -562,7 +562,7 @@ class TestAlgebraicSimplificationPower(unittest.TestCase):
         """Test 0 ** x → 0 (for x > 0)."""
         # Create: t0 = 0 ** 5 (using constants directly)
         t0 = Temp(MIRType.INT)
-        self.block.add_instruction(BinaryOp(t0, "**", Constant(0, MIRType.INT), Constant(5, MIRType.INT)))
+        self.block.add_instruction(BinaryOp(t0, "**", Constant(0, MIRType.INT), Constant(5, MIRType.INT), (1, 1)))
 
         # Run optimization
         changed = self.opt.run_on_function(self.func)
@@ -582,7 +582,7 @@ class TestAlgebraicSimplificationPower(unittest.TestCase):
         """Test 1 ** x → 1."""
         # Create: t0 = 1 ** 10 (using constants directly)
         t0 = Temp(MIRType.INT)
-        self.block.add_instruction(BinaryOp(t0, "**", Constant(1, MIRType.INT), Constant(10, MIRType.INT)))
+        self.block.add_instruction(BinaryOp(t0, "**", Constant(1, MIRType.INT), Constant(10, MIRType.INT), (1, 1)))
 
         # Run optimization
         changed = self.opt.run_on_function(self.func)
@@ -602,7 +602,7 @@ class TestAlgebraicSimplificationPower(unittest.TestCase):
         """Test that x ** 3 is not simplified (no rule for it)."""
         # Create: t0 = 2 ** 3 (using constants directly)
         t0 = Temp(MIRType.INT)
-        self.block.add_instruction(BinaryOp(t0, "**", Constant(2, MIRType.INT), Constant(3, MIRType.INT)))
+        self.block.add_instruction(BinaryOp(t0, "**", Constant(2, MIRType.INT), Constant(3, MIRType.INT), (1, 1)))
 
         # Run optimization
         changed = self.opt.run_on_function(self.func)
@@ -640,8 +640,8 @@ class TestStrengthReductionArithmetic(unittest.TestCase):
         t0 = Temp(MIRType.INT)
         t1 = Temp(MIRType.INT)
 
-        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT)))
-        self.block.add_instruction(BinaryOp(t1, "+", t0, Constant(0, MIRType.INT)))
+        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT), (1, 1)))
+        self.block.add_instruction(BinaryOp(t1, "+", t0, Constant(0, MIRType.INT), (1, 1)))
 
         # Run optimization
         changed = self.opt.run_on_function(self.func)
@@ -660,7 +660,7 @@ class TestStrengthReductionArithmetic(unittest.TestCase):
         """Test x * 0 → 0 and 0 * x → 0."""
         # Test x * 0 with constant
         t0 = Temp(MIRType.INT)
-        self.block.add_instruction(BinaryOp(t0, "*", Constant(42, MIRType.INT), Constant(0, MIRType.INT)))
+        self.block.add_instruction(BinaryOp(t0, "*", Constant(42, MIRType.INT), Constant(0, MIRType.INT), (1, 1)))
 
         # Run optimization
         changed = self.opt.run_on_function(self.func)
@@ -681,8 +681,8 @@ class TestStrengthReductionArithmetic(unittest.TestCase):
         t0 = Temp(MIRType.INT)
         t1 = Temp(MIRType.INT)
 
-        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT)))
-        self.block.add_instruction(BinaryOp(t1, "*", t0, Constant(1, MIRType.INT)))
+        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT), (1, 1)))
+        self.block.add_instruction(BinaryOp(t1, "*", t0, Constant(1, MIRType.INT), (1, 1)))
 
         # Run optimization
         changed = self.opt.run_on_function(self.func)
@@ -703,8 +703,8 @@ class TestStrengthReductionArithmetic(unittest.TestCase):
         t0 = Temp(MIRType.INT)
         t1 = Temp(MIRType.INT)
 
-        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT)))
-        self.block.add_instruction(BinaryOp(t1, "-", t0, t0))
+        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT), (1, 1)))
+        self.block.add_instruction(BinaryOp(t1, "-", t0, t0, (1, 1)))
 
         # Run optimization
         changed = self.opt.run_on_function(self.func)
@@ -725,8 +725,8 @@ class TestStrengthReductionArithmetic(unittest.TestCase):
         t0 = Temp(MIRType.INT)
         t1 = Temp(MIRType.INT)
 
-        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT)))
-        self.block.add_instruction(BinaryOp(t1, "/", t0, Constant(1, MIRType.INT)))
+        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT), (1, 1)))
+        self.block.add_instruction(BinaryOp(t1, "/", t0, Constant(1, MIRType.INT), (1, 1)))
 
         # Run optimization
         changed = self.opt.run_on_function(self.func)
@@ -747,8 +747,8 @@ class TestStrengthReductionArithmetic(unittest.TestCase):
         t0 = Temp(MIRType.INT)
         t1 = Temp(MIRType.INT)
 
-        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT)))
-        self.block.add_instruction(BinaryOp(t1, "/", t0, t0))
+        self.block.add_instruction(LoadConst(t0, Constant(42, MIRType.INT), (1, 1)))
+        self.block.add_instruction(BinaryOp(t1, "/", t0, t0, (1, 1)))
 
         # Run optimization
         changed = self.opt.run_on_function(self.func)
@@ -784,8 +784,8 @@ class TestStrengthReductionBoolean(unittest.TestCase):
         t0 = Temp(MIRType.BOOL)
         t1 = Temp(MIRType.BOOL)
 
-        self.block.add_instruction(LoadConst(t0, Constant(False, MIRType.BOOL)))
-        self.block.add_instruction(BinaryOp(t1, "and", t0, Constant(True, MIRType.BOOL)))
+        self.block.add_instruction(LoadConst(t0, Constant(False, MIRType.BOOL), (1, 1)))
+        self.block.add_instruction(BinaryOp(t1, "and", t0, Constant(True, MIRType.BOOL), (1, 1)))
 
         # Run optimization
         changed = self.opt.run_on_function(self.func)
@@ -804,7 +804,9 @@ class TestStrengthReductionBoolean(unittest.TestCase):
         """Test x and false → false."""
         # Test x and false with constant
         t0 = Temp(MIRType.BOOL)
-        self.block.add_instruction(BinaryOp(t0, "and", Constant(True, MIRType.BOOL), Constant(False, MIRType.BOOL)))
+        self.block.add_instruction(
+            BinaryOp(t0, "and", Constant(True, MIRType.BOOL), Constant(False, MIRType.BOOL), (1, 1))
+        )
 
         # Run optimization
         changed = self.opt.run_on_function(self.func)
@@ -825,8 +827,8 @@ class TestStrengthReductionBoolean(unittest.TestCase):
         t0 = Temp(MIRType.BOOL)
         t1 = Temp(MIRType.BOOL)
 
-        self.block.add_instruction(LoadConst(t0, Constant(True, MIRType.BOOL)))
-        self.block.add_instruction(BinaryOp(t1, "or", t0, Constant(False, MIRType.BOOL)))
+        self.block.add_instruction(LoadConst(t0, Constant(True, MIRType.BOOL), (1, 1)))
+        self.block.add_instruction(BinaryOp(t1, "or", t0, Constant(False, MIRType.BOOL), (1, 1)))
 
         # Run optimization
         changed = self.opt.run_on_function(self.func)
@@ -845,7 +847,9 @@ class TestStrengthReductionBoolean(unittest.TestCase):
         """Test x or true → true."""
         # Test x or true with constant
         t0 = Temp(MIRType.BOOL)
-        self.block.add_instruction(BinaryOp(t0, "or", Constant(False, MIRType.BOOL), Constant(True, MIRType.BOOL)))
+        self.block.add_instruction(
+            BinaryOp(t0, "or", Constant(False, MIRType.BOOL), Constant(True, MIRType.BOOL), (1, 1))
+        )
 
         # Run optimization
         changed = self.opt.run_on_function(self.func)

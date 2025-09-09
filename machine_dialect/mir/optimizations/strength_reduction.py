@@ -94,7 +94,7 @@ class StrengthReduction(OptimizationPass):
                 if shift is not None and shift > 0:  # Only optimize for shift > 0
                     # Replace multiplication with left shift
                     shift_const = Constant(shift, MIRType.INT)
-                    new_inst = BinaryOp(inst.dest, "<<", inst.left, shift_const)
+                    new_inst = BinaryOp(inst.dest, "<<", inst.left, shift_const, inst.source_location)
                     transformer.replace_instruction(block, inst, new_inst)
                     self.stats["multiply_to_shift"] = self.stats.get("multiply_to_shift", 0) + 1
                     return
@@ -103,7 +103,7 @@ class StrengthReduction(OptimizationPass):
                 if shift is not None and shift > 0:  # Only optimize for shift > 0
                     # Replace multiplication with left shift (commutative)
                     shift_const = Constant(shift, MIRType.INT)
-                    new_inst = BinaryOp(inst.dest, "<<", inst.right, shift_const)
+                    new_inst = BinaryOp(inst.dest, "<<", inst.right, shift_const, inst.source_location)
                     transformer.replace_instruction(block, inst, new_inst)
                     self.stats["multiply_to_shift"] = self.stats.get("multiply_to_shift", 0) + 1
                     return
@@ -119,7 +119,7 @@ class StrengthReduction(OptimizationPass):
                 if shift is not None and shift > 0:  # Only optimize for shift > 0
                     # Replace division with right shift (for integers)
                     shift_const = Constant(shift, MIRType.INT)
-                    new_inst = BinaryOp(inst.dest, ">>", inst.left, shift_const)
+                    new_inst = BinaryOp(inst.dest, ">>", inst.left, shift_const, inst.source_location)
                     transformer.replace_instruction(block, inst, new_inst)
                     self.stats["divide_to_shift"] = self.stats.get("divide_to_shift", 0) + 1
                     return
@@ -131,7 +131,7 @@ class StrengthReduction(OptimizationPass):
                 if power is not None and power > 0:
                     # Replace modulo with bitwise AND (n % power = n & (power - 1))
                     mask = Constant(power - 1, MIRType.INT)
-                    new_inst = BinaryOp(inst.dest, "&", inst.left, mask)
+                    new_inst = BinaryOp(inst.dest, "&", inst.left, mask, inst.source_location)
                     transformer.replace_instruction(block, inst, new_inst)
                     self.stats["modulo_to_and"] = self.stats.get("modulo_to_and", 0) + 1
                     return
@@ -181,12 +181,12 @@ class StrengthReduction(OptimizationPass):
         if inst.op == "+":
             # x + 0 = x
             if self._is_zero(inst.right):
-                new_inst = Copy(inst.dest, inst.left)
+                new_inst = Copy(inst.dest, inst.left, inst.source_location)
                 transformer.replace_instruction(block, inst, new_inst)
                 self.stats["algebraic_simplified"] = self.stats.get("algebraic_simplified", 0) + 1
                 return
             elif self._is_zero(inst.left):
-                new_inst = Copy(inst.dest, inst.right)
+                new_inst = Copy(inst.dest, inst.right, inst.source_location)
                 transformer.replace_instruction(block, inst, new_inst)
                 self.stats["algebraic_simplified"] = self.stats.get("algebraic_simplified", 0) + 1
                 return
@@ -194,14 +194,14 @@ class StrengthReduction(OptimizationPass):
         elif inst.op == "-":
             # x - 0 = x
             if self._is_zero(inst.right):
-                new_inst = Copy(inst.dest, inst.left)
+                new_inst = Copy(inst.dest, inst.left, inst.source_location)
                 transformer.replace_instruction(block, inst, new_inst)
                 self.stats["algebraic_simplified"] = self.stats.get("algebraic_simplified", 0) + 1
                 return
             # x - x = 0
             elif self._values_equal(inst.left, inst.right):
                 zero = Constant(0, MIRType.INT)
-                new_inst = LoadConst(inst.dest, zero)
+                new_inst = LoadConst(inst.dest, zero, inst.source_location)
                 transformer.replace_instruction(block, inst, new_inst)
                 self.stats["algebraic_simplified"] = self.stats.get("algebraic_simplified", 0) + 1
                 return
@@ -210,29 +210,29 @@ class StrengthReduction(OptimizationPass):
             # x * 0 = 0
             if self._is_zero(inst.right) or self._is_zero(inst.left):
                 zero = Constant(0, MIRType.INT)
-                new_inst = LoadConst(inst.dest, zero)
+                new_inst = LoadConst(inst.dest, zero, inst.source_location)
                 transformer.replace_instruction(block, inst, new_inst)
                 self.stats["algebraic_simplified"] = self.stats.get("algebraic_simplified", 0) + 1
                 return
             # x * 1 = x
             elif self._is_one(inst.right):
-                new_inst = Copy(inst.dest, inst.left)
+                new_inst = Copy(inst.dest, inst.left, inst.source_location)
                 transformer.replace_instruction(block, inst, new_inst)
                 self.stats["algebraic_simplified"] = self.stats.get("algebraic_simplified", 0) + 1
                 return
             elif self._is_one(inst.left):
-                new_inst = Copy(inst.dest, inst.right)
+                new_inst = Copy(inst.dest, inst.right, inst.source_location)
                 transformer.replace_instruction(block, inst, new_inst)
                 self.stats["algebraic_simplified"] = self.stats.get("algebraic_simplified", 0) + 1
                 return
             # x * -1 = -x
             elif self._is_negative_one(inst.right):
-                new_inst = UnaryOp(inst.dest, "-", inst.left)
+                new_inst = UnaryOp(inst.dest, "-", inst.left, inst.source_location)
                 transformer.replace_instruction(block, inst, new_inst)
                 self.stats["algebraic_simplified"] = self.stats.get("algebraic_simplified", 0) + 1
                 return
             elif self._is_negative_one(inst.left):
-                new_inst = UnaryOp(inst.dest, "-", inst.right)
+                new_inst = UnaryOp(inst.dest, "-", inst.right, inst.source_location)
                 transformer.replace_instruction(block, inst, new_inst)
                 self.stats["algebraic_simplified"] = self.stats.get("algebraic_simplified", 0) + 1
                 return
@@ -240,14 +240,14 @@ class StrengthReduction(OptimizationPass):
         elif inst.op in ["/", "//"]:
             # x / 1 = x
             if self._is_one(inst.right):
-                new_inst = Copy(inst.dest, inst.left)
+                new_inst = Copy(inst.dest, inst.left, inst.source_location)
                 transformer.replace_instruction(block, inst, new_inst)
                 self.stats["algebraic_simplified"] = self.stats.get("algebraic_simplified", 0) + 1
                 return
             # x / x = 1 (if x != 0)
             elif self._values_equal(inst.left, inst.right):
                 one = Constant(1, MIRType.INT)
-                new_inst = LoadConst(inst.dest, one)
+                new_inst = LoadConst(inst.dest, one, inst.source_location)
                 transformer.replace_instruction(block, inst, new_inst)
                 self.stats["algebraic_simplified"] = self.stats.get("algebraic_simplified", 0) + 1
                 return
@@ -257,18 +257,18 @@ class StrengthReduction(OptimizationPass):
             # x and False = False (check this first as it's stronger)
             if self._is_false(inst.right) or self._is_false(inst.left):
                 false = Constant(False, MIRType.BOOL)
-                new_inst = LoadConst(inst.dest, false)
+                new_inst = LoadConst(inst.dest, false, inst.source_location)
                 transformer.replace_instruction(block, inst, new_inst)
                 self.stats["algebraic_simplified"] = self.stats.get("algebraic_simplified", 0) + 1
                 return
             # x and True = x
             elif self._is_true(inst.right):
-                new_inst = Copy(inst.dest, inst.left)
+                new_inst = Copy(inst.dest, inst.left, inst.source_location)
                 transformer.replace_instruction(block, inst, new_inst)
                 self.stats["algebraic_simplified"] = self.stats.get("algebraic_simplified", 0) + 1
                 return
             elif self._is_true(inst.left):
-                new_inst = Copy(inst.dest, inst.right)
+                new_inst = Copy(inst.dest, inst.right, inst.source_location)
                 transformer.replace_instruction(block, inst, new_inst)
                 self.stats["algebraic_simplified"] = self.stats.get("algebraic_simplified", 0) + 1
                 return
@@ -277,18 +277,18 @@ class StrengthReduction(OptimizationPass):
             # x or True = True (check this first as it's stronger)
             if self._is_true(inst.right) or self._is_true(inst.left):
                 true = Constant(True, MIRType.BOOL)
-                new_inst = LoadConst(inst.dest, true)
+                new_inst = LoadConst(inst.dest, true, inst.source_location)
                 transformer.replace_instruction(block, inst, new_inst)
                 self.stats["algebraic_simplified"] = self.stats.get("algebraic_simplified", 0) + 1
                 return
             # x or False = x
             elif self._is_false(inst.right):
-                new_inst = Copy(inst.dest, inst.left)
+                new_inst = Copy(inst.dest, inst.left, inst.source_location)
                 transformer.replace_instruction(block, inst, new_inst)
                 self.stats["algebraic_simplified"] = self.stats.get("algebraic_simplified", 0) + 1
                 return
             elif self._is_false(inst.left):
-                new_inst = Copy(inst.dest, inst.right)
+                new_inst = Copy(inst.dest, inst.right, inst.source_location)
                 transformer.replace_instruction(block, inst, new_inst)
                 self.stats["algebraic_simplified"] = self.stats.get("algebraic_simplified", 0) + 1
                 return

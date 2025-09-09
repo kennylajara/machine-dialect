@@ -52,7 +52,11 @@ fn main() -> Result<()> {
         Commands::Check { files, config } => {
             check_files(&files, &config)?;
         }
-        Commands::Fix { files, config, dry_run } => {
+        Commands::Fix {
+            files,
+            config,
+            dry_run,
+        } => {
             fix_files(&files, &config, dry_run)?;
         }
     }
@@ -70,7 +74,8 @@ fn check_files(files: &[PathBuf], config_path: &Path) -> Result<()> {
         let linter = Md013Linter::new(md013_config);
 
         for file_path in files {
-            let violations = linter.check_file(file_path)
+            let violations = linter
+                .check_file(file_path)
                 .with_context(|| format!("Failed to check file: {}", file_path.display()))?;
 
             if !violations.is_empty() {
@@ -95,7 +100,8 @@ fn fix_files(files: &[PathBuf], config_path: &Path, dry_run: bool) -> Result<()>
         let linter = Md013Linter::new(md013_config);
 
         for file_path in files {
-            let fixed_content = linter.fix_file(file_path)
+            let fixed_content = linter
+                .fix_file(file_path)
                 .with_context(|| format!("Failed to fix file: {}", file_path.display()))?;
 
             if dry_run {
@@ -103,8 +109,9 @@ fn fix_files(files: &[PathBuf], config_path: &Path, dry_run: bool) -> Result<()>
                 println!("{}", fixed_content);
                 println!();
             } else {
-                std::fs::write(file_path, &fixed_content)
-                    .with_context(|| format!("Failed to write fixed content to: {}", file_path.display()))?;
+                std::fs::write(file_path, &fixed_content).with_context(|| {
+                    format!("Failed to write fixed content to: {}", file_path.display())
+                })?;
                 println!("Fixed: {}", file_path.display());
             }
         }

@@ -6,11 +6,9 @@ compilation process.
 
 from pathlib import Path
 
-from machine_dialect.codegen.serializer import serialize_module
 from machine_dialect.compiler.config import CompilerConfig
 from machine_dialect.compiler.context import CompilationContext
 from machine_dialect.compiler.pipeline import CompilationPipeline
-from machine_dialect.vm.disasm import print_disassembly
 
 
 class Compiler:
@@ -117,9 +115,10 @@ class Compiler:
             # Set module name
             context.bytecode_module.name = context.get_module_name()
 
-            # Serialize and save
+            # Serialize and save using VM serializer
+            bytecode_data = context.bytecode_module.serialize()
             with open(output_path, "wb") as f:
-                serialize_module(context.bytecode_module, f)
+                f.write(bytecode_data)
 
             if self.config.verbose:
                 print(f"Wrote compiled module to {output_path}")
@@ -140,7 +139,8 @@ class Compiler:
             return
 
         print("\n=== Disassembly ===")
-        print_disassembly(context.bytecode_module.main_chunk)
+        # TODO: Implement disassembly for new register-based bytecode
+        print("Disassembly not yet implemented for register-based bytecode")
 
     def _print_success(self, context: CompilationContext) -> None:
         """Print success message.

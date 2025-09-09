@@ -1,6 +1,5 @@
 """Advanced tests for enhanced type-specific MIR optimization pass."""
 
-
 from machine_dialect.mir.basic_block import BasicBlock
 from machine_dialect.mir.mir_function import MIRFunction
 from machine_dialect.mir.mir_instructions import (
@@ -35,7 +34,7 @@ class TestAdvancedTypeSpecificOptimization:
 
         # Add operation: result = x ** 2
         result = Temp(MIRType.FLOAT, 0)
-        block.add_instruction(BinaryOp(result, "**", x, Constant(2, MIRType.INT)))
+        block.add_instruction(BinaryOp(result, "**", x, Constant(2, MIRType.INT), (1, 1)))
 
         func.cfg.add_block(block)
         func.cfg.set_entry_block(block)
@@ -64,7 +63,7 @@ class TestAdvancedTypeSpecificOptimization:
 
         # Add operation: result = x ** 0
         result = Temp(MIRType.INT, 0)
-        block.add_instruction(BinaryOp(result, "**", x, Constant(0, MIRType.INT)))
+        block.add_instruction(BinaryOp(result, "**", x, Constant(0, MIRType.INT), (1, 1)))
 
         func.cfg.add_block(block)
         func.cfg.set_entry_block(block)
@@ -92,7 +91,7 @@ class TestAdvancedTypeSpecificOptimization:
 
         # Add operation: result = x ** 1
         result = Temp(MIRType.FLOAT, 0)
-        block.add_instruction(BinaryOp(result, "**", x, Constant(1, MIRType.INT)))
+        block.add_instruction(BinaryOp(result, "**", x, Constant(1, MIRType.INT), (1, 1)))
 
         func.cfg.add_block(block)
         func.cfg.set_entry_block(block)
@@ -120,11 +119,11 @@ class TestAdvancedTypeSpecificOptimization:
         # Create pattern: x & (x - 1)
         # First: temp1 = x - 1
         temp1 = Temp(MIRType.INT, 0)
-        block.add_instruction(BinaryOp(temp1, "-", x, Constant(1, MIRType.INT)))
+        block.add_instruction(BinaryOp(temp1, "-", x, Constant(1, MIRType.INT), (1, 1)))
 
         # Then: result = x & temp1
         result = Temp(MIRType.INT, 1)
-        block.add_instruction(BinaryOp(result, "&", x, temp1))
+        block.add_instruction(BinaryOp(result, "&", x, temp1, (1, 1)))
 
         func.cfg.add_block(block)
         func.cfg.set_entry_block(block)
@@ -147,14 +146,14 @@ class TestAdvancedTypeSpecificOptimization:
         y = Temp(MIRType.INT, 1)
 
         # Set x = 5 (range will be [5, 5])
-        block.add_instruction(LoadConst(x, Constant(5, MIRType.INT)))
+        block.add_instruction(LoadConst(x, Constant(5, MIRType.INT), (1, 1)))
 
         # Set y = 10 (range will be [10, 10])
-        block.add_instruction(LoadConst(y, Constant(10, MIRType.INT)))
+        block.add_instruction(LoadConst(y, Constant(10, MIRType.INT), (1, 1)))
 
         # Compare: result = x < y (should always be true)
         result = Temp(MIRType.BOOL, 2)
-        block.add_instruction(BinaryOp(result, "<", x, y))
+        block.add_instruction(BinaryOp(result, "<", x, y, (1, 1)))
 
         func.cfg.add_block(block)
         func.cfg.set_entry_block(block)
@@ -188,18 +187,18 @@ class TestAdvancedTypeSpecificOptimization:
         # This simulates: if (typeof(x) == "int")
         cond = Temp(MIRType.BOOL, 0)
         # For testing, just use a simple condition
-        entry.add_instruction(LoadConst(cond, Constant(True, MIRType.BOOL)))
-        entry.add_instruction(ConditionalJump(cond, "true", "false"))
+        entry.add_instruction(LoadConst(cond, Constant(True, MIRType.BOOL), (1, 1)))
+        entry.add_instruction(ConditionalJump(cond, "true", (1, 1), "false"))
 
         # True block: x is known to be INT here
         result1 = Temp(MIRType.INT, 1)
-        true_block.add_instruction(BinaryOp(result1, "+", x, Constant(1, MIRType.INT)))
-        true_block.add_instruction(Jump("merge"))
+        true_block.add_instruction(BinaryOp(result1, "+", x, Constant(1, MIRType.INT), (1, 1)))
+        true_block.add_instruction(Jump("merge", (1, 1)))
 
         # False block: x type unknown
         result2 = Temp(MIRType.UNKNOWN, 2)
-        false_block.add_instruction(Copy(result2, x))
-        false_block.add_instruction(Jump("merge"))
+        false_block.add_instruction(Copy(result2, x, (1, 1)))
+        false_block.add_instruction(Jump("merge", (1, 1)))
 
         # Add blocks to CFG
         func.cfg.add_block(entry)
@@ -232,9 +231,9 @@ class TestAdvancedTypeSpecificOptimization:
         b = Temp(MIRType.INT, 1)
         c = Temp(MIRType.INT, 2)
 
-        block.add_instruction(LoadConst(a, Constant(5, MIRType.INT)))
-        block.add_instruction(BinaryOp(b, "+", a, Constant(3, MIRType.INT)))
-        block.add_instruction(BinaryOp(c, "*", b, Constant(2, MIRType.INT)))
+        block.add_instruction(LoadConst(a, Constant(5, MIRType.INT), (1, 1)))
+        block.add_instruction(BinaryOp(b, "+", a, Constant(3, MIRType.INT), (1, 1)))
+        block.add_instruction(BinaryOp(c, "*", b, Constant(2, MIRType.INT), (1, 1)))
 
         func.cfg.add_block(block)
         func.cfg.set_entry_block(block)
@@ -263,10 +262,10 @@ class TestAdvancedTypeSpecificOptimization:
         func.add_local(a)
 
         temp1 = Temp(MIRType.INT, 0)
-        block.add_instruction(BinaryOp(temp1, "+", a, Constant(5, MIRType.INT)))
+        block.add_instruction(BinaryOp(temp1, "+", a, Constant(5, MIRType.INT), (1, 1)))
 
         result = Temp(MIRType.INT, 1)
-        block.add_instruction(BinaryOp(result, "*", temp1, Constant(3, MIRType.INT)))
+        block.add_instruction(BinaryOp(result, "*", temp1, Constant(3, MIRType.INT), (1, 1)))
 
         func.cfg.add_block(block)
         func.cfg.set_entry_block(block)
@@ -290,10 +289,10 @@ class TestAdvancedTypeSpecificOptimization:
         func.add_local(a)
 
         temp1 = Temp(MIRType.INT, 0)
-        block.add_instruction(BinaryOp(temp1, "+", a, Constant(5, MIRType.INT)))
+        block.add_instruction(BinaryOp(temp1, "+", a, Constant(5, MIRType.INT), (1, 1)))
 
         result = Temp(MIRType.INT, 1)
-        block.add_instruction(BinaryOp(result, "+", temp1, Constant(3, MIRType.INT)))
+        block.add_instruction(BinaryOp(result, "+", temp1, Constant(3, MIRType.INT), (1, 1)))
 
         func.cfg.add_block(block)
         func.cfg.set_entry_block(block)
@@ -314,15 +313,17 @@ class TestAdvancedTypeSpecificOptimization:
 
         # Integer constant folding
         t1 = Temp(MIRType.INT, 0)
-        block.add_instruction(BinaryOp(t1, "+", Constant(5, MIRType.INT), Constant(3, MIRType.INT)))
+        block.add_instruction(BinaryOp(t1, "+", Constant(5, MIRType.INT), Constant(3, MIRType.INT), (1, 1)))
 
         # Boolean short-circuit
         t2 = Temp(MIRType.BOOL, 1)
-        block.add_instruction(BinaryOp(t2, "and", Constant(False, MIRType.BOOL), Variable("x", MIRType.BOOL)))
+        block.add_instruction(BinaryOp(t2, "and", Constant(False, MIRType.BOOL), Variable("x", MIRType.BOOL), (1, 1)))
 
         # String concatenation
         t3 = Temp(MIRType.STRING, 2)
-        block.add_instruction(BinaryOp(t3, "+", Constant("Hello", MIRType.STRING), Constant(" World", MIRType.STRING)))
+        block.add_instruction(
+            BinaryOp(t3, "+", Constant("Hello", MIRType.STRING), Constant(" World", MIRType.STRING), (1, 1))
+        )
 
         func.cfg.add_block(block)
         func.cfg.set_entry_block(block)
@@ -350,12 +351,12 @@ class TestAdvancedTypeSpecificOptimization:
 
         # Entry branches to left and right
         cond = Temp(MIRType.BOOL, 0)
-        entry.add_instruction(LoadConst(cond, Constant(True, MIRType.BOOL)))
-        entry.add_instruction(ConditionalJump(cond, "left", "right"))
+        entry.add_instruction(LoadConst(cond, Constant(True, MIRType.BOOL), (1, 1)))
+        entry.add_instruction(ConditionalJump(cond, "left", (1, 1), "right"))
 
         # Both branches merge
-        left.add_instruction(Jump("merge"))
-        right.add_instruction(Jump("merge"))
+        left.add_instruction(Jump("merge", (1, 1)))
+        right.add_instruction(Jump("merge", (1, 1)))
 
         # Add blocks to CFG
         func.cfg.add_block(entry)

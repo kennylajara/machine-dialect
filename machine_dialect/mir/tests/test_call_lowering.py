@@ -1,6 +1,5 @@
 """Tests for improved call statement lowering."""
 
-
 from machine_dialect.ast import (
     Arguments,
     CallStatement,

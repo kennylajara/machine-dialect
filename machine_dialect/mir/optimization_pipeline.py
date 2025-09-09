@@ -18,7 +18,8 @@ from machine_dialect.mir.optimizations.dce import DeadCodeElimination
 from machine_dialect.mir.optimizations.inlining import FunctionInlining
 from machine_dialect.mir.optimizations.jump_threading import JumpThreadingPass
 from machine_dialect.mir.optimizations.licm import LoopInvariantCodeMotion
-from machine_dialect.mir.optimizations.peephole_optimizer import PeepholePass
+
+# from machine_dialect.mir.optimizations.peephole_optimizer import PeepholePass  # Disabled
 from machine_dialect.mir.optimizations.strength_reduction import StrengthReduction
 from machine_dialect.mir.pass_manager import PassManager
 
@@ -55,7 +56,7 @@ class OptimizationPipeline:
         self.pass_manager.register_pass(CommonSubexpressionElimination)
         self.pass_manager.register_pass(StrengthReduction)
         self.pass_manager.register_pass(JumpThreadingPass)
-        self.pass_manager.register_pass(PeepholePass)
+        # self.pass_manager.register_pass(PeepholePass)  # Disabled
         self.pass_manager.register_pass(LoopInvariantCodeMotion)
         self.pass_manager.register_pass(FunctionInlining)
 

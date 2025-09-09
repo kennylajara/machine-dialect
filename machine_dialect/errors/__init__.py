@@ -19,14 +19,14 @@ from machine_dialect.errors.messages import (
 )
 
 __all__ = [
+    "EXPECTED_BLOCK_MARKER",
+    "EXPECTED_EXPRESSION",
+    "EXPECTED_PREFIX_OPERATOR",
+    "UNEXPECTED_TOKEN",
     "MDException",
     "MDNameError",
     "MDSyntaxError",
     "MDTypeError",
     "MDUninitializedError",
     "MDValueError",
-    "EXPECTED_BLOCK_MARKER",
-    "EXPECTED_EXPRESSION",
-    "EXPECTED_PREFIX_OPERATOR",
-    "UNEXPECTED_TOKEN",
 ]

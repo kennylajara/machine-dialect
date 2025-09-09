@@ -14,8 +14,12 @@ from .mir_values import Constant, FunctionRef, MIRValue, Variable
 class MIRInstruction(ABC):
     """Base class for all MIR instructions with rich metadata."""
 
-    def __init__(self) -> None:
-        """Initialize instruction with metadata."""
+    def __init__(self, source_location: tuple[int, int]) -> None:
+        """Initialize instruction with metadata.
+
+        Args:
+            source_location: Required (line, column) from source code for error reporting.
+        """
         # Rich metadata for optimization
         self.result_type: MIRType | None = None  # Inferred type of result
         self.is_pure: bool = False  # No side effects
@@ -24,6 +28,8 @@ class MIRInstruction(ABC):
         self.is_commutative: bool = False  # Operands can be swapped
         self.is_associative: bool = False  # Can be regrouped
         self.memory_effects: set[str] = set()  # Memory locations affected
+        # Source location for error reporting (REQUIRED for proper error messages)
+        self.source_location: tuple[int, int] = source_location  # (line, column)
 
     @abstractmethod
     def __str__(self) -> str:
@@ -64,7 +70,9 @@ class MIRInstruction(ABC):
 class BinaryOp(MIRInstruction):
     """Binary operation: dest = left op right."""
 
-    def __init__(self, dest: MIRValue, op: str, left: MIRValue, right: MIRValue) -> None:
+    def __init__(
+        self, dest: MIRValue, op: str, left: MIRValue, right: MIRValue, source_location: tuple[int, int]
+    ) -> None:
         """Initialize a binary operation.
 
         Args:
@@ -72,8 +80,9 @@ class BinaryOp(MIRInstruction):
             op: Operator (+, -, *, /, %, ^, ==, !=, <, >, <=, >=, and, or).
             left: Left operand.
             right: Right operand.
+            source_location: Source code location (line, column).
         """
-        super().__init__()
+        super().__init__(source_location)
         self.dest = dest
         self.op = op
         self.left = left
@@ -120,15 +129,16 @@ class BinaryOp(MIRInstruction):
 class UnaryOp(MIRInstruction):
     """Unary operation: dest = op operand."""
 
-    def __init__(self, dest: MIRValue, op: str, operand: MIRValue) -> None:
+    def __init__(self, dest: MIRValue, op: str, operand: MIRValue, source_location: tuple[int, int]) -> None:
         """Initialize a unary operation.
 
         Args:
             dest: Destination to store result.
             op: Operator (-, not, abs).
             operand: Operand.
+            source_location: Source code location (line, column).
         """
-        super().__init__()
+        super().__init__(source_location)
         self.dest = dest
         self.op = op
         self.operand = operand
@@ -162,7 +172,9 @@ class ShiftOp(MIRInstruction):
     by powers of 2 are converted to shift operations.
     """
 
-    def __init__(self, dest: MIRValue, left: MIRValue, right: MIRValue, op: str) -> None:
+    def __init__(
+        self, dest: MIRValue, left: MIRValue, right: MIRValue, op: str, source_location: tuple[int, int]
+    ) -> None:
         """Initialize a shift operation.
 
         Args:
@@ -170,8 +182,9 @@ class ShiftOp(MIRInstruction):
             left: Value to shift.
             right: Shift amount.
             op: Shift operator ('<<' for left shift, '>>' for right shift).
+            source_location: Source code location (line, column).
         """
-        super().__init__()
+        super().__init__(source_location)
         self.dest = dest
         self.left = left
         self.right = right
@@ -200,14 +213,15 @@ class ShiftOp(MIRInstruction):
 class Copy(MIRInstruction):
     """Copy instruction: dest = source."""
 
-    def __init__(self, dest: MIRValue, source: MIRValue) -> None:
+    def __init__(self, dest: MIRValue, source: MIRValue, source_location: tuple[int, int]) -> None:
         """Initialize a copy instruction.
 
         Args:
             dest: Destination.
             source: Source value.
+            source_location: Source code location (line, column).
         """
-        super().__init__()
+        super().__init__(source_location)
         self.dest = dest
         self.source = source
 
@@ -232,14 +246,15 @@ class Copy(MIRInstruction):
 class LoadConst(MIRInstruction):
     """Load constant: dest = constant."""
 
-    def __init__(self, dest: MIRValue, value: Any) -> None:
+    def __init__(self, dest: MIRValue, value: Any, source_location: tuple[int, int]) -> None:
         """Initialize a load constant instruction.
 
         Args:
             dest: Destination.
             value: Constant value to load.
+            source_location: Source code location (line, column).
         """
-        super().__init__()
+        super().__init__(source_location)
         self.dest = dest
         self.constant = Constant(value) if not isinstance(value, Constant) else value
 
@@ -259,14 +274,15 @@ class LoadConst(MIRInstruction):
 class LoadVar(MIRInstruction):
     """Load variable: dest = variable."""
 
-    def __init__(self, dest: MIRValue, var: Variable) -> None:
+    def __init__(self, dest: MIRValue, var: Variable, source_location: tuple[int, int]) -> None:
         """Initialize a load variable instruction.
 
         Args:
             dest: Destination temporary.
             var: Variable to load from.
+            source_location: Source code location (line, column).
         """
-        super().__init__()
+        super().__init__(source_location)
         self.dest = dest
         self.var = var
 
@@ -291,14 +307,15 @@ class LoadVar(MIRInstruction):
 class StoreVar(MIRInstruction):
     """Store to variable: variable = source."""
 
-    def __init__(self, var: Variable, source: MIRValue) -> None:
+    def __init__(self, var: Variable, source: MIRValue, source_location: tuple[int, int]) -> None:
         """Initialize a store variable instruction.
 
         Args:
             var: Variable to store to.
             source: Source value.
+            source_location: Source code location (line, column).
         """
-        super().__init__()
+        super().__init__(source_location)
         self.var = var
         self.source = source
 
@@ -328,6 +345,7 @@ class Call(MIRInstruction):
         dest: MIRValue | None,
         func: FunctionRef | str,
         args: list[MIRValue],
+        source_location: tuple[int, int],
         is_tail_call: bool = False,
     ) -> None:
         """Initialize a function call.
@@ -336,9 +354,10 @@ class Call(MIRInstruction):
             dest: Optional destination for return value.
             func: Function to call (FunctionRef or name string).
             args: Arguments to pass.
+            source_location: Source code location (line, column).
             is_tail_call: Whether this is a tail call that can be optimized.
         """
-        super().__init__()
+        super().__init__(source_location)
         self.dest = dest
         self.func = FunctionRef(func) if isinstance(func, str) else func
         self.args = args
@@ -369,13 +388,14 @@ class Call(MIRInstruction):
 class Return(MIRInstruction):
     """Return instruction: return value."""
 
-    def __init__(self, value: MIRValue | None = None) -> None:
+    def __init__(self, source_location: tuple[int, int], value: MIRValue | None = None) -> None:
         """Initialize a return instruction.
 
         Args:
+            source_location: Source code location (line, column).
             value: Optional value to return.
         """
-        super().__init__()
+        super().__init__(source_location)
         self.value = value
 
     def __str__(self) -> str:
@@ -402,13 +422,14 @@ class Return(MIRInstruction):
 class Jump(MIRInstruction):
     """Unconditional jump: goto label."""
 
-    def __init__(self, label: str) -> None:
+    def __init__(self, label: str, source_location: tuple[int, int]) -> None:
         """Initialize a jump instruction.
 
         Args:
             label: Target label.
+            source_location: Source code location (line, column).
         """
-        super().__init__()
+        super().__init__(source_location)
         self.label = label
 
     def __str__(self) -> str:
@@ -427,15 +448,18 @@ class Jump(MIRInstruction):
 class ConditionalJump(MIRInstruction):
     """Conditional jump: if condition goto true_label else false_label."""
 
-    def __init__(self, condition: MIRValue, true_label: str, false_label: str | None = None) -> None:
+    def __init__(
+        self, condition: MIRValue, true_label: str, source_location: tuple[int, int], false_label: str | None = None
+    ) -> None:
         """Initialize a conditional jump.
 
         Args:
             condition: Condition to test.
             true_label: Label to jump to if true.
+            source_location: Source code location (line, column).
             false_label: Optional label to jump to if false (falls through if None).
         """
-        super().__init__()
+        super().__init__(source_location)
         self.condition = condition
         self.true_label = true_label
         self.false_label = false_label
@@ -468,14 +492,15 @@ class Phi(MIRInstruction):
     from different control flow paths.
     """
 
-    def __init__(self, dest: MIRValue, incoming: list[tuple[MIRValue, str]]) -> None:
+    def __init__(self, dest: MIRValue, incoming: list[tuple[MIRValue, str]], source_location: tuple[int, int]) -> None:
         """Initialize a phi node.
 
         Args:
             dest: Destination to store merged value.
             incoming: List of (value, predecessor_label) pairs.
+            source_location: Source code location (line, column).
         """
-        super().__init__()
+        super().__init__(source_location)
         self.dest = dest
         self.incoming = incoming
 
@@ -509,13 +534,14 @@ class Phi(MIRInstruction):
 class Label(MIRInstruction):
     """Label pseudo-instruction: label_name:."""
 
-    def __init__(self, name: str) -> None:
+    def __init__(self, name: str, source_location: tuple[int, int]) -> None:
         """Initialize a label.
 
         Args:
             name: Label name.
+            source_location: Source code location (line, column).
         """
-        super().__init__()
+        super().__init__(source_location)
         self.name = name
 
     def __str__(self) -> str:
@@ -534,13 +560,14 @@ class Label(MIRInstruction):
 class Print(MIRInstruction):
     """Print instruction for Say/Tell statements: print value."""
 
-    def __init__(self, value: MIRValue) -> None:
+    def __init__(self, value: MIRValue, source_location: tuple[int, int]) -> None:
         """Initialize a print instruction.
 
         Args:
             value: Value to print.
+            source_location: Source code location (line, column).
         """
-        super().__init__()
+        super().__init__(source_location)
         self.value = value
 
     def __str__(self) -> str:
@@ -580,14 +607,15 @@ class Nop(MIRInstruction):
 class Assert(MIRInstruction):
     """Assert instruction for runtime checks: assert condition."""
 
-    def __init__(self, condition: MIRValue, message: str | None = None) -> None:
+    def __init__(self, condition: MIRValue, source_location: tuple[int, int], message: str | None = None) -> None:
         """Initialize an assert instruction.
 
         Args:
             condition: Condition to check.
+            source_location: Source code location (line, column).
             message: Optional error message.
         """
-        super().__init__()
+        super().__init__(source_location)
         self.condition = condition
         self.message = message
 
@@ -614,7 +642,14 @@ class Assert(MIRInstruction):
 class Select(MIRInstruction):
     """Select instruction (ternary): dest = condition ? true_val : false_val."""
 
-    def __init__(self, dest: MIRValue, condition: MIRValue, true_val: MIRValue, false_val: MIRValue) -> None:
+    def __init__(
+        self,
+        dest: MIRValue,
+        condition: MIRValue,
+        true_val: MIRValue,
+        false_val: MIRValue,
+        source_location: tuple[int, int],
+    ) -> None:
         """Initialize a select instruction.
 
         Args:
@@ -622,8 +657,9 @@ class Select(MIRInstruction):
             condition: Condition to test.
             true_val: Value when condition is true.
             false_val: Value when condition is false.
+            source_location: Source code location (line, column).
         """
-        super().__init__()
+        super().__init__(source_location)
         self.dest = dest
         self.condition = condition
         self.true_val = true_val
@@ -654,13 +690,14 @@ class Select(MIRInstruction):
 class Scope(MIRInstruction):
     """Scope instruction for block management: begin_scope/end_scope."""
 
-    def __init__(self, is_begin: bool = True) -> None:
+    def __init__(self, source_location: tuple[int, int], is_begin: bool = True) -> None:
         """Initialize a scope instruction.
 
         Args:
+            source_location: Source code location (line, column).
             is_begin: True for begin_scope, False for end_scope.
         """
-        super().__init__()
+        super().__init__(source_location)
         self.is_begin = is_begin
 
     def __str__(self) -> str:
@@ -687,7 +724,7 @@ class GetAttr(MIRInstruction):
             obj: Object to get attribute from.
             attr: Attribute name.
         """
-        super().__init__()
+        super().__init__((0, 0))  # TODO: Add proper source_location
         self.dest = dest
         self.obj = obj
         self.attr = attr
@@ -721,7 +758,7 @@ class SetAttr(MIRInstruction):
             attr: Attribute name.
             value: Value to set.
         """
-        super().__init__()
+        super().__init__((0, 0))  # TODO: Add proper source_location
         self.obj = obj
         self.attr = attr
         self.value = value
@@ -754,13 +791,14 @@ class Pop(MIRInstruction):
     then discarded.
     """
 
-    def __init__(self, value: MIRValue) -> None:
+    def __init__(self, value: MIRValue, source_location: tuple[int, int]) -> None:
         """Initialize a pop instruction.
 
         Args:
             value: The value to pop/discard.
+            source_location: Source code location (line, column).
         """
-        super().__init__()
+        super().__init__(source_location)
         self.value = value
 
     def __str__(self) -> str:
@@ -795,7 +833,7 @@ class TypeCast(MIRInstruction):
             value: Value to cast.
             target_type: Target type to cast to.
         """
-        super().__init__()
+        super().__init__((0, 0))  # TODO: Add proper source_location
         self.dest = dest
         self.value = value
         self.target_type = target_type
@@ -832,7 +870,7 @@ class TypeCheck(MIRInstruction):
             value: Value to check type of.
             check_type: Type to check against.
         """
-        super().__init__()
+        super().__init__((0, 0))  # TODO: Add proper source_location
         self.dest = dest
         self.value = value
         self.check_type = check_type
@@ -869,7 +907,7 @@ class TypeAssert(MIRInstruction):
             value: Value to assert type of.
             assert_type: Expected type.
         """
-        super().__init__()
+        super().__init__((0, 0))  # TODO: Add proper source_location
         self.value = value
         self.assert_type = assert_type
 
@@ -906,7 +944,7 @@ class NarrowType(MIRInstruction):
             value: Value to narrow.
             narrow_type: The specific type to narrow to.
         """
-        super().__init__()
+        super().__init__((0, 0))  # TODO: Add proper source_location
         self.dest = dest
         self.value = value
         self.narrow_type = narrow_type
@@ -946,7 +984,7 @@ class SelectOp(MIRInstruction):
             true_val: Value if condition is true.
             false_val: Value if condition is false.
         """
-        super().__init__()
+        super().__init__((0, 0))  # TODO: Add proper source_location
         self.dest = dest
         self.cond = cond
         self.true_val = true_val
@@ -987,7 +1025,7 @@ class MinOp(MIRInstruction):
             left: Left operand.
             right: Right operand.
         """
-        super().__init__()
+        super().__init__((0, 0))  # TODO: Add proper source_location
         self.dest = dest
         self.left = left
         self.right = right
@@ -1026,7 +1064,7 @@ class MaxOp(MIRInstruction):
             left: Left operand.
             right: Right operand.
         """
-        super().__init__()
+        super().__init__((0, 0))  # TODO: Add proper source_location
         self.dest = dest
         self.left = left
         self.right = right
@@ -1074,7 +1112,7 @@ class SaturatingAddOp(MIRInstruction):
             min_val: Minimum value (saturates to this).
             max_val: Maximum value (saturates to this).
         """
-        super().__init__()
+        super().__init__((0, 0))  # TODO: Add proper source_location
         self.dest = dest
         self.left = left
         self.right = right
@@ -1123,7 +1161,7 @@ class PopCountOp(MIRInstruction):
             dest: Destination to store result.
             value: Value to count bits in.
         """
-        super().__init__()
+        super().__init__((0, 0))  # TODO: Add proper source_location
         self.dest = dest
         self.value = value
         self.is_pure = True

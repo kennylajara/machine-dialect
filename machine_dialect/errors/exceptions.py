@@ -319,3 +319,51 @@ class MDUninitializedError(MDException):
             super().__init__(template, line, position, **kwargs)
         else:
             super().__init__(message, line, position, **kwargs)
+
+
+class MDRuntimeError(Exception):
+    """Machine Dialect Runtime Error.
+
+    Raised during runtime execution with optional source location.
+    This is used for errors that occur during MIR interpretation or VM execution.
+
+    Note: This inherits from Python's Exception (not MDException) because
+    it represents runtime errors that need to be caught by Python's exception
+    handling mechanism.
+    """
+
+    def __init__(
+        self,
+        message: str,
+        line: int | None = None,
+        column: int | None = None,
+        filename: str | None = None,
+    ) -> None:
+        """Initialize runtime error.
+
+        Args:
+            message: Error message string.
+            line: Line number where error occurred (None if unknown).
+            column: Column position where error occurred (None if unknown).
+            filename: Source file name (None if unknown).
+        """
+        self.message = message
+        self.line = line
+        self.column = column
+        self.filename = filename or "<standard-input>"
+        super().__init__(str(self))
+
+    def __str__(self) -> str:
+        """Return formatted error message with location."""
+        parts = []
+        if self.filename != "<standard-input>":
+            parts.append(f'File "{self.filename}"')
+        if self.line is not None and self.line > 0:
+            parts.append(f"line {self.line}")
+        if self.column is not None and self.column > 0:
+            parts.append(f"column {self.column}")
+
+        location = ", ".join(parts)
+        if location:
+            return f"{location}: {self.message}"
+        return self.message

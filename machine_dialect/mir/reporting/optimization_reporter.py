@@ -185,6 +185,17 @@ class OptimizationReporter:
         """
         self.module_metrics.function_metrics[func_name] = metrics
 
+    def add_custom_stats(self, pass_name: str, stats: dict[str, int]) -> None:
+        """Add custom statistics for a pass.
+
+        Args:
+            pass_name: Name of the pass.
+            stats: Statistics to add.
+        """
+        # Create a pass metrics entry for custom stats
+        metrics = PassMetrics(pass_name=pass_name, phase="bytecode", metrics=stats)
+        self.module_metrics.add_pass_metrics(metrics)
+
     def set_optimization_level(self, level: int) -> None:
         """Set the optimization level.
 

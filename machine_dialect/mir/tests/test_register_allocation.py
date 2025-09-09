@@ -1,6 +1,5 @@
 """Tests for virtual register allocation."""
 
-
 from machine_dialect.ast import (
     Expression,
     Identifier,

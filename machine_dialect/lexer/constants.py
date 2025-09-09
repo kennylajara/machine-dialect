@@ -19,4 +19,5 @@ CHAR_TO_TOKEN_MAP = {
     ".": TokenType.PUNCT_PERIOD,
     ":": TokenType.PUNCT_COLON,
     "#": TokenType.PUNCT_HASH,
+    "\\": TokenType.PUNCT_BACKSLASH,
 }

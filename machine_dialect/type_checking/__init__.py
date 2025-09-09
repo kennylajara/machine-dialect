@@ -11,8 +11,8 @@ from .type_system import (
 )
 
 __all__ = [
-    "MDType",
     "TYPE_DISPLAY_NAMES",
+    "MDType",
     "TypeSpec",
     "check_type_compatibility",
     "get_type_from_name",

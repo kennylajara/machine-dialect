@@ -39,10 +39,10 @@ class TestMIRDumper:
         t1 = Temp(MIRType.INT, 1)
         t2 = Temp(MIRType.INT, 2)
 
-        entry_block.add_instruction(LoadConst(t0, Constant(10, MIRType.INT)))
-        entry_block.add_instruction(LoadConst(t1, Constant(20, MIRType.INT)))
-        entry_block.add_instruction(BinaryOp(t2, "+", t0, t1))
-        entry_block.add_instruction(Return(t2))
+        entry_block.add_instruction(LoadConst(t0, Constant(10, MIRType.INT), (1, 1)))
+        entry_block.add_instruction(LoadConst(t1, Constant(20, MIRType.INT), (1, 1)))
+        entry_block.add_instruction(BinaryOp(t2, "+", t0, t1, (1, 1)))
+        entry_block.add_instruction(Return((1, 1), t2))
 
         # Set up CFG
         main_func.cfg.add_block(entry_block)
@@ -159,7 +159,7 @@ class TestMIRDumper:
 
         # Create a simple block
         entry = BasicBlock("entry")
-        entry.add_instruction(Return(Constant(42, MIRType.INT)))
+        entry.add_instruction(Return((1, 1), Constant(42, MIRType.INT)))
         func.cfg.add_block(entry)
         func.cfg.entry_block = entry
 
@@ -182,8 +182,8 @@ class TestMIRDumper:
 
         entry = BasicBlock("entry")
         t0 = Temp(MIRType.INT, 0)
-        entry.add_instruction(BinaryOp(t0, "+", params[0], params[1]))
-        entry.add_instruction(Return(t0))
+        entry.add_instruction(BinaryOp(t0, "+", params[0], params[1], (1, 1)))
+        entry.add_instruction(Return((1, 1), t0))
 
         func.cfg.add_block(entry)
         func.cfg.entry_block = entry
@@ -294,6 +294,7 @@ class TestMIRDumper:
                     Temp(MIRType.INT, 10),
                     "helper",
                     [],
+                    (1, 1),
                 )
             )
 

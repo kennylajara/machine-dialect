@@ -29,6 +29,7 @@ pub struct Violation {
     pub line_number: usize,
     pub actual_length: usize,
     pub expected_length: usize,
+    #[allow(dead_code)]
     pub line_content: String,
 }
 
@@ -143,7 +144,9 @@ impl Md013Linter {
                     for continuation in &lines[1..] {
                         result.push(format!("{}  {}", indent_str, continuation));
                     }
-                } else if line.trim_start().starts_with(|c: char| c.is_numeric()) && line.contains(". ") {
+                } else if line.trim_start().starts_with(|c: char| c.is_numeric())
+                    && line.contains(". ")
+                {
                     // Numbered list - similar handling
                     let indent = line.len() - line.trim_start().len();
                     let indent_str = &line[..indent];
@@ -226,7 +229,8 @@ mod tests {
         };
         let linter = Md013Linter::new(config);
 
-        let content = "Short line\n```\nThis is a very long line in a code block\n```\nAnother short line";
+        let content =
+            "Short line\n```\nThis is a very long line in a code block\n```\nAnother short line";
         let violations = linter.check_content(content);
 
         assert_eq!(violations.len(), 0);

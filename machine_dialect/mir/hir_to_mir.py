@@ -4,7 +4,6 @@ This module implements the translation from HIR (desugared AST) to MIR
 (Three-Address Code representation).
 """
 
-
 from machine_dialect.ast import (
     ActionStatement,
     Arguments,
@@ -48,6 +47,7 @@ from machine_dialect.mir.mir_instructions import (
     Copy,
     Jump,
     LoadConst,
+    MIRInstruction,
     Pop,
     Print,
     Return,
@@ -58,7 +58,14 @@ from machine_dialect.mir.mir_instructions import (
 )
 from machine_dialect.mir.mir_module import MIRModule
 from machine_dialect.mir.mir_types import MIRType, MIRUnionType, ast_type_to_mir_type
-from machine_dialect.mir.mir_values import Constant, FunctionRef, MIRValue, Variable
+from machine_dialect.mir.mir_values import (
+    Constant,
+    FunctionRef,
+    MIRValue,
+    ScopedVariable,
+    Variable,
+    VariableScope,
+)
 from machine_dialect.mir.ssa_construction import construct_ssa
 from machine_dialect.mir.type_inference import TypeInferencer, infer_ast_expression_type
 
@@ -71,11 +78,27 @@ class HIRToMIRLowering:
         self.module: MIRModule | None = None
         self.current_function: MIRFunction | None = None
         self.current_block: BasicBlock | None = None
-        self.variable_map: dict[str, Variable] = {}
+        self.variable_map: dict[str, Variable | ScopedVariable] = {}
         self.label_counter = 0
         self.type_context: dict[str, MIRType | MIRUnionType] = {}  # Track variable types
         self.union_type_context: dict[str, MIRUnionType] = {}  # Track union types separately
         self.debug_builder = DebugInfoBuilder()  # Debug information tracking
+
+    def _add_instruction(self, instruction: "MIRInstruction", ast_node: ASTNode) -> None:
+        """Add an instruction to the current block with source location.
+
+        Args:
+            instruction: The MIR instruction to add.
+            ast_node: The AST node to extract location from (required).
+        """
+        location = ast_node.get_source_location()
+        if location is None:
+            # If the node doesn't have location info, raise an error
+            # This forces all nodes to have proper location tracking
+            raise ValueError(f"AST node {type(ast_node).__name__} missing source location")
+        instruction.source_location = location
+        if self.current_block is not None:
+            self.current_block.add_instruction(instruction)
 
     def lower_program(self, program: Program, module_name: str = "main") -> MIRModule:
         """Lower a complete program to MIR.
@@ -142,12 +165,24 @@ class HIRToMIRLowering:
         self.current_block = entry
 
         # Lower all top-level statements
+        last_stmt = None
         for stmt in statements:
             self.lower_statement(stmt)
+            last_stmt = stmt
 
         # Add implicit return if needed
         if not self.current_block.is_terminated():
-            self.current_block.add_instruction(Return())
+            # For implicit returns, we need a source location
+            # Use the location from the last statement
+            if last_stmt is None:
+                raise ValueError("Cannot create implicit return without any statements")
+            source_loc = last_stmt.get_source_location()
+            if source_loc is None:
+                raise ValueError("Last statement missing source location for implicit return")
+            return_inst = Return(source_loc)
+            return_inst.source_location = source_loc
+            if self.current_block is not None:
+                self.current_block.add_instruction(return_inst)
 
         # Add main function to module
         if self.module:
@@ -198,7 +233,7 @@ class HIRToMIRLowering:
             func: The function to lower (any type of function).
         """
         # Create parameter variables
-        params = []
+        params: list[Variable | ScopedVariable] = []
         for param in func.inputs:
             # Infer parameter type from default value if available
             param_type: MIRType | MIRUnionType = MIRType.UNKNOWN
@@ -211,7 +246,8 @@ class HIRToMIRLowering:
                 param_name = str(param)
 
             # If still unknown, will be inferred later from usage
-            var = Variable(param_name, param_type)
+            # Parameters are always scoped as PARAMETER
+            var = ScopedVariable(param_name, VariableScope.PARAMETER, param_type)
             params.append(var)
             self.type_context[param_name] = param_type
 
@@ -247,24 +283,44 @@ class HIRToMIRLowering:
 
         # Initialize parameter variables
         self.variable_map.clear()
-        for var in params:
-            self.variable_map[var.name] = var
-            mir_func.add_local(var)
+        param_var: Variable | ScopedVariable
+        for param_var in params:
+            self.variable_map[param_var.name] = param_var
+            mir_func.add_local(param_var)
 
         # Lower function body
+        last_stmt = None
         if func.body:
             for stmt in func.body.statements:
                 self.lower_statement(stmt)
+                last_stmt = stmt
 
         # Add implicit return if needed
         if self.current_block and not self.current_block.is_terminated():
+            # Use function's source location for implicit return
+            source_loc = func.get_source_location()
+            if source_loc is None:
+                # If function has no location, try to use last statement's location
+                if last_stmt:
+                    source_loc = last_stmt.get_source_location()
+                if source_loc is None:
+                    raise ValueError(f"Function {func_name} missing source location for implicit return")
+
             if return_type == MIRType.EMPTY:
-                self.current_block.add_instruction(Return())
+                return_inst = Return(source_loc)
+                return_inst.source_location = source_loc
+                if self.current_block is not None:
+                    self.current_block.add_instruction(return_inst)
             else:
                 # Return a default value
                 temp = self.current_function.new_temp(return_type)
-                self.current_block.add_instruction(LoadConst(temp, None))
-                self.current_block.add_instruction(Return(temp))
+                load_inst = LoadConst(temp, None, source_loc)
+                if self.current_block is not None:
+                    self.current_block.add_instruction(load_inst)
+                return_inst = Return(source_loc, temp)
+                return_inst.source_location = source_loc
+                if self.current_block is not None:
+                    self.current_block.add_instruction(return_inst)
 
         # Add function to module
         if self.module:
@@ -282,6 +338,11 @@ class HIRToMIRLowering:
         if not self.current_function or not self.current_block:
             return
 
+        # Get source location from the statement
+        source_loc = stmt.get_source_location()
+        if source_loc is None:
+            raise ValueError("SetStatement missing source location")
+
         # Lower the value expression
         if stmt.value is not None:
             value = self.lower_expression(stmt.value)
@@ -291,6 +352,7 @@ class HIRToMIRLowering:
 
         # Get or create variable
         var_name = stmt.name.value if isinstance(stmt.name, Identifier) else str(stmt.name)
+        var: Variable | ScopedVariable
         if var_name not in self.variable_map:
             # Variable wasn't defined - this should be caught by semantic analysis
             # Create with inferred type for error recovery
@@ -301,7 +363,21 @@ class HIRToMIRLowering:
                 if stmt.value
                 else MIRType.UNKNOWN
             )
-            var = Variable(var_name, var_type)
+
+            # Check if we're inside a function (not main)
+            if self.current_function and self.current_function.name != "main":
+                # Check if this is a parameter
+                is_param = any(p.name == var_name for p in self.current_function.params)
+                if is_param:
+                    # This shouldn't happen - parameters should already be in variable_map
+                    var = ScopedVariable(var_name, VariableScope.PARAMETER, var_type)
+                else:
+                    # This is a function-local variable
+                    var = ScopedVariable(var_name, VariableScope.LOCAL, var_type)
+            else:
+                # This is a global variable (module-level)
+                var = ScopedVariable(var_name, VariableScope.GLOBAL, var_type)
+
             self.variable_map[var_name] = var
             self.current_function.add_local(var)
             self.type_context[var_name] = var_type
@@ -327,12 +403,12 @@ class HIRToMIRLowering:
         if isinstance(value, Constant):
             # Create a temporary variable for the constant
             temp = self.current_function.new_temp(value.type)
-            self.current_block.add_instruction(LoadConst(temp, value))
+            self._add_instruction(LoadConst(temp, value, source_loc), stmt)
             # Use the temp as the source
             value = temp
 
         # Store the value
-        self.current_block.add_instruction(StoreVar(var, value))
+        self._add_instruction(StoreVar(var, value, source_loc), stmt)
 
     def _convert_define_statement(self, stmt: DefineStatement) -> None:
         """Convert DefineStatement to MIR with enhanced type tracking.
@@ -349,10 +425,18 @@ class HIRToMIRLowering:
         mir_type = ast_type_to_mir_type(stmt.type_spec)
 
         # Create typed variable in MIR
+        # Check if we're inside a function (not main) to determine scope
+        if self.current_function and self.current_function.name != "main":
+            # This is a function-local variable
+            scope = VariableScope.LOCAL
+        else:
+            # This is a global variable (module-level)
+            scope = VariableScope.GLOBAL
+
         if isinstance(mir_type, MIRUnionType):
             # For union types, track both the union and create a variable with UNKNOWN type
             # The actual type will be refined during type inference and optimization
-            var = Variable(var_name, MIRType.UNKNOWN)
+            var = ScopedVariable(var_name, scope, MIRType.UNKNOWN)
 
             # Store the union type information separately for optimization passes
             self.union_type_context[var_name] = mir_type
@@ -362,7 +446,7 @@ class HIRToMIRLowering:
             var.union_type = mir_type
         else:
             # Single type - use it directly
-            var = Variable(var_name, mir_type)
+            var = ScopedVariable(var_name, scope, mir_type)
             self.type_context[var_name] = mir_type
 
         # Register in variable map with type
@@ -379,16 +463,20 @@ class HIRToMIRLowering:
             # This case shouldn't occur as HIR desugars default values
             # But handle it for completeness
             if self.current_block:
+                source_loc = stmt.get_source_location()
+                if source_loc is None:
+                    raise ValueError("DefineStatement missing source location")
+
                 value = self.lower_expression(stmt.initial_value)
 
                 # If the value is a constant, load it into a temporary first
                 if isinstance(value, Constant):
                     temp = self.current_function.new_temp(value.type)
-                    self.current_block.add_instruction(LoadConst(temp, value))
+                    self._add_instruction(LoadConst(temp, value, source_loc), stmt)
                     value = temp
 
                 # Store the value
-                self.current_block.add_instruction(StoreVar(var, value))
+                self._add_instruction(StoreVar(var, value, source_loc), stmt)
 
     def lower_if_statement(self, stmt: IfStatement) -> None:
         """Lower an if statement to MIR.
@@ -398,6 +486,11 @@ class HIRToMIRLowering:
         """
         if not self.current_function or not self.current_block:
             return
+
+        # Get source location from the statement
+        source_loc = stmt.get_source_location()
+        if source_loc is None:
+            raise ValueError("IfStatement missing source location")
 
         # Lower condition
         if stmt.condition is not None:
@@ -409,7 +502,7 @@ class HIRToMIRLowering:
         # Load constant into temporary if needed
         if isinstance(condition, Constant):
             temp = self.current_function.new_temp(condition.type)
-            self.current_block.add_instruction(LoadConst(temp, condition))
+            self._add_instruction(LoadConst(temp, condition, source_loc), stmt)
             condition = temp
 
         # Create blocks
@@ -427,12 +520,12 @@ class HIRToMIRLowering:
             self.current_function.cfg.add_block(else_block)
 
             # Add conditional jump
-            self.current_block.add_instruction(ConditionalJump(condition, then_label, else_label))
+            self._add_instruction(ConditionalJump(condition, then_label, source_loc, else_label), stmt)
             self.current_function.cfg.connect(self.current_block, then_block)
             self.current_function.cfg.connect(self.current_block, else_block)
         else:
             # Jump to then block if true, otherwise to merge
-            self.current_block.add_instruction(ConditionalJump(condition, then_label, merge_label))
+            self._add_instruction(ConditionalJump(condition, then_label, source_loc, merge_label), stmt)
             self.current_function.cfg.connect(self.current_block, then_block)
             self.current_function.cfg.connect(self.current_block, merge_block)
 
@@ -444,7 +537,7 @@ class HIRToMIRLowering:
 
         # Add jump to merge if not terminated
         if not self.current_block.is_terminated():
-            self.current_block.add_instruction(Jump(merge_label))
+            self._add_instruction(Jump(merge_label, source_loc), stmt)
             self.current_function.cfg.connect(self.current_block, merge_block)
 
         # Lower else block if present
@@ -455,7 +548,7 @@ class HIRToMIRLowering:
 
             # Add jump to merge if not terminated
             if not self.current_block.is_terminated():
-                self.current_block.add_instruction(Jump(merge_label))
+                self._add_instruction(Jump(merge_label, source_loc), stmt)
                 self.current_function.cfg.connect(self.current_block, merge_block)
 
         # Continue with merge block
@@ -470,6 +563,11 @@ class HIRToMIRLowering:
         if not self.current_block:
             return
 
+        # Get source location from the statement
+        source_loc = stmt.get_source_location()
+        if source_loc is None:
+            raise ValueError("ReturnStatement missing source location")
+
         if stmt.return_value:
             value = self.lower_expression(stmt.return_value)
 
@@ -478,12 +576,12 @@ class HIRToMIRLowering:
                 if self.current_function is None:
                     raise RuntimeError("No current function context")
                 temp = self.current_function.new_temp(value.type)
-                self.current_block.add_instruction(LoadConst(temp, value))
+                self._add_instruction(LoadConst(temp, value, source_loc), stmt)
                 value = temp
 
-            self.current_block.add_instruction(Return(value))
+            self._add_instruction(Return(source_loc, value), stmt)
         else:
-            self.current_block.add_instruction(Return())
+            self._add_instruction(Return(source_loc), stmt)
 
     def lower_call_statement(self, stmt: CallStatement) -> None:
         """Lower a call statement to MIR.
@@ -493,6 +591,11 @@ class HIRToMIRLowering:
         """
         if not self.current_block or not self.current_function:
             return
+
+        # Get source location from the statement
+        source_loc = stmt.get_source_location()
+        if source_loc is None:
+            raise ValueError("CallStatement missing source location")
 
         # Lower arguments
         args = []
@@ -505,7 +608,7 @@ class HIRToMIRLowering:
                         # Load constants into temporaries if needed
                         if isinstance(val, Constant):
                             temp = self.current_function.new_temp(val.type)
-                            self.current_block.add_instruction(LoadConst(temp, val))
+                            self._add_instruction(LoadConst(temp, val, source_loc), stmt)
                             val = temp
                         args.append(val)
 
@@ -517,7 +620,7 @@ class HIRToMIRLowering:
                         # Load constants into temporaries if needed
                         if isinstance(val, Constant):
                             temp = self.current_function.new_temp(val.type)
-                            self.current_block.add_instruction(LoadConst(temp, val))
+                            self._add_instruction(LoadConst(temp, val, source_loc), stmt)
                             val = temp
                         args.append(val)
             else:
@@ -525,7 +628,7 @@ class HIRToMIRLowering:
                 val = self.lower_expression(stmt.arguments)
                 if isinstance(val, Constant):
                     temp = self.current_function.new_temp(val.type)
-                    self.current_block.add_instruction(LoadConst(temp, val))
+                    self._add_instruction(LoadConst(temp, val, source_loc), stmt)
                     val = temp
                 args.append(val)
 
@@ -542,7 +645,11 @@ class HIRToMIRLowering:
         func_ref = FunctionRef(func_name)
 
         # Call without storing result (void call)
-        self.current_block.add_instruction(Call(None, func_ref, args))
+        source_loc = stmt.get_source_location()
+        if source_loc is None:
+            raise ValueError("CallStatement missing source location")
+        call_inst = Call(None, func_ref, args, source_loc)
+        self._add_instruction(call_inst, stmt)
 
     def lower_say_statement(self, stmt: SayStatement) -> None:
         """Lower a say statement to MIR.
@@ -553,6 +660,11 @@ class HIRToMIRLowering:
         if not self.current_block:
             return
 
+        # Get source location from the statement
+        source_loc = stmt.get_source_location()
+        if source_loc is None:
+            raise ValueError("SayStatement missing source location")
+
         # Lower the expression to print
         if stmt.expression:
             value = self.lower_expression(stmt.expression)
@@ -561,9 +673,9 @@ class HIRToMIRLowering:
                 if self.current_function is None:
                     raise RuntimeError("No current function context")
                 temp = self.current_function.new_temp(value.type)
-                self.current_block.add_instruction(LoadConst(temp, value))
+                self._add_instruction(LoadConst(temp, value, source_loc), stmt)
                 value = temp
-            self.current_block.add_instruction(Print(value))
+            self._add_instruction(Print(value, source_loc), stmt)
 
     def lower_block_statement(self, stmt: BlockStatement) -> None:
         """Lower a block statement to MIR.
@@ -574,8 +686,13 @@ class HIRToMIRLowering:
         if not self.current_block:
             return
 
+        # Get source location from the statement
+        source_loc = stmt.get_source_location()
+        if source_loc is None:
+            raise ValueError("BlockStatement missing source location")
+
         # Add scope begin instruction
-        self.current_block.add_instruction(Scope(is_begin=True))
+        self._add_instruction(Scope(source_loc, is_begin=True), stmt)
 
         # Lower all statements in the block
         for s in stmt.statements:
@@ -584,7 +701,7 @@ class HIRToMIRLowering:
         # Add scope end instruction
         # Always add end scope - it's safe even if block is terminated
         if self.current_block:
-            self.current_block.add_instruction(Scope(is_begin=False))
+            self._add_instruction(Scope(source_loc, is_begin=False), stmt)
 
     def lower_expression_statement(self, stmt: ExpressionStatement) -> None:
         """Lower an expression statement to MIR.
@@ -595,12 +712,17 @@ class HIRToMIRLowering:
         if not self.current_block:
             return
 
+        # Get source location from the statement
+        source_loc = stmt.get_source_location()
+        if source_loc is None:
+            raise ValueError("ExpressionStatement missing source location")
+
         # Lower the expression and discard the result
         if stmt.expression:
             result = self.lower_expression(stmt.expression)
             # Generate a Pop instruction to discard the unused result
             if result is not None:
-                self.current_block.add_instruction(Pop(result))
+                self._add_instruction(Pop(result, source_loc), stmt)
 
     def lower_error_statement(self, stmt: ErrorStatement) -> None:
         """Lower an error statement to MIR.
@@ -611,11 +733,16 @@ class HIRToMIRLowering:
         if not self.current_block or not self.current_function:
             return
 
+        # Get source location from the statement
+        source_loc = stmt.get_source_location()
+        if source_loc is None:
+            raise ValueError("ErrorStatement missing source location")
+
         # Generate an assert with error message
         # This will fail at runtime with the parse error
         error_msg = f"Parse error: {stmt.message}"
         false_val = Constant(False, MIRType.BOOL)
-        self.current_block.add_instruction(Assert(false_val, error_msg))
+        self._add_instruction(Assert(false_val, source_loc, error_msg), stmt)
 
     def lower_expression(self, expr: ASTNode) -> MIRValue:
         """Lower an expression to MIR.
@@ -652,7 +779,7 @@ class HIRToMIRLowering:
                     var.type = self.type_context[expr.value]
                 # Load variable into temp
                 temp = self.current_function.new_temp(var.type)
-                self.current_block.add_instruction(Copy(temp, var))
+                self._add_instruction(Copy(temp, var, expr.get_source_location() or (1, 1)), expr)
                 return temp
             else:
                 # Unknown identifier, return error value
@@ -669,12 +796,18 @@ class HIRToMIRLowering:
             # Load constants into temporaries if needed
             if isinstance(left, Constant):
                 temp_left = self.current_function.new_temp(left.type)
-                self.current_block.add_instruction(LoadConst(temp_left, left))
+                source_loc = expr.get_source_location()
+                if source_loc is None:
+                    raise ValueError("InfixExpression missing source location")
+                self._add_instruction(LoadConst(temp_left, left, source_loc), expr)
                 left = temp_left
 
             if isinstance(right, Constant):
                 temp_right = self.current_function.new_temp(right.type)
-                self.current_block.add_instruction(LoadConst(temp_right, right))
+                source_loc = expr.get_source_location()
+                if source_loc is None:
+                    raise ValueError("InfixExpression missing source location")
+                self._add_instruction(LoadConst(temp_right, right, source_loc), expr)
                 right = temp_right
 
             # Map AST operators to MIR operators
@@ -698,7 +831,10 @@ class HIRToMIRLowering:
 
             # Create temp for result
             result = self.current_function.new_temp(result_type)
-            self.current_block.add_instruction(BinaryOp(result, mir_operator, left, right))
+            source_loc = expr.get_source_location()
+            if source_loc is None:
+                raise ValueError("InfixExpression missing source location")
+            self._add_instruction(BinaryOp(result, mir_operator, left, right, source_loc), expr)
             return result
 
         # Handle prefix expression
@@ -711,7 +847,10 @@ class HIRToMIRLowering:
             # Load constant into temporary if needed
             if isinstance(operand, Constant):
                 temp_operand = self.current_function.new_temp(operand.type)
-                self.current_block.add_instruction(LoadConst(temp_operand, operand))
+                source_loc = expr.get_source_location()
+                if source_loc is None:
+                    raise ValueError("PrefixExpression missing source location")
+                self._add_instruction(LoadConst(temp_operand, operand, source_loc), expr)
                 operand = temp_operand
 
             # Get result type
@@ -728,7 +867,10 @@ class HIRToMIRLowering:
 
             # Create temp for result
             result = self.current_function.new_temp(result_type)
-            self.current_block.add_instruction(UnaryOp(result, expr.operator, operand))
+            source_loc = expr.get_source_location()
+            if source_loc is None:
+                raise ValueError("PrefixExpression missing source location")
+            self._add_instruction(UnaryOp(result, expr.operator, operand, source_loc), expr)
             return result
 
         # Handle conditional expression (ternary)
@@ -746,17 +888,26 @@ class HIRToMIRLowering:
             # Load constants into temporaries if needed
             if isinstance(condition, Constant):
                 temp_cond = self.current_function.new_temp(condition.type)
-                self.current_block.add_instruction(LoadConst(temp_cond, condition))
+                source_loc = expr.get_source_location()
+                if source_loc is None:
+                    raise ValueError("ConditionalExpression missing source location")
+                self._add_instruction(LoadConst(temp_cond, condition, source_loc), expr)
                 condition = temp_cond
 
             if isinstance(true_val, Constant):
                 temp_true = self.current_function.new_temp(true_val.type)
-                self.current_block.add_instruction(LoadConst(temp_true, true_val))
+                source_loc = expr.get_source_location()
+                if source_loc is None:
+                    raise ValueError("ConditionalExpression missing source location")
+                self._add_instruction(LoadConst(temp_true, true_val, source_loc), expr)
                 true_val = temp_true
 
             if isinstance(false_val, Constant):
                 temp_false = self.current_function.new_temp(false_val.type)
-                self.current_block.add_instruction(LoadConst(temp_false, false_val))
+                source_loc = expr.get_source_location()
+                if source_loc is None:
+                    raise ValueError("ConditionalExpression missing source location")
+                self._add_instruction(LoadConst(temp_false, false_val, source_loc), expr)
                 false_val = temp_false
 
             # Get result type (should be the same for both branches)
@@ -766,18 +917,23 @@ class HIRToMIRLowering:
             result = self.current_function.new_temp(result_type)
 
             # Use Select instruction for conditional expression
-            self.current_block.add_instruction(Select(result, condition, true_val, false_val))
+            source_loc = expr.get_source_location()
+            if source_loc is None:
+                raise ValueError("ConditionalExpression missing source location")
+            self._add_instruction(Select(result, condition, true_val, false_val, source_loc), expr)
             return result
 
         # Handle error expression
         elif isinstance(expr, ErrorExpression):
-            # Generate an assert for error expressions
-            error_msg = f"Expression error: {expr.message}"
+            # Generate an assert for error expressions with position information
+            # ErrorExpression MUST have a token with position info
+            error_msg = f"line {expr.token.line}, column {expr.token.position}: Expression error: {expr.message}"
             false_val = Constant(False, MIRType.BOOL)
             # Load constant into temporary
             temp_false = self.current_function.new_temp(false_val.type)
-            self.current_block.add_instruction(LoadConst(temp_false, false_val))
-            self.current_block.add_instruction(Assert(temp_false, error_msg))
+            source_loc = (expr.token.line, expr.token.position)
+            self._add_instruction(LoadConst(temp_false, false_val, source_loc), expr)
+            self._add_instruction(Assert(temp_false, source_loc, error_msg), expr)
             # Return error value
             return Constant(None, MIRType.ERROR)
 
@@ -795,17 +951,30 @@ class HIRToMIRLowering:
                             # Load constants into temporaries if needed
                             if isinstance(val, Constant):
                                 temp = self.current_function.new_temp(val.type)
-                                self.current_block.add_instruction(LoadConst(temp, val))
+                                source_loc = expr.get_source_location()
+                                if source_loc is None:
+                                    raise ValueError("Call expression missing source location")
+                                self._add_instruction(LoadConst(temp, val, source_loc), expr)
                                 val = temp
                             args.append(val)
 
             # Get function name
-            func_name = getattr(expr, "function_name", "unknown")
+            func_name_expr = getattr(expr, "function_name", None)
+            if isinstance(func_name_expr, Identifier):
+                func_name = func_name_expr.value
+            elif isinstance(func_name_expr, StringLiteral):
+                func_name = func_name_expr.value.strip('"').strip("'")
+            else:
+                func_name = str(func_name_expr) if func_name_expr else "unknown"
             func_ref = FunctionRef(func_name)
 
             # Create temp for result
             result = self.current_function.new_temp(MIRType.UNKNOWN)
-            self.current_block.add_instruction(Call(result, func_ref, args))
+            source_loc = expr.get_source_location()
+            if source_loc is None:
+                raise ValueError("Call expression missing source location")
+            call_inst = Call(result, func_ref, args, source_loc)
+            self._add_instruction(call_inst, expr)
             return result
 
         # Default: return error value

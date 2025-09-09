@@ -6,18 +6,12 @@ Provides commands for compiling, running, and interacting with Machine Dialect p
 """
 
 import sys
+from pathlib import Path
 
 import click
 
-from machine_dialect.codegen.serializer import (
-    InvalidMagicError,
-    SerializationError,
-    deserialize_module,
-)
 from machine_dialect.compiler import Compiler, CompilerConfig
 from machine_dialect.repl.repl import REPL
-from machine_dialect.vm.disasm import print_disassembly
-from machine_dialect.vm.vm import VM
 
 
 @click.group()
@@ -33,7 +27,7 @@ def cli() -> None:
     "-o",
     "--output",
     type=click.Path(),
-    help="Output file path (default: source.mdc)",
+    help="Output file path (default: source.mdbc)",
 )
 @click.option(
     "-d",
@@ -115,53 +109,163 @@ def compile(
 
 
 @cli.command()
-@click.argument("bytecode_file", type=click.Path(exists=True))
+@click.argument("file", type=click.Path(exists=True))
 @click.option(
     "-d",
     "--debug",
     is_flag=True,
-    help="Enable debug mode (show VM state)",
+    help="Enable debug mode",
 )
-def run(bytecode_file: str, debug: bool) -> None:
-    """Run a compiled Machine Dialect bytecode file."""
-    # Load compiled module
-    try:
-        with open(bytecode_file, "rb") as f:
-            module = deserialize_module(f)
-    except FileNotFoundError:
-        click.echo(f"Error: File '{bytecode_file}' not found", err=True)
-        sys.exit(1)
-    except InvalidMagicError as e:
-        click.echo(f"Error: {e}", err=True)
-        sys.exit(1)
-    except SerializationError as e:
-        click.echo(f"Error loading file: {e}", err=True)
-        sys.exit(1)
-    except Exception as e:
-        click.echo(f"Error loading file: {e}", err=True)
+def run(file: str, debug: bool) -> None:
+    """Run a Machine Dialect file (source .md or compiled .mdbc)."""
+    from pathlib import Path
+
+    file_path = Path(file)
+    extension = file_path.suffix.lower()
+
+    if extension == ".md":
+        # Run source file with MIR interpreter
+        _run_interpreted(file_path, debug)
+    elif extension == ".mdbc":
+        # Run compiled bytecode with Rust VM
+        _run_compiled(file, debug)
+    else:
+        click.echo(f"Error: Unsupported file type '{extension}'", err=True)
+        click.echo("Supported extensions: .md (source), .mdbc (compiled bytecode)", err=True)
         sys.exit(1)
 
-    if debug:
-        click.echo(f"Running '{bytecode_file}' in debug mode...")
-        click.echo("-" * 50)
 
-    # Execute in VM
+def _run_interpreted(source_path: Path, debug: bool) -> None:
+    """Run source file with MIR interpreter."""
+    from machine_dialect.compiler.config import CompilerConfig
+    from machine_dialect.compiler.context import CompilationContext
+    from machine_dialect.compiler.phases.hir_generation import HIRGenerationPhase
+    from machine_dialect.compiler.phases.mir_generation import MIRGenerationPhase
+    from machine_dialect.mir.mir_interpreter import MIRInterpreter
+    from machine_dialect.parser.parser import Parser
+
     try:
-        vm = VM(debug=debug)
-        result = vm.run(module)
+        # Read source file
+        with open(source_path, encoding="utf-8") as f:
+            source = f.read()
 
         if debug:
-            click.echo("-" * 50)
+            click.echo(f"Interpreting {source_path}...")
 
-        if result is not None:
+        # Parse to AST
+        parser = Parser()
+        ast = parser.parse(source)
+        if ast is None:
+            # Check if parser has errors and display them
+            if parser.has_errors():
+                for error in parser.errors:
+                    click.echo(f"Parse error: {error}", err=True)
+            else:
+                click.echo("Error: Failed to parse source", err=True)
+            sys.exit(1)
+
+        # Generate HIR
+        config = CompilerConfig(verbose=debug)
+        context = CompilationContext(source_path=source_path, config=config, source_content=source)
+        hir_phase = HIRGenerationPhase()
+        hir = hir_phase.run(context, ast)
+        if hir is None:
+            click.echo("Error: Failed to generate HIR", err=True)
+            sys.exit(1)
+
+        # Generate MIR
+        mir_phase = MIRGenerationPhase()
+        mir_module = mir_phase.run(context, hir)
+        if mir_module is None:
+            click.echo("Error: Failed to generate MIR", err=True)
+            sys.exit(1)
+
+        # TODO: Fix optimizer bug where it removes necessary variable stores in SSA form
+        # The optimizer incorrectly identifies stores like `n_minus_1.0 = t6` as dead code
+        # and removes them, but keeps the corresponding loads like `t10 = n_minus_1.0`,
+        # causing "Undefined variable" errors at runtime.
+        #
+        # Example of the bug:
+        # BEFORE optimization:
+        #   n_minus_1.0 = t6    # This gets removed
+        #   t10 = n_minus_1.0   # This stays, causing error
+        #
+        # Temporarily disable optimization until the dead code elimination pass
+        # is fixed to properly track SSA variable usage across basic blocks.
+        #
+        # To reproduce the bug, uncomment the line below and run:
+        # python -m machine_dialect run benchmark/fibonacci.md
+        #
+        # mir_module, _ = optimize_mir(mir_module, optimization_level=2)
+
+        # Interpret MIR
+        interpreter = MIRInterpreter()
+        result = interpreter.interpret_module(mir_module, trace=debug)
+
+        # Display result only in debug mode
+        if debug and result is not None:
             click.echo(f"Result: {result}")
 
-        # Show final globals if any
-        if vm.globals and debug:
-            click.echo("\nGlobal variables:")
-            for name, value in vm.globals.items():
-                click.echo(f"  {name} = {value}")
+        # Display output if any
+        output = interpreter.get_output()
+        if output:
+            for line in output:
+                click.echo(line)
 
+    except Exception as e:
+        click.echo(f"Runtime error: {e}", err=True)
+        if debug:
+            import traceback
+
+            traceback.print_exc()
+        sys.exit(1)
+
+
+def _run_compiled(bytecode_file: str, debug: bool) -> None:
+    """Run compiled bytecode with Rust VM."""
+    try:
+        # Import the Rust VM module
+        # Add the site-packages path to ensure we get the compiled module
+        import site
+        import sys as _sys
+
+        site_packages = site.getsitepackages()
+        for path in site_packages:
+            if path not in _sys.path:
+                _sys.path.insert(0, path)
+
+        import machine_dialect_vm
+
+        # Create VM instance
+        vm = machine_dialect_vm.RustVM()
+
+        # Enable debug mode if requested
+        if debug:
+            vm.set_debug(True)
+            click.echo("Debug mode enabled")
+
+        # Load and execute bytecode
+        if debug:
+            click.echo(f"Loading bytecode from: {bytecode_file}")
+        vm.load_bytecode(bytecode_file)
+
+        if debug:
+            click.echo("Executing bytecode...")
+        result = vm.execute()
+
+        # Display result only in debug mode
+        if debug and result is not None:
+            click.echo(f"Result: {result}")
+
+        if debug:
+            click.echo(f"Instructions executed: {vm.instruction_count()}")
+
+    except ImportError as e:
+        click.echo("Error: Rust VM module not found", err=True)
+        click.echo("Please build the Rust VM first:", err=True)
+        click.echo("  ./build_vm.sh", err=True)
+        click.echo(f"Details: {e}", err=True)
+        sys.exit(1)
     except Exception as e:
         click.echo(f"Runtime error: {e}", err=True)
         sys.exit(1)
@@ -192,25 +296,26 @@ def shell(tokens: bool, ast: bool) -> None:
 @click.argument("bytecode_file", type=click.Path(exists=True))
 def disasm(bytecode_file: str) -> None:
     """Disassemble a compiled bytecode file."""
-    # Load compiled module
-    try:
-        with open(bytecode_file, "rb") as f:
-            module = deserialize_module(f)
-    except FileNotFoundError:
-        click.echo(f"Error: File '{bytecode_file}' not found", err=True)
-        sys.exit(1)
-    except InvalidMagicError as e:
-        click.echo(f"Error: {e}", err=True)
-        sys.exit(1)
-    except SerializationError as e:
-        click.echo(f"Error loading file: {e}", err=True)
-        sys.exit(1)
-    except Exception as e:
-        click.echo(f"Error loading file: {e}", err=True)
-        sys.exit(1)
+    # TODO: Implement disassembly for new register-based bytecode
+    # The code below will be re-enabled once bytecode generation is implemented
+    # try:
+    #     with open(bytecode_file, "rb") as f:
+    #         module = deserialize_module(f)
+    # except FileNotFoundError:
+    #     click.echo(f"Error: File '{bytecode_file}' not found", err=True)
+    #     sys.exit(1)
+    # except InvalidMagicError as e:
+    #     click.echo(f"Error: {e}", err=True)
+    #     sys.exit(1)
+    # except SerializationError as e:
+    #     click.echo(f"Error loading file: {e}", err=True)
+    #     sys.exit(1)
+    # except Exception as e:
+    #     click.echo(f"Error loading file: {e}", err=True)
+    #     sys.exit(1)
 
-    # Show disassembly
-    print_disassembly(module.main_chunk)
+    click.echo("Disassembly not yet implemented for register-based bytecode", err=True)
+    sys.exit(1)
 
 
 @cli.command()

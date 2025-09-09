@@ -29,13 +29,13 @@ class TestDoubleNegationOptimization:
 
         # not(x)
         t1 = Temp(MIRType.BOOL, 0)
-        block.add_instruction(UnaryOp(t1, "not", x))
+        block.add_instruction(UnaryOp(t1, "not", x, (1, 1)))
 
         # not(not(x)) - should be optimized to x
         t2 = Temp(MIRType.BOOL, 1)
-        block.add_instruction(UnaryOp(t2, "not", t1))
+        block.add_instruction(UnaryOp(t2, "not", t1, (1, 1)))
 
-        block.add_instruction(Return(t2))
+        block.add_instruction(Return((1, 1), t2))
 
         func.cfg.add_block(block)
         func.cfg.set_entry_block(block)
@@ -46,7 +46,7 @@ class TestDoubleNegationOptimization:
 
         # Check that double negation was optimized
         assert modified
-        # The second UnaryOp should be replaced with Copy(t2, x)
+        # The second UnaryOp should be replaced with Copy(t2, x, (1, 1))
         assert any(isinstance(inst, Copy) for inst in block.instructions)
         assert optimizer.stats["boolean_optimized"] > 0
 
@@ -63,13 +63,13 @@ class TestDoubleNegationOptimization:
 
         # -x
         t1 = Temp(MIRType.INT, 0)
-        block.add_instruction(UnaryOp(t1, "-", x))
+        block.add_instruction(UnaryOp(t1, "-", x, (1, 1)))
 
         # -(-x) - should be optimized to x
         t2 = Temp(MIRType.INT, 1)
-        block.add_instruction(UnaryOp(t2, "-", t1))
+        block.add_instruction(UnaryOp(t2, "-", t1, (1, 1)))
 
-        block.add_instruction(Return(t2))
+        block.add_instruction(Return((1, 1), t2))
 
         func.cfg.add_block(block)
         func.cfg.set_entry_block(block)
@@ -80,7 +80,7 @@ class TestDoubleNegationOptimization:
 
         # Check that double negation was optimized
         assert modified
-        # The second UnaryOp should be replaced with Copy(t2, x)
+        # The second UnaryOp should be replaced with Copy(t2, x, (1, 1))
         assert any(isinstance(inst, Copy) for inst in block.instructions)
 
     def test_not_comparison_inversion(self) -> None:
@@ -98,13 +98,13 @@ class TestDoubleNegationOptimization:
 
         # x == y
         t1 = Temp(MIRType.BOOL, 0)
-        block.add_instruction(BinaryOp(t1, "==", x, y))
+        block.add_instruction(BinaryOp(t1, "==", x, y, (1, 1)))
 
         # not(x == y) - should be optimized to x != y
         t2 = Temp(MIRType.BOOL, 1)
-        block.add_instruction(UnaryOp(t2, "not", t1))
+        block.add_instruction(UnaryOp(t2, "not", t1, (1, 1)))
 
-        block.add_instruction(Return(t2))
+        block.add_instruction(Return((1, 1), t2))
 
         func.cfg.add_block(block)
         func.cfg.set_entry_block(block)
@@ -134,13 +134,13 @@ class TestDoubleNegationOptimization:
 
         # x < y
         t1 = Temp(MIRType.BOOL, 0)
-        block.add_instruction(BinaryOp(t1, "<", x, y))
+        block.add_instruction(BinaryOp(t1, "<", x, y, (1, 1)))
 
         # not(x < y) - should be optimized to x >= y
         t2 = Temp(MIRType.BOOL, 1)
-        block.add_instruction(UnaryOp(t2, "not", t1))
+        block.add_instruction(UnaryOp(t2, "not", t1, (1, 1)))
 
-        block.add_instruction(Return(t2))
+        block.add_instruction(Return((1, 1), t2))
 
         func.cfg.add_block(block)
         func.cfg.set_entry_block(block)
@@ -168,17 +168,17 @@ class TestDoubleNegationOptimization:
 
         # not(x)
         t1 = Temp(MIRType.BOOL, 0)
-        block.add_instruction(UnaryOp(t1, "not", x))
+        block.add_instruction(UnaryOp(t1, "not", x, (1, 1)))
 
         # not(not(x))
         t2 = Temp(MIRType.BOOL, 1)
-        block.add_instruction(UnaryOp(t2, "not", t1))
+        block.add_instruction(UnaryOp(t2, "not", t1, (1, 1)))
 
         # not(not(not(x))) - should optimize to not(x)
         t3 = Temp(MIRType.BOOL, 2)
-        block.add_instruction(UnaryOp(t3, "not", t2))
+        block.add_instruction(UnaryOp(t3, "not", t2, (1, 1)))
 
-        block.add_instruction(Return(t3))
+        block.add_instruction(Return((1, 1), t3))
 
         func.cfg.add_block(block)
         func.cfg.set_entry_block(block)
@@ -207,17 +207,17 @@ class TestDoubleNegationOptimization:
 
         # -y
         t1 = Temp(MIRType.INT, 0)
-        block.add_instruction(UnaryOp(t1, "-", y))
+        block.add_instruction(UnaryOp(t1, "-", y, (1, 1)))
 
         # x + (-y)
         t2 = Temp(MIRType.INT, 1)
-        block.add_instruction(BinaryOp(t2, "+", x, t1))
+        block.add_instruction(BinaryOp(t2, "+", x, t1, (1, 1)))
 
         # -(x + (-y))
         t3 = Temp(MIRType.INT, 2)
-        block.add_instruction(UnaryOp(t3, "-", t2))
+        block.add_instruction(UnaryOp(t3, "-", t2, (1, 1)))
 
-        block.add_instruction(Return(t3))
+        block.add_instruction(Return((1, 1), t3))
 
         func.cfg.add_block(block)
         func.cfg.set_entry_block(block)

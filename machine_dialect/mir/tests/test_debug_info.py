@@ -1,6 +1,5 @@
 """Tests for debug information tracking."""
 
-
 from machine_dialect.ast import (
     BlockStatement,
     Expression,
@@ -48,7 +47,7 @@ class TestDebugInfoTracking:
         debug_info.current_file = "test.md"
 
         # Create a dummy instruction
-        inst = LoadConst(Variable("temp", MIRType.INT), Constant(42))
+        inst = LoadConst(Variable("temp", MIRType.INT, 0), Constant(42), (1, 1))
         location = SourceLocation("test.md", 10, 5)
 
         # Track the location
@@ -173,9 +172,11 @@ class TestDebugInfoTracking:
         builder.debug_info.current_file = "test.md"
 
         # Create some instructions
-        inst1 = LoadConst(Variable("t1", MIRType.INT), Constant(10))
-        inst2 = LoadConst(Variable("t2", MIRType.INT), Constant(20))
-        inst3 = BinaryOp(Variable("t3", MIRType.INT), "+", Variable("t1", MIRType.INT), Variable("t2", MIRType.INT))
+        inst1 = LoadConst(Variable("t1", MIRType.INT, 0), Constant(10), (1, 1))
+        inst2 = LoadConst(Variable("t2", MIRType.INT, 0), Constant(20), (1, 1))
+        inst3 = BinaryOp(
+            Variable("t3", MIRType.INT), "+", Variable("t1", MIRType.INT, 0), Variable("t2", MIRType.INT), (1, 1)
+        )
 
         # Track with line numbers
         builder.track_instruction(inst1, 5, 10)

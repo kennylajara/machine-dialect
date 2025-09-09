@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any
 
+from machine_dialect.errors.exceptions import MDRuntimeError
 from machine_dialect.mir.basic_block import BasicBlock
 from machine_dialect.mir.mir_function import MIRFunction
 from machine_dialect.mir.mir_instructions import (
@@ -24,6 +25,7 @@ from machine_dialect.mir.mir_instructions import (
     MIRInstruction,
     Nop,
     Phi,
+    Pop,
     Print,
     Return,
     Scope,
@@ -76,7 +78,7 @@ class MIRInterpreter:
         self.output: list[str] = []
         self.trace_enabled = False
         self.step_count = 0
-        self.max_steps = 10000  # Prevent infinite loops
+        self.max_steps = 100_000_000  # Prevent infinite loops # TODO: Make it configurable
 
     def interpret_module(self, module: MIRModule, trace: bool = False) -> Any:
         """Interpret a MIR module.
@@ -133,15 +135,11 @@ class MIRInterpreter:
         self.frames.append(frame)
 
         # Execute function
-        while self.state == ExecutionState.RUNNING and self.frames and self.frames[-1] == frame:
+        while self.state == ExecutionState.RUNNING and self.frames and frame in self.frames:
             self.step()
 
-        # Pop frame and return value
-        if self.frames and self.frames[-1] == frame:
-            self.frames.pop()
-            return frame.return_value
-
-        return None
+        # Return the value (frame was already popped by Return instruction)
+        return frame.return_value
 
     def step(self) -> None:
         """Execute one instruction."""
@@ -231,8 +229,11 @@ class MIRInterpreter:
                 frame.return_value = self._load_value(inst.value)
             else:
                 frame.return_value = None
-            # Don't pop yet - let call_function handle it
-            if not self.frames or len(self.frames) == 1:
+            # For non-main functions, pop the frame immediately
+            if len(self.frames) > 1:
+                self.frames.pop()
+            else:
+                # For main function, set state to returned
                 self.state = ExecutionState.RETURNED
 
         elif isinstance(inst, Call):
@@ -251,7 +252,7 @@ class MIRInterpreter:
                             self._store_value(inst.dest, result)
                     else:
                         # Built-in function
-                        self._call_builtin(func_name, inst.args, inst.dest)
+                        self._call_builtin(func_name, inst.args, inst.dest, inst)
                 else:
                     raise RuntimeError(f"No module context for function call: {func_name}")
             else:
@@ -289,6 +290,11 @@ class MIRInterpreter:
         elif isinstance(inst, Scope):
             # Scope markers don't affect execution
             pass
+
+        elif isinstance(inst, Pop):
+            # Pop instruction - just load the value to evaluate it
+            # but don't store it anywhere (side effects only)
+            self._load_value(inst.value)
 
         elif isinstance(inst, Nop):
             # No operation
@@ -354,36 +360,58 @@ class MIRInterpreter:
         Returns:
             The result.
         """
-        if op == "+":
-            return left + right
-        elif op == "-":
-            return left - right
-        elif op == "*":
-            return left * right
-        elif op == "/":
-            if right == 0:
-                raise RuntimeError("Division by zero")
-            return left / right if isinstance(left, float) or isinstance(right, float) else left // right
-        elif op == "%":
-            return left % right
-        elif op == "<":
-            return left < right
-        elif op == ">":
-            return left > right
-        elif op == "<=":
-            return left <= right
-        elif op == ">=":
-            return left >= right
-        elif op == "==":
-            return left == right
-        elif op == "!=":
-            return left != right
-        elif op == "&&":
-            return self._is_truthy(left) and self._is_truthy(right)
-        elif op == "||":
-            return self._is_truthy(left) or self._is_truthy(right)
-        else:
-            raise RuntimeError(f"Unsupported binary operation: {op}")
+        from machine_dialect.errors.exceptions import MDRuntimeError
+
+        try:
+            if op == "+":
+                return left + right
+            elif op == "-":
+                return left - right
+            elif op == "*":
+                return left * right
+            elif op == "/":
+                if right == 0:
+                    frame = self.frames[-1]
+                    current_inst = frame.current_block.instructions[frame.instruction_index - 1]
+                    line, column = current_inst.source_location
+                    raise MDRuntimeError("Division by zero", line=line, column=column)
+                return left / right if isinstance(left, float) or isinstance(right, float) else left // right
+            elif op == "%":
+                return left % right
+            elif op == "<":
+                return left < right
+            elif op == ">":
+                return left > right
+            elif op == "<=":
+                return left <= right
+            elif op == ">=":
+                return left >= right
+            elif op == "==":
+                return left == right
+            elif op == "!=":
+                return left != right
+            elif op == "&&":
+                return self._is_truthy(left) and self._is_truthy(right)
+            elif op == "||":
+                return self._is_truthy(left) or self._is_truthy(right)
+            else:
+                frame = self.frames[-1]
+                current_inst = frame.current_block.instructions[frame.instruction_index - 1]
+                line, column = current_inst.source_location
+                raise MDRuntimeError(f"Unsupported binary operation: {op}", line=line, column=column)
+        except TypeError as err:
+            frame = self.frames[-1]
+            current_inst = frame.current_block.instructions[frame.instruction_index - 1]
+            left_type = type(left).__name__
+            right_type = type(right).__name__
+            left_repr = repr(left) if left is not None else "None"
+            right_repr = repr(right) if right is not None else "None"
+            line, column = current_inst.source_location
+            raise MDRuntimeError(
+                f"Cannot apply '{op}' to {left_type} and {right_type}: {left_repr} {op} {right_repr}",
+                line=line,
+                column=column,
+            ) from err
 
     def _eval_unary_op(self, op: str, operand: Any) -> Any:
         """Evaluate a unary operation.
@@ -396,11 +424,32 @@ class MIRInterpreter:
             The result.
         """
         if op == "-":
-            return -operand
+            try:
+                return -operand
+            except TypeError:
+                from machine_dialect.errors.exceptions import MDRuntimeError
+
+                # Get current instruction for debugging context
+                frame = self.frames[-1]
+                current_inst = frame.current_block.instructions[frame.instruction_index - 1]
+                operand_type = type(operand).__name__
+                operand_repr = repr(operand) if operand is not None else "None"
+                # Use source_location from instruction
+                line, column = current_inst.source_location
+                raise MDRuntimeError(
+                    f"Cannot apply unary minus to {operand_type}: {operand_repr}. Instruction: {current_inst}",
+                    line=line,
+                    column=column,
+                ) from None
         elif op == "!":
             return not self._is_truthy(operand)
         else:
-            raise RuntimeError(f"Unsupported unary operation: {op}")
+            from machine_dialect.errors.exceptions import MDRuntimeError
+
+            frame = self.frames[-1]
+            current_inst = frame.current_block.instructions[frame.instruction_index - 1]
+            line, column = current_inst.source_location
+            raise MDRuntimeError(f"Unsupported unary operation: {op}", line=line, column=column)
 
     def _is_truthy(self, value: Any) -> bool:
         """Check if a value is truthy.
@@ -435,13 +484,14 @@ class MIRInterpreter:
         else:
             raise RuntimeError(f"Jump to undefined block: {label}")
 
-    def _call_builtin(self, name: str, args: list[MIRValue], dest: MIRValue | None) -> None:
+    def _call_builtin(self, name: str, args: list[MIRValue], dest: MIRValue | None, inst: MIRInstruction) -> None:
         """Call a built-in function.
 
         Args:
             name: Function name.
             args: Arguments.
             dest: Destination for result.
+            inst: The Call instruction (for error reporting).
         """
         # Evaluate arguments
         arg_values = [self._load_value(arg) for arg in args]
@@ -475,7 +525,10 @@ class MIRInterpreter:
                 if dest:
                     self._store_value(dest, result_float)
         else:
-            raise RuntimeError(f"Unknown built-in function: {name}")
+            # Get source location from instruction if available
+            line = inst.source_location[0] if inst.source_location else None
+            column = inst.source_location[1] if inst.source_location else None
+            raise MDRuntimeError(f"Unknown built-in function: `{name}`", line=line, column=column)
 
     def _trace_instruction(self, inst: MIRInstruction) -> None:
         """Trace instruction execution.

@@ -281,17 +281,17 @@ def laws_violated(actions: list[Action], orders: list[AskAction]) -> dict[str, b
 
 
 __all__ = [
+    "Action",
     "ActionStatusType",
-    "Thing",
+    "AskAction",
+    "MedicalCondition",
     "Person",
     "Robot",
-    "MedicalCondition",
-    "Action",
-    "AskAction",
+    "Thing",
     "first_law_violated",
+    "laws_violated",
     "second_law_violated",
     "third_law_violated",
-    "laws_violated",
 ]
 
 
@@ -309,12 +309,12 @@ if __name__ == "__main__":
         identifier="coffee-run",
     )
 
-    # 2) "Ataca a Bob" (choca con la 1ª Ley: dañaría a un humano)
+    # 2) "Attack Bob" (conflicts with the 1st Law: would harm a human)
     order_attack = AskAction(
         agent=alice,
         recipient=robby,
         identifier="attack-bob",
-        result=MedicalCondition(severity=10),  # indica posible daño
+        result=MedicalCondition(severity=10),  # indicates possible harm
     )
 
     orders = [order_coffee, order_attack]

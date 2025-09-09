@@ -50,6 +50,7 @@ dev = [
     "maturin>=1.7.0",
     "setuptools-rust>=1.10.0",
     "patchelf>=0.17.0",
+    "taskipy>=1.14.0",
 ]
 
 [tool.ruff]
@@ -117,3 +118,28 @@ precision = 2
 
 [tool.coverage.html]
 directory = "htmlcov"
+
+[tool.taskipy.tasks]
+# Testing commands
+test = "python -m pytest"
+test-verbose = "python -m pytest -v"
+test-watch = "python -m pytest-watch"
+
+# Coverage commands
+"cov:report" = "python -m pytest --cov=machine_dialect --cov-report=term-missing:skip-covered --cov-report=html --cov-report=xml -q && echo '\n📊 Coverage report generated in htmlcov/index.html'"
+"cov:html" = "python -m pytest --cov=machine_dialect --cov-report=html -q && python -m webbrowser htmlcov/index.html"
+"cov:low" = "python -m pytest --cov=machine_dialect --cov-report=term 2>/dev/null | grep -E '^machine_dialect.*%.*$' | awk '{print $NF, $1}' | sort -t% -k1 -n | head -20"
+
+# Type checking
+typecheck = "mypy machine_dialect --strict"
+mypy = "mypy machine_dialect --strict"
+
+# Linting and formatting
+lint = "ruff check machine_dialect"
+format = "ruff format machine_dialect"
+check = "pre-commit run --all-files"
+
+# Development
+repl = "python -m machine_dialect"
+build = "python -m build"
+clean = "rm -rf build dist *.egg-info htmlcov .coverage coverage.xml .pytest_cache"

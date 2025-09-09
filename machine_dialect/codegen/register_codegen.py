@@ -833,7 +833,20 @@ class RegisterBytecodeGenerator:
 
     def generate_print(self, inst: Print) -> None:
         """Generate DebugPrint instruction."""
-        src = self.get_register(inst.value)
+        # If the value is a constant, we need to load it first
+        if isinstance(inst.value, Constant):
+            # Allocate a register for the constant
+            src = self.get_register(inst.value)
+            # Add the constant to the constant pool
+            const_idx = self.add_constant(inst.value.value)
+            # Emit LOAD_CONST_R to load the constant into the register
+            self.track_vm_instruction()
+            self.emit_opcode(Opcode.LOAD_CONST_R)
+            self.emit_u8(src)
+            self.emit_u16(const_idx)
+        else:
+            # For non-constants, just get the register
+            src = self.get_register(inst.value)
 
         self.track_vm_instruction()
         self.emit_opcode(Opcode.DEBUG_PRINT)

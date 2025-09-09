@@ -58,7 +58,14 @@ from machine_dialect.mir.mir_instructions import (
 )
 from machine_dialect.mir.mir_module import MIRModule
 from machine_dialect.mir.mir_types import MIRType, MIRUnionType, ast_type_to_mir_type
-from machine_dialect.mir.mir_values import Constant, FunctionRef, MIRValue, Variable
+from machine_dialect.mir.mir_values import (
+    Constant,
+    FunctionRef,
+    MIRValue,
+    ScopedVariable,
+    Variable,
+    VariableScope,
+)
 from machine_dialect.mir.ssa_construction import construct_ssa
 from machine_dialect.mir.type_inference import TypeInferencer, infer_ast_expression_type
 
@@ -71,7 +78,7 @@ class HIRToMIRLowering:
         self.module: MIRModule | None = None
         self.current_function: MIRFunction | None = None
         self.current_block: BasicBlock | None = None
-        self.variable_map: dict[str, Variable] = {}
+        self.variable_map: dict[str, Variable | ScopedVariable] = {}
         self.label_counter = 0
         self.type_context: dict[str, MIRType | MIRUnionType] = {}  # Track variable types
         self.union_type_context: dict[str, MIRUnionType] = {}  # Track union types separately
@@ -226,7 +233,7 @@ class HIRToMIRLowering:
             func: The function to lower (any type of function).
         """
         # Create parameter variables
-        params = []
+        params: list[Variable | ScopedVariable] = []
         for param in func.inputs:
             # Infer parameter type from default value if available
             param_type: MIRType | MIRUnionType = MIRType.UNKNOWN
@@ -239,7 +246,8 @@ class HIRToMIRLowering:
                 param_name = str(param)
 
             # If still unknown, will be inferred later from usage
-            var = Variable(param_name, param_type)
+            # Parameters are always scoped as PARAMETER
+            var = ScopedVariable(param_name, VariableScope.PARAMETER, param_type)
             params.append(var)
             self.type_context[param_name] = param_type
 
@@ -343,6 +351,7 @@ class HIRToMIRLowering:
 
         # Get or create variable
         var_name = stmt.name.value if isinstance(stmt.name, Identifier) else str(stmt.name)
+        var: Variable | ScopedVariable
         if var_name not in self.variable_map:
             # Variable wasn't defined - this should be caught by semantic analysis
             # Create with inferred type for error recovery
@@ -353,7 +362,21 @@ class HIRToMIRLowering:
                 if stmt.value
                 else MIRType.UNKNOWN
             )
-            var = Variable(var_name, var_type)
+
+            # Check if we're inside a function (not main)
+            if self.current_function and self.current_function.name != "main":
+                # Check if this is a parameter
+                is_param = any(p.name == var_name for p in self.current_function.params)
+                if is_param:
+                    # This shouldn't happen - parameters should already be in variable_map
+                    var = ScopedVariable(var_name, VariableScope.PARAMETER, var_type)
+                else:
+                    # This is a function-local variable
+                    var = ScopedVariable(var_name, VariableScope.LOCAL, var_type)
+            else:
+                # This is a global variable (module-level)
+                var = ScopedVariable(var_name, VariableScope.GLOBAL, var_type)
+
             self.variable_map[var_name] = var
             self.current_function.add_local(var)
             self.type_context[var_name] = var_type
@@ -401,10 +424,18 @@ class HIRToMIRLowering:
         mir_type = ast_type_to_mir_type(stmt.type_spec)
 
         # Create typed variable in MIR
+        # Check if we're inside a function (not main) to determine scope
+        if self.current_function and self.current_function.name != "main":
+            # This is a function-local variable
+            scope = VariableScope.LOCAL
+        else:
+            # This is a global variable (module-level)
+            scope = VariableScope.GLOBAL
+
         if isinstance(mir_type, MIRUnionType):
             # For union types, track both the union and create a variable with UNKNOWN type
             # The actual type will be refined during type inference and optimization
-            var = Variable(var_name, MIRType.UNKNOWN)
+            var = ScopedVariable(var_name, scope, MIRType.UNKNOWN)
 
             # Store the union type information separately for optimization passes
             self.union_type_context[var_name] = mir_type
@@ -414,7 +445,7 @@ class HIRToMIRLowering:
             var.union_type = mir_type
         else:
             # Single type - use it directly
-            var = Variable(var_name, mir_type)
+            var = ScopedVariable(var_name, scope, mir_type)
             self.type_context[var_name] = mir_type
 
         # Register in variable map with type

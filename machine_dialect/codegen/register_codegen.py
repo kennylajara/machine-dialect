@@ -64,6 +64,12 @@ class RegisterAllocator:
         Returns:
             True if the variable is a global variable.
         """
+        from machine_dialect.mir.mir_values import ScopedVariable, VariableScope
+
+        # Check if it's a ScopedVariable with explicit scope
+        if isinstance(var, ScopedVariable):
+            return var.scope == VariableScope.GLOBAL
+
         if not isinstance(var, Variable) or var.version != 0:
             return False
 
@@ -188,6 +194,12 @@ class RegisterBytecodeGenerator:
         Returns:
             True if the variable is a global variable.
         """
+        from machine_dialect.mir.mir_values import ScopedVariable, VariableScope
+
+        # Check if it's a ScopedVariable with explicit scope
+        if isinstance(var, ScopedVariable):
+            return var.scope == VariableScope.GLOBAL
+
         if not isinstance(var, Variable) or var.version != 0:
             return False
 
@@ -352,6 +364,33 @@ class RegisterBytecodeGenerator:
                 if self.allocation:
                     print(f"  in allocation? {inst.source in self.allocation.value_to_register}")
 
+        # Handle ScopedVariable parameters
+        from machine_dialect.mir.mir_values import ScopedVariable, VariableScope
+
+        if isinstance(inst.source, ScopedVariable) and inst.source.scope == VariableScope.PARAMETER:
+            # This is a parameter reference - it might be the same object or a different one
+            # First check if the ScopedVariable itself is allocated
+            if self.allocation and inst.source in self.allocation.value_to_register:
+                src = self.allocation.value_to_register[inst.source]
+                self.emit_opcode(Opcode.MOVE_R)
+                self.emit_u8(dst)
+                self.emit_u8(src)
+                if self.debug:
+                    print(f"  -> Generated MoveR from r{src} (param {inst.source.name} direct) to r{dst}")
+                return
+            # Otherwise look for the parameter by name in the function
+            elif self.current_function:
+                for param in self.current_function.params:
+                    if param.name == inst.source.name:
+                        if self.allocation and param in self.allocation.value_to_register:
+                            src = self.allocation.value_to_register[param]
+                            self.emit_opcode(Opcode.MOVE_R)
+                            self.emit_u8(dst)
+                            self.emit_u8(src)
+                            if self.debug:
+                                print(f"  -> Generated MoveR from r{src} (param {inst.source.name} by name) to r{dst}")
+                            return
+
         # Check if source is already in a register (local variable, parameter, or SSA variable)
         if self.allocation and inst.source in self.allocation.value_to_register:
             # This is a local variable, parameter, or SSA variable in a register
@@ -362,6 +401,21 @@ class RegisterBytecodeGenerator:
             if self.debug:
                 print(f"  -> Generated MoveR from r{src} to r{dst}")
         elif isinstance(inst.source, Variable):
+            # Special handling for parameters - check by name
+            if self.current_function:
+                for param in self.current_function.params:
+                    if param.name == inst.source.name and inst.source.version == 0:
+                        # This is a parameter - find its register
+                        if self.allocation and param in self.allocation.value_to_register:
+                            src = self.allocation.value_to_register[param]
+                            self.emit_opcode(Opcode.MOVE_R)
+                            self.emit_u8(dst)
+                            self.emit_u8(src)
+                            if self.debug:
+                                print(f"  -> Generated MoveR from r{src} (param {param.name}) to r{dst}")
+                            return
+                        else:
+                            raise RuntimeError(f"Parameter {param.name} not allocated to register")
             # Check if this is an SSA variable that should have been allocated
             if self.is_ssa_variable(inst.source):
                 raise RuntimeError(
@@ -671,6 +725,12 @@ class RegisterBytecodeGenerator:
                     print(f"  value name: {inst.value.name}")
                 if hasattr(inst.value, "version"):
                     print(f"  value version: {inst.value.version}")
+                # Debug: show allocation map
+                if self.allocation:
+                    print(f"  Allocation map has {len(self.allocation.value_to_register)} entries")
+                    for val, reg in self.allocation.value_to_register.items():
+                        if hasattr(val, "name"):
+                            print(f"    {val.name} (v{getattr(val, 'version', '?')}) -> r{reg}")
 
         if inst.value:
             # If the value is a constant, we need to load it first
@@ -794,11 +854,29 @@ class RegisterBytecodeGenerator:
 
         assert self.allocation is not None
         if value not in self.allocation.value_to_register:
+            # Special case: check if this is a parameter by name
+            if self.current_function and isinstance(value, Variable):
+                for param in self.current_function.params:
+                    if param.name == value.name:
+                        # Found the parameter, look it up in allocation
+                        if param in self.allocation.value_to_register:
+                            if self.debug:
+                                print(
+                                    f"  DEBUG: Found parameter {value.name} by name -> r{self.allocation.value_to_register[param]}"
+                                )
+                            return self.allocation.value_to_register[param]
+                        else:
+                            raise RuntimeError(f"Parameter {value.name} not allocated to register")
+
             # Check if this is an SSA variable that should have been allocated
             if self.is_ssa_variable(value) and isinstance(value, Variable):
                 raise RuntimeError(f"SSA variable {value.name} (version {value.version}) not allocated to register")
-            # For non-SSA variables or other cases, return 0 as default
-            return 0
+
+            # For non-SSA variables, check if we should error
+            if self.debug:
+                print(f"  WARNING: Value {value} not in allocation map, returning r23 (uninitialized!)")
+            # This is likely the bug - returning an arbitrary register
+            return 23  # This will help us identify the issue
         return self.allocation.value_to_register[value]
 
     def add_constant(self, value: Any) -> int:

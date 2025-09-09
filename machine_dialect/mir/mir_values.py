@@ -5,9 +5,18 @@ including temporaries, variables, constants, and function references.
 """
 
 from abc import ABC, abstractmethod
+from enum import Enum
 from typing import Any
 
 from .mir_types import MIRType, MIRUnionType, infer_type
+
+
+class VariableScope(Enum):
+    """Scope of a variable in the program."""
+
+    GLOBAL = "global"  # Module-level variables
+    PARAMETER = "param"  # Function parameters
+    LOCAL = "local"  # Function-local variables
 
 
 class MIRValue(ABC):
@@ -137,6 +146,62 @@ class Variable(MIRValue):
             A new Variable with the same name and type but different version.
         """
         return Variable(self.name, self.type, version)
+
+
+class ScopedVariable(Variable):
+    """Variable with explicit scope information.
+
+    This extends Variable to track whether it's a global, parameter, or local variable.
+    """
+
+    def __init__(
+        self,
+        name: str,
+        scope: VariableScope,
+        mir_type: MIRType | MIRUnionType,
+        version: int = 0,
+    ) -> None:
+        """Initialize a scoped variable.
+
+        Args:
+            name: The variable name.
+            scope: The scope of the variable.
+            mir_type: The type of the variable.
+            version: SSA version number (0 for non-SSA).
+        """
+        super().__init__(name, mir_type, version)
+        self.scope = scope
+
+    def __str__(self) -> str:
+        """Return string representation."""
+        base = super().__str__()
+        if self.scope == VariableScope.LOCAL:
+            return f"{base}[local]"
+        elif self.scope == VariableScope.PARAMETER:
+            return f"{base}[param]"
+        return base
+
+    def __eq__(self, other: object) -> bool:
+        """Check equality based on name, version, and scope."""
+        if not isinstance(other, ScopedVariable):
+            # Allow comparison with regular Variable for compatibility
+            return super().__eq__(other)
+        return self.name == other.name and self.version == other.version and self.scope == other.scope
+
+    def __hash__(self) -> int:
+        """Hash based on name, version, and scope."""
+        return hash(("scoped_var", self.name, self.version, self.scope))
+
+    def with_version(self, version: int) -> "ScopedVariable":
+        """Create a new scoped variable with a different version.
+
+        Args:
+            version: The new version number.
+
+        Returns:
+            A new ScopedVariable with the same name, type, and scope but different version.
+        """
+        return ScopedVariable(self.name, self.scope, self.type, version)
 
 
 class Constant(MIRValue):

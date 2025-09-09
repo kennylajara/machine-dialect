@@ -1,6 +1,5 @@
 """Tests for complex pattern matching in algebraic simplification."""
 
-import unittest
 
 from machine_dialect.mir.basic_block import BasicBlock
 from machine_dialect.mir.mir_function import MIRFunction
@@ -12,10 +11,10 @@ from machine_dialect.mir.mir_values import Constant, Temp
 from machine_dialect.mir.optimizations.algebraic_simplification import AlgebraicSimplification
 
 
-class TestAlgebraicComplexPatterns(unittest.TestCase):
+class TestAlgebraicComplexPatterns:
     """Test complex pattern matching in algebraic simplification."""
 
-    def setUp(self) -> None:
+    def setup_method(self) -> None:
         """Set up test fixtures."""
         self.module = MIRModule("test")
         self.func = MIRFunction("test_func", [], MIRType.INT)
@@ -41,15 +40,15 @@ class TestAlgebraicComplexPatterns(unittest.TestCase):
 
         changed = self.opt.run_on_function(self.func)
 
-        self.assertTrue(changed)
-        self.assertEqual(self.opt.stats.get("complex_pattern_matched", 0), 1)
+        assert changed
+        assert self.opt.stats.get("complex_pattern_matched") == 1
         instructions = list(self.block.instructions)
         # The last instruction should be Copy(t3, t0, (1, 1))
-        self.assertIsInstance(instructions[3], Copy)
+        assert isinstance(instructions[3], Copy)
         copy_inst = instructions[3]
         assert isinstance(copy_inst, Copy)
-        self.assertEqual(copy_inst.source, t0)
-        self.assertEqual(copy_inst.dest, t3)
+        assert copy_inst.source == t0
+        assert copy_inst.dest == t3
 
     def test_subtract_then_add_pattern(self) -> None:
         """Test (a - b) + b → a."""
@@ -66,15 +65,15 @@ class TestAlgebraicComplexPatterns(unittest.TestCase):
 
         changed = self.opt.run_on_function(self.func)
 
-        self.assertTrue(changed)
-        self.assertEqual(self.opt.stats.get("complex_pattern_matched", 0), 1)
+        assert changed
+        assert self.opt.stats.get("complex_pattern_matched") == 1
         instructions = list(self.block.instructions)
         # The last instruction should be Copy(t3, t0, (1, 1))
-        self.assertIsInstance(instructions[3], Copy)
+        assert isinstance(instructions[3], Copy)
         copy_inst = instructions[3]
         assert isinstance(copy_inst, Copy)
-        self.assertEqual(copy_inst.source, t0)
-        self.assertEqual(copy_inst.dest, t3)
+        assert copy_inst.source == t0
+        assert copy_inst.dest == t3
 
     def test_multiply_then_divide_pattern(self) -> None:
         """Test (a * b) / b → a."""
@@ -91,15 +90,15 @@ class TestAlgebraicComplexPatterns(unittest.TestCase):
 
         changed = self.opt.run_on_function(self.func)
 
-        self.assertTrue(changed)
-        self.assertEqual(self.opt.stats.get("complex_pattern_matched", 0), 1)
+        assert changed
+        assert self.opt.stats.get("complex_pattern_matched") == 1
         instructions = list(self.block.instructions)
         # The last instruction should be Copy(t3, t0, (1, 1))
-        self.assertIsInstance(instructions[3], Copy)
+        assert isinstance(instructions[3], Copy)
         copy_inst = instructions[3]
         assert isinstance(copy_inst, Copy)
-        self.assertEqual(copy_inst.source, t0)
-        self.assertEqual(copy_inst.dest, t3)
+        assert copy_inst.source == t0
+        assert copy_inst.dest == t3
 
     def test_divide_then_multiply_pattern(self) -> None:
         """Test (a / b) * b → a."""
@@ -116,15 +115,15 @@ class TestAlgebraicComplexPatterns(unittest.TestCase):
 
         changed = self.opt.run_on_function(self.func)
 
-        self.assertTrue(changed)
-        self.assertEqual(self.opt.stats.get("complex_pattern_matched", 0), 1)
+        assert changed
+        assert self.opt.stats.get("complex_pattern_matched") == 1
         instructions = list(self.block.instructions)
         # The last instruction should be Copy(t3, t0, (1, 1))
-        self.assertIsInstance(instructions[3], Copy)
+        assert isinstance(instructions[3], Copy)
         copy_inst = instructions[3]
         assert isinstance(copy_inst, Copy)
-        self.assertEqual(copy_inst.source, t0)
-        self.assertEqual(copy_inst.dest, t3)
+        assert copy_inst.source == t0
+        assert copy_inst.dest == t3
 
     def test_zero_minus_x_pattern(self) -> None:
         """Test 0 - x → -x."""
@@ -136,15 +135,15 @@ class TestAlgebraicComplexPatterns(unittest.TestCase):
 
         changed = self.opt.run_on_function(self.func)
 
-        self.assertTrue(changed)
-        self.assertEqual(self.opt.stats.get("complex_pattern_matched", 0), 1)
+        assert changed
+        assert self.opt.stats.get("complex_pattern_matched") == 1
         instructions = list(self.block.instructions)
-        self.assertIsInstance(instructions[1], UnaryOp)
+        assert isinstance(instructions[1], UnaryOp)
         unary_inst = instructions[1]
         assert isinstance(unary_inst, UnaryOp)
-        self.assertEqual(unary_inst.op, "-")
-        self.assertEqual(unary_inst.operand, t0)
-        self.assertEqual(unary_inst.dest, t1)
+        assert unary_inst.op == "-"
+        assert unary_inst.operand == t0
+        assert unary_inst.dest == t1
 
     def test_chained_subtraction_constants(self) -> None:
         """Test (a - b) - c → a - (b + c) when b and c are constants."""
@@ -159,18 +158,18 @@ class TestAlgebraicComplexPatterns(unittest.TestCase):
 
         changed = self.opt.run_on_function(self.func)
 
-        self.assertTrue(changed)
-        self.assertEqual(self.opt.stats.get("complex_pattern_matched", 0), 1)
+        assert changed
+        assert self.opt.stats.get("complex_pattern_matched") == 1
         instructions = list(self.block.instructions)
         # The last instruction should be BinaryOp(t2, "-", t0, Constant(5, (1, 1)))
-        self.assertIsInstance(instructions[2], BinaryOp)
+        assert isinstance(instructions[2], BinaryOp)
         binary_inst = instructions[2]
         assert isinstance(binary_inst, BinaryOp)
-        self.assertEqual(binary_inst.op, "-")
-        self.assertEqual(binary_inst.left, t0)
-        self.assertIsInstance(binary_inst.right, Constant)
+        assert binary_inst.op == "-"
+        assert binary_inst.left == t0
         assert isinstance(binary_inst.right, Constant)
-        self.assertEqual(binary_inst.right.value, 5)
+        assert isinstance(binary_inst.right, Constant)
+        assert binary_inst.right.value == 5
 
     def test_commutative_add_subtract_pattern(self) -> None:
         """Test (b + a) - b → a (commutative version)."""
@@ -187,15 +186,15 @@ class TestAlgebraicComplexPatterns(unittest.TestCase):
 
         changed = self.opt.run_on_function(self.func)
 
-        self.assertTrue(changed)
-        self.assertEqual(self.opt.stats.get("complex_pattern_matched", 0), 1)
+        assert changed
+        assert self.opt.stats.get("complex_pattern_matched") == 1
         instructions = list(self.block.instructions)
         # The last instruction should be Copy(t3, t0, (1, 1))
-        self.assertIsInstance(instructions[3], Copy)
+        assert isinstance(instructions[3], Copy)
         copy_inst = instructions[3]
         assert isinstance(copy_inst, Copy)
-        self.assertEqual(copy_inst.source, t0)
-        self.assertEqual(copy_inst.dest, t3)
+        assert copy_inst.source == t0
+        assert copy_inst.dest == t3
 
     def test_commutative_multiply_divide_pattern(self) -> None:
         """Test (b * a) / b → a (commutative version)."""
@@ -212,16 +211,12 @@ class TestAlgebraicComplexPatterns(unittest.TestCase):
 
         changed = self.opt.run_on_function(self.func)
 
-        self.assertTrue(changed)
-        self.assertEqual(self.opt.stats.get("complex_pattern_matched", 0), 1)
+        assert changed
+        assert self.opt.stats.get("complex_pattern_matched") == 1
         instructions = list(self.block.instructions)
         # The last instruction should be Copy(t3, t0, (1, 1))
-        self.assertIsInstance(instructions[3], Copy)
+        assert isinstance(instructions[3], Copy)
         copy_inst = instructions[3]
         assert isinstance(copy_inst, Copy)
-        self.assertEqual(copy_inst.source, t0)
-        self.assertEqual(copy_inst.dest, t3)
-
-
-if __name__ == "__main__":
-    unittest.main()
+        assert copy_inst.source == t0
+        assert copy_inst.dest == t3

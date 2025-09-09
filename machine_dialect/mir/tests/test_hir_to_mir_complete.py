@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import unittest
-
 from machine_dialect.ast import (
     ActionStatement,
     BlockStatement,
@@ -44,10 +42,10 @@ from machine_dialect.mir.mir_types import MIRType
 from machine_dialect.mir.mir_values import Constant
 
 
-class TestHIRToMIRComplete(unittest.TestCase):
+class TestHIRToMIRComplete:
     """Test complete HIR to MIR lowering with all AST node types."""
 
-    def setUp(self) -> None:
+    def setup_method(self) -> None:
         """Set up test fixtures."""
         self.lowerer = HIRToMIRLowering()
 
@@ -69,31 +67,31 @@ class TestHIRToMIRComplete(unittest.TestCase):
         mir = lower_to_mir(program)
 
         # Should have main function
-        self.assertIsNotNone(mir.get_function("main"))
+        assert mir.get_function("main") is not None
         main = mir.get_function("main")
 
         # Should have entry block with Assert instruction
         assert main is not None
         entry = main.cfg.entry_block
-        self.assertIsNotNone(entry)
+        assert entry is not None
 
         # Find Assert instruction
         assert entry is not None
         asserts = [inst for inst in entry.instructions if isinstance(inst, Assert)]
-        self.assertEqual(len(asserts), 1)
+        assert len(asserts) == 1
         assert asserts[0].message is not None
-        self.assertIn("Parse error", asserts[0].message)
+        assert "Parse error" in asserts[0].message
 
         # Should have entry block with Assert instruction
         entry2 = main.cfg.entry_block
-        self.assertIsNotNone(entry2)
+        assert entry2 is not None
 
         # Find Assert instruction
         assert entry2 is not None
         asserts2 = [inst for inst in entry2.instructions if isinstance(inst, Assert)]
-        self.assertEqual(len(asserts2), 1)
+        assert len(asserts2) == 1
         assert asserts2[0].message is not None
-        self.assertIn("Parse error", asserts2[0].message)
+        assert "Parse error" in asserts2[0].message
 
     def test_error_expression_lowering(self) -> None:
         """Test lowering of ErrorExpression."""
@@ -113,7 +111,7 @@ class TestHIRToMIRComplete(unittest.TestCase):
         entry = main.cfg.entry_block
         assert entry is not None
         asserts = [inst for inst in entry.instructions if isinstance(inst, Assert)]
-        self.assertTrue(any(a.message and "Expression error" in a.message for a in asserts))
+        assert any(a.message and "Expression error" in a.message for a in asserts)
 
     def test_conditional_expression_lowering(self) -> None:
         """Test lowering of ConditionalExpression (ternary)."""
@@ -137,7 +135,7 @@ class TestHIRToMIRComplete(unittest.TestCase):
         entry = main.cfg.entry_block
         assert entry is not None
         selects = [inst for inst in entry.instructions if isinstance(inst, Select)]
-        self.assertEqual(len(selects), 1)
+        assert len(selects) == 1
 
     def test_say_statement_lowering(self) -> None:
         """Test lowering of SayStatement."""
@@ -153,7 +151,7 @@ class TestHIRToMIRComplete(unittest.TestCase):
         entry = main.cfg.entry_block
         assert entry is not None
         prints = [inst for inst in entry.instructions if isinstance(inst, Print)]
-        self.assertEqual(len(prints), 1)
+        assert len(prints) == 1
 
     def test_block_statement_with_scope(self) -> None:
         """Test that BlockStatement generates scope instructions."""
@@ -178,9 +176,9 @@ class TestHIRToMIRComplete(unittest.TestCase):
         scopes = [inst for inst in entry.instructions if isinstance(inst, Scope)]
 
         # Should have begin and end scope
-        self.assertEqual(len(scopes), 2)
-        self.assertTrue(scopes[0].is_begin)
-        self.assertFalse(scopes[1].is_begin)
+        assert len(scopes) == 2
+        assert scopes[0].is_begin
+        assert not scopes[1].is_begin
 
     def test_action_statement_lowering(self) -> None:
         """Test lowering of ActionStatement (private method)."""
@@ -200,9 +198,9 @@ class TestHIRToMIRComplete(unittest.TestCase):
 
         # Should have function with EMPTY return type
         func = mir.get_function("doWork")
-        self.assertIsNotNone(func)
         assert func is not None
-        self.assertEqual(func.return_type, MIRType.EMPTY)
+        assert func is not None
+        assert func.return_type == MIRType.EMPTY
 
     def test_interaction_statement_lowering(self) -> None:
         """Test lowering of InteractionStatement (public method)."""
@@ -224,10 +222,10 @@ class TestHIRToMIRComplete(unittest.TestCase):
 
         # Should have function with parameter
         func = mir.get_function("handleRequest")
-        self.assertIsNotNone(func)
         assert func is not None
-        self.assertEqual(len(func.params), 1)
-        self.assertEqual(func.params[0].name, "input")
+        assert func is not None
+        assert len(func.params) == 1
+        assert func.params[0].name == "input"
 
     def test_utility_statement_lowering(self) -> None:
         """Test lowering of UtilityStatement (function with return)."""
@@ -249,9 +247,9 @@ class TestHIRToMIRComplete(unittest.TestCase):
 
         # Should have function with UNKNOWN return type (can return values)
         func = mir.get_function("calculate")
-        self.assertIsNotNone(func)
         assert func is not None
-        self.assertEqual(func.return_type, MIRType.UNKNOWN)
+        assert func is not None
+        assert func.return_type == MIRType.UNKNOWN
 
     def test_url_literal_lowering(self) -> None:
         """Test lowering of URLLiteral."""
@@ -264,17 +262,17 @@ class TestHIRToMIRComplete(unittest.TestCase):
 
         # Should create constant with URL type
         main = mir.get_function("main")
-        self.assertIsNotNone(main)
+        assert main is not None
 
         # Check for LoadConst with URL
         main = mir.get_function("main")
-        self.assertIsNotNone(main)
+        assert main is not None
         assert main is not None
         entry = main.cfg.entry_block
         assert entry is not None
         loads = [inst for inst in entry.instructions if isinstance(inst, LoadConst)]
-        self.assertTrue(
-            any(isinstance(inst.constant, Constant) and inst.constant.value == "https://example.com" for inst in loads)
+        assert any(
+            isinstance(inst.constant, Constant) and inst.constant.value == "https://example.com" for inst in loads
         )
 
     def test_complex_control_flow(self) -> None:
@@ -324,7 +322,7 @@ class TestHIRToMIRComplete(unittest.TestCase):
         # Should have multiple basic blocks
         main = mir.get_function("main")
         assert main is not None
-        self.assertGreater(len(main.cfg.blocks), 3)  # At least entry + branches
+        assert len(main.cfg.blocks) > 3  # At least entry + branches
 
         # Should have conditional jumps
         all_instructions: list[MIRInstruction] = []
@@ -332,34 +330,31 @@ class TestHIRToMIRComplete(unittest.TestCase):
             all_instructions.extend(block.instructions)
 
         cond_jumps = [inst for inst in all_instructions if isinstance(inst, ConditionalJump)]
-        self.assertGreaterEqual(len(cond_jumps), 2)  # At least 2 for nested ifs
+        assert len(cond_jumps) >= 2  # At least 2 for nested ifs
 
     def test_all_binary_operators(self) -> None:
         """Test all binary operators are properly lowered."""
         operators = ["+", "-", "*", "/", "%", "^", "==", "!=", "<", ">", "<=", ">=", "and", "or"]
 
         for op in operators:
-            with self.subTest(operator=op):
-                # Create: result = 10 op 5
-                expr = InfixExpression(self._dummy_token(op), op, WholeNumberLiteral(self._dummy_token("10"), 10))
-                expr.right = WholeNumberLiteral(self._dummy_token("5"), 5)
+            # Create: result = 10 op 5
+            expr = InfixExpression(self._dummy_token(op), op, WholeNumberLiteral(self._dummy_token("10"), 10))
+            expr.right = WholeNumberLiteral(self._dummy_token("5"), 5)
 
-                set_stmt = SetStatement(
-                    self._dummy_token("set"), Identifier(self._dummy_token("result"), "result"), expr
-                )
+            set_stmt = SetStatement(self._dummy_token("set"), Identifier(self._dummy_token("result"), "result"), expr)
 
-                program = Program([set_stmt])
-                mir = lower_to_mir(program)
+            program = Program([set_stmt])
+            mir = lower_to_mir(program)
 
-                # Should have BinaryOp with correct operator
-                main = mir.get_function("main")
-                assert main is not None
-                entry = main.cfg.entry_block
-                assert entry is not None
-                binops = [inst for inst in entry.instructions if isinstance(inst, BinaryOp)]
-                # ^ in AST becomes ** in MIR
-                expected_op = "**" if op == "^" else op
-                self.assertTrue(any(inst.op == expected_op for inst in binops))
+            # Should have BinaryOp with correct operator
+            main = mir.get_function("main")
+            assert main is not None, f"Failed for operator {op}"
+            entry = main.cfg.entry_block
+            assert entry is not None, f"Failed for operator {op}"
+            binops = [inst for inst in entry.instructions if isinstance(inst, BinaryOp)]
+            # ^ in AST becomes ** in MIR
+            expected_op = "**" if op == "^" else op
+            assert any(inst.op == expected_op for inst in binops), f"Failed for operator {op}"
 
     def test_unary_operators(self) -> None:
         """Test unary operators are properly lowered."""
@@ -386,13 +381,9 @@ class TestHIRToMIRComplete(unittest.TestCase):
 
         # Should have UnaryOp instructions
         unaryops = [inst for inst in entry.instructions if isinstance(inst, UnaryOp)]
-        self.assertEqual(len(unaryops), 2)
+        assert len(unaryops) == 2
 
         # Check operators
         ops = {inst.op for inst in unaryops}
-        self.assertIn("-", ops)
-        self.assertIn("not", ops)
-
-
-if __name__ == "__main__":
-    unittest.main()
+        assert "-" in ops
+        assert "not" in ops

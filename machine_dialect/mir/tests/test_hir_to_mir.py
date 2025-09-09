@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import unittest
-
 from machine_dialect.ast import (
     Arguments,
     BlockStatement,
@@ -40,7 +38,7 @@ from machine_dialect.mir.mir_instructions import (
 from machine_dialect.mir.mir_types import MIRType
 
 
-class TestHIRToMIRLowering(unittest.TestCase):
+class TestHIRToMIRLowering:
     """Test HIR to MIR lowering."""
 
     def _dummy_token(self, literal: str = "", token_type: TokenType = TokenType.MISC_IDENT) -> Token:
@@ -65,9 +63,9 @@ class TestHIRToMIRLowering(unittest.TestCase):
         program = Program(statements=[])
         module = lower_to_mir(program)
 
-        self.assertEqual(module.name, "main")
-        self.assertEqual(len(module.functions), 0)
-        self.assertIsNone(module.main_function)
+        assert module.name == "main"
+        assert len(module.functions) == 0
+        assert module.main_function is None
 
     def test_lower_simple_function(self) -> None:
         """Test lowering a simple function."""
@@ -89,23 +87,23 @@ class TestHIRToMIRLowering(unittest.TestCase):
         module = lower_to_mir(program)
 
         # Check module has main function
-        self.assertEqual(len(module.functions), 1)
-        self.assertIn("main", module.functions)
-        self.assertEqual(module.main_function, "main")
+        assert len(module.functions) == 1
+        assert "main" in module.functions
+        assert module.main_function == "main"
 
         # Check function structure
         main_func = module.get_function("main")
         assert main_func is not None
-        self.assertEqual(main_func.name, "main")
-        self.assertEqual(len(main_func.params), 0)
+        assert main_func.name == "main"
+        assert len(main_func.params) == 0
 
         # Check CFG
         assert main_func.cfg.entry_block is not None
         entry = main_func.cfg.entry_block
         # With Load-Then-Store approach, we generate LoadConst + Return
-        self.assertEqual(len(entry.instructions), 2)
-        self.assertIsInstance(entry.instructions[0], LoadConst)
-        self.assertIsInstance(entry.instructions[1], Return)
+        assert len(entry.instructions) == 2
+        assert isinstance(entry.instructions[0], LoadConst)
+        assert isinstance(entry.instructions[1], Return)
 
     def test_lower_function_with_parameters(self) -> None:
         """Test lowering a function with parameters."""
@@ -136,9 +134,9 @@ class TestHIRToMIRLowering(unittest.TestCase):
         # Check function has parameters
         add_func = module.get_function("add")
         assert add_func is not None
-        self.assertEqual(len(add_func.params), 2)
-        self.assertEqual(add_func.params[0].name, "a")
-        self.assertEqual(add_func.params[1].name, "b")
+        assert len(add_func.params) == 2
+        assert add_func.params[0].name == "a"
+        assert add_func.params[1].name == "b"
 
     def test_lower_set_statement(self) -> None:
         """Test lowering a set statement."""
@@ -166,7 +164,7 @@ class TestHIRToMIRLowering(unittest.TestCase):
 
         # Should have StoreVar instruction
         instructions = main_func.cfg.entry_block.instructions
-        self.assertTrue(any(isinstance(inst, StoreVar) for inst in instructions))
+        assert any(isinstance(inst, StoreVar) for inst in instructions)
 
     def test_lower_if_statement(self) -> None:
         """Test lowering an if statement."""
@@ -208,12 +206,12 @@ class TestHIRToMIRLowering(unittest.TestCase):
         assert test_func is not None
 
         # Should have multiple blocks
-        self.assertGreater(len(test_func.cfg.blocks), 1)
+        assert len(test_func.cfg.blocks) > 1
 
         # Should have conditional jump in entry block
         assert test_func.cfg.entry_block is not None
         entry = test_func.cfg.entry_block
-        self.assertTrue(any(isinstance(inst, ConditionalJump) for inst in entry.instructions))
+        assert any(isinstance(inst, ConditionalJump) for inst in entry.instructions)
 
     def test_lower_call_statement(self) -> None:
         """Test lowering a call statement."""
@@ -242,7 +240,7 @@ class TestHIRToMIRLowering(unittest.TestCase):
 
         # Should have Call instruction
         instructions = main_func.cfg.entry_block.instructions
-        self.assertTrue(any(isinstance(inst, Call) for inst in instructions))
+        assert any(isinstance(inst, Call) for inst in instructions)
 
     def test_lower_infix_expression(self) -> None:
         """Test lowering infix expressions."""
@@ -274,7 +272,7 @@ class TestHIRToMIRLowering(unittest.TestCase):
         # Should have BinaryOp instructions
         instructions = calc_func.cfg.entry_block.instructions
         binary_ops = [inst for inst in instructions if isinstance(inst, BinaryOp)]
-        self.assertEqual(len(binary_ops), 2)  # One for *, one for +
+        assert len(binary_ops) == 2  # One for *, one for +
 
     def test_lower_prefix_expression(self) -> None:
         """Test lowering prefix expressions."""
@@ -298,7 +296,7 @@ class TestHIRToMIRLowering(unittest.TestCase):
 
         # Should have UnaryOp instruction
         instructions = neg_func.cfg.entry_block.instructions
-        self.assertTrue(any(isinstance(inst, UnaryOp) for inst in instructions))
+        assert any(isinstance(inst, UnaryOp) for inst in instructions)
 
     # def test_lower_call_expression(self) -> None:
     #     """Test lowering call expressions."""
@@ -351,12 +349,12 @@ class TestHIRToMIRLowering(unittest.TestCase):
         assert lit_func is not None
 
         # Check that we have 5 local variables
-        self.assertEqual(len(lit_func.locals), 5)
-        self.assertIn("i", lit_func.locals)
-        self.assertIn("f", lit_func.locals)
-        self.assertIn("s", lit_func.locals)
-        self.assertIn("b", lit_func.locals)
-        self.assertIn("e", lit_func.locals)
+        assert len(lit_func.locals) == 5
+        assert "i" in lit_func.locals
+        assert "f" in lit_func.locals
+        assert "s" in lit_func.locals
+        assert "b" in lit_func.locals
+        assert "e" in lit_func.locals
 
     def test_lower_action_and_interaction(self) -> None:
         """Test lowering action and interaction functions."""
@@ -382,17 +380,17 @@ class TestHIRToMIRLowering(unittest.TestCase):
         module = lower_to_mir(program)
 
         # Both should be in module
-        self.assertEqual(len(module.functions), 2)
-        self.assertIn("helper", module.functions)
-        self.assertIn("process", module.functions)
+        assert len(module.functions) == 2
+        assert "helper" in module.functions
+        assert "process" in module.functions
 
         # Check return types (both should be void/empty)
         helper = module.get_function("helper")
         process = module.get_function("process")
         assert helper is not None
         assert process is not None
-        self.assertEqual(helper.return_type, MIRType.EMPTY)
-        self.assertEqual(process.return_type, MIRType.EMPTY)
+        assert helper.return_type == MIRType.EMPTY
+        assert process.return_type == MIRType.EMPTY
 
     def test_implicit_return(self) -> None:
         """Test that implicit return is added when needed."""
@@ -420,7 +418,7 @@ class TestHIRToMIRLowering(unittest.TestCase):
 
         # Should have added implicit return
         instructions = no_return.cfg.entry_block.instructions
-        self.assertTrue(any(isinstance(inst, Return) for inst in instructions))
+        assert any(isinstance(inst, Return) for inst in instructions)
 
     def test_nested_if_statements(self) -> None:
         """Test lowering nested if statements."""
@@ -464,8 +462,4 @@ class TestHIRToMIRLowering(unittest.TestCase):
         assert nested is not None
 
         # Should have multiple blocks for nested control flow
-        self.assertGreater(len(nested.cfg.blocks), 3)
-
-
-if __name__ == "__main__":
-    unittest.main()
+        assert len(nested.cfg.blocks) > 3

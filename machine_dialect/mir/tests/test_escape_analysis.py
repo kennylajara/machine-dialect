@@ -1,6 +1,5 @@
 """Tests for escape analysis."""
 
-import unittest
 
 from machine_dialect.mir.analyses.escape_analysis import EscapeAnalysis, EscapeState
 from machine_dialect.mir.mir_function import MIRFunction
@@ -128,10 +127,10 @@ def create_heap_escape_function() -> MIRFunction:
     return func
 
 
-class TestEscapeAnalysis(unittest.TestCase):
+class TestEscapeAnalysis:
     """Test escape analysis."""
 
-    def setUp(self) -> None:
+    def setup_method(self) -> None:
         """Set up test fixtures."""
         self.analysis = EscapeAnalysis()
 
@@ -142,13 +141,13 @@ class TestEscapeAnalysis(unittest.TestCase):
 
         # 'a' should not escape (only used locally)
         a_var = Variable("a", MIRType.INT)
-        self.assertFalse(escape_info.does_escape(a_var))
-        self.assertTrue(escape_info.is_stack_eligible(a_var))
+        assert not escape_info.does_escape(a_var)
+        assert escape_info.is_stack_eligible(a_var)
 
         # 'b' escapes via return
         b_var = Variable("b", MIRType.INT)
-        self.assertTrue(escape_info.does_escape(b_var))
-        self.assertFalse(escape_info.is_stack_eligible(b_var))
+        assert escape_info.does_escape(b_var)
+        assert not escape_info.is_stack_eligible(b_var)
 
     def test_argument_escape(self) -> None:
         """Test variables escaping as function arguments."""
@@ -157,13 +156,13 @@ class TestEscapeAnalysis(unittest.TestCase):
 
         # 'a' escapes as argument to foo()
         a_var = Variable("a", MIRType.INT)
-        self.assertTrue(escape_info.does_escape(a_var))
-        self.assertFalse(escape_info.is_stack_eligible(a_var))
+        assert escape_info.does_escape(a_var)
+        assert not escape_info.is_stack_eligible(a_var)
 
         info = escape_info.get_info(a_var)
-        self.assertIsNotNone(info)
+        assert info is not None
         if info:
-            self.assertEqual(info.state, EscapeState.ARG_ESCAPE)
+            assert info.state == EscapeState.ARG_ESCAPE
 
     def test_alias_propagation(self) -> None:
         """Test escape propagation through aliases."""
@@ -172,15 +171,15 @@ class TestEscapeAnalysis(unittest.TestCase):
 
         # 'c' escapes via return
         c_var = Variable("c", MIRType.INT)
-        self.assertTrue(escape_info.does_escape(c_var))
+        assert escape_info.does_escape(c_var)
 
         # 'b' aliases 'c', so it should also escape
         b_var = Variable("b", MIRType.INT)
-        self.assertTrue(escape_info.does_escape(b_var))
+        assert escape_info.does_escape(b_var)
 
         # 'a' aliases 'b' which aliases 'c', so it should also escape
         a_var = Variable("a", MIRType.INT)
-        self.assertTrue(escape_info.does_escape(a_var))
+        assert escape_info.does_escape(a_var)
 
     def test_heap_escape(self) -> None:
         """Test variables escaping to heap."""
@@ -189,13 +188,13 @@ class TestEscapeAnalysis(unittest.TestCase):
 
         # 'a' escapes to heap via SetAttr
         a_var = Variable("a", MIRType.INT)
-        self.assertTrue(escape_info.does_escape(a_var))
-        self.assertFalse(escape_info.is_stack_eligible(a_var))
+        assert escape_info.does_escape(a_var)
+        assert not escape_info.is_stack_eligible(a_var)
 
         info = escape_info.get_info(a_var)
-        self.assertIsNotNone(info)
+        assert info is not None
         if info:
-            self.assertEqual(info.state, EscapeState.HEAP_ESCAPE)
+            assert info.state == EscapeState.HEAP_ESCAPE
 
     def test_parameter_handling(self) -> None:
         """Test handling of function parameters."""
@@ -205,7 +204,7 @@ class TestEscapeAnalysis(unittest.TestCase):
         # Parameters are tracked but not considered escaping just by existing
         x_var = Variable("x", MIRType.INT)
         # 'x' is used in computation but doesn't escape further
-        self.assertFalse(escape_info.does_escape(x_var))
+        assert not escape_info.does_escape(x_var)
 
     def test_escape_sites(self) -> None:
         """Test tracking of escape sites."""
@@ -214,12 +213,12 @@ class TestEscapeAnalysis(unittest.TestCase):
 
         a_var = Variable("a", MIRType.INT)
         info = escape_info.get_info(a_var)
-        self.assertIsNotNone(info)
+        assert info is not None
 
         # Should have one escape site (the Call instruction)
         if info:
-            self.assertEqual(len(info.escape_sites), 1)
-            self.assertIsInstance(info.escape_sites[0], Call)
+            assert len(info.escape_sites) == 1
+            assert isinstance(info.escape_sites[0], Call)
 
     def test_stack_eligible_collection(self) -> None:
         """Test collection of stack-eligible variables."""
@@ -228,12 +227,8 @@ class TestEscapeAnalysis(unittest.TestCase):
 
         # 'a' should be stack eligible
         a_var = Variable("a", MIRType.INT)
-        self.assertIn(a_var, escape_info.stack_eligible)
+        assert a_var in escape_info.stack_eligible
 
         # 'b' should not be stack eligible (escapes via return)
         b_var = Variable("b", MIRType.INT)
-        self.assertIn(b_var, escape_info.escaping_vars)
-
-
-if __name__ == "__main__":
-    unittest.main()
+        assert b_var in escape_info.escaping_vars

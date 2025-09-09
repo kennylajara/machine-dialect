@@ -6,7 +6,7 @@ versus regular variables (version = 0) in the register-based bytecode generator.
 
 from __future__ import annotations
 
-import unittest
+import pytest
 
 from machine_dialect.codegen.register_codegen import RegisterBytecodeGenerator
 from machine_dialect.mir.basic_block import CFG, BasicBlock
@@ -26,7 +26,7 @@ from machine_dialect.mir.mir_types import MIRType
 from machine_dialect.mir.mir_values import Constant, FunctionRef, Variable
 
 
-class TestSSAVariableHandling(unittest.TestCase):
+class TestSSAVariableHandling:
     """Test SSA variable handling in bytecode generation."""
 
     def test_ssa_variable_allocation(self) -> None:
@@ -61,15 +61,15 @@ class TestSSAVariableHandling(unittest.TestCase):
         _ = generator.generate(module)
 
         # Check that SSA variables are allocated
-        self.assertIsNotNone(generator.allocation)
+        assert generator.allocation is not None
         if generator.allocation:
-            self.assertIn(x_1, generator.allocation.value_to_register)
-            self.assertIn(x_2, generator.allocation.value_to_register)
+            assert x_1 in generator.allocation.value_to_register
+            assert x_2 in generator.allocation.value_to_register
 
             # Check that they got different registers
             reg_x1 = generator.allocation.value_to_register[x_1]
             reg_x2 = generator.allocation.value_to_register[x_2]
-            self.assertNotEqual(reg_x1, reg_x2)
+            assert reg_x1 != reg_x2
 
     def test_ssa_variable_in_copy(self) -> None:
         """Test Copy instruction with SSA variables."""
@@ -99,9 +99,9 @@ class TestSSAVariableHandling(unittest.TestCase):
         _ = generator.generate(module)
 
         # Check that x_1 is allocated
-        self.assertIsNotNone(generator.allocation)
+        assert generator.allocation is not None
         if generator.allocation:
-            self.assertIn(x_1, generator.allocation.value_to_register)
+            assert x_1 in generator.allocation.value_to_register
 
     def test_ssa_variable_not_allocated_error(self) -> None:
         """Test that using an unallocated SSA variable raises an error."""
@@ -144,12 +144,12 @@ class TestSSAVariableHandling(unittest.TestCase):
             del generator.allocation.value_to_register[x_1]
 
         # Try to generate the copy instruction - this should fail
-        with self.assertRaises(RuntimeError) as context:
+        with pytest.raises(RuntimeError) as context:
             generator.instruction_offsets.append(len(generator.bytecode))
             generator.generate_copy(copy_inst)
 
-        self.assertIn("SSA variable", str(context.exception))
-        self.assertIn("not allocated to register", str(context.exception))
+        assert "SSA variable" in str(context.value)
+        assert "not allocated to register" in str(context.value)
 
     def test_mixed_ssa_and_global_variables(self) -> None:
         """Test handling of both SSA and global variables in the same function."""
@@ -179,13 +179,13 @@ class TestSSAVariableHandling(unittest.TestCase):
         _ = generator.generate(module)
 
         # Check allocations
-        self.assertIsNotNone(generator.allocation)
+        assert generator.allocation is not None
         if generator.allocation:
             # SSA variables should be allocated
-            self.assertIn(local_1, generator.allocation.value_to_register)
-            self.assertIn(local_2, generator.allocation.value_to_register)
+            assert local_1 in generator.allocation.value_to_register
+            assert local_2 in generator.allocation.value_to_register
             # Global variable should NOT be allocated (it's loaded by name)
-            self.assertNotIn(global_var, generator.allocation.value_to_register)
+            assert global_var not in generator.allocation.value_to_register
 
     def test_function_parameters_as_ssa(self) -> None:
         """Test that function parameters work correctly with SSA versioning."""
@@ -214,10 +214,10 @@ class TestSSAVariableHandling(unittest.TestCase):
         _ = generator.generate(module)
 
         # Check that both parameter and SSA version are allocated
-        self.assertIsNotNone(generator.allocation)
+        assert generator.allocation is not None
         if generator.allocation:
-            self.assertIn(param_n, generator.allocation.value_to_register)
-            self.assertIn(n_1, generator.allocation.value_to_register)
+            assert param_n in generator.allocation.value_to_register
+            assert n_1 in generator.allocation.value_to_register
 
     def test_recursive_function_with_ssa(self) -> None:
         """Test a recursive function with SSA variables."""
@@ -267,9 +267,9 @@ class TestSSAVariableHandling(unittest.TestCase):
         _ = generator.generate(module)
 
         # Check that SSA variable is allocated
-        self.assertIsNotNone(generator.allocation)
+        assert generator.allocation is not None
         if generator.allocation:
-            self.assertIn(n_minus_1, generator.allocation.value_to_register)
+            assert n_minus_1 in generator.allocation.value_to_register
 
     def test_is_ssa_variable_helper(self) -> None:
         """Test the is_ssa_variable helper method."""
@@ -277,23 +277,23 @@ class TestSSAVariableHandling(unittest.TestCase):
 
         # Test SSA variables (version > 0)
         ssa_var = Variable("x", MIRType.INT, version=1)
-        self.assertTrue(generator.is_ssa_variable(ssa_var))
+        assert generator.is_ssa_variable(ssa_var)
 
         ssa_var2 = Variable("y", MIRType.INT, version=5)
-        self.assertTrue(generator.is_ssa_variable(ssa_var2))
+        assert generator.is_ssa_variable(ssa_var2)
 
         # Test non-SSA variables (version = 0)
         regular_var = Variable("z", MIRType.INT, version=0)
-        self.assertFalse(generator.is_ssa_variable(regular_var))
+        assert not generator.is_ssa_variable(regular_var)
 
         # Test non-Variable types
         # Create a dummy function to get a proper Temp
         dummy_func = MIRFunction("dummy", [], MIRType.INT)
         temp = dummy_func.new_temp(MIRType.INT)
-        self.assertFalse(generator.is_ssa_variable(temp))
+        assert not generator.is_ssa_variable(temp)
 
         constant = Constant(42, MIRType.INT)
-        self.assertFalse(generator.is_ssa_variable(constant))
+        assert not generator.is_ssa_variable(constant)
 
     def test_debug_mode(self) -> None:
         """Test that debug mode controls output."""
@@ -321,8 +321,4 @@ class TestSSAVariableHandling(unittest.TestCase):
         bytecode_debug = generator_debug.generate(module)
 
         # Both should produce the same bytecode
-        self.assertEqual(bytecode_no_debug.chunks[0].bytecode, bytecode_debug.chunks[0].bytecode)
-
-
-if __name__ == "__main__":
-    unittest.main()
+        assert bytecode_no_debug.chunks[0].bytecode == bytecode_debug.chunks[0].bytecode

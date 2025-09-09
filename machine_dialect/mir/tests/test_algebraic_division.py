@@ -1,6 +1,5 @@
 """Tests for division optimizations in algebraic simplification."""
 
-import unittest
 
 from machine_dialect.mir.basic_block import BasicBlock
 from machine_dialect.mir.mir_function import MIRFunction
@@ -12,10 +11,10 @@ from machine_dialect.mir.mir_values import Constant, Temp
 from machine_dialect.mir.optimizations.algebraic_simplification import AlgebraicSimplification
 
 
-class TestAlgebraicSimplificationDivision(unittest.TestCase):
+class TestAlgebraicSimplificationDivision:
     """Test division operation simplifications."""
 
-    def setUp(self) -> None:
+    def setup_method(self) -> None:
         """Set up test fixtures."""
         self.module = MIRModule("test")
         self.func = MIRFunction("test_func", [], MIRType.INT)
@@ -35,13 +34,13 @@ class TestAlgebraicSimplificationDivision(unittest.TestCase):
 
         changed = self.opt.run_on_function(self.func)
 
-        self.assertTrue(changed)
-        self.assertEqual(self.opt.stats.get("division_simplified", 0), 1)
+        assert changed
+        assert self.opt.stats.get("division_simplified") == 1
         instructions = list(self.block.instructions)
-        self.assertIsInstance(instructions[1], Copy)
+        assert isinstance(instructions[1], Copy)
         copy_inst = instructions[1]
         assert isinstance(copy_inst, Copy)
-        self.assertEqual(copy_inst.source, t0)
+        assert copy_inst.source == t0
 
     def test_divide_self(self) -> None:
         """Test x / x → 1."""
@@ -52,13 +51,13 @@ class TestAlgebraicSimplificationDivision(unittest.TestCase):
 
         changed = self.opt.run_on_function(self.func)
 
-        self.assertTrue(changed)
-        self.assertEqual(self.opt.stats.get("division_simplified", 0), 1)
+        assert changed
+        assert self.opt.stats.get("division_simplified") == 1
         instructions = list(self.block.instructions)
-        self.assertIsInstance(instructions[1], LoadConst)
+        assert isinstance(instructions[1], LoadConst)
         load_inst = instructions[1]
         assert isinstance(load_inst, LoadConst)
-        self.assertEqual(load_inst.constant.value, 1)
+        assert load_inst.constant.value == 1
 
     def test_zero_divided_by_x(self) -> None:
         """Test 0 / x → 0."""
@@ -67,13 +66,13 @@ class TestAlgebraicSimplificationDivision(unittest.TestCase):
 
         changed = self.opt.run_on_function(self.func)
 
-        self.assertTrue(changed)
-        self.assertEqual(self.opt.stats.get("division_simplified", 0), 1)
+        assert changed
+        assert self.opt.stats.get("division_simplified") == 1
         instructions = list(self.block.instructions)
-        self.assertIsInstance(instructions[0], LoadConst)
+        assert isinstance(instructions[0], LoadConst)
         load_inst = instructions[0]
         assert isinstance(load_inst, LoadConst)
-        self.assertEqual(load_inst.constant.value, 0)
+        assert load_inst.constant.value == 0
 
     def test_divide_by_negative_one(self) -> None:
         """Test x / -1 → -x."""
@@ -84,14 +83,14 @@ class TestAlgebraicSimplificationDivision(unittest.TestCase):
 
         changed = self.opt.run_on_function(self.func)
 
-        self.assertTrue(changed)
-        self.assertEqual(self.opt.stats.get("division_simplified", 0), 1)
+        assert changed
+        assert self.opt.stats.get("division_simplified") == 1
         instructions = list(self.block.instructions)
-        self.assertIsInstance(instructions[1], UnaryOp)
+        assert isinstance(instructions[1], UnaryOp)
         unary_inst = instructions[1]
         assert isinstance(unary_inst, UnaryOp)
-        self.assertEqual(unary_inst.op, "-")
-        self.assertEqual(unary_inst.operand, t0)
+        assert unary_inst.op == "-"
+        assert unary_inst.operand == t0
 
     def test_integer_divide_by_one(self) -> None:
         """Test x // 1 → x."""
@@ -102,13 +101,13 @@ class TestAlgebraicSimplificationDivision(unittest.TestCase):
 
         changed = self.opt.run_on_function(self.func)
 
-        self.assertTrue(changed)
-        self.assertEqual(self.opt.stats.get("division_simplified", 0), 1)
+        assert changed
+        assert self.opt.stats.get("division_simplified") == 1
         instructions = list(self.block.instructions)
-        self.assertIsInstance(instructions[1], Copy)
+        assert isinstance(instructions[1], Copy)
         copy_inst = instructions[1]
         assert isinstance(copy_inst, Copy)
-        self.assertEqual(copy_inst.source, t0)
+        assert copy_inst.source == t0
 
     def test_integer_divide_self(self) -> None:
         """Test x // x → 1."""
@@ -119,14 +118,10 @@ class TestAlgebraicSimplificationDivision(unittest.TestCase):
 
         changed = self.opt.run_on_function(self.func)
 
-        self.assertTrue(changed)
-        self.assertEqual(self.opt.stats.get("division_simplified", 0), 1)
+        assert changed
+        assert self.opt.stats.get("division_simplified") == 1
         instructions = list(self.block.instructions)
-        self.assertIsInstance(instructions[1], LoadConst)
+        assert isinstance(instructions[1], LoadConst)
         load_inst = instructions[1]
         assert isinstance(load_inst, LoadConst)
-        self.assertEqual(load_inst.constant.value, 1)
-
-
-if __name__ == "__main__":
-    unittest.main()
+        assert load_inst.constant.value == 1

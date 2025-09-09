@@ -1,7 +1,6 @@
 """Tests for MIR module and function containers."""
 
 import json
-import unittest
 from typing import Any
 
 from machine_dialect.mir.basic_block import BasicBlock
@@ -19,14 +18,14 @@ from machine_dialect.mir.mir_types import MIRType
 from machine_dialect.mir.mir_values import Constant, Temp, Variable
 
 
-class TestConstantPool(unittest.TestCase):
+class TestConstantPool:
     """Test constant pool functionality."""
 
     def test_constant_pool_creation(self) -> None:
         """Test creating constant pool."""
         pool = ConstantPool()
-        self.assertEqual(pool.constants, [])
-        self.assertEqual(pool.size(), 0)
+        assert pool.constants == []
+        assert pool.size() == 0
 
     def test_add_constants(self) -> None:
         """Test adding constants to pool."""
@@ -40,10 +39,10 @@ class TestConstantPool(unittest.TestCase):
         idx2 = pool.add(c2)
         idx3 = pool.add(c3)
 
-        self.assertEqual(idx1, 0)
-        self.assertEqual(idx2, 1)
-        self.assertEqual(idx3, 2)
-        self.assertEqual(pool.size(), 3)
+        assert idx1 == 0
+        assert idx2 == 1
+        assert idx3 == 2
+        assert pool.size() == 3
 
     def test_deduplication(self) -> None:
         """Test that identical constants are deduplicated."""
@@ -58,10 +57,10 @@ class TestConstantPool(unittest.TestCase):
         idx3 = pool.add(c3)
 
         # c1 and c2 should map to same index
-        self.assertEqual(idx1, idx2)
+        assert idx1 == idx2
         # c3 should have different index
-        self.assertNotEqual(idx1, idx3)
-        self.assertEqual(pool.size(), 2)
+        assert idx1 != idx3
+        assert pool.size() == 2
 
     def test_deduplication_complex_types(self) -> None:
         """Test deduplication with complex constants."""
@@ -76,8 +75,8 @@ class TestConstantPool(unittest.TestCase):
         idx2 = pool.add(s2)
         idx3 = pool.add(s3)
 
-        self.assertEqual(idx1, idx2)  # Same strings deduplicated
-        self.assertNotEqual(idx1, idx3)  # Different strings
+        assert idx1 == idx2  # Same strings deduplicated
+        assert idx1 != idx3  # Different strings
 
         # Test boolean deduplication
         b1 = Constant(True, MIRType.BOOL)
@@ -88,11 +87,11 @@ class TestConstantPool(unittest.TestCase):
         idx5 = pool.add(b2)
         idx6 = pool.add(b3)
 
-        self.assertEqual(idx4, idx5)  # Same booleans deduplicated
-        self.assertNotEqual(idx4, idx6)  # Different booleans
+        assert idx4 == idx5  # Same booleans deduplicated
+        assert idx4 != idx6  # Different booleans
 
         # Should have 4 unique constants total (2 strings, 2 booleans)
-        self.assertEqual(pool.size(), 4)
+        assert pool.size() == 4
 
     def test_deduplication_preserves_insertion_order(self) -> None:
         """Test that deduplication preserves the first insertion."""
@@ -106,16 +105,16 @@ class TestConstantPool(unittest.TestCase):
         idx2 = pool.add(c2)
         idx3 = pool.add(c3)
 
-        self.assertEqual(idx1, 0)
-        self.assertEqual(idx2, 1)
-        self.assertEqual(idx3, 0)  # Should reuse c1's index
+        assert idx1 == 0
+        assert idx2 == 1
+        assert idx3 == 0  # Should reuse c1's index
 
         # Check that the original constant is preserved
         retrieved = pool.get(0)
-        self.assertEqual(retrieved, c1)
-        self.assertIsNotNone(retrieved)
+        assert retrieved == c1
+        assert retrieved is not None
         if retrieved:  # Type guard for mypy
-            self.assertEqual(retrieved.value, 100)
+            assert retrieved.value == 100
 
     def test_get_constant(self) -> None:
         """Test retrieving constants from pool."""
@@ -131,9 +130,9 @@ class TestConstantPool(unittest.TestCase):
         retrieved2 = pool.get(1)
         retrieved3 = pool.get(99)  # Out of bounds
 
-        self.assertEqual(retrieved1, c1)
-        self.assertEqual(retrieved2, c2)
-        self.assertIsNone(retrieved3)
+        assert retrieved1 == c1
+        assert retrieved2 == c2
+        assert retrieved3 is None
 
     def test_constant_pool_string_representation(self) -> None:
         """Test string representation of constant pool."""
@@ -143,22 +142,22 @@ class TestConstantPool(unittest.TestCase):
         pool.add(Constant(True))
 
         result = str(pool)
-        self.assertIn("Constants:", result)
-        self.assertIn("[0] 42", result)
-        self.assertIn('[1] "hello"', result)
-        self.assertIn("[2] True", result)
+        assert "Constants:" in result
+        assert "[0] 42" in result
+        assert '[1] "hello"' in result
+        assert "[2] True" in result
 
 
-class TestMIRFunction(unittest.TestCase):
+class TestMIRFunction:
     """Test MIR function functionality."""
 
     def test_function_creation(self) -> None:
         """Test creating MIR function."""
         func = MIRFunction("main", return_type=MIRType.INT)
-        self.assertEqual(func.name, "main")
-        self.assertEqual(func.return_type, MIRType.INT)
-        self.assertEqual(func.params, [])
-        self.assertIsNotNone(func.cfg)
+        assert func.name == "main"
+        assert func.return_type == MIRType.INT
+        assert func.params == []
+        assert func.cfg is not None
 
     def test_function_with_parameters(self) -> None:
         """Test function with parameters."""
@@ -168,10 +167,10 @@ class TestMIRFunction(unittest.TestCase):
         ]
         func = MIRFunction("add", params, MIRType.FLOAT)
 
-        self.assertEqual(func.params, params)
-        self.assertEqual(len(func.params), 2)
-        self.assertEqual(func.params[0].name, "x")
-        self.assertEqual(func.params[1].type, MIRType.FLOAT)
+        assert func.params == params
+        assert len(func.params) == 2
+        assert func.params[0].name == "x"
+        assert func.params[1].type == MIRType.FLOAT
 
     def test_add_local_variable(self) -> None:
         """Test adding local variables."""
@@ -182,10 +181,10 @@ class TestMIRFunction(unittest.TestCase):
         func.add_local(v1)
         func.add_local(v2)
 
-        self.assertEqual(len(func.locals), 2)
-        self.assertIn("temp", func.locals)
-        self.assertIn("result", func.locals)
-        self.assertEqual(func.locals["temp"], v1)
+        assert len(func.locals) == 2
+        assert "temp" in func.locals
+        assert "result" in func.locals
+        assert func.locals["temp"] == v1
 
     def test_get_local_variable(self) -> None:
         """Test getting local variables."""
@@ -194,10 +193,10 @@ class TestMIRFunction(unittest.TestCase):
         func.add_local(v)
 
         retrieved = func.get_local("counter")
-        self.assertEqual(retrieved, v)
+        assert retrieved == v
 
         none_var = func.get_local("nonexistent")
-        self.assertIsNone(none_var)
+        assert none_var is None
 
     def test_function_string_representation(self) -> None:
         """Test string representation of function."""
@@ -217,20 +216,20 @@ class TestMIRFunction(unittest.TestCase):
         func.cfg.set_entry_block(entry)
 
         result = str(func)
-        self.assertIn("function factorial(n: int) -> int", result)
-        self.assertIn("entry:", result)
-        self.assertIn("t0 = 1", result)
-        self.assertIn("return t0", result)
+        assert "function factorial(n: int) -> int" in result
+        assert "entry:" in result
+        assert "t0 = 1" in result
+        assert "return t0" in result
 
     def test_function_without_return_type(self) -> None:
         """Test function without return type (void)."""
         func = MIRFunction("print_message", [Variable("msg", MIRType.STRING)])
         result = str(func)
-        self.assertIn("function print_message(msg: string)", result)
-        self.assertNotIn("->", result)
+        assert "function print_message(msg: string)" in result
+        assert "->" not in result
 
 
-class TestModuleSerialization(unittest.TestCase):
+class TestModuleSerialization:
     """Test module serialization/deserialization."""
 
     def test_module_to_dict(self) -> None:
@@ -264,18 +263,18 @@ class TestModuleSerialization(unittest.TestCase):
             "functions": list(module.functions.keys()),
         }
 
-        self.assertEqual(module_dict["name"], "test_module")
-        self.assertEqual(module_dict["main_function"], "main")
+        assert module_dict["name"] == "test_module"
+        assert module_dict["main_function"] == "main"
         constants = module_dict["constants"]
-        self.assertIsInstance(constants, list)
-        self.assertEqual(len(constants), 2)
-        self.assertEqual(constants[0]["value"], 42)
+        assert isinstance(constants, list)
+        assert len(constants) == 2
+        assert constants[0]["value"] == 42
         globals_dict = module_dict["globals"]
-        self.assertIsInstance(globals_dict, dict)
-        self.assertEqual(globals_dict["count"], "int")
+        assert isinstance(globals_dict, dict)
+        assert globals_dict["count"] == "int"
         functions = module_dict["functions"]
-        self.assertIsInstance(functions, list)
-        self.assertIn("main", functions)
+        assert isinstance(functions, list)
+        assert "main" in functions
 
     def test_module_from_dict(self) -> None:
         """Test reconstructing module from dictionary representation."""
@@ -309,17 +308,17 @@ class TestModuleSerialization(unittest.TestCase):
             module.set_main_function(main_func)
 
         # Verify reconstruction
-        self.assertEqual(module.name, "restored_module")
-        self.assertEqual(module.main_function, "start")
-        self.assertEqual(len(module.globals), 2)
+        assert module.name == "restored_module"
+        assert module.main_function == "start"
+        assert len(module.globals) == 2
         version_var = module.get_global("version")
         debug_var = module.get_global("debug")
-        self.assertIsNotNone(version_var)
-        self.assertIsNotNone(debug_var)
+        assert version_var is not None
+        assert debug_var is not None
         assert version_var is not None  # Type guard for mypy
         assert debug_var is not None  # Type guard for mypy
-        self.assertEqual(version_var.type, MIRType.STRING)
-        self.assertEqual(debug_var.type, MIRType.BOOL)
+        assert version_var.type == MIRType.STRING
+        assert debug_var.type == MIRType.BOOL
 
     def test_module_json_roundtrip(self) -> None:
         """Test serializing module to JSON and back."""
@@ -342,23 +341,23 @@ class TestModuleSerialization(unittest.TestCase):
         restored_dict = json.loads(json_str)
 
         # Verify
-        self.assertEqual(restored_dict["name"], "json_test")
-        self.assertEqual(restored_dict["constants_count"], 2)
-        self.assertEqual(restored_dict["globals_count"], 1)
-        self.assertEqual(restored_dict["functions_count"], 0)
+        assert restored_dict["name"] == "json_test"
+        assert restored_dict["constants_count"] == 2
+        assert restored_dict["globals_count"] == 1
+        assert restored_dict["functions_count"] == 0
 
 
-class TestMIRModule(unittest.TestCase):
+class TestMIRModule:
     """Test MIR module functionality."""
 
     def test_module_creation(self) -> None:
         """Test creating MIR module."""
         module = MIRModule("test_module")
-        self.assertEqual(module.name, "test_module")
-        self.assertEqual(module.functions, {})
-        self.assertEqual(module.globals, {})
-        self.assertIsNotNone(module.constants)
-        self.assertIsNone(module.main_function)
+        assert module.name == "test_module"
+        assert module.functions == {}
+        assert module.globals == {}
+        assert module.constants is not None
+        assert module.main_function is None
 
     def test_add_function(self) -> None:
         """Test adding functions to module."""
@@ -369,9 +368,9 @@ class TestMIRModule(unittest.TestCase):
         module.add_function(func1)
         module.add_function(func2)
 
-        self.assertEqual(len(module.functions), 2)
-        self.assertIn("main", module.functions)
-        self.assertIn("helper", module.functions)
+        assert len(module.functions) == 2
+        assert "main" in module.functions
+        assert "helper" in module.functions
 
     def test_get_function(self) -> None:
         """Test getting functions from module."""
@@ -380,10 +379,10 @@ class TestMIRModule(unittest.TestCase):
         module.add_function(func)
 
         retrieved = module.get_function("compute")
-        self.assertEqual(retrieved, func)
+        assert retrieved == func
 
         none_func = module.get_function("nonexistent")
-        self.assertIsNone(none_func)
+        assert none_func is None
 
     def test_function_overwrite(self) -> None:
         """Test that adding a function with same name overwrites the previous one."""
@@ -393,15 +392,15 @@ class TestMIRModule(unittest.TestCase):
         func2 = MIRFunction("process", return_type=MIRType.STRING)  # Same name, different signature
 
         module.add_function(func1)
-        self.assertEqual(module.get_function("process"), func1)
+        assert module.get_function("process") == func1
 
         module.add_function(func2)  # Should overwrite
         retrieved_func = module.get_function("process")
-        self.assertEqual(retrieved_func, func2)
-        self.assertIsNotNone(retrieved_func)
+        assert retrieved_func == func2
+        assert retrieved_func is not None
         assert retrieved_func is not None  # Type guard for mypy
-        self.assertEqual(retrieved_func.return_type, MIRType.STRING)
-        self.assertEqual(len(module.functions), 1)
+        assert retrieved_func.return_type == MIRType.STRING
+        assert len(module.functions) == 1
 
     def test_multiple_functions(self) -> None:
         """Test managing multiple functions."""
@@ -418,15 +417,15 @@ class TestMIRModule(unittest.TestCase):
         for func in functions:
             module.add_function(func)
 
-        self.assertEqual(len(module.functions), 5)
+        assert len(module.functions) == 5
 
         # Verify each function
         for func in functions:
             retrieved = module.get_function(func.name)
-            self.assertEqual(retrieved, func)
-            self.assertIsNotNone(retrieved)
+            assert retrieved == func
+            assert retrieved is not None
             assert retrieved is not None  # Type guard for mypy
-            self.assertEqual(retrieved.return_type, func.return_type)
+            assert retrieved.return_type == func.return_type
 
     def test_function_lookup_case_sensitive(self) -> None:
         """Test that function lookup is case-sensitive."""
@@ -440,11 +439,11 @@ class TestMIRModule(unittest.TestCase):
         module.add_function(func_upper)
         module.add_function(func_mixed)
 
-        self.assertEqual(len(module.functions), 3)
-        self.assertEqual(module.get_function("process"), func_lower)
-        self.assertEqual(module.get_function("PROCESS"), func_upper)
-        self.assertEqual(module.get_function("Process"), func_mixed)
-        self.assertIsNone(module.get_function("pRoCeSs"))
+        assert len(module.functions) == 3
+        assert module.get_function("process") == func_lower
+        assert module.get_function("PROCESS") == func_upper
+        assert module.get_function("Process") == func_mixed
+        assert module.get_function("pRoCeSs") is None
 
     def test_add_global_variable(self) -> None:
         """Test adding global variables."""
@@ -455,9 +454,9 @@ class TestMIRModule(unittest.TestCase):
         module.add_global(v1)
         module.add_global(v2)
 
-        self.assertEqual(len(module.globals), 2)
-        self.assertIn("global_count", module.globals)
-        self.assertIn("pi", module.globals)
+        assert len(module.globals) == 2
+        assert "global_count" in module.globals
+        assert "pi" in module.globals
 
     def test_get_global_variable(self) -> None:
         """Test getting global variables."""
@@ -466,10 +465,10 @@ class TestMIRModule(unittest.TestCase):
         module.add_global(v)
 
         retrieved = module.get_global("config")
-        self.assertEqual(retrieved, v)
+        assert retrieved == v
 
         none_var = module.get_global("nonexistent")
-        self.assertIsNone(none_var)
+        assert none_var is None
 
     def test_global_variable_overwrite(self) -> None:
         """Test that adding a global with same name overwrites the previous one."""
@@ -479,15 +478,15 @@ class TestMIRModule(unittest.TestCase):
         v2 = Variable("config", MIRType.INT)  # Same name, different type
 
         module.add_global(v1)
-        self.assertEqual(module.get_global("config"), v1)
+        assert module.get_global("config") == v1
 
         module.add_global(v2)  # Should overwrite
         retrieved_var = module.get_global("config")
-        self.assertEqual(retrieved_var, v2)
-        self.assertIsNotNone(retrieved_var)
+        assert retrieved_var == v2
+        assert retrieved_var is not None
         assert retrieved_var is not None  # Type guard for mypy
-        self.assertEqual(retrieved_var.type, MIRType.INT)
-        self.assertEqual(len(module.globals), 1)
+        assert retrieved_var.type == MIRType.INT
+        assert len(module.globals) == 1
 
     def test_multiple_global_variables(self) -> None:
         """Test managing multiple global variables."""
@@ -503,15 +502,15 @@ class TestMIRModule(unittest.TestCase):
         for var in globals_to_add:
             module.add_global(var)
 
-        self.assertEqual(len(module.globals), 4)
+        assert len(module.globals) == 4
 
         # Verify each global
         for var in globals_to_add:
             retrieved = module.get_global(var.name)
-            self.assertEqual(retrieved, var)
-            self.assertIsNotNone(retrieved)
+            assert retrieved == var
+            assert retrieved is not None
             assert retrieved is not None  # Type guard for mypy
-            self.assertEqual(retrieved.type, var.type)
+            assert retrieved.type == var.type
 
     def test_main_function_handling(self) -> None:
         """Test main function setting and retrieval."""
@@ -520,29 +519,29 @@ class TestMIRModule(unittest.TestCase):
         module.add_function(main_func)
 
         # No main function by default
-        self.assertIsNone(module.main_function)
+        assert module.main_function is None
         retrieved = module.get_main_function()
-        self.assertIsNone(retrieved)
+        assert retrieved is None
 
         # Set main function
         module.set_main_function("main")
-        self.assertEqual(module.main_function, "main")
+        assert module.main_function == "main"
         retrieved = module.get_main_function()
-        self.assertEqual(retrieved, main_func)
+        assert retrieved == main_func
 
         # Change main function name
         module.set_main_function("start")
-        self.assertEqual(module.main_function, "start")
+        assert module.main_function == "start"
 
         # Main function not found
         retrieved = module.get_main_function()
-        self.assertIsNone(retrieved)
+        assert retrieved is None
 
         # Add new main
         start_func = MIRFunction("start")
         module.add_function(start_func)
         retrieved = module.get_main_function()
-        self.assertEqual(retrieved, start_func)
+        assert retrieved == start_func
 
     def test_main_function_validation_scenarios(self) -> None:
         """Test various main function validation scenarios."""
@@ -551,7 +550,7 @@ class TestMIRModule(unittest.TestCase):
         # Scenario 1: Set main to non-existent function
         module.set_main_function("nonexistent_main")
         errors = module.validate()
-        self.assertTrue(any("Main function 'nonexistent_main' not found" in err for err in errors))
+        assert any("Main function 'nonexistent_main' not found" in err for err in errors)
 
         # Scenario 2: Add the main function after setting
         main_func = MIRFunction("nonexistent_main", return_type=MIRType.INT)
@@ -564,7 +563,7 @@ class TestMIRModule(unittest.TestCase):
         module.add_function(main_func)
 
         errors = module.validate()
-        self.assertEqual(errors, [])  # Should now be valid
+        assert errors == []  # Should now be valid
 
         # Scenario 3: Change main to another function
         other_func = MIRFunction("other")
@@ -577,9 +576,9 @@ class TestMIRModule(unittest.TestCase):
         module.add_function(other_func)
 
         module.set_main_function("other")
-        self.assertEqual(module.get_main_function(), other_func)
+        assert module.get_main_function() == other_func
         errors = module.validate()
-        self.assertEqual(errors, [])
+        assert errors == []
 
     def test_main_function_with_empty_name(self) -> None:
         """Test setting main function with empty name."""
@@ -587,12 +586,12 @@ class TestMIRModule(unittest.TestCase):
 
         # Setting empty string as main function
         module.set_main_function("")
-        self.assertEqual(module.main_function, "")
-        self.assertIsNone(module.get_main_function())
+        assert module.main_function == ""
+        assert module.get_main_function() is None
 
         # Validation passes because empty string is falsy and won't trigger the check
         errors = module.validate()
-        self.assertEqual(errors, [])
+        assert errors == []
 
     def test_main_function_clear(self) -> None:
         """Test clearing main function."""
@@ -607,16 +606,16 @@ class TestMIRModule(unittest.TestCase):
         module.add_function(main_func)
         module.set_main_function("main")
 
-        self.assertEqual(module.get_main_function(), main_func)
+        assert module.get_main_function() == main_func
 
         # Clear main function by setting to None
         module.main_function = None
-        self.assertIsNone(module.main_function)
-        self.assertIsNone(module.get_main_function())
+        assert module.main_function is None
+        assert module.get_main_function() is None
 
         # Module should still validate without main function
         errors = module.validate()
-        self.assertEqual(errors, [])
+        assert errors == []
 
     def test_module_validation_success(self) -> None:
         """Test successful module validation."""
@@ -634,7 +633,7 @@ class TestMIRModule(unittest.TestCase):
         module.add_function(main)
 
         errors = module.validate()
-        self.assertEqual(errors, [])
+        assert errors == []
 
     def test_module_validation_missing_main(self) -> None:
         """Test validation with missing main function."""
@@ -642,8 +641,8 @@ class TestMIRModule(unittest.TestCase):
         module.main_function = "main"  # Main is expected but not present
 
         errors = module.validate()
-        self.assertEqual(len(errors), 1)
-        self.assertIn("Main function 'main' not found", errors[0])
+        assert len(errors) == 1
+        assert "Main function 'main' not found" in errors[0]
 
     def test_module_validation_missing_entry_block(self) -> None:
         """Test validation with function missing entry block."""
@@ -653,8 +652,8 @@ class TestMIRModule(unittest.TestCase):
         module.add_function(func)
 
         errors = module.validate()
-        self.assertEqual(len(errors), 1)
-        self.assertIn("Function 'broken' has no entry block", errors[0])
+        assert len(errors) == 1
+        assert "Function 'broken' has no entry block" in errors[0]
 
     def test_module_validation_unterminated_block(self) -> None:
         """Test validation with unterminated block."""
@@ -677,8 +676,8 @@ class TestMIRModule(unittest.TestCase):
         module.add_function(func)
 
         errors = module.validate()
-        self.assertEqual(len(errors), 1)
-        self.assertIn("Block 'bb1' in function 'incomplete' is not terminated", errors[0])
+        assert len(errors) == 1
+        assert "Block 'bb1' in function 'incomplete' is not terminated" in errors[0]
 
     def test_module_validation_invalid_jump_target(self) -> None:
         """Test validation with jump to undefined label."""
@@ -693,7 +692,7 @@ class TestMIRModule(unittest.TestCase):
         module.add_function(func)
 
         errors = module.validate()
-        self.assertIn("Jump to undefined label 'nonexistent' in function 'bad_jump'", errors[0])
+        assert "Jump to undefined label 'nonexistent' in function 'bad_jump'" in errors[0]
 
     def test_module_validation_invalid_conditional_jump(self) -> None:
         """Test validation with conditional jump to undefined labels."""
@@ -710,8 +709,8 @@ class TestMIRModule(unittest.TestCase):
 
         errors = module.validate()
         # Should have errors for both undefined labels
-        self.assertTrue(any("undefined1" in err for err in errors))
-        self.assertTrue(any("undefined2" in err for err in errors))
+        assert any("undefined1" in err for err in errors)
+        assert any("undefined2" in err for err in errors)
 
     def test_module_string_representation(self) -> None:
         """Test string representation of module."""
@@ -736,13 +735,13 @@ class TestMIRModule(unittest.TestCase):
 
         result = module.to_string()
 
-        self.assertIn("module example {", result)
-        self.assertIn("Constants:", result)
-        self.assertIn("[0] 42", result)
-        self.assertIn("globals:", result)
-        self.assertIn("count: int", result)
-        self.assertIn("functions:", result)
-        self.assertIn("function main()", result)
+        assert "module example {" in result
+        assert "Constants:" in result
+        assert "[0] 42" in result
+        assert "globals:" in result
+        assert "count: int" in result
+        assert "functions:" in result
+        assert "function main()" in result
 
     def test_module_string_representation_options(self) -> None:
         """Test module string representation with options."""
@@ -752,16 +751,16 @@ class TestMIRModule(unittest.TestCase):
 
         # Without constants
         result = module.to_string(include_constants=False)
-        self.assertNotIn("Constants:", result)
+        assert "Constants:" not in result
 
         # Without globals
         result = module.to_string(include_globals=False)
-        self.assertNotIn("globals:", result)
+        assert "globals:" not in result
 
         # With both
         result = module.to_string(include_constants=True, include_globals=True)
-        self.assertIn("Constants:", result)
-        self.assertIn("globals:", result)
+        assert "Constants:" in result
+        assert "globals:" in result
 
     def test_module_repr(self) -> None:
         """Test module __repr__ method."""
@@ -769,9 +768,9 @@ class TestMIRModule(unittest.TestCase):
 
         # Empty module
         repr_str = repr(module)
-        self.assertIn("MIRModule(debug_module", repr_str)
-        self.assertIn("functions=0", repr_str)
-        self.assertIn("globals=0", repr_str)
+        assert "MIRModule(debug_module" in repr_str
+        assert "functions=0" in repr_str
+        assert "globals=0" in repr_str
 
         # Add functions and globals
         module.add_function(MIRFunction("func1"))
@@ -779,37 +778,37 @@ class TestMIRModule(unittest.TestCase):
         module.add_global(Variable("var1", MIRType.INT))
 
         repr_str = repr(module)
-        self.assertIn("functions=2", repr_str)
-        self.assertIn("globals=1", repr_str)
+        assert "functions=2" in repr_str
+        assert "globals=1" in repr_str
 
     def test_empty_module_validation(self) -> None:
         """Test validation of completely empty module."""
         module = MIRModule("empty")
         errors = module.validate()
-        self.assertEqual(errors, [])  # Empty module should be valid
+        assert errors == []  # Empty module should be valid
 
     def test_constant_pool_boundary_cases(self) -> None:
         """Test constant pool with boundary cases."""
         pool = ConstantPool()
 
         # Test negative index
-        self.assertIsNone(pool.get(-1))
+        assert pool.get(-1) is None
 
         # Test very large index
-        self.assertIsNone(pool.get(999999))
+        assert pool.get(999999) is None
 
         # Test empty pool size
-        self.assertEqual(pool.size(), 0)
+        assert pool.size() == 0
 
         # Test adding and getting at boundary
         c = Constant(42, MIRType.INT)
         idx = pool.add(c)
-        self.assertEqual(idx, 0)
-        self.assertIsNotNone(pool.get(0))
-        self.assertIsNone(pool.get(1))
+        assert idx == 0
+        assert pool.get(0) is not None
+        assert pool.get(1) is None
 
 
-class TestIntegration(unittest.TestCase):
+class TestIntegration:
     """Test integration of module, functions, and CFG."""
 
     def test_complete_module_example(self) -> None:
@@ -852,14 +851,10 @@ class TestIntegration(unittest.TestCase):
 
         # Validate should pass
         errors = module.validate()
-        self.assertEqual(errors, [])
+        assert errors == []
 
         # Check string representation
         result = str(module)
-        self.assertIn("module calculator", result)
-        self.assertIn("function add(a: int, b: int) -> int", result)
-        self.assertIn("function main() -> int", result)
-
-
-if __name__ == "__main__":
-    unittest.main()
+        assert "module calculator" in result
+        assert "function add(a: int, b: int) -> int" in result
+        assert "function main() -> int" in result

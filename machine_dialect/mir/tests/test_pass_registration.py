@@ -3,14 +3,13 @@
 import importlib
 import inspect
 import pkgutil
-import unittest
 
 from machine_dialect.mir.optimization_pass import AnalysisPass, OptimizationPass, Pass
 from machine_dialect.mir.optimizations import register_all_passes
 from machine_dialect.mir.pass_manager import PassManager
 
 
-class TestPassRegistration(unittest.TestCase):
+class TestPassRegistration:
     """Test that all pass classes are registered."""
 
     def test_all_passes_registered(self) -> None:
@@ -56,20 +55,10 @@ class TestPassRegistration(unittest.TestCase):
         # Check that all found passes are registered
         unregistered = all_pass_classes - registered_names
 
-        self.assertEqual(
-            unregistered,
-            set(),
+        assert unregistered == set(), (
             f"Found unregistered passes: {sorted(unregistered)}. "
-            f"Add them to register_all_passes() in mir/optimizations/__init__.py",
+            f"Add them to register_all_passes() in mir/optimizations/__init__.py"
         )
 
         # Also verify we have a reasonable number of passes
-        self.assertGreater(
-            len(registered_names),
-            10,
-            f"Expected at least 10 registered passes, found {len(registered_names)}",
-        )
-
-
-if __name__ == "__main__":
-    unittest.main()
+        assert len(registered_names) > 10, f"Expected at least 10 registered passes, found {len(registered_names)}"

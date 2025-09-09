@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import unittest
-
 from machine_dialect.mir.basic_block import BasicBlock
 from machine_dialect.mir.mir_function import MIRFunction
 from machine_dialect.mir.mir_instructions import (
@@ -21,10 +19,10 @@ from machine_dialect.mir.mir_validation import MIRValidator, validate_function, 
 from machine_dialect.mir.mir_values import Constant, FunctionRef, Variable
 
 
-class TestMIRValidation(unittest.TestCase):
+class TestMIRValidation:
     """Test MIR validation and verification."""
 
-    def setUp(self) -> None:
+    def setup_method(self) -> None:
         """Set up test fixtures."""
         self.validator = MIRValidator()
 
@@ -45,16 +43,16 @@ class TestMIRValidation(unittest.TestCase):
 
         # Should validate successfully
         success, errors, warnings = validate_module(module)
-        self.assertTrue(success)
-        self.assertEqual(len(errors), 0)
+        assert success
+        assert len(errors) == 0
 
     def test_module_without_name(self) -> None:
         """Test validation fails for module without name."""
         module = MIRModule("")
 
         success, errors, warnings = validate_module(module)
-        self.assertFalse(success)
-        self.assertTrue(any("name" in error.lower() for error in errors))
+        assert not success
+        assert any("name" in error.lower() for error in errors)
 
     def test_module_with_invalid_main(self) -> None:
         """Test validation fails when main function doesn't exist."""
@@ -62,8 +60,8 @@ class TestMIRValidation(unittest.TestCase):
         module.set_main_function("nonexistent")
 
         success, errors, warnings = validate_module(module)
-        self.assertFalse(success)
-        self.assertTrue(any("main" in error.lower() and "not found" in error.lower() for error in errors))
+        assert not success
+        assert any("main" in error.lower() and "not found" in error.lower() for error in errors)
 
     def test_function_name_mismatch(self) -> None:
         """Test validation fails when function name doesn't match."""
@@ -80,15 +78,15 @@ class TestMIRValidation(unittest.TestCase):
 
         # Validate with different name
         success, errors, warnings = validate_function(func)
-        self.assertTrue(success)  # Should pass when validating directly
+        assert success  # Should pass when validating directly
 
         # But fail when in module with wrong name
         module = MIRModule("test")
         module.functions["bar"] = func  # Wrong name in dict
 
         success, errors, warnings = validate_module(module)
-        self.assertFalse(success)
-        self.assertTrue(any("mismatch" in error.lower() for error in errors))
+        assert not success
+        assert any("mismatch" in error.lower() for error in errors)
 
     def test_duplicate_parameters(self) -> None:
         """Test validation fails with duplicate parameter names."""
@@ -99,8 +97,8 @@ class TestMIRValidation(unittest.TestCase):
         func = MIRFunction("test", [param1, param2], MIRType.EMPTY)
 
         success, errors, warnings = validate_function(func)
-        self.assertFalse(success)
-        self.assertTrue(any("duplicate" in error.lower() for error in errors))
+        assert not success
+        assert any("duplicate" in error.lower() for error in errors)
 
     def test_cfg_without_entry(self) -> None:
         """Test validation fails when CFG has no entry block."""
@@ -108,8 +106,8 @@ class TestMIRValidation(unittest.TestCase):
         # Don't set entry block
 
         success, errors, warnings = validate_function(func)
-        self.assertFalse(success)
-        self.assertTrue(any("entry" in error.lower() for error in errors))
+        assert not success
+        assert any("entry" in error.lower() for error in errors)
 
     def test_inconsistent_cfg_edges(self) -> None:
         """Test validation fails with inconsistent CFG edges."""
@@ -127,8 +125,8 @@ class TestMIRValidation(unittest.TestCase):
         # Don't add block1 to block2's predecessors
 
         success, errors, warnings = validate_function(func)
-        self.assertFalse(success)
-        self.assertTrue(any("inconsistent" in error.lower() for error in errors))
+        assert not success
+        assert any("inconsistent" in error.lower() for error in errors)
 
     def test_unreachable_blocks_warning(self) -> None:
         """Test validation warns about unreachable blocks."""
@@ -144,8 +142,8 @@ class TestMIRValidation(unittest.TestCase):
         entry.add_instruction(Return((1, 1)))
 
         success, errors, warnings = validate_function(func)
-        self.assertTrue(success)  # Should still pass
-        self.assertTrue(any("unreachable" in warning.lower() for warning in warnings))
+        assert success  # Should still pass
+        assert any("unreachable" in warning.lower() for warning in warnings)
 
     def test_invalid_binary_operator(self) -> None:
         """Test validation fails with invalid binary operator."""
@@ -164,8 +162,8 @@ class TestMIRValidation(unittest.TestCase):
         entry.add_instruction(Return((1, 1)))
 
         success, errors, warnings = validate_function(func)
-        self.assertFalse(success)
-        self.assertTrue(any("invalid" in error.lower() and "operator" in error.lower() for error in errors))
+        assert not success
+        assert any("invalid" in error.lower() and "operator" in error.lower() for error in errors)
 
     def test_jump_to_nonexistent_block(self) -> None:
         """Test validation fails with jump to nonexistent block."""
@@ -179,8 +177,8 @@ class TestMIRValidation(unittest.TestCase):
         entry.add_instruction(Jump("nonexistent", (1, 1)))
 
         success, errors, warnings = validate_function(func)
-        self.assertFalse(success)
-        self.assertTrue(any("not found" in error.lower() for error in errors))
+        assert not success
+        assert any("not found" in error.lower() for error in errors)
 
     def test_conditional_jump_validation(self) -> None:
         """Test validation of conditional jumps."""
@@ -199,8 +197,8 @@ class TestMIRValidation(unittest.TestCase):
         entry.add_instruction(ConditionalJump(cond, "then", (1, 1), "nonexistent"))
 
         success, errors, warnings = validate_function(func)
-        self.assertFalse(success)
-        self.assertTrue(any("not found" in error.lower() for error in errors))
+        assert not success
+        assert any("not found" in error.lower() for error in errors)
 
     def test_phi_node_validation(self) -> None:
         """Test validation of phi nodes."""
@@ -240,8 +238,8 @@ class TestMIRValidation(unittest.TestCase):
         merge.add_instruction(Return((1, 1)))
 
         success, errors, warnings = validate_function(func)
-        self.assertFalse(success)
-        self.assertTrue(any("not a predecessor" in error.lower() for error in errors))
+        assert not success
+        assert any("not a predecessor" in error.lower() for error in errors)
 
     def test_phi_missing_predecessor_warning(self) -> None:
         """Test warning for phi node missing predecessor."""
@@ -278,8 +276,8 @@ class TestMIRValidation(unittest.TestCase):
         merge.add_instruction(Return((1, 1)))
 
         success, errors, warnings = validate_function(func)
-        self.assertTrue(success)  # Should pass with warning
-        self.assertTrue(any("missing" in warning.lower() for warning in warnings))
+        assert success  # Should pass with warning
+        assert any("missing" in warning.lower() for warning in warnings)
 
     def test_return_type_mismatch_warning(self) -> None:
         """Test warning for return type mismatch."""
@@ -294,8 +292,8 @@ class TestMIRValidation(unittest.TestCase):
         entry.add_instruction(Return((1, 1), val))
 
         success, errors, warnings = validate_function(func)
-        self.assertTrue(success)  # Should pass with warning
-        self.assertTrue(any("return" in warning.lower() for warning in warnings))
+        assert success  # Should pass with warning
+        assert any("return" in warning.lower() for warning in warnings)
 
     def test_block_with_successors_but_no_terminator(self) -> None:
         """Test warning for block with successors but no terminator."""
@@ -317,8 +315,8 @@ class TestMIRValidation(unittest.TestCase):
         block2.add_instruction(Return((1, 1)))
 
         success, errors, warnings = validate_function(func)
-        self.assertTrue(success)  # Should pass with warning
-        self.assertTrue(any("terminator" in warning.lower() for warning in warnings))
+        assert success  # Should pass with warning
+        assert any("terminator" in warning.lower() for warning in warnings)
 
     def test_call_validation(self) -> None:
         """Test validation of call instructions."""
@@ -337,7 +335,7 @@ class TestMIRValidation(unittest.TestCase):
         entry.add_instruction(Return((1, 1)))
 
         success, errors, warnings = validate_function(func)
-        self.assertTrue(success)
+        assert success
 
     def test_complete_validation_integration(self) -> None:
         """Test complete validation of a complex module."""
@@ -376,9 +374,5 @@ class TestMIRValidation(unittest.TestCase):
 
         # Should validate successfully
         success, errors, warnings = validate_module(module)
-        self.assertTrue(success)
-        self.assertEqual(len(errors), 0)
-
-
-if __name__ == "__main__":
-    unittest.main()
+        assert success
+        assert len(errors) == 0

@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import unittest
-
 from machine_dialect.mir.basic_block import CFG, BasicBlock
 from machine_dialect.mir.mir_function import MIRFunction
 from machine_dialect.mir.mir_instructions import (
@@ -20,7 +18,7 @@ from machine_dialect.mir.mir_values import Constant, Variable
 from machine_dialect.mir.ssa_construction import DominanceInfo, construct_ssa
 
 
-class TestDominanceInfo(unittest.TestCase):
+class TestDominanceInfo:
     """Test dominance analysis."""
 
     def test_simple_dominance(self) -> None:
@@ -43,17 +41,17 @@ class TestDominanceInfo(unittest.TestCase):
         dom_info = DominanceInfo(cfg)
 
         # Entry dominates all blocks
-        self.assertTrue(dom_info.dominates(entry, entry))
-        self.assertTrue(dom_info.dominates(entry, block1))
-        self.assertTrue(dom_info.dominates(entry, exit_block))
+        assert dom_info.dominates(entry, entry)
+        assert dom_info.dominates(entry, block1)
+        assert dom_info.dominates(entry, exit_block)
 
         # Block1 dominates exit but not entry
-        self.assertFalse(dom_info.dominates(block1, entry))
-        self.assertTrue(dom_info.dominates(block1, exit_block))
+        assert not dom_info.dominates(block1, entry)
+        assert dom_info.dominates(block1, exit_block)
 
         # Exit dominates only itself
-        self.assertFalse(dom_info.dominates(exit_block, entry))
-        self.assertFalse(dom_info.dominates(exit_block, block1))
+        assert not dom_info.dominates(exit_block, entry)
+        assert not dom_info.dominates(exit_block, block1)
 
     def test_dominance_with_branch(self) -> None:
         """Test dominance in CFG with branches."""
@@ -84,15 +82,15 @@ class TestDominanceInfo(unittest.TestCase):
         dom_info = DominanceInfo(cfg)
 
         # Entry dominates all
-        self.assertTrue(dom_info.dominates(entry, then_block))
-        self.assertTrue(dom_info.dominates(entry, else_block))
-        self.assertTrue(dom_info.dominates(entry, merge_block))
+        assert dom_info.dominates(entry, then_block)
+        assert dom_info.dominates(entry, else_block)
+        assert dom_info.dominates(entry, merge_block)
 
         # Neither branch dominates the other or merge
-        self.assertFalse(dom_info.dominates(then_block, else_block))
-        self.assertFalse(dom_info.dominates(else_block, then_block))
-        self.assertFalse(dom_info.dominates(then_block, merge_block))
-        self.assertFalse(dom_info.dominates(else_block, merge_block))
+        assert not dom_info.dominates(then_block, else_block)
+        assert not dom_info.dominates(else_block, then_block)
+        assert not dom_info.dominates(then_block, merge_block)
+        assert not dom_info.dominates(else_block, merge_block)
 
     def test_dominance_frontier(self) -> None:
         """Test dominance frontier calculation."""
@@ -118,15 +116,15 @@ class TestDominanceInfo(unittest.TestCase):
         dom_info = DominanceInfo(cfg)
 
         # Merge is in dominance frontier of then and else
-        self.assertIn(merge_block, dom_info.dominance_frontier[then_block])
-        self.assertIn(merge_block, dom_info.dominance_frontier[else_block])
+        assert merge_block in dom_info.dominance_frontier[then_block]
+        assert merge_block in dom_info.dominance_frontier[else_block]
 
         # Entry and merge have empty frontiers
-        self.assertEqual(len(dom_info.dominance_frontier[entry]), 0)
-        self.assertEqual(len(dom_info.dominance_frontier[merge_block]), 0)
+        assert len(dom_info.dominance_frontier[entry]) == 0
+        assert len(dom_info.dominance_frontier[merge_block]) == 0
 
 
-class TestSSAConstruction(unittest.TestCase):
+class TestSSAConstruction:
     """Test SSA construction."""
 
     def test_simple_ssa_construction(self) -> None:
@@ -155,7 +153,7 @@ class TestSSAConstruction(unittest.TestCase):
 
         # Should have versioned variables
         # Check that we have SSA form (no verification of exact names)
-        self.assertTrue(len(entry.instructions) > 0)
+        assert len(entry.instructions) > 0
 
     def test_phi_insertion(self) -> None:
         """Test phi node insertion at join points."""
@@ -206,15 +204,15 @@ class TestSSAConstruction(unittest.TestCase):
         construct_ssa(func)
 
         # Merge block should have phi node (in phi_nodes list, not instructions)
-        self.assertGreater(len(merge_block.phi_nodes), 0)
+        assert len(merge_block.phi_nodes) > 0
 
         # Phi should have incoming values from both predecessors
         if merge_block.phi_nodes:
             phi = merge_block.phi_nodes[0]
-            self.assertEqual(len(phi.incoming), 2)
+            assert len(phi.incoming) == 2
             incoming_labels = {label for _, label in phi.incoming}
-            self.assertIn("then", incoming_labels)
-            self.assertIn("else", incoming_labels)
+            assert "then" in incoming_labels
+            assert "else" in incoming_labels
 
     def test_ssa_with_loops(self) -> None:
         """Test SSA construction with loop (self-referencing phi)."""
@@ -268,14 +266,14 @@ class TestSSAConstruction(unittest.TestCase):
         construct_ssa(func)
 
         # Loop header should have phi node for loop variable (in phi_nodes list)
-        self.assertGreater(len(loop_header.phi_nodes), 0)
+        assert len(loop_header.phi_nodes) > 0
 
         # Phi should have incoming from entry and loop_body
         if loop_header.phi_nodes:
             phi = loop_header.phi_nodes[0]
             incoming_labels = {label for _, label in phi.incoming}
-            self.assertIn("entry", incoming_labels)
-            self.assertIn("loop_body", incoming_labels)
+            assert "entry" in incoming_labels
+            assert "loop_body" in incoming_labels
 
     def test_multiple_variables_ssa(self) -> None:
         """Test SSA construction with multiple variables."""
@@ -322,7 +320,7 @@ class TestSSAConstruction(unittest.TestCase):
         construct_ssa(func)
 
         # Should complete without errors
-        self.assertTrue(True)
+        assert True
 
     def test_ssa_preserves_semantics(self) -> None:
         """Test that SSA construction preserves program semantics."""
@@ -376,13 +374,13 @@ class TestSSAConstruction(unittest.TestCase):
 
         # Should have added at least one phi node
         total_after = sum(len(b.instructions) for b in func.cfg.blocks.values())
-        self.assertGreater(total_after, total_before)
+        assert total_after > total_before
 
         # Should still have return instruction
         returns = []
         for block in func.cfg.blocks.values():
             returns.extend([inst for inst in block.instructions if isinstance(inst, Return)])
-        self.assertEqual(len(returns), 1)
+        assert len(returns) == 1
 
     def test_loadconst_preservation(self) -> None:
         """Test that SSA construction preserves LoadConst instructions."""
@@ -426,14 +424,10 @@ class TestSSAConstruction(unittest.TestCase):
             loadconst_after.extend([inst for inst in block.instructions if isinstance(inst, LoadConst)])
 
         # Verify LoadConst instructions are preserved
-        self.assertEqual(len(loadconst_before), 2, "Should have 2 LoadConst instructions before SSA")
-        self.assertEqual(len(loadconst_after), 2, "Should have 2 LoadConst instructions after SSA")
+        assert len(loadconst_before) == 2, "Should have 2 LoadConst instructions before SSA"
+        assert len(loadconst_after) == 2, "Should have 2 LoadConst instructions after SSA"
 
         # Verify the constants are still correct
         const_values = [inst.constant.value for inst in loadconst_after if hasattr(inst.constant, "value")]
-        self.assertIn(5, const_values, "Constant 5 should be preserved")
-        self.assertIn(1, const_values, "Constant 1 should be preserved")
-
-
-if __name__ == "__main__":
-    unittest.main()
+        assert 5 in const_values, "Constant 5 should be preserved"
+        assert 1 in const_values, "Constant 1 should be preserved"

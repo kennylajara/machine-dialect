@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import io
-import unittest
 
 from machine_dialect.mir.basic_block import BasicBlock
 from machine_dialect.mir.mir_function import MIRFunction
@@ -35,7 +34,7 @@ from machine_dialect.mir.mir_types import MIRType
 from machine_dialect.mir.mir_values import Constant, Variable
 
 
-class TestMIRPrinter(unittest.TestCase):
+class TestMIRPrinter:
     """Test MIR text printer."""
 
     def test_print_empty_module(self) -> None:
@@ -44,7 +43,7 @@ class TestMIRPrinter(unittest.TestCase):
 
         output = dump_mir_module(module)
 
-        self.assertIn("Module: empty_module", output)
+        assert "Module: empty_module" in output
 
     def test_print_module_with_functions(self) -> None:
         """Test printing module with multiple functions."""
@@ -71,10 +70,10 @@ class TestMIRPrinter(unittest.TestCase):
 
         output = dump_mir_module(module)
 
-        self.assertIn("Module: test_module", output)
-        self.assertIn("Function main()", output)
-        self.assertIn("Function helper(x: INT)", output)
-        self.assertIn("Main: main", output)
+        assert "Module: test_module" in output
+        assert "Function main()" in output
+        assert "Function helper(x: INT)" in output
+        assert "Main: main" in output
 
     def test_print_function_with_locals(self) -> None:
         """Test printing function with local variables."""
@@ -97,10 +96,10 @@ class TestMIRPrinter(unittest.TestCase):
 
         output = dump_mir_function(func)
 
-        self.assertIn("Locals:", output)
-        self.assertIn("x: INT", output)
-        self.assertIn("y: FLOAT", output)
-        self.assertIn("Temporaries:", output)
+        assert "Locals:" in output
+        assert "x: INT" in output
+        assert "y: FLOAT" in output
+        assert "Temporaries:" in output
 
     def test_print_basic_block(self) -> None:
         """Test printing basic blocks with predecessors and successors."""
@@ -126,10 +125,10 @@ class TestMIRPrinter(unittest.TestCase):
 
         output = dump_mir_function(func)
 
-        self.assertIn("entry:", output)
-        self.assertIn("block1: (preds: entry)", output)
-        self.assertIn("exit: (preds: block1)", output)
-        self.assertIn("// successors: block1", output)
+        assert "entry:" in output
+        assert "block1: (preds: entry)" in output
+        assert "exit: (preds: block1)" in output
+        assert "// successors: block1" in output
 
     def test_print_all_instruction_types(self) -> None:
         """Test printing all instruction types."""
@@ -169,16 +168,16 @@ class TestMIRPrinter(unittest.TestCase):
         output = dump_mir_function(func)
 
         # Check various instruction formats
-        self.assertIn("const", output)
-        self.assertIn("store", output)
-        self.assertIn("load", output)
-        self.assertIn("print", output)
-        self.assertIn("assert", output)
-        self.assertIn("begin_scope", output)
-        self.assertIn("end_scope", output)
-        self.assertIn("select", output)
-        self.assertIn(".field", output)
-        self.assertIn("goto", output)
+        assert "const" in output
+        assert "store" in output
+        assert "load" in output
+        assert "print" in output
+        assert "assert" in output
+        assert "begin_scope" in output
+        assert "end_scope" in output
+        assert "select" in output
+        assert ".field" in output
+        assert "goto" in output
 
     def test_print_phi_nodes(self) -> None:
         """Test printing phi nodes."""
@@ -212,9 +211,9 @@ class TestMIRPrinter(unittest.TestCase):
 
         output = dump_mir_function(func)
 
-        self.assertIn("φ(", output)
-        self.assertIn("1:then", output)
-        self.assertIn("2:else", output)
+        assert "φ(" in output
+        assert "1:then" in output
+        assert "2:else" in output
 
     def test_print_value_formatting(self) -> None:
         """Test formatting of different value types."""
@@ -232,11 +231,11 @@ class TestMIRPrinter(unittest.TestCase):
 
         output = dump_mir_function(func)
 
-        self.assertIn("42", output)
-        self.assertIn('"hello"', output)
-        self.assertIn("true", output)
-        self.assertIn("false", output)
-        self.assertIn("null", output)
+        assert "42" in output
+        assert '"hello"' in output
+        assert "true" in output
+        assert "false" in output
+        assert "null" in output
 
     def test_custom_output_stream(self) -> None:
         """Test printing to custom output stream."""
@@ -251,10 +250,10 @@ class TestMIRPrinter(unittest.TestCase):
         dump_mir_function(func, output_stream)
 
         output = output_stream.getvalue()
-        self.assertIn("Function test", output)
+        assert "Function test" in output
 
 
-class TestMIRDotExporter(unittest.TestCase):
+class TestMIRDotExporter:
     """Test MIR DOT format exporter."""
 
     def test_export_simple_cfg(self) -> None:
@@ -274,10 +273,10 @@ class TestMIRDotExporter(unittest.TestCase):
 
         dot = export_cfg_dot(func)
 
-        self.assertIn('digraph "test"', dot)
-        self.assertIn("entry", dot)
-        self.assertIn("exit", dot)
-        self.assertIn("->", dot)
+        assert 'digraph "test"' in dot
+        assert "entry" in dot
+        assert "exit" in dot
+        assert "->" in dot
 
     def test_export_diamond_cfg(self) -> None:
         """Test exporting diamond CFG with conditional branches."""
@@ -310,11 +309,11 @@ class TestMIRDotExporter(unittest.TestCase):
         dot = export_cfg_dot(func)
 
         # Check for labeled edges
-        self.assertIn('[label="true"]', dot)
-        self.assertIn('[label="false"]', dot)
+        assert '[label="true"]' in dot
+        assert '[label="false"]' in dot
 
         # Check entry block is marked differently
-        self.assertIn("lightgreen", dot)  # Entry block color
+        assert "lightgreen" in dot  # Entry block color
 
     def test_export_with_many_instructions(self) -> None:
         """Test exporting blocks with many instructions."""
@@ -334,7 +333,7 @@ class TestMIRDotExporter(unittest.TestCase):
         dot = export_cfg_dot(func)
 
         # Should truncate and show count
-        self.assertIn("more)", dot)
+        assert "more)" in dot
 
     def test_export_loop_cfg(self) -> None:
         """Test exporting CFG with loop (back edge)."""
@@ -367,7 +366,7 @@ class TestMIRDotExporter(unittest.TestCase):
         dot = export_cfg_dot(func)
 
         # Check all edges exist
-        self.assertTrue(dot.count("->") >= 4)  # At least 4 edges
+        assert dot.count("->") >= 4  # At least 4 edges
 
     def test_export_escapes_quotes(self) -> None:
         """Test that quotes in instructions are properly escaped."""
@@ -385,8 +384,4 @@ class TestMIRDotExporter(unittest.TestCase):
         dot = export_cfg_dot(func)
 
         # Should escape quotes properly
-        self.assertIn('\\"', dot)
-
-
-if __name__ == "__main__":
-    unittest.main()
+        assert '\\"' in dot

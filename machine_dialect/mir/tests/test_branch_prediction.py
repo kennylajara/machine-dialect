@@ -1,6 +1,5 @@
 """Comprehensive tests for branch prediction optimization pass."""
 
-import unittest
 from unittest.mock import MagicMock
 
 from machine_dialect.mir.basic_block import BasicBlock
@@ -23,7 +22,7 @@ from machine_dialect.mir.optimizations.branch_prediction import (
 from machine_dialect.mir.profiling.profile_data import ProfileData
 
 
-class TestBranchInfo(unittest.TestCase):
+class TestBranchInfo:
     """Test BranchInfo dataclass."""
 
     def test_branch_info_creation(self) -> None:
@@ -40,11 +39,11 @@ class TestBranchInfo(unittest.TestCase):
             is_loop_header=False,
         )
 
-        self.assertEqual(info.block, block)
-        self.assertEqual(info.instruction, jump)
-        self.assertEqual(info.taken_probability, 0.98)
-        self.assertTrue(info.is_predictable)
-        self.assertFalse(info.is_loop_header)
+        assert info.block == block
+        assert info.instruction == jump
+        assert info.taken_probability == 0.98
+        assert info.is_predictable
+        assert not info.is_loop_header
 
     def test_branch_info_defaults(self) -> None:
         """Test BranchInfo default values."""
@@ -59,13 +58,13 @@ class TestBranchInfo(unittest.TestCase):
             is_predictable=False,
         )
 
-        self.assertFalse(info.is_loop_header)
+        assert not info.is_loop_header
 
 
-class TestBranchPredictionOptimization(unittest.TestCase):
+class TestBranchPredictionOptimization:
     """Test BranchPredictionOptimization pass."""
 
-    def setUp(self) -> None:
+    def setup_method(self) -> None:
         """Set up test fixtures."""
         self.module = MIRModule("test")
 
@@ -122,18 +121,18 @@ class TestBranchPredictionOptimization(unittest.TestCase):
     def test_pass_initialization(self) -> None:
         """Test initialization of branch prediction pass."""
         opt = BranchPredictionOptimization(predictability_threshold=0.9)
-        self.assertIsNone(opt.profile_data)
-        self.assertEqual(opt.predictability_threshold, 0.9)
-        self.assertEqual(opt.stats["branches_analyzed"], 0)
+        assert opt.profile_data is None
+        assert opt.predictability_threshold == 0.9
+        assert opt.stats["branches_analyzed"] == 0
 
     def test_pass_info(self) -> None:
         """Test pass information."""
         opt = BranchPredictionOptimization()
         info = opt.get_info()
-        self.assertEqual(info.name, "branch-prediction")
-        self.assertEqual(info.pass_type, PassType.OPTIMIZATION)
+        assert info.name == "branch-prediction"
+        assert info.pass_type == PassType.OPTIMIZATION
         # Branch prediction might preserve CFG structure
-        self.assertIn(info.preserves, [PreservationLevel.NONE, PreservationLevel.CFG])
+        assert info.preserves in [PreservationLevel.NONE, PreservationLevel.CFG]
 
     def test_collect_branch_info(self) -> None:
         """Test collecting branch information."""
@@ -153,12 +152,12 @@ class TestBranchPredictionOptimization(unittest.TestCase):
         branches = opt._collect_branch_info(self.func)
 
         # Should find one branch (in entry block)
-        self.assertEqual(len(branches), 1)
+        assert len(branches) == 1
         branch_info = branches[0]
-        self.assertEqual(branch_info.block.label, "entry")
-        self.assertIsInstance(branch_info.instruction, ConditionalJump)
-        self.assertEqual(branch_info.taken_probability, 0.98)
-        self.assertTrue(branch_info.is_predictable)
+        assert branch_info.block.label == "entry"
+        assert isinstance(branch_info.instruction, ConditionalJump)
+        assert branch_info.taken_probability == 0.98
+        assert branch_info.is_predictable
 
     def test_collect_branch_info_no_profile(self) -> None:
         """Test collecting branch information without profile data."""
@@ -167,10 +166,10 @@ class TestBranchPredictionOptimization(unittest.TestCase):
         branches = opt._collect_branch_info(self.func)
 
         # Should find one branch with default probability
-        self.assertEqual(len(branches), 1)
+        assert len(branches) == 1
         branch_info = branches[0]
-        self.assertEqual(branch_info.taken_probability, 0.5)  # Default
-        self.assertFalse(branch_info.is_predictable)
+        assert branch_info.taken_probability == 0.5  # Default
+        assert not branch_info.is_predictable
 
     def test_reorder_blocks_for_fallthrough(self) -> None:
         """Test reordering blocks for better fallthrough."""
@@ -205,14 +204,14 @@ class TestBranchPredictionOptimization(unittest.TestCase):
         reordered = opt._reorder_blocks(self.func, branches)
 
         # Should reorder to put likely path (then) after entry
-        self.assertTrue(reordered)
+        assert reordered
 
         # Check new order has then block after entry
         new_order = list(self.func.cfg.blocks.keys())
         entry_idx = new_order.index("entry")
         then_idx = new_order.index("then")
         # Then should come right after entry for better fallthrough
-        self.assertEqual(then_idx, entry_idx + 1)
+        assert then_idx == entry_idx + 1
 
     def test_add_branch_hints(self) -> None:
         """Test adding branch hints."""
@@ -232,7 +231,7 @@ class TestBranchPredictionOptimization(unittest.TestCase):
         hint_added = opt._add_branch_hint(branch_info)
 
         # Check if hint was added (returns bool)
-        self.assertIsInstance(hint_added, bool)
+        assert isinstance(hint_added, bool)
 
     def test_convert_to_select(self) -> None:
         """Test converting predictable branches to select instructions."""
@@ -281,7 +280,7 @@ class TestBranchPredictionOptimization(unittest.TestCase):
 
         # Note: Actual conversion depends on implementation
         # This test verifies the method exists and runs
-        self.assertIsInstance(converted, bool)
+        assert isinstance(converted, bool)
 
     def test_detect_loop_headers(self) -> None:
         """Test detecting loop header branches."""
@@ -335,11 +334,11 @@ class TestBranchPredictionOptimization(unittest.TestCase):
 
         # Find loop header branch
         loop_branches = [b for b in branches if b.block.label == "loop_header"]
-        self.assertEqual(len(loop_branches), 1)
+        assert len(loop_branches) == 1
 
         # Check if loop header is detected during collection
         # (loop detection happens internally during branch collection)
-        self.assertEqual(len(loop_branches), 1)
+        assert len(loop_branches) == 1
 
     def test_run_on_module_with_profile(self) -> None:
         """Test running optimization with profile data."""
@@ -367,7 +366,7 @@ class TestBranchPredictionOptimization(unittest.TestCase):
         opt.run_on_module(self.module)
 
         # Should analyze branches
-        self.assertGreater(opt.stats["branches_analyzed"], 0)
+        assert opt.stats["branches_analyzed"] > 0
 
     def test_run_on_module_without_profile(self) -> None:
         """Test running optimization without profile data."""
@@ -377,7 +376,7 @@ class TestBranchPredictionOptimization(unittest.TestCase):
         opt.run_on_module(self.module)
 
         # Should still analyze branches with defaults
-        self.assertGreater(opt.stats["branches_analyzed"], 0)
+        assert opt.stats["branches_analyzed"] > 0
 
     def test_highly_biased_branch_optimization(self) -> None:
         """Test optimization of highly biased branches."""
@@ -395,21 +394,21 @@ class TestBranchPredictionOptimization(unittest.TestCase):
         branches = opt._collect_branch_info(self.func)
 
         # Branch should be marked as highly predictable (0.999 > 0.99)
-        self.assertTrue(branches[0].is_predictable)
+        assert branches[0].is_predictable
 
         # Run full optimization on the module
         opt.run_on_module(self.module)
 
         # With highly predictable branch, should do some optimization
         # Branch hints should be added for predictable branches
-        self.assertGreater(opt.stats["branches_analyzed"], 0)
+        assert opt.stats["branches_analyzed"] > 0
         # Check if any optimization was done
         total_optimizations = (
             opt.stats.get("branch_hints_added", 0)
             + opt.stats.get("blocks_reordered", 0)
             + opt.stats.get("branches_converted_to_select", 0)
         )
-        self.assertGreater(total_optimizations, 0)
+        assert total_optimizations > 0
 
     def test_multiple_branches(self) -> None:
         """Test handling multiple branches in a function."""
@@ -438,7 +437,7 @@ class TestBranchPredictionOptimization(unittest.TestCase):
         branches = opt._collect_branch_info(func)
 
         # Should find 4 branches
-        self.assertEqual(len(branches), 4)
+        assert len(branches) == 4
 
     def test_edge_cases(self) -> None:
         """Test edge cases."""
@@ -447,7 +446,7 @@ class TestBranchPredictionOptimization(unittest.TestCase):
         # Empty function
         empty_func = MIRFunction("empty", [], MIRType.EMPTY)
         branches = opt._collect_branch_info(empty_func)
-        self.assertEqual(len(branches), 0)
+        assert len(branches) == 0
 
         # Function with no branches
         no_branch_func = MIRFunction("no_branch", [], MIRType.INT)
@@ -457,8 +456,4 @@ class TestBranchPredictionOptimization(unittest.TestCase):
         no_branch_func.cfg.entry_block = block
 
         branches = opt._collect_branch_info(no_branch_func)
-        self.assertEqual(len(branches), 0)
-
-
-if __name__ == "__main__":
-    unittest.main()
+        assert len(branches) == 0

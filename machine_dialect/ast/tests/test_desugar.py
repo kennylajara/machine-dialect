@@ -1,6 +1,5 @@
 """Tests for AST desugaring functionality."""
 
-import unittest
 
 from machine_dialect.ast import (
     ActionStatement,
@@ -28,35 +27,35 @@ from machine_dialect.ast import (
 from machine_dialect.lexer import Token, TokenType
 
 
-class TestExpressionDesugaring(unittest.TestCase):
+class TestExpressionDesugaring:
     """Test desugaring of expression nodes."""
 
     def test_literal_desugaring(self) -> None:
         """Test that literals remain unchanged during desugaring."""
         # Whole Number literal
         int_lit = WholeNumberLiteral(Token(TokenType.LIT_WHOLE_NUMBER, "42", 1, 1), 42)
-        self.assertIs(int_lit.desugar(), int_lit)
+        assert int_lit.desugar() is int_lit
 
         # Float literal
         float_lit = FloatLiteral(Token(TokenType.LIT_FLOAT, "3.14", 1, 1), 3.14)
-        self.assertIs(float_lit.desugar(), float_lit)
+        assert float_lit.desugar() is float_lit
 
         # String literal
         str_lit = StringLiteral(Token(TokenType.LIT_TEXT, '"hello"', 1, 1), '"hello"')
-        self.assertIs(str_lit.desugar(), str_lit)
+        assert str_lit.desugar() is str_lit
 
         # Boolean literal
         bool_lit = YesNoLiteral(Token(TokenType.LIT_YES, "True", 1, 1), True)
-        self.assertIs(bool_lit.desugar(), bool_lit)
+        assert bool_lit.desugar() is bool_lit
 
         # Empty literal
         empty_lit = EmptyLiteral(Token(TokenType.KW_EMPTY, "empty", 1, 1))
-        self.assertIs(empty_lit.desugar(), empty_lit)
+        assert empty_lit.desugar() is empty_lit
 
     def test_identifier_desugaring(self) -> None:
         """Test that identifiers remain unchanged during desugaring."""
         ident = Identifier(Token(TokenType.MISC_IDENT, "x", 1, 1), "x")
-        self.assertIs(ident.desugar(), ident)
+        assert ident.desugar() is ident
 
     def test_prefix_expression_desugaring(self) -> None:
         """Test desugaring of prefix expressions."""
@@ -68,11 +67,11 @@ class TestExpressionDesugaring(unittest.TestCase):
         desugared = prefix.desugar()
 
         # Should be a new PrefixExpression
-        self.assertIsInstance(desugared, PrefixExpression)
-        self.assertIsNot(desugared, prefix)
-        self.assertEqual(desugared.operator, "-")
+        assert isinstance(desugared, PrefixExpression)
+        assert desugared is not prefix
+        assert desugared.operator == "-"
         # Right should be the same literal (literals don't change)
-        self.assertIs(desugared.right, prefix.right)
+        assert desugared.right is prefix.right
 
     def test_infix_expression_operator_normalization(self) -> None:
         """Test that natural language operators are normalized during desugaring."""
@@ -106,11 +105,11 @@ class TestExpressionDesugaring(unittest.TestCase):
 
             desugared = infix.desugar()
 
-            self.assertIsInstance(desugared, InfixExpression)
-            self.assertEqual(desugared.operator, normalized, f"Failed to normalize '{natural}' to '{normalized}'")
+            assert isinstance(desugared, InfixExpression)
+            assert desugared.operator == normalized, f"Failed to normalize '{natural}' to '{normalized}'"
             # Check that operands are also desugared
-            self.assertIs(desugared.left, left)  # Identifiers return self
-            self.assertIs(desugared.right, right)  # Literals return self
+            assert desugared.left is left  # Identifiers return self
+            assert desugared.right is right  # Literals return self
 
     def test_infix_expression_already_normalized(self) -> None:
         """Test that already normalized operators remain unchanged."""
@@ -141,8 +140,8 @@ class TestExpressionDesugaring(unittest.TestCase):
 
             desugared = infix.desugar()
 
-            self.assertIsInstance(desugared, InfixExpression)
-            self.assertEqual(desugared.operator, op, f"Operator '{op}' should remain unchanged")
+            assert isinstance(desugared, InfixExpression)
+            assert desugared.operator == op, f"Operator '{op}' should remain unchanged"
 
     def test_conditional_expression_desugaring(self) -> None:
         """Test desugaring of conditional expressions."""
@@ -157,12 +156,12 @@ class TestExpressionDesugaring(unittest.TestCase):
 
         desugared = cond_expr.desugar()
 
-        self.assertIsInstance(desugared, ConditionalExpression)
-        self.assertIsNot(desugared, cond_expr)
+        assert isinstance(desugared, ConditionalExpression)
+        assert desugared is not cond_expr
         # Literals should return self
-        self.assertIs(desugared.consequence, consequence)
-        self.assertIs(desugared.condition, condition)
-        self.assertIs(desugared.alternative, alternative)
+        assert desugared.consequence is consequence
+        assert desugared.condition is condition
+        assert desugared.alternative is alternative
 
     def test_arguments_desugaring(self) -> None:
         """Test desugaring of arguments."""
@@ -180,16 +179,16 @@ class TestExpressionDesugaring(unittest.TestCase):
 
         desugared = args.desugar()
 
-        self.assertIsInstance(desugared, Arguments)
-        self.assertIsNot(desugared, args)
-        self.assertEqual(len(desugared.positional), 2)
-        self.assertEqual(len(desugared.named), 1)
+        assert isinstance(desugared, Arguments)
+        assert desugared is not args
+        assert len(desugared.positional) == 2
+        assert len(desugared.named) == 1
         # Literals should be the same
-        self.assertIs(desugared.positional[0], args.positional[0])
-        self.assertIs(desugared.positional[1], args.positional[1])
+        assert desugared.positional[0] is args.positional[0]
+        assert desugared.positional[1] is args.positional[1]
 
 
-class TestStatementDesugaring(unittest.TestCase):
+class TestStatementDesugaring:
     """Test desugaring of statement nodes."""
 
     def test_return_statement_normalization(self) -> None:
@@ -201,18 +200,18 @@ class TestStatementDesugaring(unittest.TestCase):
         ret1 = ReturnStatement(token1, return_value)
         desugared1 = ret1.desugar()
 
-        self.assertIsInstance(desugared1, ReturnStatement)
-        self.assertEqual(desugared1.token.literal, "return")
-        self.assertIs(desugared1.return_value, return_value)
+        assert isinstance(desugared1, ReturnStatement)
+        assert desugared1.token.literal == "return"
+        assert desugared1.return_value is return_value
 
         # Test "gives back"
         token2 = Token(TokenType.KW_RETURN, "gives back", 1, 1)
         ret2 = ReturnStatement(token2, return_value)
         desugared2 = ret2.desugar()
 
-        self.assertIsInstance(desugared2, ReturnStatement)
-        self.assertEqual(desugared2.token.literal, "return")
-        self.assertIs(desugared2.return_value, return_value)
+        assert isinstance(desugared2, ReturnStatement)
+        assert desugared2.token.literal == "return"
+        assert desugared2.return_value is return_value
 
     def test_set_statement_desugaring(self) -> None:
         """Test desugaring of set statements."""
@@ -223,10 +222,10 @@ class TestStatementDesugaring(unittest.TestCase):
         set_stmt = SetStatement(token, name, value)
         desugared = set_stmt.desugar()
 
-        self.assertIsInstance(desugared, SetStatement)
-        self.assertIsNot(desugared, set_stmt)
-        self.assertIs(desugared.name, name)  # Identifiers return self
-        self.assertIs(desugared.value, value)  # Literals return self
+        assert isinstance(desugared, SetStatement)
+        assert desugared is not set_stmt
+        assert desugared.name is name  # Identifiers return self
+        assert desugared.value is value  # Literals return self
 
     def test_call_statement_desugaring(self) -> None:
         """Test desugaring of call statements."""
@@ -239,11 +238,11 @@ class TestStatementDesugaring(unittest.TestCase):
         call_stmt = CallStatement(token, func_name, args)
         desugared = call_stmt.desugar()
 
-        self.assertIsInstance(desugared, CallStatement)
-        self.assertIsNot(desugared, call_stmt)
-        self.assertIs(desugared.function_name, func_name)  # Literals return self
-        self.assertIsInstance(desugared.arguments, Arguments)
-        self.assertIsNot(desugared.arguments, args)
+        assert isinstance(desugared, CallStatement)
+        assert desugared is not call_stmt
+        assert desugared.function_name is func_name  # Literals return self
+        assert isinstance(desugared.arguments, Arguments)
+        assert desugared.arguments is not args
 
     def test_block_statement_flattening(self) -> None:
         """Test that blocks preserve scope (no longer flatten)."""
@@ -258,9 +257,8 @@ class TestStatementDesugaring(unittest.TestCase):
         block1.statements = [single_stmt]
 
         desugared1 = block1.desugar()
-        self.assertIsInstance(desugared1, BlockStatement)  # Block is preserved
-        assert isinstance(desugared1, BlockStatement)
-        self.assertEqual(len(desugared1.statements), 1)
+        assert isinstance(desugared1, BlockStatement)  # Block is preserved
+        assert len(desugared1.statements) == 1
 
         # Test multi-statement block - should remain a block
         block2 = BlockStatement(token, depth=1)
@@ -275,9 +273,8 @@ class TestStatementDesugaring(unittest.TestCase):
         block2.statements = [stmt1, stmt2]
 
         desugared2 = block2.desugar()
-        self.assertIsInstance(desugared2, BlockStatement)
-        assert isinstance(desugared2, BlockStatement)  # Type guard for MyPy
-        self.assertEqual(len(desugared2.statements), 2)
+        assert isinstance(desugared2, BlockStatement)
+        assert len(desugared2.statements) == 2
 
         # Test nested block with single statement - blocks are preserved
         block3 = BlockStatement(token, depth=1)
@@ -286,10 +283,9 @@ class TestStatementDesugaring(unittest.TestCase):
         block3.statements = [inner_block]
 
         desugared3 = block3.desugar()
-        self.assertIsInstance(desugared3, BlockStatement)  # Outer block preserved
-        assert isinstance(desugared3, BlockStatement)
-        self.assertEqual(len(desugared3.statements), 1)
-        self.assertIsInstance(desugared3.statements[0], BlockStatement)  # Inner block preserved
+        assert isinstance(desugared3, BlockStatement)  # Outer block preserved
+        assert len(desugared3.statements) == 1
+        assert isinstance(desugared3.statements[0], BlockStatement)  # Inner block preserved
 
     def test_if_statement_desugaring(self) -> None:
         """Test desugaring of if statements."""
@@ -320,25 +316,23 @@ class TestStatementDesugaring(unittest.TestCase):
 
         desugared = if_stmt.desugar()
 
-        self.assertIsInstance(desugared, IfStatement)
-        self.assertIs(desugared.condition, condition)  # Literals return self
+        assert isinstance(desugared, IfStatement)
+        assert desugared.condition is condition  # Literals return self
 
         # Even though blocks have single statements, IfStatement keeps them as blocks
-        self.assertIsInstance(desugared.consequence, BlockStatement)
-        self.assertIsInstance(desugared.alternative, BlockStatement)
+        assert isinstance(desugared.consequence, BlockStatement)
+        assert isinstance(desugared.alternative, BlockStatement)
 
         # Check that the return statements inside were normalized
         assert desugared.consequence is not None  # Type guard
         cons_stmt = desugared.consequence.statements[0]
-        self.assertIsInstance(cons_stmt, ReturnStatement)
-        assert isinstance(cons_stmt, ReturnStatement)  # Type guard
-        self.assertEqual(cons_stmt.token.literal, "return")
+        assert isinstance(cons_stmt, ReturnStatement)
+        assert cons_stmt.token.literal == "return"
 
         assert desugared.alternative is not None  # Type guard
         alt_stmt = desugared.alternative.statements[0]
-        self.assertIsInstance(alt_stmt, ReturnStatement)
-        assert isinstance(alt_stmt, ReturnStatement)  # Type guard
-        self.assertEqual(alt_stmt.token.literal, "return")
+        assert isinstance(alt_stmt, ReturnStatement)
+        assert alt_stmt.token.literal == "return"
 
     def test_expression_statement_desugaring(self) -> None:
         """Test desugaring of expression statements."""
@@ -352,14 +346,13 @@ class TestStatementDesugaring(unittest.TestCase):
         expr_stmt = ExpressionStatement(Token(TokenType.MISC_IDENT, "x", 1, 1), infix)
         desugared = expr_stmt.desugar()
 
-        self.assertIsInstance(desugared, ExpressionStatement)
-        self.assertIsNot(desugared, expr_stmt)
-        self.assertIsInstance(desugared.expression, InfixExpression)
-        assert isinstance(desugared.expression, InfixExpression)  # Type guard
-        self.assertEqual(desugared.expression.operator, "==")  # Should be normalized
+        assert isinstance(desugared, ExpressionStatement)
+        assert desugared is not expr_stmt
+        assert isinstance(desugared.expression, InfixExpression)
+        assert desugared.expression.operator == "=="  # Should be normalized
 
 
-class TestFunctionStatementDesugaring(unittest.TestCase):
+class TestFunctionStatementDesugaring:
     """Test desugaring of function-like statements."""
 
     def test_action_statement_desugaring(self) -> None:
@@ -378,9 +371,9 @@ class TestFunctionStatementDesugaring(unittest.TestCase):
         action = ActionStatement(token, name, body=body)
         desugared = action.desugar()
 
-        self.assertIsInstance(desugared, FunctionStatement)
-        self.assertEqual(desugared.visibility, FunctionVisibility.PRIVATE)
-        self.assertIs(desugared.name, name)
+        assert isinstance(desugared, FunctionStatement)
+        assert desugared.visibility == FunctionVisibility.PRIVATE
+        assert desugared.name is name
         # Body might be flattened if it has single statement
         if isinstance(desugared.body, BlockStatement):
             # Check that body was desugared (return statement normalized)
@@ -388,8 +381,8 @@ class TestFunctionStatementDesugaring(unittest.TestCase):
         else:
             # Single statement was flattened
             ret_stmt = desugared.body
-        self.assertIsInstance(ret_stmt, ReturnStatement)
-        self.assertEqual(ret_stmt.token.literal, "return")
+        assert isinstance(ret_stmt, ReturnStatement)
+        assert ret_stmt.token.literal == "return"
 
     def test_interaction_statement_desugaring(self) -> None:
         """Test that InteractionStatement desugars to FunctionStatement with PUBLIC visibility."""
@@ -408,9 +401,9 @@ class TestFunctionStatementDesugaring(unittest.TestCase):
         interaction = InteractionStatement(token, name, body=body)
         desugared = interaction.desugar()
 
-        self.assertIsInstance(desugared, FunctionStatement)
-        self.assertEqual(desugared.visibility, FunctionVisibility.PUBLIC)
-        self.assertIs(desugared.name, name)
+        assert isinstance(desugared, FunctionStatement)
+        assert desugared.visibility == FunctionVisibility.PUBLIC
+        assert desugared.name is name
 
     def test_utility_statement_desugaring(self) -> None:
         """Test that UtilityStatement desugars to FunctionStatement with FUNCTION visibility."""
@@ -428,17 +421,17 @@ class TestFunctionStatementDesugaring(unittest.TestCase):
         utility = UtilityStatement(token, name, body=body)
         desugared = utility.desugar()
 
-        self.assertIsInstance(desugared, FunctionStatement)
-        self.assertEqual(desugared.visibility, FunctionVisibility.FUNCTION)
-        self.assertIs(desugared.name, name)
+        assert isinstance(desugared, FunctionStatement)
+        assert desugared.visibility == FunctionVisibility.FUNCTION
+        assert desugared.name is name
         # Check return normalization
         if isinstance(desugared.body, BlockStatement):
             ret_stmt = desugared.body.statements[0]
         else:
             # Single statement was flattened
             ret_stmt = desugared.body
-        self.assertIsInstance(ret_stmt, ReturnStatement)
-        self.assertEqual(ret_stmt.token.literal, "return")
+        assert isinstance(ret_stmt, ReturnStatement)
+        assert ret_stmt.token.literal == "return"
 
     def test_function_statement_str_representation(self) -> None:
         """Test string representation of FunctionStatement."""
@@ -449,23 +442,23 @@ class TestFunctionStatementDesugaring(unittest.TestCase):
         # Test PRIVATE (action)
         func1 = FunctionStatement(token, FunctionVisibility.PRIVATE, name, body=body)
         func1_str = str(func1)
-        self.assertIn("action", func1_str)
-        self.assertIn("`test`", func1_str)  # Identifier is wrapped in backticks
+        assert "action" in func1_str
+        assert "`test`" in func1_str  # Identifier is wrapped in backticks
 
         # Test PUBLIC (interaction)
         func2 = FunctionStatement(token, FunctionVisibility.PUBLIC, name, body=body)
         func2_str = str(func2)
-        self.assertIn("interaction", func2_str)
-        self.assertIn("`test`", func2_str)
+        assert "interaction" in func2_str
+        assert "`test`" in func2_str
 
         # Test FUNCTION (utility)
         func3 = FunctionStatement(token, FunctionVisibility.FUNCTION, name, body=body)
         func3_str = str(func3)
-        self.assertIn("utility", func3_str)
-        self.assertIn("`test`", func3_str)
+        assert "utility" in func3_str
+        assert "`test`" in func3_str
 
 
-class TestComplexDesugaring(unittest.TestCase):
+class TestComplexDesugaring:
     """Test desugaring of complex nested structures."""
 
     def test_nested_expression_desugaring(self) -> None:
@@ -488,19 +481,17 @@ class TestComplexDesugaring(unittest.TestCase):
 
         desugared = and_expr.desugar()
 
-        self.assertIsInstance(desugared, InfixExpression)
-        self.assertEqual(desugared.operator, "and")
+        assert isinstance(desugared, InfixExpression)
+        assert desugared.operator == "and"
 
         # Check left side normalization
-        self.assertIsInstance(desugared.left, InfixExpression)
-        assert isinstance(desugared.left, InfixExpression)  # Type guard
-        self.assertEqual(desugared.left.operator, "==")
+        assert isinstance(desugared.left, InfixExpression)
+        assert desugared.left.operator == "=="
 
         # Check right side normalization
         assert desugared.right is not None  # Type guard
-        self.assertIsInstance(desugared.right, InfixExpression)
-        assert isinstance(desugared.right, InfixExpression)  # Type guard
-        self.assertEqual(desugared.right.operator, ">")
+        assert isinstance(desugared.right, InfixExpression)
+        assert desugared.right.operator == ">"
 
     def test_complex_statement_desugaring(self) -> None:
         """Test desugaring of complex statement structures."""
@@ -531,29 +522,21 @@ class TestComplexDesugaring(unittest.TestCase):
 
         desugared = if_stmt.desugar()
 
-        self.assertIsInstance(desugared, IfStatement)
+        assert isinstance(desugared, IfStatement)
 
         # Check condition normalization
         assert desugared.condition is not None  # Type guard
-        self.assertIsInstance(desugared.condition, InfixExpression)
-        assert isinstance(desugared.condition, InfixExpression)  # Type guard
-        self.assertEqual(desugared.condition.operator, "===")
+        assert isinstance(desugared.condition, InfixExpression)
+        assert desugared.condition.operator == "==="
 
         # Check that nested single-statement blocks are preserved in if statement
         assert desugared.consequence is not None  # Type guard
-        self.assertIsInstance(desugared.consequence, BlockStatement)
-        # Blocks are now preserved for scope
         assert isinstance(desugared.consequence, BlockStatement)
-        self.assertEqual(len(desugared.consequence.statements), 1)
+        # Blocks are now preserved for scope
+        assert len(desugared.consequence.statements) == 1
         inner_block2 = desugared.consequence.statements[0]
-        self.assertIsInstance(inner_block2, BlockStatement)  # Block is preserved
-        assert isinstance(inner_block2, BlockStatement)
-        self.assertEqual(len(inner_block2.statements), 1)
+        assert isinstance(inner_block2, BlockStatement)  # Block is preserved
+        assert len(inner_block2.statements) == 1
         ret_stmt = inner_block2.statements[0]
-        self.assertIsInstance(ret_stmt, ReturnStatement)
-        assert isinstance(ret_stmt, ReturnStatement)  # Type guard
-        self.assertEqual(ret_stmt.token.literal, "return")
-
-
-if __name__ == "__main__":
-    unittest.main()
+        assert isinstance(ret_stmt, ReturnStatement)
+        assert ret_stmt.token.literal == "return"

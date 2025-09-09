@@ -1,6 +1,5 @@
 """Tests for MIR basic blocks and CFG."""
 
-import unittest
 
 from machine_dialect.mir.basic_block import CFG, BasicBlock
 from machine_dialect.mir.mir_instructions import (
@@ -14,17 +13,17 @@ from machine_dialect.mir.mir_types import MIRType
 from machine_dialect.mir.mir_values import Temp
 
 
-class TestBasicBlock(unittest.TestCase):
+class TestBasicBlock:
     """Test basic block functionality."""
 
     def test_basic_block_creation(self) -> None:
         """Test creating basic blocks."""
         block = BasicBlock("entry")
-        self.assertEqual(block.label, "entry")
-        self.assertEqual(block.instructions, [])
-        self.assertEqual(block.phi_nodes, [])
-        self.assertEqual(block.predecessors, [])
-        self.assertEqual(block.successors, [])
+        assert block.label == "entry"
+        assert block.instructions == []
+        assert block.phi_nodes == []
+        assert block.predecessors == []
+        assert block.successors == []
 
     def test_is_terminated(self) -> None:
         """Test checking if block is terminated."""
@@ -32,15 +31,15 @@ class TestBasicBlock(unittest.TestCase):
         t0 = Temp(MIRType.INT, temp_id=0)
 
         # Empty block is not terminated
-        self.assertFalse(block.is_terminated())
+        assert not block.is_terminated()
 
         # Block with non-terminator is not terminated
         block.add_instruction(LoadConst(t0, 42, (1, 1)))
-        self.assertFalse(block.is_terminated())
+        assert not block.is_terminated()
 
         # Block with terminator is terminated
         block.add_instruction(Return((1, 1), t0))
-        self.assertTrue(block.is_terminated())
+        assert block.is_terminated()
 
     def test_get_terminator(self) -> None:
         """Test getting block terminator."""
@@ -48,16 +47,16 @@ class TestBasicBlock(unittest.TestCase):
         t0 = Temp(MIRType.INT, temp_id=0)
 
         # No terminator initially
-        self.assertIsNone(block.get_terminator())
+        assert block.get_terminator() is None
 
         # Add instructions
         block.add_instruction(LoadConst(t0, 5, (1, 1)))
-        self.assertIsNone(block.get_terminator())
+        assert block.get_terminator() is None
 
         # Add terminator
         ret = Return((1, 1), t0)
         block.add_instruction(ret)
-        self.assertEqual(block.get_terminator(), ret)
+        assert block.get_terminator() == ret
 
     def test_terminator_types(self) -> None:
         """Test different terminator types."""
@@ -65,20 +64,20 @@ class TestBasicBlock(unittest.TestCase):
         block1 = BasicBlock("bb1")
         jump = Jump("bb2", (1, 1))
         block1.add_instruction(jump)
-        self.assertTrue(block1.is_terminated())
+        assert block1.is_terminated()
 
         # Test ConditionalJump
         block2 = BasicBlock("bb2")
         t0 = Temp(MIRType.BOOL, temp_id=0)
         cjump = ConditionalJump(t0, "then", (1, 1), "else")
         block2.add_instruction(cjump)
-        self.assertTrue(block2.is_terminated())
+        assert block2.is_terminated()
 
         # Test Return
         block3 = BasicBlock("bb3")
         ret = Return((1, 1))
         block3.add_instruction(ret)
-        self.assertTrue(block3.is_terminated())
+        assert block3.is_terminated()
 
     def test_connect_blocks(self) -> None:
         """Test connecting blocks as predecessors/successors."""
@@ -89,9 +88,9 @@ class TestBasicBlock(unittest.TestCase):
         entry.add_successor(bb1)
         entry.add_successor(bb2)
 
-        self.assertEqual(entry.successors, [bb1, bb2])
-        self.assertEqual(bb1.predecessors, [entry])
-        self.assertEqual(bb2.predecessors, [entry])
+        assert entry.successors == [bb1, bb2]
+        assert bb1.predecessors == [entry]
+        assert bb2.predecessors == [entry]
 
     def test_block_string_representation(self) -> None:
         """Test string representation of blocks."""
@@ -108,18 +107,18 @@ class TestBasicBlock(unittest.TestCase):
   t1 = t0 + t0
   goto loop_body"""
 
-        self.assertEqual(str(block), expected)
+        assert str(block) == expected
 
 
-class TestCFG(unittest.TestCase):
+class TestCFG:
     """Test control flow graph functionality."""
 
     def test_cfg_creation(self) -> None:
         """Test creating CFG."""
         cfg = CFG()
-        self.assertEqual(cfg.blocks, {})
-        self.assertIsNone(cfg.entry_block)
-        self.assertIsNone(cfg.exit_block)
+        assert cfg.blocks == {}
+        assert cfg.entry_block is None
+        assert cfg.exit_block is None
 
     def test_add_block(self) -> None:
         """Test adding blocks to CFG."""
@@ -130,9 +129,9 @@ class TestCFG(unittest.TestCase):
         cfg.add_block(entry)
         cfg.add_block(bb1)
 
-        self.assertEqual(len(cfg.blocks), 2)
-        self.assertEqual(cfg.blocks["entry"], entry)
-        self.assertEqual(cfg.blocks["bb1"], bb1)
+        assert len(cfg.blocks) == 2
+        assert cfg.blocks["entry"] == entry
+        assert cfg.blocks["bb1"] == bb1
 
     def test_set_entry_block(self) -> None:
         """Test setting entry block."""
@@ -142,7 +141,7 @@ class TestCFG(unittest.TestCase):
         cfg.add_block(entry)
         cfg.set_entry_block(entry)
 
-        self.assertEqual(cfg.entry_block, entry)
+        assert cfg.entry_block == entry
 
     def test_connect_blocks(self) -> None:
         """Test connecting blocks in CFG."""
@@ -162,10 +161,10 @@ class TestCFG(unittest.TestCase):
         cfg.connect(then_block, merge)
         cfg.connect(else_block, merge)
 
-        self.assertEqual(entry.successors, [then_block, else_block])
-        self.assertEqual(then_block.predecessors, [entry])
-        self.assertEqual(else_block.predecessors, [entry])
-        self.assertEqual(merge.predecessors, [then_block, else_block])
+        assert entry.successors == [then_block, else_block]
+        assert then_block.predecessors == [entry]
+        assert else_block.predecessors == [entry]
+        assert merge.predecessors == [then_block, else_block]
 
     def test_get_block(self) -> None:
         """Test getting block by label."""
@@ -173,8 +172,8 @@ class TestCFG(unittest.TestCase):
         bb1 = BasicBlock("bb1")
         cfg.add_block(bb1)
 
-        self.assertEqual(cfg.get_block("bb1"), bb1)
-        self.assertIsNone(cfg.get_block("nonexistent"))
+        assert cfg.get_block("bb1") == bb1
+        assert cfg.get_block("nonexistent") is None
 
     def test_get_predecessors(self) -> None:
         """Test getting block predecessors."""
@@ -194,9 +193,9 @@ class TestCFG(unittest.TestCase):
         cfg.connect(bb1, merge)
         cfg.connect(bb2, merge)
 
-        self.assertEqual(cfg.get_predecessors(entry), [])
-        self.assertEqual(cfg.get_predecessors(bb1), [entry])
-        self.assertEqual(cfg.get_predecessors(merge), [bb1, bb2])
+        assert cfg.get_predecessors(entry) == []
+        assert cfg.get_predecessors(bb1) == [entry]
+        assert cfg.get_predecessors(merge) == [bb1, bb2]
 
     def test_get_successors(self) -> None:
         """Test getting block successors."""
@@ -212,9 +211,9 @@ class TestCFG(unittest.TestCase):
         cfg.connect(entry, bb1)
         cfg.connect(entry, bb2)
 
-        self.assertEqual(cfg.get_successors(entry), [bb1, bb2])
-        self.assertEqual(cfg.get_successors(bb1), [])
-        self.assertEqual(cfg.get_successors(bb2), [])
+        assert cfg.get_successors(entry) == [bb1, bb2]
+        assert cfg.get_successors(bb1) == []
+        assert cfg.get_successors(bb2) == []
 
     def test_compute_dominance_simple(self) -> None:
         """Test dominance computation on simple CFG."""
@@ -234,16 +233,16 @@ class TestCFG(unittest.TestCase):
         cfg.compute_dominance()
 
         # Entry dominates all blocks
-        self.assertIn(entry, cfg.dominators[entry])
-        self.assertIn(entry, cfg.dominators[bb1])
-        self.assertIn(entry, cfg.dominators[bb2])
+        assert entry in cfg.dominators[entry]
+        assert entry in cfg.dominators[bb1]
+        assert entry in cfg.dominators[bb2]
 
         # bb1 dominates bb2
-        self.assertIn(bb1, cfg.dominators[bb2])
+        assert bb1 in cfg.dominators[bb2]
 
         # Each block dominates itself
-        self.assertIn(bb1, cfg.dominators[bb1])
-        self.assertIn(bb2, cfg.dominators[bb2])
+        assert bb1 in cfg.dominators[bb1]
+        assert bb2 in cfg.dominators[bb2]
 
     def test_compute_dominance_with_branch(self) -> None:
         """Test dominance with branching."""
@@ -268,15 +267,15 @@ class TestCFG(unittest.TestCase):
 
         # Entry dominates all
         for block in [entry, then_block, else_block, merge]:
-            self.assertIn(entry, cfg.dominators[block])
+            assert entry in cfg.dominators[block]
 
         # Neither then nor else dominates merge (both paths lead to merge)
-        self.assertNotIn(then_block, cfg.dominators[merge])
-        self.assertNotIn(else_block, cfg.dominators[merge])
+        assert then_block not in cfg.dominators[merge]
+        assert else_block not in cfg.dominators[merge]
 
         # Then doesn't dominate else and vice versa
-        self.assertNotIn(then_block, cfg.dominators[else_block])
-        self.assertNotIn(else_block, cfg.dominators[then_block])
+        assert then_block not in cfg.dominators[else_block]
+        assert else_block not in cfg.dominators[then_block]
 
     def test_compute_dominance_frontiers(self) -> None:
         """Test dominance frontier computation."""
@@ -301,12 +300,12 @@ class TestCFG(unittest.TestCase):
         cfg.compute_dominance_frontiers()
 
         # Merge is in the dominance frontier of then and else
-        self.assertIn(merge, cfg.dominance_frontiers.get(then_block, []))
-        self.assertIn(merge, cfg.dominance_frontiers.get(else_block, []))
+        assert merge in cfg.dominance_frontiers.get(then_block, [])
+        assert merge in cfg.dominance_frontiers.get(else_block, [])
 
         # Entry and merge should have empty frontiers in this case
-        self.assertEqual(cfg.dominance_frontiers.get(entry, []), [])
-        self.assertEqual(cfg.dominance_frontiers.get(merge, []), [])
+        assert cfg.dominance_frontiers.get(entry, []) == []
+        assert cfg.dominance_frontiers.get(merge, []) == []
 
     def test_topological_sort(self) -> None:
         """Test topological sorting of blocks."""
@@ -330,17 +329,17 @@ class TestCFG(unittest.TestCase):
         sorted_blocks = cfg.topological_sort()
 
         # Entry should be first
-        self.assertEqual(sorted_blocks[0], entry)
+        assert sorted_blocks[0] == entry
 
         # bb3 should be last (after both bb1 and bb2)
-        self.assertEqual(sorted_blocks[-1], bb3)
+        assert sorted_blocks[-1] == bb3
 
         # bb1 and bb2 should be between entry and bb3
         bb1_index = sorted_blocks.index(bb1)
         bb2_index = sorted_blocks.index(bb2)
         bb3_index = sorted_blocks.index(bb3)
-        self.assertLess(bb1_index, bb3_index)
-        self.assertLess(bb2_index, bb3_index)
+        assert bb1_index < bb3_index
+        assert bb2_index < bb3_index
 
     def test_cfg_string_representation(self) -> None:
         """Test string representation of CFG."""
@@ -360,13 +359,13 @@ class TestCFG(unittest.TestCase):
         cfg.connect(entry, bb1)
 
         result = str(cfg)
-        self.assertIn("entry:", result)
-        self.assertIn("bb1:", result)
-        self.assertIn("t0 = 1", result)
-        self.assertIn("return t0", result)
+        assert "entry:" in result
+        assert "bb1:" in result
+        assert "t0 = 1" in result
+        assert "return t0" in result
 
 
-class TestCFGWithLoops(unittest.TestCase):
+class TestCFGWithLoops:
     """Test CFG with loop structures."""
 
     def test_loop_dominance(self) -> None:
@@ -392,13 +391,13 @@ class TestCFGWithLoops(unittest.TestCase):
         cfg.compute_dominance()
 
         # Entry dominates all
-        self.assertIn(entry, cfg.dominators[loop_header])
-        self.assertIn(entry, cfg.dominators[loop_body])
-        self.assertIn(entry, cfg.dominators[exit_block])
+        assert entry in cfg.dominators[loop_header]
+        assert entry in cfg.dominators[loop_body]
+        assert entry in cfg.dominators[exit_block]
 
         # Loop header dominates body and exit
-        self.assertIn(loop_header, cfg.dominators[loop_body])
-        self.assertIn(loop_header, cfg.dominators[exit_block])
+        assert loop_header in cfg.dominators[loop_body]
+        assert loop_header in cfg.dominators[exit_block]
 
     def test_loop_dominance_frontiers(self) -> None:
         """Test dominance frontiers in loops."""
@@ -424,8 +423,4 @@ class TestCFGWithLoops(unittest.TestCase):
 
         # Loop header is in the dominance frontier of loop body
         # (because of the back edge)
-        self.assertIn(loop_header, cfg.dominance_frontiers.get(loop_body, []))
-
-
-if __name__ == "__main__":
-    unittest.main()
+        assert loop_header in cfg.dominance_frontiers.get(loop_body, [])

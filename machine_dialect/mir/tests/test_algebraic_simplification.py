@@ -1,6 +1,5 @@
 """Tests for algebraic simplification and strength reduction optimization passes."""
 
-import unittest
 
 from machine_dialect.mir.basic_block import BasicBlock
 from machine_dialect.mir.mir_function import MIRFunction
@@ -13,10 +12,10 @@ from machine_dialect.mir.optimizations.algebraic_simplification import Algebraic
 from machine_dialect.mir.optimizations.strength_reduction import StrengthReduction
 
 
-class TestAlgebraicSimplificationComparison(unittest.TestCase):
+class TestAlgebraicSimplificationComparison:
     """Test comparison operation simplifications in AlgebraicSimplification."""
 
-    def setUp(self) -> None:
+    def setup_method(self) -> None:
         """Set up test fixtures."""
         self.module = MIRModule("test")
         self.func = MIRFunction("test_func", [], MIRType.BOOL)
@@ -36,13 +35,13 @@ class TestAlgebraicSimplificationComparison(unittest.TestCase):
 
         changed = self.opt.run_on_function(self.func)
 
-        self.assertTrue(changed)
-        self.assertEqual(self.opt.stats.get("comparison_simplified", 0), 1)
+        assert changed
+        assert self.opt.stats.get("comparison_simplified") == 1
         instructions = list(self.block.instructions)
-        self.assertIsInstance(instructions[1], LoadConst)
+        assert isinstance(instructions[1], LoadConst)
         load_inst = instructions[1]
         assert isinstance(load_inst, LoadConst)
-        self.assertEqual(load_inst.constant.value, True)
+        assert load_inst.constant.value is True
 
     def test_not_equal_same_value(self) -> None:
         """Test x != x → false."""
@@ -53,13 +52,13 @@ class TestAlgebraicSimplificationComparison(unittest.TestCase):
 
         changed = self.opt.run_on_function(self.func)
 
-        self.assertTrue(changed)
-        self.assertEqual(self.opt.stats.get("comparison_simplified", 0), 1)
+        assert changed
+        assert self.opt.stats.get("comparison_simplified") == 1
         instructions = list(self.block.instructions)
-        self.assertIsInstance(instructions[1], LoadConst)
+        assert isinstance(instructions[1], LoadConst)
         load_inst = instructions[1]
         assert isinstance(load_inst, LoadConst)
-        self.assertEqual(load_inst.constant.value, False)
+        assert load_inst.constant.value is False
 
     def test_less_than_same_value(self) -> None:
         """Test x < x → false."""
@@ -70,13 +69,13 @@ class TestAlgebraicSimplificationComparison(unittest.TestCase):
 
         changed = self.opt.run_on_function(self.func)
 
-        self.assertTrue(changed)
-        self.assertEqual(self.opt.stats.get("comparison_simplified", 0), 1)
+        assert changed
+        assert self.opt.stats.get("comparison_simplified") == 1
         instructions = list(self.block.instructions)
-        self.assertIsInstance(instructions[1], LoadConst)
+        assert isinstance(instructions[1], LoadConst)
         load_inst = instructions[1]
         assert isinstance(load_inst, LoadConst)
-        self.assertEqual(load_inst.constant.value, False)
+        assert load_inst.constant.value is False
 
     def test_greater_than_same_value(self) -> None:
         """Test x > x → false."""
@@ -87,13 +86,13 @@ class TestAlgebraicSimplificationComparison(unittest.TestCase):
 
         changed = self.opt.run_on_function(self.func)
 
-        self.assertTrue(changed)
-        self.assertEqual(self.opt.stats.get("comparison_simplified", 0), 1)
+        assert changed
+        assert self.opt.stats.get("comparison_simplified") == 1
         instructions = list(self.block.instructions)
-        self.assertIsInstance(instructions[1], LoadConst)
+        assert isinstance(instructions[1], LoadConst)
         load_inst = instructions[1]
         assert isinstance(load_inst, LoadConst)
-        self.assertEqual(load_inst.constant.value, False)
+        assert load_inst.constant.value is False
 
     def test_less_equal_same_value(self) -> None:
         """Test x <= x → true."""
@@ -104,13 +103,13 @@ class TestAlgebraicSimplificationComparison(unittest.TestCase):
 
         changed = self.opt.run_on_function(self.func)
 
-        self.assertTrue(changed)
-        self.assertEqual(self.opt.stats.get("comparison_simplified", 0), 1)
+        assert changed
+        assert self.opt.stats.get("comparison_simplified") == 1
         instructions = list(self.block.instructions)
-        self.assertIsInstance(instructions[1], LoadConst)
+        assert isinstance(instructions[1], LoadConst)
         load_inst = instructions[1]
         assert isinstance(load_inst, LoadConst)
-        self.assertEqual(load_inst.constant.value, True)
+        assert load_inst.constant.value is True
 
     def test_greater_equal_same_value(self) -> None:
         """Test x >= x → true."""
@@ -121,13 +120,13 @@ class TestAlgebraicSimplificationComparison(unittest.TestCase):
 
         changed = self.opt.run_on_function(self.func)
 
-        self.assertTrue(changed)
-        self.assertEqual(self.opt.stats.get("comparison_simplified", 0), 1)
+        assert changed
+        assert self.opt.stats.get("comparison_simplified") == 1
         instructions = list(self.block.instructions)
-        self.assertIsInstance(instructions[1], LoadConst)
+        assert isinstance(instructions[1], LoadConst)
         load_inst = instructions[1]
         assert isinstance(load_inst, LoadConst)
-        self.assertEqual(load_inst.constant.value, True)
+        assert load_inst.constant.value is True
 
     def test_comparison_different_values_no_change(self) -> None:
         """Test that comparisons with different values are not simplified."""
@@ -140,16 +139,16 @@ class TestAlgebraicSimplificationComparison(unittest.TestCase):
 
         changed = self.opt.run_on_function(self.func)
 
-        self.assertFalse(changed)
-        self.assertEqual(self.opt.stats.get("comparison_simplified", 0), 0)
+        assert not changed
+        assert "comparison_simplified" not in self.opt.stats
         instructions = list(self.block.instructions)
-        self.assertIsInstance(instructions[2], BinaryOp)
+        assert isinstance(instructions[2], BinaryOp)
 
 
-class TestAlgebraicSimplificationBitwise(unittest.TestCase):
+class TestAlgebraicSimplificationBitwise:
     """Test bitwise operation simplifications in AlgebraicSimplification."""
 
-    def setUp(self) -> None:
+    def setup_method(self) -> None:
         """Set up test fixtures."""
         self.module = MIRModule("test")
         self.func = MIRFunction("test_func", [], MIRType.INT)
@@ -169,13 +168,13 @@ class TestAlgebraicSimplificationBitwise(unittest.TestCase):
 
         changed = self.opt.run_on_function(self.func)
 
-        self.assertTrue(changed)
-        self.assertEqual(self.opt.stats.get("bitwise_simplified", 0), 1)
+        assert changed
+        assert self.opt.stats.get("bitwise_simplified") == 1
         instructions = list(self.block.instructions)
-        self.assertIsInstance(instructions[1], LoadConst)
+        assert isinstance(instructions[1], LoadConst)
         load_inst = instructions[1]
         assert isinstance(load_inst, LoadConst)
-        self.assertEqual(load_inst.constant.value, 0)
+        assert load_inst.constant.value == 0
 
     def test_and_with_self(self) -> None:
         """Test x & x → x."""
@@ -186,13 +185,13 @@ class TestAlgebraicSimplificationBitwise(unittest.TestCase):
 
         changed = self.opt.run_on_function(self.func)
 
-        self.assertTrue(changed)
-        self.assertEqual(self.opt.stats.get("bitwise_simplified", 0), 1)
+        assert changed
+        assert self.opt.stats.get("bitwise_simplified") == 1
         instructions = list(self.block.instructions)
-        self.assertIsInstance(instructions[1], Copy)
+        assert isinstance(instructions[1], Copy)
         copy_inst = instructions[1]
         assert isinstance(copy_inst, Copy)
-        self.assertEqual(copy_inst.source, t0)
+        assert copy_inst.source == t0
 
     def test_and_with_all_ones(self) -> None:
         """Test x & -1 → x (all ones)."""
@@ -203,13 +202,13 @@ class TestAlgebraicSimplificationBitwise(unittest.TestCase):
 
         changed = self.opt.run_on_function(self.func)
 
-        self.assertTrue(changed)
-        self.assertEqual(self.opt.stats.get("bitwise_simplified", 0), 1)
+        assert changed
+        assert self.opt.stats.get("bitwise_simplified") == 1
         instructions = list(self.block.instructions)
-        self.assertIsInstance(instructions[1], Copy)
+        assert isinstance(instructions[1], Copy)
         copy_inst = instructions[1]
         assert isinstance(copy_inst, Copy)
-        self.assertEqual(copy_inst.source, t0)
+        assert copy_inst.source == t0
 
     def test_or_with_zero(self) -> None:
         """Test x | 0 → x."""
@@ -220,13 +219,13 @@ class TestAlgebraicSimplificationBitwise(unittest.TestCase):
 
         changed = self.opt.run_on_function(self.func)
 
-        self.assertTrue(changed)
-        self.assertEqual(self.opt.stats.get("bitwise_simplified", 0), 1)
+        assert changed
+        assert self.opt.stats.get("bitwise_simplified") == 1
         instructions = list(self.block.instructions)
-        self.assertIsInstance(instructions[1], Copy)
+        assert isinstance(instructions[1], Copy)
         copy_inst = instructions[1]
         assert isinstance(copy_inst, Copy)
-        self.assertEqual(copy_inst.source, t0)
+        assert copy_inst.source == t0
 
     def test_or_with_self(self) -> None:
         """Test x | x → x."""
@@ -237,13 +236,13 @@ class TestAlgebraicSimplificationBitwise(unittest.TestCase):
 
         changed = self.opt.run_on_function(self.func)
 
-        self.assertTrue(changed)
-        self.assertEqual(self.opt.stats.get("bitwise_simplified", 0), 1)
+        assert changed
+        assert self.opt.stats.get("bitwise_simplified") == 1
         instructions = list(self.block.instructions)
-        self.assertIsInstance(instructions[1], Copy)
+        assert isinstance(instructions[1], Copy)
         copy_inst = instructions[1]
         assert isinstance(copy_inst, Copy)
-        self.assertEqual(copy_inst.source, t0)
+        assert copy_inst.source == t0
 
     def test_or_with_all_ones(self) -> None:
         """Test x | -1 → -1 (all ones)."""
@@ -254,13 +253,13 @@ class TestAlgebraicSimplificationBitwise(unittest.TestCase):
 
         changed = self.opt.run_on_function(self.func)
 
-        self.assertTrue(changed)
-        self.assertEqual(self.opt.stats.get("bitwise_simplified", 0), 1)
+        assert changed
+        assert self.opt.stats.get("bitwise_simplified") == 1
         instructions = list(self.block.instructions)
-        self.assertIsInstance(instructions[1], LoadConst)
+        assert isinstance(instructions[1], LoadConst)
         load_inst = instructions[1]
         assert isinstance(load_inst, LoadConst)
-        self.assertEqual(load_inst.constant.value, -1)
+        assert load_inst.constant.value == -1
 
     def test_xor_with_zero(self) -> None:
         """Test x ^ 0 → x."""
@@ -271,13 +270,13 @@ class TestAlgebraicSimplificationBitwise(unittest.TestCase):
 
         changed = self.opt.run_on_function(self.func)
 
-        self.assertTrue(changed)
-        self.assertEqual(self.opt.stats.get("bitwise_simplified", 0), 1)
+        assert changed
+        assert self.opt.stats.get("bitwise_simplified") == 1
         instructions = list(self.block.instructions)
-        self.assertIsInstance(instructions[1], Copy)
+        assert isinstance(instructions[1], Copy)
         copy_inst = instructions[1]
         assert isinstance(copy_inst, Copy)
-        self.assertEqual(copy_inst.source, t0)
+        assert copy_inst.source == t0
 
     def test_xor_with_self(self) -> None:
         """Test x ^ x → 0."""
@@ -288,13 +287,13 @@ class TestAlgebraicSimplificationBitwise(unittest.TestCase):
 
         changed = self.opt.run_on_function(self.func)
 
-        self.assertTrue(changed)
-        self.assertEqual(self.opt.stats.get("bitwise_simplified", 0), 1)
+        assert changed
+        assert self.opt.stats.get("bitwise_simplified") == 1
         instructions = list(self.block.instructions)
-        self.assertIsInstance(instructions[1], LoadConst)
+        assert isinstance(instructions[1], LoadConst)
         load_inst = instructions[1]
         assert isinstance(load_inst, LoadConst)
-        self.assertEqual(load_inst.constant.value, 0)
+        assert load_inst.constant.value == 0
 
     def test_left_shift_zero(self) -> None:
         """Test x << 0 → x."""
@@ -305,13 +304,13 @@ class TestAlgebraicSimplificationBitwise(unittest.TestCase):
 
         changed = self.opt.run_on_function(self.func)
 
-        self.assertTrue(changed)
-        self.assertEqual(self.opt.stats.get("shift_simplified", 0), 1)
+        assert changed
+        assert self.opt.stats.get("shift_simplified") == 1
         instructions = list(self.block.instructions)
-        self.assertIsInstance(instructions[1], Copy)
+        assert isinstance(instructions[1], Copy)
         copy_inst = instructions[1]
         assert isinstance(copy_inst, Copy)
-        self.assertEqual(copy_inst.source, t0)
+        assert copy_inst.source == t0
 
     def test_right_shift_zero(self) -> None:
         """Test x >> 0 → x."""
@@ -322,19 +321,19 @@ class TestAlgebraicSimplificationBitwise(unittest.TestCase):
 
         changed = self.opt.run_on_function(self.func)
 
-        self.assertTrue(changed)
-        self.assertEqual(self.opt.stats.get("shift_simplified", 0), 1)
+        assert changed
+        assert self.opt.stats.get("shift_simplified") == 1
         instructions = list(self.block.instructions)
-        self.assertIsInstance(instructions[1], Copy)
+        assert isinstance(instructions[1], Copy)
         copy_inst = instructions[1]
         assert isinstance(copy_inst, Copy)
-        self.assertEqual(copy_inst.source, t0)
+        assert copy_inst.source == t0
 
 
-class TestAlgebraicSimplificationModulo(unittest.TestCase):
+class TestAlgebraicSimplificationModulo:
     """Test modulo operation simplifications in AlgebraicSimplification."""
 
-    def setUp(self) -> None:
+    def setup_method(self) -> None:
         """Set up test fixtures."""
         self.module = MIRModule("test")
         self.func = MIRFunction("test_func", [], MIRType.INT)
@@ -354,13 +353,13 @@ class TestAlgebraicSimplificationModulo(unittest.TestCase):
 
         changed = self.opt.run_on_function(self.func)
 
-        self.assertTrue(changed)
-        self.assertEqual(self.opt.stats.get("modulo_simplified", 0), 1)
+        assert changed
+        assert self.opt.stats.get("modulo_simplified") == 1
         instructions = list(self.block.instructions)
-        self.assertIsInstance(instructions[1], LoadConst)
+        assert isinstance(instructions[1], LoadConst)
         load_inst = instructions[1]
         assert isinstance(load_inst, LoadConst)
-        self.assertEqual(load_inst.constant.value, 0)
+        assert load_inst.constant.value == 0
 
     def test_modulo_self(self) -> None:
         """Test x % x → 0."""
@@ -371,13 +370,13 @@ class TestAlgebraicSimplificationModulo(unittest.TestCase):
 
         changed = self.opt.run_on_function(self.func)
 
-        self.assertTrue(changed)
-        self.assertEqual(self.opt.stats.get("modulo_simplified", 0), 1)
+        assert changed
+        assert self.opt.stats.get("modulo_simplified") == 1
         instructions = list(self.block.instructions)
-        self.assertIsInstance(instructions[1], LoadConst)
+        assert isinstance(instructions[1], LoadConst)
         load_inst = instructions[1]
         assert isinstance(load_inst, LoadConst)
-        self.assertEqual(load_inst.constant.value, 0)
+        assert load_inst.constant.value == 0
 
     def test_zero_modulo(self) -> None:
         """Test 0 % x → 0."""
@@ -386,13 +385,13 @@ class TestAlgebraicSimplificationModulo(unittest.TestCase):
 
         changed = self.opt.run_on_function(self.func)
 
-        self.assertTrue(changed)
-        self.assertEqual(self.opt.stats.get("modulo_simplified", 0), 1)
+        assert changed
+        assert self.opt.stats.get("modulo_simplified") == 1
         instructions = list(self.block.instructions)
-        self.assertIsInstance(instructions[0], LoadConst)
+        assert isinstance(instructions[0], LoadConst)
         load_inst = instructions[0]
         assert isinstance(load_inst, LoadConst)
-        self.assertEqual(load_inst.constant.value, 0)
+        assert load_inst.constant.value == 0
 
     def test_modulo_no_simplification(self) -> None:
         """Test that x % y with different values is not simplified."""
@@ -405,16 +404,16 @@ class TestAlgebraicSimplificationModulo(unittest.TestCase):
 
         changed = self.opt.run_on_function(self.func)
 
-        self.assertFalse(changed)
-        self.assertEqual(self.opt.stats.get("modulo_simplified", 0), 0)
+        assert not changed
+        assert "modulo_simplified" not in self.opt.stats
         instructions = list(self.block.instructions)
-        self.assertIsInstance(instructions[2], BinaryOp)
+        assert isinstance(instructions[2], BinaryOp)
 
 
-class TestAlgebraicSimplificationUnary(unittest.TestCase):
+class TestAlgebraicSimplificationUnary:
     """Test unary operation simplifications in AlgebraicSimplification."""
 
-    def setUp(self) -> None:
+    def setup_method(self) -> None:
         """Set up test fixtures."""
         self.module = MIRModule("test")
         self.func = MIRFunction("test_func", [], MIRType.INT)
@@ -440,15 +439,15 @@ class TestAlgebraicSimplificationUnary(unittest.TestCase):
 
         changed = self.opt.run_on_function(self.func)
 
-        self.assertTrue(changed)
-        self.assertEqual(self.opt.stats.get("double_negation_eliminated", 0), 1)
+        assert changed
+        assert self.opt.stats.get("double_negation_eliminated") == 1
         instructions = list(self.block.instructions)
         # The last instruction should be Copy(t2, t0, (1, 1))
-        self.assertIsInstance(instructions[2], Copy)
+        assert isinstance(instructions[2], Copy)
         copy_inst = instructions[2]
         assert isinstance(copy_inst, Copy)
-        self.assertEqual(copy_inst.source, t0)
-        self.assertEqual(copy_inst.dest, t2)
+        assert copy_inst.source == t0
+        assert copy_inst.dest == t2
 
     def test_double_not(self) -> None:
         """Test not(not(x)) → x."""
@@ -465,21 +464,21 @@ class TestAlgebraicSimplificationUnary(unittest.TestCase):
 
         changed = self.opt.run_on_function(self.func)
 
-        self.assertTrue(changed)
-        self.assertEqual(self.opt.stats.get("double_not_eliminated", 0), 1)
+        assert changed
+        assert self.opt.stats.get("double_not_eliminated") == 1
         instructions = list(self.block.instructions)
         # The last instruction should be Copy(t2, t0, (1, 1))
-        self.assertIsInstance(instructions[2], Copy)
+        assert isinstance(instructions[2], Copy)
         copy_inst = instructions[2]
         assert isinstance(copy_inst, Copy)
-        self.assertEqual(copy_inst.source, t0)
-        self.assertEqual(copy_inst.dest, t2)
+        assert copy_inst.source == t0
+        assert copy_inst.dest == t2
 
 
-class TestAlgebraicSimplificationPower(unittest.TestCase):
+class TestAlgebraicSimplificationPower:
     """Test power operation simplifications in AlgebraicSimplification."""
 
-    def setUp(self) -> None:
+    def setup_method(self) -> None:
         """Set up test fixtures."""
         self.module = MIRModule("test")
         self.func = MIRFunction("test_func", [], MIRType.INT)
@@ -500,15 +499,15 @@ class TestAlgebraicSimplificationPower(unittest.TestCase):
         changed = self.opt.run_on_function(self.func)
 
         # Should simplify to t0 = 1
-        self.assertTrue(changed)
-        self.assertEqual(self.opt.stats.get("power_simplified", 0), 1)
+        assert changed
+        assert self.opt.stats.get("power_simplified") == 1
 
         # Check that the power op was replaced with LoadConst(1)
         instructions = list(self.block.instructions)
-        self.assertIsInstance(instructions[0], LoadConst)
+        assert isinstance(instructions[0], LoadConst)
         load_inst = instructions[0]
         assert isinstance(load_inst, LoadConst)
-        self.assertEqual(load_inst.constant.value, 1)
+        assert load_inst.constant.value == 1
 
     def test_power_one_simplification(self) -> None:
         """Test x ** 1 → x."""
@@ -523,15 +522,15 @@ class TestAlgebraicSimplificationPower(unittest.TestCase):
         changed = self.opt.run_on_function(self.func)
 
         # Should simplify to t1 = t0
-        self.assertTrue(changed)
-        self.assertEqual(self.opt.stats.get("power_simplified", 0), 1)
+        assert changed
+        assert self.opt.stats.get("power_simplified") == 1
 
         # Check that the power op was replaced with Copy
         instructions = list(self.block.instructions)
-        self.assertIsInstance(instructions[1], Copy)
+        assert isinstance(instructions[1], Copy)
         copy_inst = instructions[1]
         assert isinstance(copy_inst, Copy)
-        self.assertEqual(copy_inst.source, t0)
+        assert copy_inst.source == t0
 
     def test_power_two_to_multiply(self) -> None:
         """Test x ** 2 → x * x."""
@@ -546,17 +545,17 @@ class TestAlgebraicSimplificationPower(unittest.TestCase):
         changed = self.opt.run_on_function(self.func)
 
         # Should convert to t1 = t0 * t0
-        self.assertTrue(changed)
-        self.assertEqual(self.opt.stats.get("power_to_multiply", 0), 1)
+        assert changed
+        assert self.opt.stats.get("power_to_multiply") == 1
 
         # Check that the power op was replaced with multiply
         instructions = list(self.block.instructions)
-        self.assertIsInstance(instructions[1], BinaryOp)
+        assert isinstance(instructions[1], BinaryOp)
         binary_inst = instructions[1]
         assert isinstance(binary_inst, BinaryOp)
-        self.assertEqual(binary_inst.op, "*")
-        self.assertEqual(binary_inst.left, t0)
-        self.assertEqual(binary_inst.right, t0)
+        assert binary_inst.op == "*"
+        assert binary_inst.left == t0
+        assert binary_inst.right == t0
 
     def test_zero_power_simplification(self) -> None:
         """Test 0 ** x → 0 (for x > 0)."""
@@ -568,15 +567,15 @@ class TestAlgebraicSimplificationPower(unittest.TestCase):
         changed = self.opt.run_on_function(self.func)
 
         # Should simplify to t0 = 0
-        self.assertTrue(changed)
-        self.assertEqual(self.opt.stats.get("power_simplified", 0), 1)
+        assert changed
+        assert self.opt.stats.get("power_simplified") == 1
 
         # Check that the power op was replaced with LoadConst(0)
         instructions = list(self.block.instructions)
-        self.assertIsInstance(instructions[0], LoadConst)
+        assert isinstance(instructions[0], LoadConst)
         load_inst = instructions[0]
         assert isinstance(load_inst, LoadConst)
-        self.assertEqual(load_inst.constant.value, 0)
+        assert load_inst.constant.value == 0
 
     def test_one_power_simplification(self) -> None:
         """Test 1 ** x → 1."""
@@ -588,15 +587,15 @@ class TestAlgebraicSimplificationPower(unittest.TestCase):
         changed = self.opt.run_on_function(self.func)
 
         # Should simplify to t0 = 1
-        self.assertTrue(changed)
-        self.assertEqual(self.opt.stats.get("power_simplified", 0), 1)
+        assert changed
+        assert self.opt.stats.get("power_simplified") == 1
 
         # Check that the power op was replaced with LoadConst(1)
         instructions = list(self.block.instructions)
-        self.assertIsInstance(instructions[0], LoadConst)
+        assert isinstance(instructions[0], LoadConst)
         load_inst = instructions[0]
         assert isinstance(load_inst, LoadConst)
-        self.assertEqual(load_inst.constant.value, 1)
+        assert load_inst.constant.value == 1
 
     def test_power_no_simplification(self) -> None:
         """Test that x ** 3 is not simplified (no rule for it)."""
@@ -608,22 +607,22 @@ class TestAlgebraicSimplificationPower(unittest.TestCase):
         changed = self.opt.run_on_function(self.func)
 
         # Should not change (no rule for x ** 3)
-        self.assertFalse(changed)
-        self.assertEqual(self.opt.stats.get("power_simplified", 0), 0)
-        self.assertEqual(self.opt.stats.get("power_to_multiply", 0), 0)
+        assert not changed
+        assert "power_simplified" not in self.opt.stats
+        assert "power_to_multiply" not in self.opt.stats
 
         # The power op should still be there
         instructions = list(self.block.instructions)
-        self.assertIsInstance(instructions[0], BinaryOp)
+        assert isinstance(instructions[0], BinaryOp)
         binary_inst = instructions[0]
         assert isinstance(binary_inst, BinaryOp)
-        self.assertEqual(binary_inst.op, "**")
+        assert binary_inst.op == "**"
 
 
-class TestStrengthReductionArithmetic(unittest.TestCase):
+class TestStrengthReductionArithmetic:
     """Test arithmetic simplifications in StrengthReduction."""
 
-    def setUp(self) -> None:
+    def setup_method(self) -> None:
         """Set up test fixtures."""
         self.module = MIRModule("test")
         self.func = MIRFunction("test_func", [], MIRType.INT)
@@ -647,14 +646,14 @@ class TestStrengthReductionArithmetic(unittest.TestCase):
         changed = self.opt.run_on_function(self.func)
 
         # Should simplify to t1 = t0
-        self.assertTrue(changed)
+        assert changed
 
         # Check that the add was replaced with Copy
         instructions = list(self.block.instructions)
-        self.assertIsInstance(instructions[1], Copy)
+        assert isinstance(instructions[1], Copy)
         copy_inst = instructions[1]
         assert isinstance(copy_inst, Copy)
-        self.assertEqual(copy_inst.source, t0)
+        assert copy_inst.source == t0
 
     def test_multiply_by_zero(self) -> None:
         """Test x * 0 → 0 and 0 * x → 0."""
@@ -666,14 +665,14 @@ class TestStrengthReductionArithmetic(unittest.TestCase):
         changed = self.opt.run_on_function(self.func)
 
         # Should simplify to t0 = 0
-        self.assertTrue(changed)
+        assert changed
 
         # Check that the multiply was replaced with LoadConst(0)
         instructions = list(self.block.instructions)
-        self.assertIsInstance(instructions[0], LoadConst)
+        assert isinstance(instructions[0], LoadConst)
         load_inst = instructions[0]
         assert isinstance(load_inst, LoadConst)
-        self.assertEqual(load_inst.constant.value, 0)
+        assert load_inst.constant.value == 0
 
     def test_multiply_by_one(self) -> None:
         """Test x * 1 → x and 1 * x → x."""
@@ -688,14 +687,14 @@ class TestStrengthReductionArithmetic(unittest.TestCase):
         changed = self.opt.run_on_function(self.func)
 
         # Should simplify to t1 = t0
-        self.assertTrue(changed)
+        assert changed
 
         # Check that the multiply was replaced with Copy
         instructions = list(self.block.instructions)
-        self.assertIsInstance(instructions[1], Copy)
+        assert isinstance(instructions[1], Copy)
         copy_inst = instructions[1]
         assert isinstance(copy_inst, Copy)
-        self.assertEqual(copy_inst.source, t0)
+        assert copy_inst.source == t0
 
     def test_subtract_self(self) -> None:
         """Test x - x → 0."""
@@ -710,14 +709,14 @@ class TestStrengthReductionArithmetic(unittest.TestCase):
         changed = self.opt.run_on_function(self.func)
 
         # Should simplify to t1 = 0
-        self.assertTrue(changed)
+        assert changed
 
         # Check that the subtract was replaced with LoadConst(0)
         instructions = list(self.block.instructions)
-        self.assertIsInstance(instructions[1], LoadConst)
+        assert isinstance(instructions[1], LoadConst)
         load_inst = instructions[1]
         assert isinstance(load_inst, LoadConst)
-        self.assertEqual(load_inst.constant.value, 0)
+        assert load_inst.constant.value == 0
 
     def test_divide_by_one(self) -> None:
         """Test x / 1 → x."""
@@ -732,14 +731,14 @@ class TestStrengthReductionArithmetic(unittest.TestCase):
         changed = self.opt.run_on_function(self.func)
 
         # Should simplify to t1 = t0
-        self.assertTrue(changed)
+        assert changed
 
         # Check that the divide was replaced with Copy
         instructions = list(self.block.instructions)
-        self.assertIsInstance(instructions[1], Copy)
+        assert isinstance(instructions[1], Copy)
         copy_inst = instructions[1]
         assert isinstance(copy_inst, Copy)
-        self.assertEqual(copy_inst.source, t0)
+        assert copy_inst.source == t0
 
     def test_divide_self(self) -> None:
         """Test x / x → 1 (for x != 0)."""
@@ -754,20 +753,20 @@ class TestStrengthReductionArithmetic(unittest.TestCase):
         changed = self.opt.run_on_function(self.func)
 
         # Should simplify to t1 = 1
-        self.assertTrue(changed)
+        assert changed
 
         # Check that the divide was replaced with LoadConst(1)
         instructions = list(self.block.instructions)
-        self.assertIsInstance(instructions[1], LoadConst)
+        assert isinstance(instructions[1], LoadConst)
         load_inst = instructions[1]
         assert isinstance(load_inst, LoadConst)
-        self.assertEqual(load_inst.constant.value, 1)
+        assert load_inst.constant.value == 1
 
 
-class TestStrengthReductionBoolean(unittest.TestCase):
+class TestStrengthReductionBoolean:
     """Test boolean operation simplifications in StrengthReduction."""
 
-    def setUp(self) -> None:
+    def setup_method(self) -> None:
         """Set up test fixtures."""
         self.module = MIRModule("test")
         self.func = MIRFunction("test_func", [], MIRType.BOOL)
@@ -791,14 +790,14 @@ class TestStrengthReductionBoolean(unittest.TestCase):
         changed = self.opt.run_on_function(self.func)
 
         # Should simplify to t1 = t0
-        self.assertTrue(changed)
+        assert changed
 
         # Check that the and was replaced with Copy
         instructions = list(self.block.instructions)
-        self.assertIsInstance(instructions[1], Copy)
+        assert isinstance(instructions[1], Copy)
         copy_inst = instructions[1]
         assert isinstance(copy_inst, Copy)
-        self.assertEqual(copy_inst.source, t0)
+        assert copy_inst.source == t0
 
     def test_and_with_false(self) -> None:
         """Test x and false → false."""
@@ -812,14 +811,14 @@ class TestStrengthReductionBoolean(unittest.TestCase):
         changed = self.opt.run_on_function(self.func)
 
         # Should simplify to t0 = false
-        self.assertTrue(changed)
+        assert changed
 
         # Check that the and was replaced with LoadConst(False)
         instructions = list(self.block.instructions)
-        self.assertIsInstance(instructions[0], LoadConst)
+        assert isinstance(instructions[0], LoadConst)
         load_inst = instructions[0]
         assert isinstance(load_inst, LoadConst)
-        self.assertEqual(load_inst.constant.value, False)
+        assert load_inst.constant.value is False
 
     def test_or_with_false(self) -> None:
         """Test x or false → x."""
@@ -834,14 +833,14 @@ class TestStrengthReductionBoolean(unittest.TestCase):
         changed = self.opt.run_on_function(self.func)
 
         # Should simplify to t1 = t0
-        self.assertTrue(changed)
+        assert changed
 
         # Check that the or was replaced with Copy
         instructions = list(self.block.instructions)
-        self.assertIsInstance(instructions[1], Copy)
+        assert isinstance(instructions[1], Copy)
         copy_inst = instructions[1]
         assert isinstance(copy_inst, Copy)
-        self.assertEqual(copy_inst.source, t0)
+        assert copy_inst.source == t0
 
     def test_or_with_true(self) -> None:
         """Test x or true → true."""
@@ -855,15 +854,11 @@ class TestStrengthReductionBoolean(unittest.TestCase):
         changed = self.opt.run_on_function(self.func)
 
         # Should simplify to t0 = true
-        self.assertTrue(changed)
+        assert changed
 
         # Check that the or was replaced with LoadConst(True)
         instructions = list(self.block.instructions)
-        self.assertIsInstance(instructions[0], LoadConst)
+        assert isinstance(instructions[0], LoadConst)
         load_inst = instructions[0]
         assert isinstance(load_inst, LoadConst)
-        self.assertEqual(load_inst.constant.value, True)
-
-
-if __name__ == "__main__":
-    unittest.main()
+        assert load_inst.constant.value is True

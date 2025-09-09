@@ -1,44 +1,43 @@
 """Simplified tests for HIR to MIR lowering without token dependencies."""
 
-import unittest
 
 from machine_dialect.mir.hir_to_mir import HIRToMIRLowering
 from machine_dialect.mir.mir_types import MIRType
 
 
-class TestHIRToMIRSimple(unittest.TestCase):
+class TestHIRToMIRSimple:
     """Simplified tests for HIR to MIR lowering."""
 
     def test_lowering_initialization(self) -> None:
         """Test that the lowering class can be initialized."""
         lowerer = HIRToMIRLowering()
-        self.assertIsNone(lowerer.module)
-        self.assertIsNone(lowerer.current_function)
-        self.assertIsNone(lowerer.current_block)
-        self.assertEqual(lowerer.variable_map, {})
-        self.assertEqual(lowerer.label_counter, 0)
+        assert lowerer.module is None
+        assert lowerer.current_function is None
+        assert lowerer.current_block is None
+        assert lowerer.variable_map == {}
+        assert lowerer.label_counter == 0
 
     def test_generate_label(self) -> None:
         """Test label generation."""
         lowerer = HIRToMIRLowering()
 
         label1 = lowerer.generate_label("test")
-        self.assertEqual(label1, "test_0")
+        assert label1 == "test_0"
 
         label2 = lowerer.generate_label("test")
-        self.assertEqual(label2, "test_1")
+        assert label2 == "test_1"
 
         label3 = lowerer.generate_label("loop")
-        self.assertEqual(label3, "loop_2")
+        assert label3 == "loop_2"
 
     def test_mir_module_creation(self) -> None:
         """Test that a MIR module can be created."""
         from machine_dialect.mir.mir_module import MIRModule
 
         module = MIRModule("test_module")
-        self.assertEqual(module.name, "test_module")
-        self.assertEqual(len(module.functions), 0)
-        self.assertIsNone(module.main_function)
+        assert module.name == "test_module"
+        assert len(module.functions) == 0
+        assert module.main_function is None
 
     def test_mir_function_creation(self) -> None:
         """Test that a MIR function can be created."""
@@ -48,10 +47,10 @@ class TestHIRToMIRSimple(unittest.TestCase):
         params = [Variable("x", MIRType.INT), Variable("y", MIRType.INT)]
         func = MIRFunction("add", params, MIRType.INT)
 
-        self.assertEqual(func.name, "add")
-        self.assertEqual(len(func.params), 2)
-        self.assertEqual(func.return_type, MIRType.INT)
-        self.assertIsNotNone(func.cfg)
+        assert func.name == "add"
+        assert len(func.params) == 2
+        assert func.return_type == MIRType.INT
+        assert func.cfg is not None
 
     def test_basic_lowering_flow(self) -> None:
         """Test the basic flow of lowering without actual AST nodes."""
@@ -81,17 +80,17 @@ class TestHIRToMIRSimple(unittest.TestCase):
         module.set_main_function("main")
 
         # Verify structure
-        self.assertEqual(module.name, "test")
-        self.assertEqual(len(module.functions), 1)
-        self.assertEqual(module.main_function, "main")
+        assert module.name == "test"
+        assert len(module.functions) == 1
+        assert module.main_function == "main"
 
         main_func = module.get_function("main")
         assert main_func is not None
         assert main_func.cfg.entry_block is not None
 
-        self.assertEqual(len(main_func.cfg.entry_block.instructions), 2)
-        self.assertIsInstance(main_func.cfg.entry_block.instructions[0], LoadConst)
-        self.assertIsInstance(main_func.cfg.entry_block.instructions[1], Return)
+        assert len(main_func.cfg.entry_block.instructions) == 2
+        assert isinstance(main_func.cfg.entry_block.instructions[0], LoadConst)
+        assert isinstance(main_func.cfg.entry_block.instructions[1], Return)
 
     def test_control_flow_structure(self) -> None:
         """Test creating control flow structures in MIR."""
@@ -127,10 +126,6 @@ class TestHIRToMIRSimple(unittest.TestCase):
         func.cfg.connect(else_block, merge_block)
 
         # Verify structure
-        self.assertEqual(len(func.cfg.blocks), 4)
-        self.assertEqual(len(entry.successors), 2)
-        self.assertEqual(len(merge_block.predecessors), 2)
-
-
-if __name__ == "__main__":
-    unittest.main()
+        assert len(func.cfg.blocks) == 4
+        assert len(entry.successors) == 2
+        assert len(merge_block.predecessors) == 2

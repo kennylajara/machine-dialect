@@ -29,10 +29,10 @@
 - `result`
 
 Define `m` as Whole Number.
-Set `m` to _4_.
+Set `m` to _10_.
 
 Define `final result` as Whole Number.
 Set `final result` using `Fibonacci` with `m`.
 
-Say _"Fibonacci of 4 is:"_.
+Say _"Fibonacci of 10 is:"_.
 Say `final result`.

@@ -88,6 +88,13 @@ class FunctionInlining(ModulePass):
         self.stats = {"inlined": 0, "call_sites_processed": 0}
         self.inlining_depth: dict[str, int] = defaultdict(int)
 
+    def initialize(self) -> None:
+        """Initialize the pass before running."""
+        super().initialize()
+        # Re-initialize stats after base class clears them
+        self.stats = {"inlined": 0, "call_sites_processed": 0}
+        self.inlining_depth = defaultdict(int)
+
     def get_info(self) -> PassInfo:
         """Get pass information.
 

@@ -1,5 +1,27 @@
 #!/usr/bin/env python3
-"""Generate Machine Dialect code using AI models."""
+"""Generate Machine Dialect code using AI models.
+
+This module provides functionality to generate Machine Dialect code using
+AI language models (such as OpenAI's GPT models). It includes code generation,
+validation, and configuration management for AI API integration.
+
+The module supports:
+- Generating Machine Dialect code from natural language descriptions
+- Validating generated code against the CFG parser
+- Flexible configuration through environment variables or config files
+- Command-line interface for code generation tasks
+- Saving generated code to files
+
+Note:
+    OpenAI integration is currently commented out. Uncomment the relevant
+    sections when the OpenAI library is installed.
+
+Example:
+    Generate code from the command line::
+
+        $ python -m machine_dialect.cfg.generate_with_ai "calculate rectangle area"
+        $ python -m machine_dialect.cfg.generate_with_ai "sort a list" --model gpt-4
+"""
 
 import argparse
 
@@ -30,6 +52,19 @@ def generate_code(
 
     Returns:
         Generated Machine Dialect code.
+
+    Raises:
+        ValueError: If API key or model is not configured.
+
+    Example:
+        >>> code = generate_code(
+        ...     "calculate area",
+        ...     model="gpt-3.5-turbo",
+        ...     temperature=0.5
+        ... )
+        >>> print(code)
+        Set `width` to 10.
+        ...
     """
     # Load configuration
     loader = ConfigLoader()
@@ -98,7 +133,21 @@ Say area."""
 
 
 def main() -> int:
-    """Main entry point for the script."""
+    """Main entry point for the AI code generation script.
+
+    Parses command-line arguments and generates Machine Dialect code
+    based on the provided task description. Supports configuration
+    overrides, validation, and saving output to files.
+
+    Returns:
+        Exit code: 0 for success, 1 for errors.
+
+    Example:
+        >>> # Generate code for calculating area
+        >>> sys.argv = ['prog', 'calculate area of rectangle']
+        >>> main()
+        0
+    """
     parser = argparse.ArgumentParser(description="Generate Machine Dialect code using AI models")
     parser.add_argument("task", help="Description of what the code should do")
     parser.add_argument("--api-key", help="AI API key (overrides config/env)")

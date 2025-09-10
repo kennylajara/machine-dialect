@@ -28,10 +28,15 @@ class REPL:
     by parsing input and displaying the AST or tokens.
 
     Attributes:
-        prompt (str): The prompt string displayed to the user.
-        running (bool): Flag indicating whether the REPL is running.
-        debug_tokens (bool): Whether to show tokens instead of AST.
-        accumulated_source (str): Accumulated source code for parsing.
+        prompt: The prompt string displayed to the user.
+        running: Flag indicating whether the REPL is running.
+        debug_tokens: Whether to show tokens instead of AST.
+        show_ast: Whether to show AST instead of evaluating.
+        accumulated_source: Accumulated source code for parsing.
+        multiline_buffer: Buffer for collecting multi-line input.
+        in_multiline_mode: Whether currently collecting multi-line input.
+        hir_phase: HIR generation phase for desugaring AST nodes.
+        vm_runner: Optional VM runner for code execution.
     """
 
     def __init__(self, debug_tokens: bool = False, show_ast: bool = False) -> None:
@@ -279,7 +284,14 @@ class REPL:
                 print()
 
     def run(self) -> int:
-        """Main REPL loop. Returns exit code."""
+        """Run the main REPL loop.
+
+        Handles user input, command processing, and multi-line input collection.
+        Continues until the user exits or an unhandled error occurs.
+
+        Returns:
+            Exit code (0 for normal exit, 1 for error exit).
+        """
         self.print_welcome()
 
         while self.running:
@@ -379,7 +391,11 @@ class REPL:
 
 
 def main() -> None:
-    """Entry point for the REPL."""
+    """Entry point for the Machine Dialect REPL.
+
+    Parses command line arguments and starts the appropriate REPL mode.
+    Supports token debug mode and AST display mode via command line flags.
+    """
     parser = argparse.ArgumentParser(description="Machine Dialect REPL")
     parser.add_argument(
         "--debug-tokens",

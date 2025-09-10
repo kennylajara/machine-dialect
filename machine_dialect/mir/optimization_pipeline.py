@@ -38,13 +38,21 @@ class OptimizationPipeline:
     """Manages optimization pipelines for different optimization levels."""
 
     def __init__(self) -> None:
-        """Initialize the optimization pipeline."""
+        """Initialize the optimization pipeline.
+
+        Creates a pass manager and registers all available optimization
+        and analysis passes.
+        """
         self.pass_manager = PassManager()
         self._register_all_passes()
         self.stats: dict[str, Any] = {}
 
     def _register_all_passes(self) -> None:
-        """Register all available passes with the pass manager."""
+        """Register all available passes with the pass manager.
+
+        Registers both analysis passes (dominance, loop, use-def chains)
+        and optimization passes (constant propagation, DCE, CSE, etc.).
+        """
         # Register analysis passes
         self.pass_manager.register_pass(DominanceAnalysis)
         self.pass_manager.register_pass(LoopAnalysis)
@@ -214,7 +222,8 @@ class OptimizationPipeline:
         """Get statistics from the last optimization run.
 
         Returns:
-            Dictionary of statistics.
+            Dictionary containing optimization level, passes run,
+            total modifications made, and per-pass statistics.
         """
         return self.stats
 
@@ -223,7 +232,10 @@ class PipelineBuilder:
     """Builder for creating custom optimization pipelines."""
 
     def __init__(self) -> None:
-        """Initialize the pipeline builder."""
+        """Initialize the pipeline builder.
+
+        Creates an empty pipeline ready for pass configuration.
+        """
         self.passes: list[str] = []
         self.pass_configs: dict[str, dict[str, Any]] = {}
 
@@ -294,30 +306,50 @@ class PipelineBuilder:
 
 # Convenience functions
 def create_o0_pipeline() -> OptimizationPipeline:
-    """Create a pipeline with no optimization."""
+    """Create a pipeline with no optimization.
+
+    Returns:
+        Pipeline configured for O0 (no optimization passes).
+    """
     pipeline = OptimizationPipeline()
     return pipeline
 
 
 def create_o1_pipeline() -> OptimizationPipeline:
-    """Create a pipeline with basic optimization."""
+    """Create a pipeline with basic optimization.
+
+    Returns:
+        Pipeline configured for O1 (fast, simple optimizations).
+    """
     pipeline = OptimizationPipeline()
     return pipeline
 
 
 def create_o2_pipeline() -> OptimizationPipeline:
-    """Create a pipeline with standard optimization."""
+    """Create a pipeline with standard optimization.
+
+    Returns:
+        Pipeline configured for O2 (balanced performance/compile time).
+    """
     pipeline = OptimizationPipeline()
     return pipeline
 
 
 def create_o3_pipeline() -> OptimizationPipeline:
-    """Create a pipeline with aggressive optimization."""
+    """Create a pipeline with aggressive optimization.
+
+    Returns:
+        Pipeline configured for O3 (maximum performance optimization).
+    """
     pipeline = OptimizationPipeline()
     return pipeline
 
 
 def create_size_pipeline() -> OptimizationPipeline:
-    """Create a pipeline optimized for code size."""
+    """Create a pipeline optimized for code size.
+
+    Returns:
+        Pipeline configured for Os (minimize code size).
+    """
     pipeline = OptimizationPipeline()
     return pipeline

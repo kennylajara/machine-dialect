@@ -54,7 +54,11 @@ class GenericType:
     concrete_type: MIRType | None = None
 
     def is_bound(self) -> bool:
-        """Check if generic type is bound to concrete type."""
+        """Check if generic type is bound to concrete type.
+
+        Returns:
+            True if bound to a concrete type, False otherwise.
+        """
         return self.concrete_type is not None
 
     def bind(self, mir_type: MIRType) -> bool:
@@ -119,7 +123,7 @@ class TypeInfo:
         """Get the concrete type.
 
         Returns:
-            The concrete MIR type.
+            The concrete MIR type, or base type if not generic/bound.
         """
         if self.is_generic and self.generic_type and self.generic_type.is_bound():
             concrete = self.generic_type.concrete_type
@@ -147,7 +151,7 @@ class TypeEnvironment:
             value: The value to query.
 
         Returns:
-            Type information or None.
+            Type information if available, None otherwise.
         """
         return self.types.get(value)
 
@@ -167,7 +171,7 @@ class TypeEnvironment:
             other: The other environment to merge.
 
         Returns:
-            Merged environment.
+            New environment containing merged type information.
         """
         merged = TypeEnvironment()
 
@@ -213,7 +217,7 @@ class TypeAnalysis(FunctionAnalysisPass):
         """Get pass information.
 
         Returns:
-            Pass information.
+            Pass metadata including name, description, and dependencies.
         """
         return PassInfo(
             name="type-analysis",
@@ -224,7 +228,11 @@ class TypeAnalysis(FunctionAnalysisPass):
         )
 
     def finalize(self) -> None:
-        """Finalize the analysis."""
+        """Finalize the analysis.
+
+        Note:
+            Currently performs no finalization actions.
+        """
         pass
 
     def run_on_function(self, function: MIRFunction) -> TypeEnvironment:
@@ -341,7 +349,7 @@ class TypeAnalysis(FunctionAnalysisPass):
             env: Current type environment.
 
         Returns:
-            Type information.
+            Type information from environment or inferred from value.
         """
         # Check environment first
         type_info = env.get_type(value)

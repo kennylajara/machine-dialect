@@ -12,7 +12,16 @@ from machine_dialect.compiler.pipeline import CompilationPipeline
 
 
 class Compiler:
-    """Main compiler class for Machine Dialect."""
+    """Main compiler class for Machine Dialect.
+
+    Manages the entire compilation process from source files to bytecode,
+    including lexing, parsing, HIR/MIR generation, optimization, and
+    bytecode generation.
+
+    Attributes:
+        config: Compiler configuration settings.
+        pipeline: Compilation pipeline instance.
+    """
 
     def __init__(self, config: CompilerConfig | None = None) -> None:
         """Initialize the compiler.
@@ -28,14 +37,19 @@ class Compiler:
         source_path: str | Path,
         output_path: str | Path | None = None,
     ) -> bool:
-        """Compile a source file.
+        """Compile a Machine Dialect source file to bytecode.
 
         Args:
-            source_path: Path to source file.
-            output_path: Optional output path.
+            source_path: Path to the .md source file to compile.
+            output_path: Optional output path for compiled bytecode.
+                If not provided, uses config default or derives from source.
 
         Returns:
-            True if compilation succeeded.
+            True if compilation succeeded without errors.
+
+        Raises:
+            FileNotFoundError: If source file doesn't exist.
+            PermissionError: If unable to write output file.
         """
         source_path = Path(source_path)
 
@@ -98,13 +112,16 @@ class Compiler:
         return self.pipeline.compile(context)
 
     def _save_module(self, context: CompilationContext) -> bool:
-        """Save compiled bytecode module.
+        """Save compiled bytecode module to disk.
 
         Args:
-            context: Compilation context.
+            context: Compilation context containing bytecode module.
 
         Returns:
-            True if save succeeded.
+            True if save succeeded, False otherwise.
+
+        Note:
+            Errors during save are added to the compilation context.
         """
         if not context.bytecode_module:
             return False
@@ -130,10 +147,14 @@ class Compiler:
             return False
 
     def _show_disassembly(self, context: CompilationContext) -> None:
-        """Show disassembly of compiled module.
+        """Display human-readable disassembly of compiled bytecode.
 
         Args:
-            context: Compilation context.
+            context: Compilation context containing bytecode module.
+
+        Note:
+            Currently placeholder - disassembly for register-based
+            bytecode is not yet implemented.
         """
         if not context.bytecode_module:
             return
@@ -143,10 +164,13 @@ class Compiler:
         print("Disassembly not yet implemented for register-based bytecode")
 
     def _print_success(self, context: CompilationContext) -> None:
-        """Print success message.
+        """Print detailed compilation success summary.
 
         Args:
-            context: Compilation context.
+            context: Compilation context containing statistics and results.
+
+        Note:
+            Only called when verbose mode is enabled in config.
         """
         stats = context.get_statistics()
 

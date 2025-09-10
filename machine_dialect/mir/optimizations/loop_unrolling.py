@@ -26,10 +26,20 @@ from machine_dialect.mir.optimization_pass import (
 
 
 class LoopUnrolling(OptimizationPass):
-    """Unroll small loops to reduce overhead."""
+    """Unroll small loops to reduce overhead.
+
+    Attributes:
+        unroll_threshold: Maximum unroll factor for loops.
+        max_body_size: Maximum number of instructions in loop body.
+        stats: Dictionary tracking optimization statistics.
+    """
 
     def __init__(self) -> None:
-        """Initialize loop unrolling pass."""
+        """Initialize loop unrolling pass.
+
+        Sets default unroll threshold to 4 and maximum body size to 20
+        instructions. Initializes statistics tracking.
+        """
         super().__init__()
         self.unroll_threshold = 4  # Default unroll factor
         self.max_body_size = 20  # Maximum instructions in loop body
@@ -39,7 +49,7 @@ class LoopUnrolling(OptimizationPass):
         """Get pass information.
 
         Returns:
-            Pass information.
+            PassInfo object describing this optimization pass.
         """
         return PassInfo(
             name="loop-unrolling",
@@ -88,10 +98,10 @@ class LoopUnrolling(OptimizationPass):
         """Get loops ordered from innermost to outermost.
 
         Args:
-            loops: List of loops.
+            loops: List of loops to order.
 
         Returns:
-            Ordered list of loops.
+            Loops sorted by depth in descending order.
         """
         return sorted(loops, key=lambda loop: loop.depth, reverse=True)
 
@@ -126,7 +136,11 @@ class LoopUnrolling(OptimizationPass):
             function: The containing function.
 
         Returns:
-            Iteration count or None if unknown.
+            Number of iterations if determinable, None otherwise.
+
+        Note:
+            Currently implements a simple heuristic that looks for
+            patterns like 'i = 0; while i < N; i++' with constant bounds.
         """
         # Simple heuristic: look for loops with constant bounds
         # This is a simplified version - real implementation would be more sophisticated
@@ -156,11 +170,11 @@ class LoopUnrolling(OptimizationPass):
         """Find the instruction that defines a value.
 
         Args:
-            value: The value to find.
-            block: The block to search.
+            value: The value whose definition to find.
+            block: The basic block to search in.
 
         Returns:
-            Defining instruction or None.
+            The instruction that defines the value, or None if not found.
         """
         for inst in block.instructions:
             if value in inst.get_defs():
@@ -173,10 +187,14 @@ class LoopUnrolling(OptimizationPass):
         Args:
             loop: The loop to unroll.
             function: The containing function.
-            transformer: MIR transformer.
+            transformer: MIR transformer for applying changes.
 
         Returns:
-            True if the loop was unrolled.
+            True if the loop was successfully unrolled.
+
+        Note:
+            Implements partial unrolling by duplicating the loop body
+            up to the unroll factor, limited to 4 iterations.
         """
         unroll_factor = min(self.unroll_threshold, 4)  # Limit unrolling
 
@@ -215,11 +233,11 @@ class LoopUnrolling(OptimizationPass):
         """Clone a basic block with a new label.
 
         Args:
-            block: Block to clone.
-            suffix: Suffix for the new label.
+            block: Basic block to clone.
+            suffix: Suffix to append to the new block's label.
 
         Returns:
-            Cloned block.
+            New BasicBlock instance with cloned instructions.
         """
         new_label = block.label + suffix
         new_block = BasicBlock(new_label)
@@ -236,10 +254,14 @@ class LoopUnrolling(OptimizationPass):
 
         Args:
             inst: Instruction to clone.
-            suffix: Suffix for labels.
+            suffix: Suffix for updating labels.
 
         Returns:
-            Cloned instruction.
+            Deep copy of the instruction.
+
+        Note:
+            Currently preserves original jump targets. A more complete
+            implementation would update these based on the suffix.
         """
         # Deep copy the instruction
         new_inst = deepcopy(inst)
@@ -265,9 +287,14 @@ class LoopUnrolling(OptimizationPass):
 
         Args:
             loop: The original loop.
-            new_blocks: New unrolled blocks.
+            new_blocks: New unrolled blocks to connect.
             original_body: Original loop body blocks.
-            unroll_factor: How many times we unrolled.
+            unroll_factor: Number of times the loop was unrolled.
+
+        Note:
+            This is a simplified implementation that chains blocks
+            sequentially. A complete implementation would handle
+            complex control flow graphs.
         """
         # This is simplified - real implementation would handle complex CFGs
         # For now, we just chain the blocks sequentially
@@ -300,8 +327,12 @@ class LoopUnrolling(OptimizationPass):
         """Update the loop increment to account for unrolling.
 
         Args:
-            loop: The loop.
-            unroll_factor: How many times we unrolled.
+            loop: The loop whose increment to update.
+            unroll_factor: Number of times the loop was unrolled.
+
+        Note:
+            Searches for increment patterns like 'i = i + 1' and
+            updates them to increment by the unroll factor.
         """
         # Find and update the loop counter increment
         # This is simplified - real implementation would be more sophisticated
@@ -316,7 +347,10 @@ class LoopUnrolling(OptimizationPass):
                         inst.right = new_const
 
     def finalize(self) -> None:
-        """Finalize the pass."""
+        """Finalize the pass.
+
+        Currently performs no finalization actions.
+        """
         pass
 
     def get_statistics(self) -> dict[str, int]:

@@ -19,7 +19,13 @@ class SymbolType(Enum):
 
 @dataclass
 class Symbol:
-    """Represents a symbol in the symbol table."""
+    """Represents a symbol in the symbol table.
+
+    Attributes:
+        name: The symbol's identifier name.
+        symbol_type: The type of symbol (local, global, or parameter).
+        slot: Slot index for locals/parameters, -1 for globals.
+    """
 
     name: str
     symbol_type: SymbolType

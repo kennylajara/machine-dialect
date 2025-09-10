@@ -272,3 +272,28 @@ class TestIfStatements:
         assert isinstance(if_stmt2.condition, YesNoLiteral)
         assert if_stmt2.condition.value is False
         assert if_stmt2.alternative is not None
+
+    def test_if_statements_with_empty_lines(self) -> None:
+        """Test parsing multiple if statements in sequence."""
+        source = """
+        if No then:
+        >
+        > Set y to 2.
+        >
+        else:
+        >
+        > Set y to 3.
+        >
+        """
+        parser = Parser()
+        program = parser.parse(source)
+
+        assert len(program.statements) == 1
+        assert all(isinstance(stmt, IfStatement) for stmt in program.statements)
+
+        # If statement
+        if_stmt = program.statements[0]
+        assert isinstance(if_stmt, IfStatement)
+        assert isinstance(if_stmt.condition, YesNoLiteral)
+        assert if_stmt.condition.value is False
+        assert if_stmt.alternative is not None

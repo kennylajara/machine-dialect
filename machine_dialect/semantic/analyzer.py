@@ -24,6 +24,7 @@ from machine_dialect.ast import (
     YesNoLiteral,
 )
 from machine_dialect.errors.exceptions import MDException, MDNameError, MDTypeError, MDUninitializedError
+from machine_dialect.parser.parser import TYPING_MAP
 from machine_dialect.parser.symbol_table import SymbolTable
 from machine_dialect.semantic.error_messages import ErrorMessageGenerator
 
@@ -183,22 +184,9 @@ class SemanticAnalyzer:
 
         # Validate type names
         for type_name in stmt.type_spec:
-            if not self._is_valid_type(type_name):
-                valid_types = [
-                    "Text",
-                    "Whole Number",
-                    "Float",
-                    "Number",
-                    "Yes/No",
-                    "URL",
-                    "Date",
-                    "DateTime",
-                    "Time",
-                    "List",
-                    "Empty",
-                ]
+            if type_name not in TYPING_MAP.values():
                 error_msg = ErrorMessageGenerator.invalid_type(
-                    type_name, stmt.token.line, stmt.token.position, valid_types
+                    type_name, stmt.token.line, stmt.token.position, list(TYPING_MAP.values())
                 )
                 self.errors.append(MDTypeError(error_msg, stmt.token.line, stmt.token.position))
                 return
@@ -545,28 +533,3 @@ class SemanticAnalyzer:
             return None
 
         return None
-
-    def _is_valid_type(self, type_name: str) -> bool:
-        """Check if a type name is valid.
-
-        Args:
-            type_name: Type name to validate
-
-        Returns:
-            True if valid, False otherwise
-        """
-        valid_types = {
-            "Text",
-            "Whole Number",
-            "Float",
-            "Number",
-            "Yes/No",
-            "URL",
-            "Date",
-            "DateTime",
-            "Time",
-            "List",
-            "Empty",
-            "Function",  # Added to support function definitions
-        }
-        return type_name in valid_types

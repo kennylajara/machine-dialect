@@ -245,7 +245,7 @@ class TestStrictEqualityExpressions:
         test_cases = [
             "not x is strictly equal to y",
             "(x + 5) is exactly equal to (y - 3)",
-            "first is identical to second",
+            "`first` is identical to `second`",
             "result is not strictly equal to empty",
         ]
 

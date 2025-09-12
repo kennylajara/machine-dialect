@@ -13,12 +13,9 @@ class TestStopwords:
             ("the", [Token(TokenType.MISC_STOPWORD, "the", line=1, position=1)]),
             ("a", [Token(TokenType.MISC_STOPWORD, "a", line=1, position=1)]),
             ("an", [Token(TokenType.MISC_STOPWORD, "an", line=1, position=1)]),
-            ("in", [Token(TokenType.MISC_STOPWORD, "in", line=1, position=1)]),
             ("on", [Token(TokenType.MISC_STOPWORD, "on", line=1, position=1)]),
             ("at", [Token(TokenType.MISC_STOPWORD, "at", line=1, position=1)]),
             ("by", [Token(TokenType.MISC_STOPWORD, "by", line=1, position=1)]),
-            ("for", [Token(TokenType.MISC_STOPWORD, "for", line=1, position=1)]),
-            ("of", [Token(TokenType.MISC_STOPWORD, "of", line=1, position=1)]),
             ("about", [Token(TokenType.MISC_STOPWORD, "about", line=1, position=1)]),
             ("against", [Token(TokenType.MISC_STOPWORD, "against", line=1, position=1)]),
             ("between", [Token(TokenType.MISC_STOPWORD, "between", line=1, position=1)]),
@@ -41,7 +38,6 @@ class TestStopwords:
             # Case-insensitive stopword detection
             ("The", [Token(TokenType.MISC_STOPWORD, "The", line=1, position=1)]),
             ("THE", [Token(TokenType.MISC_STOPWORD, "THE", line=1, position=1)]),
-            ("For", [Token(TokenType.MISC_STOPWORD, "For", line=1, position=1)]),
             # Non-stopwords should be identifiers
             ("variable", [Token(TokenType.MISC_IDENT, "variable", line=1, position=1)]),
             ("myfunction", [Token(TokenType.MISC_IDENT, "myfunction", line=1, position=1)]),

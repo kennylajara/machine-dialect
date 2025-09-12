@@ -57,6 +57,7 @@ class TokenType(Enum):
     PUNCT_HASH_QUAD = auto()
     PUNCT_BACKSLASH = auto()
     PUNCT_FRONTMATTER = auto()  # Triple dash (---) for YAML frontmatter
+    PUNCT_DASH = auto()  # Single dash (-) for list markers
 
     # Literals
     LIT_FLOAT = auto()
@@ -76,44 +77,62 @@ class TokenType(Enum):
 
     # Keywords
     KW_ACTION = auto()
+    KW_ADD = auto()  # For list operations: Add _"item"_ to `list`
     KW_AND = auto()
     KW_AS = auto()
     KW_BEHAVIOR = auto()
+    KW_CONTENT = auto()  # For named lists: content/contents in name-content pairs
     KW_DATATYPE = auto()
     KW_DATE = auto()
     KW_DATETIME = auto()
     KW_DEFAULT = auto()
     KW_DEFINE = auto()
+    KW_EACH = auto()  # For iteration: for each item in list
     KW_ELSE = auto()
     KW_EMPTY = auto()
     KW_ENTRYPOINT = auto()
     KW_FILTER = auto()
+    KW_FIRST = auto()  # For list access: the first item of
     KW_FLOAT = auto()
+    KW_FOR = auto()  # For iteration: for each item in list
     KW_FROM = auto()
+    KW_HAS = auto()  # For named lists: if `dict` has key
     KW_IF = auto()
+    KW_IN = auto()  # For iteration: for each item in list
     KW_INPUTS = auto()
+    KW_INSERT = auto()  # For list operations: Insert _"item"_ at position _3_
     KW_INTERACTION = auto()
     KW_IS = auto()
+    KW_ITEM = auto()  # For numeric list access: item _5_ of
+    KW_LAST = auto()  # For list access: the last item of
     KW_LIST = auto()
+    KW_NAME = auto()  # For named lists: name/names in name-content pairs
+    KW_NAMED_LIST = auto()  # Compound type: "named list"
     KW_NEGATION = auto()
     KW_NUMBER = auto()
+    KW_OF = auto()  # For list access: item _5_ of `list`
     KW_OPTIONAL = auto()
     KW_OR = auto()
+    KW_ORDERED_LIST = auto()  # Compound type: "ordered list"
     KW_OUTPUTS = auto()
     KW_PROMPT = auto()
+    KW_REMOVE = auto()  # For list operations: Remove _"item"_ from `list`
     KW_REQUIRED = auto()
     KW_RETURN = auto()
     KW_RULE = auto()
     KW_SAY = auto()
+    KW_SECOND = auto()  # For list access: the second item of
     KW_SET = auto()
     KW_TAKE = auto()
     KW_TELL = auto()
     KW_TEMPLATE = auto()
     KW_TEXT = auto()
     KW_THEN = auto()
+    KW_THIRD = auto()  # For list access: the third item of
     KW_TIME = auto()
     KW_TO = auto()
     KW_TRAIT = auto()
+    KW_UNORDERED_LIST = auto()  # Compound type: "unordered list"
     KW_URL = auto()
     KW_USE = auto()
     KW_USING = auto()
@@ -191,6 +210,8 @@ keywords_mapping: dict[str, TokenType] = {
     # classes methods
     # Define a **blueprint** called `Person` with action (`walk`)
     "action": TokenType.KW_ACTION,
+    # List operations: Add _"item"_ to `list`
+    "add": TokenType.KW_ADD,
     # logic and: true and false
     "and": TokenType.KW_AND,
     # Use function:
@@ -208,10 +229,15 @@ keywords_mapping: dict[str, TokenType] = {
     "behaviors": TokenType.KW_BEHAVIOR,
     "behaviour": TokenType.KW_BEHAVIOR,
     "behaviours": TokenType.KW_BEHAVIOR,
+    # Named lists: content/contents in name-content pairs
+    "content": TokenType.KW_CONTENT,
+    "contents": TokenType.KW_CONTENT,
     # default value indicator
     "default": TokenType.KW_DEFAULT,
     # declare function: define a `sum` as function
     "define": TokenType.KW_DEFINE,
+    # iteration: for each item in list
+    "each": TokenType.KW_EACH,
     # else statement
     "else": TokenType.KW_ELSE,
     # empty collections (lists, dicts)
@@ -222,16 +248,26 @@ keywords_mapping: dict[str, TokenType] = {
     "No": TokenType.LIT_NO,
     # filter mini-programs that act as proxy to decide on AI code execution
     "filter": TokenType.KW_FILTER,
+    # List access: the first item of
+    "first": TokenType.KW_FIRST,
     # float typing: set `a` as float | set `a` to float 3.14
     "Float": TokenType.KW_FLOAT,
+    # iteration: for each item in list
+    "for": TokenType.KW_FOR,
     # range indicator: from 1 to 10
     "from": TokenType.KW_FROM,
+    # Named lists: if `dict` has key
+    "has": TokenType.KW_HAS,
     # if condition: if true
     "if": TokenType.KW_IF,
     "when": TokenType.KW_IF,
     "whenever": TokenType.KW_IF,
+    # iteration: for each item in list
+    "in": TokenType.KW_IN,
     # inputs section for parameters
     "Inputs": TokenType.KW_INPUTS,
+    # List operations: Insert _"item"_ at position _3_
+    "insert": TokenType.KW_INSERT,
     # interaction for objects
     "interaction": TokenType.KW_INTERACTION,
     "interactions": TokenType.KW_INTERACTION,
@@ -268,12 +304,21 @@ keywords_mapping: dict[str, TokenType] = {
     "is less than or equal to": TokenType.OP_LTE,
     "is at most": TokenType.OP_LTE,
     "is no more than": TokenType.OP_LTE,
+    # List access: item _5_ of
+    "item": TokenType.KW_ITEM,
+    # List access: the last item of
+    "last": TokenType.KW_LAST,
     # list data type
     "List": TokenType.KW_LIST,
+    # Named lists: name/names in name-content pairs
+    "name": TokenType.KW_NAME,
+    "names": TokenType.KW_NAME,
     # logic not: not true
     "not": TokenType.KW_NEGATION,
     # numbers
     "Number": TokenType.KW_NUMBER,
+    # List access: item _5_ of `list`
+    "of": TokenType.KW_OF,
     # optional parameter modifier
     "optional": TokenType.KW_OPTIONAL,
     # logic or: true or false
@@ -284,6 +329,8 @@ keywords_mapping: dict[str, TokenType] = {
     "Outputs": TokenType.KW_OUTPUTS,
     # prompt for user input or AI
     "prompt": TokenType.KW_PROMPT,
+    # List operations: Remove _"item"_ from `list`
+    "remove": TokenType.KW_REMOVE,
     # required parameter modifier
     "required": TokenType.KW_REQUIRED,
     # return value.
@@ -294,6 +341,8 @@ keywords_mapping: dict[str, TokenType] = {
     # output/display: Say `message`.
     # TODO: Make 'Say' case-insensitive (currently only accepts capital 'S')
     "Say": TokenType.KW_SAY,
+    # List access: the second item of
+    "second": TokenType.KW_SECOND,
     # declare variable: set `a` as integer.
     "Set": TokenType.KW_SET,
     # status type
@@ -309,6 +358,8 @@ keywords_mapping: dict[str, TokenType] = {
     "text": TokenType.KW_TEXT,
     # separates if statement from block of code: `if true then return x`.
     "then": TokenType.KW_THEN,
+    # List access: the third item of
+    "third": TokenType.KW_THIRD,
     # range indicator: from 1 to 10
     "to": TokenType.KW_TO,
     # classes properties:
@@ -332,6 +383,9 @@ keywords_mapping: dict[str, TokenType] = {
     "Time": TokenType.KW_TIME,
     "DataType": TokenType.KW_DATATYPE,
     "Whole Number": TokenType.KW_WHOLE_NUMBER,
+    "Named List": TokenType.KW_NAMED_LIST,
+    "Ordered List": TokenType.KW_ORDERED_LIST,
+    "Unordered List": TokenType.KW_UNORDERED_LIST,
     # Plural forms map to singular token types
     "actions": TokenType.KW_ACTION,
     "Floats": TokenType.KW_FLOAT,

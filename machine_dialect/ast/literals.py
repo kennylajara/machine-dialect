@@ -1,7 +1,12 @@
 """Literal expression AST nodes for Machine Dialect."""
 
+from typing import TYPE_CHECKING
+
 from machine_dialect.ast import Expression
 from machine_dialect.lexer import Token
+
+if TYPE_CHECKING:
+    from machine_dialect.ast import Expression as ExpressionType
 
 
 class WholeNumberLiteral(Expression):
@@ -123,3 +128,111 @@ class YesNoLiteral(Expression):
             Self unchanged.
         """
         return self
+
+
+class UnorderedListLiteral(Expression):
+    """Unordered list literal (dash markers).
+
+    Represents a list created with dash markers (-).
+    Example:
+        - item1
+        - item2
+    """
+
+    def __init__(self, token: Token, elements: list["ExpressionType"]) -> None:
+        """Initialize unordered list literal.
+
+        Args:
+            token: The token representing the start of the list.
+            elements: List of expressions that are the list elements.
+        """
+        super().__init__(token)
+        self.elements = elements
+
+    def __str__(self) -> str:
+        """String representation of the unordered list."""
+        if not self.elements:
+            return "[]"
+        elements_str = ", ".join(str(elem) for elem in self.elements)
+        return f"[{elements_str}]"
+
+    def desugar(self) -> "UnorderedListLiteral":
+        """Desugar the unordered list literal.
+
+        Returns:
+            Self with desugared elements.
+        """
+        desugared_elements = [elem.desugar() for elem in self.elements]
+        return UnorderedListLiteral(self.token, desugared_elements)
+
+
+class OrderedListLiteral(Expression):
+    """Ordered list literal (numbered markers).
+
+    Represents a list created with numbered markers (1., 2., etc).
+    Example:
+        1. item1
+        2. item2
+    """
+
+    def __init__(self, token: Token, elements: list["ExpressionType"]) -> None:
+        """Initialize ordered list literal.
+
+        Args:
+            token: The token representing the start of the list.
+            elements: List of expressions that are the list elements.
+        """
+        super().__init__(token)
+        self.elements = elements
+
+    def __str__(self) -> str:
+        """String representation of the ordered list."""
+        if not self.elements:
+            return "[]"
+        elements_str = ", ".join(str(elem) for elem in self.elements)
+        return f"[{elements_str}]"
+
+    def desugar(self) -> "OrderedListLiteral":
+        """Desugar the ordered list literal.
+
+        Returns:
+            Self with desugared elements.
+        """
+        desugared_elements = [elem.desugar() for elem in self.elements]
+        return OrderedListLiteral(self.token, desugared_elements)
+
+
+class NamedListLiteral(Expression):
+    """Named list literal (dictionary).
+
+    Represents a dictionary created with name-content pairs using dash markers.
+    Example:
+        - name: content
+        - key: value
+    """
+
+    def __init__(self, token: Token, entries: list[tuple[str, "ExpressionType"]]) -> None:
+        """Initialize named list literal.
+
+        Args:
+            token: The token representing the start of the list.
+            entries: List of (name, content) pairs.
+        """
+        super().__init__(token)
+        self.entries = entries
+
+    def __str__(self) -> str:
+        """String representation of the named list."""
+        if not self.entries:
+            return "{}"
+        entries_str = ", ".join(f"{name}: {content}" for name, content in self.entries)
+        return f"{{{entries_str}}}"
+
+    def desugar(self) -> "NamedListLiteral":
+        """Desugar the named list literal.
+
+        Returns:
+            Self with desugared content expressions.
+        """
+        desugared_entries = [(name, content.desugar()) for name, content in self.entries]
+        return NamedListLiteral(self.token, desugared_entries)

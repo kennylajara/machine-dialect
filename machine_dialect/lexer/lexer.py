@@ -28,6 +28,29 @@ class Lexer:
         self.current_char: str | None = self.source[0] if source else None
         self.in_summary_comment = False
 
+    @property
+    def at_line_start(self) -> bool:
+        """Check if we're at the start of a logical line.
+
+        A logical line start means we're at column 1 or only have whitespace
+        and block markers (>) before current position on this line.
+
+        Returns:
+            True if we're at the start of a logical line.
+        """
+        if self.column == 1:
+            return True
+
+        # Check if we only have whitespace or block markers before current position on this line
+        # Find the start of the current line
+        line_start = self.position - (self.column - 1)
+        for i in range(line_start, self.position):
+            if i < len(self.source):
+                char = self.source[i]
+                if not char.isspace() and char != ">":
+                    return False
+        return True
+
     def advance(self) -> None:
         """Move to the next character in the source."""
         if self.current_char == "\n":
@@ -593,11 +616,12 @@ class Lexer:
         self.current_char = self.source[self.position] if self.position < len(self.source) else None
         return None
 
-    def next_token(self, in_block: bool = False) -> Token:
+    def next_token(self, in_block: bool = False, in_list_context: bool = False) -> Token:
         """Get the next token from the source.
 
         Args:
             in_block: Whether we're currently parsing inside a block (currently unused).
+            in_list_context: Whether we're in a list definition context (after Set ... to:).
 
         Returns:
             The next token, or an EOF token if no more tokens are available.
@@ -822,6 +846,12 @@ class Lexer:
             # Single backtick is illegal
             self.advance()
             return Token(TokenType.MISC_ILLEGAL, "`", token_line, token_column)
+
+        # Check for dash at line start in list context
+        if self.current_char == "-" and self.at_line_start and in_list_context:
+            # In list context, dash at line start is a list marker
+            self.advance()
+            return Token(TokenType.PUNCT_DASH, "-", token_line, token_column)
 
         # Single character tokens (operators, delimiters, punctuation)
         if self.current_char in CHAR_TO_TOKEN_MAP:

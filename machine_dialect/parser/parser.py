@@ -19,6 +19,8 @@ from machine_dialect.ast import (
     IfStatement,
     InfixExpression,
     InteractionStatement,
+    NamedListLiteral,
+    OrderedListLiteral,
     Output,
     Parameter,
     PrefixExpression,
@@ -28,6 +30,7 @@ from machine_dialect.ast import (
     SetStatement,
     Statement,
     StringLiteral,
+    UnorderedListLiteral,
     URLLiteral,
     UtilityStatement,
     WholeNumberLiteral,
@@ -86,6 +89,23 @@ PRECEDENCES: dict[TokenType, Precedence] = {
     TokenType.OP_STAR: Precedence.MATH_PROD_DIV_MOD,
     TokenType.OP_DIVISION: Precedence.MATH_PROD_DIV_MOD,
     TokenType.OP_CARET: Precedence.MATH_EXPONENT,
+}
+
+TYPING_MAP: dict[TokenType, str] = {
+    TokenType.KW_TEXT: "Text",
+    TokenType.KW_WHOLE_NUMBER: "Whole Number",
+    TokenType.KW_FLOAT: "Float",
+    TokenType.KW_NUMBER: "Number",
+    TokenType.KW_YES_NO: "Yes/No",
+    TokenType.KW_URL: "URL",
+    TokenType.KW_DATE: "Date",
+    TokenType.KW_DATETIME: "DateTime",
+    TokenType.KW_TIME: "Time",
+    TokenType.KW_LIST: "List",
+    TokenType.KW_ORDERED_LIST: "Ordered List",
+    TokenType.KW_UNORDERED_LIST: "Unordered List",
+    TokenType.KW_NAMED_LIST: "Named List",
+    TokenType.KW_EMPTY: "Empty",
 }
 
 
@@ -565,6 +585,227 @@ class Parser:
             value=value,
         )
 
+    def _parse_list_literal(self) -> Expression:
+        """Parse a list literal (unordered, ordered, or named).
+
+        Called when current token is a colon after "Set x to:"
+        Determines the list type based on the first item marker and
+        delegates to the appropriate specialized parser.
+
+        Returns:
+            UnorderedListLiteral, OrderedListLiteral, or NamedListLiteral
+        """
+        # We're at the colon token - save it before advancing
+        if not self._current_token:
+            return ErrorExpression(
+                token=Token(TokenType.MISC_EOF, "", 0, 0),
+                message="Unexpected EOF while parsing list",
+            )
+        list_token = self._current_token
+
+        # List context should already be set by SetStatement
+        # Advance past colon to the first list item
+        self._advance_tokens()
+
+        # Determine list type by looking at the first item marker
+        result: Expression
+
+        # Get the current token type to avoid repeated attribute access
+        current_type = self._current_token.type if self._current_token else None
+
+        if current_type == TokenType.PUNCT_DASH:
+            # Check if it's a named list by looking for pattern: dash, string, colon
+            # Named lists have the pattern: - _"key"_: value
+
+            # Check what's in the buffer
+            in_buffer = self._token_buffer.current() if self._token_buffer else None
+
+            if (
+                self._peek_token
+                and self._peek_token.type == TokenType.LIT_TEXT
+                and in_buffer
+                and in_buffer.type == TokenType.PUNCT_COLON
+            ):
+                result = self._parse_named_list_literal(list_token)
+            else:
+                # Not a named list, it's an unordered list with a string item
+                result = self._parse_unordered_list_literal(list_token)
+
+        # Check if it's an ordered list (number followed by period)
+        elif (
+            current_type == TokenType.LIT_WHOLE_NUMBER
+            and self._peek_token
+            and self._peek_token.type == TokenType.PUNCT_PERIOD
+        ):
+            result = self._parse_ordered_list_literal(list_token)
+        else:
+            # Invalid list format - return error expression
+            result = ErrorExpression(
+                token=self._current_token or list_token,
+                message=(
+                    f"Expected list item marker (dash or number), got "
+                    f"{self._current_token.type if self._current_token else 'EOF'}"
+                ),
+            )
+
+        return result
+
+    def _parse_unordered_list_literal(self, list_token: Token) -> UnorderedListLiteral:
+        """Parse an unordered list (dash-prefixed items).
+
+        Args:
+            list_token: The token marking the start of the list
+
+        Returns:
+            UnorderedListLiteral with parsed items
+        """
+        items: list[Expression] = []
+
+        # We might not be at the dash yet if we came from lookahead
+        # Go back to find the dash
+        if self._current_token and self._current_token.type != TokenType.PUNCT_DASH:
+            # We're past the dash (probably at 'name' from lookahead), go back
+            # Actually, this is complex. Let's just handle where we are.
+            pass
+
+        while self._current_token and self._current_token.type == TokenType.PUNCT_DASH:
+            # Move past dash
+            self._advance_tokens()
+
+            # Parse the item expression
+            item = self._parse_expression(Precedence.LOWEST)
+            items.append(item)
+
+            # After parsing expression, we're at the last token of the expression
+            # Peek ahead to see if there's another list item
+            if self._peek_token and self._peek_token.type == TokenType.PUNCT_DASH:
+                # There's another list item, advance to it
+                self._advance_tokens()
+            elif self._peek_token and self._peek_token.type == TokenType.LIT_WHOLE_NUMBER:
+                # Check if this is an ordered list item (number followed by period)
+                # Look ahead to see if there's a period after the number
+                self._advance_tokens()  # Move to the number
+                # After advancing, check if next token is a period
+                peek_type: TokenType | None = self._peek_token.type if self._peek_token else None
+                if peek_type == TokenType.PUNCT_PERIOD:
+                    # This is an ordered list marker in an unordered list - error!
+                    from machine_dialect.errors.messages import ErrorTemplate
+
+                    error = MDSyntaxError(
+                        message=ErrorTemplate("Cannot mix list types: found ordered list item in unordered list"),
+                        token_literal=self._current_token.literal if self._current_token else "",
+                        expected_token_type=TokenType.PUNCT_DASH,
+                        received_token_type=TokenType.LIT_WHOLE_NUMBER,
+                        line=self._current_token.line if self._current_token else 0,
+                        column=self._current_token.position if self._current_token else 0,
+                    )
+                    self.errors.append(error)
+                # Either way, we're done with the unordered list
+                break
+            else:
+                # No more list items - we're done
+                # Stay at the last token of the last item (don't advance)
+                break
+
+        return UnorderedListLiteral(token=list_token, elements=items)
+
+    def _parse_ordered_list_literal(self, list_token: Token) -> OrderedListLiteral:
+        """Parse an ordered list (numbered items like 1., 2., etc).
+
+        Args:
+            list_token: The token marking the start of the list
+
+        Returns:
+            OrderedListLiteral with parsed items
+        """
+        items: list[Expression] = []
+
+        while self._current_token and self._current_token.type == TokenType.LIT_WHOLE_NUMBER:
+            # Skip the number
+            self._advance_tokens()
+
+            # Check for period (after advancing, current token has changed)
+            current_type_after_advance: TokenType | None = self._current_token.type if self._current_token else None
+            if current_type_after_advance != TokenType.PUNCT_PERIOD:
+                break
+
+            # Move past period
+            self._advance_tokens()
+
+            # Parse the item expression
+            item = self._parse_expression(Precedence.LOWEST)
+            items.append(item)
+
+            # Move to next line/token
+            self._advance_tokens()
+
+            # Check if we're still in the list (next number)
+            if not self._current_token or self._current_token.type != TokenType.LIT_WHOLE_NUMBER:
+                break
+
+        return OrderedListLiteral(token=list_token, elements=items)
+
+    def _parse_named_list_literal(self, list_token: Token) -> NamedListLiteral:
+        """Parse a named list (dictionary with key:value pairs).
+
+        Format:
+        - key1: value1
+        - key2: value2
+
+        Args:
+            list_token: The token marking the start of the list
+
+        Returns:
+            NamedListLiteral with parsed key-value pairs
+        """
+        entries: list[tuple[str, Expression]] = []
+
+        # Parse entries while we have dash-prefixed lines
+        while self._current_token and self._current_token.type == TokenType.PUNCT_DASH:
+            # Move past the dash
+            self._advance_tokens()
+
+            # Parse the key (must be a string literal in named lists)
+            key = ""
+            current_type_after_dash: TokenType | None = self._current_token.type if self._current_token else None
+            if current_type_after_dash == TokenType.LIT_TEXT:
+                key = self._current_token.literal.strip('"')
+                self._advance_tokens()
+            else:
+                # Invalid key - named lists require string keys
+                self._panic_until_tokens([TokenType.PUNCT_DASH, TokenType.MISC_EOF])
+                continue
+
+            # Expect colon
+            current_type_for_colon: TokenType | None = self._current_token.type if self._current_token else None
+            if current_type_for_colon != TokenType.PUNCT_COLON:
+                # Missing colon, this might be an unordered list item
+                # Add error and try to continue
+                entries.append(
+                    (key, ErrorExpression(token=self._current_token or list_token, message="Expected colon after key"))
+                )
+                self._panic_until_tokens([TokenType.PUNCT_DASH, TokenType.MISC_EOF])
+                continue
+
+            self._advance_tokens()  # Move past colon
+
+            # Parse the value expression
+            value = self._parse_expression(Precedence.LOWEST)
+            if value:
+                entries.append((key, value))
+            else:
+                entries.append(
+                    (
+                        key,
+                        ErrorExpression(token=self._current_token or list_token, message="Expected value after colon"),
+                    )
+                )
+
+            # Move to next line/token to check for more entries
+            self._advance_tokens()
+
+        return NamedListLiteral(token=list_token, entries=entries)
+
     def _parse_url_literal(self) -> URLLiteral:
         """Parse a URL literal.
 
@@ -993,28 +1234,14 @@ class Parser:
         if not self._current_token:
             return None
 
-        type_mapping = {
-            TokenType.KW_TEXT: "Text",
-            TokenType.KW_WHOLE_NUMBER: "Whole Number",
-            TokenType.KW_FLOAT: "Float",
-            TokenType.KW_NUMBER: "Number",
-            TokenType.KW_YES_NO: "Yes/No",
-            TokenType.KW_URL: "URL",
-            TokenType.KW_DATE: "Date",
-            TokenType.KW_DATETIME: "DateTime",
-            TokenType.KW_TIME: "Time",
-            TokenType.KW_LIST: "List",
-            TokenType.KW_EMPTY: "Empty",
-        }
-
-        if self._current_token.type in type_mapping:
-            type_name = type_mapping[self._current_token.type]
+        if self._current_token.type in TYPING_MAP:
+            type_name = TYPING_MAP[self._current_token.type]
             self._advance_tokens()
             return type_name
 
         return None
 
-    def _parse_let_statement(self) -> SetStatement | ErrorStatement:
+    def _parse_set_statement(self) -> SetStatement | ErrorStatement:
         """Parse a Set statement.
 
         Expects: Set `identifier` to expression
@@ -1047,9 +1274,30 @@ class Parser:
         if self._peek_token.type == TokenType.KW_TO:
             # Standard assignment: Set x to value
             self._advance_tokens()  # Move to 'to'
-            self._advance_tokens()  # Move past 'to'
-            # Parse the value expression
-            let_statement.value = self._parse_expression()
+
+            # Check if this is a list definition (colon after 'to')
+            # After advancing, peek_token is now the next token
+            next_token_type: TokenType | None = self._peek_token.type if self._peek_token else None
+            if next_token_type == TokenType.PUNCT_COLON:
+                # This will be a list - set context NOW before advancing
+                # This ensures the dash tokens after the colon are properly tokenized
+                if self._token_buffer:
+                    self._token_buffer.set_list_context(True)
+
+                self._advance_tokens()  # Move past 'to' to the colon
+
+                # Parse the list
+                let_statement.value = self._parse_list_literal()
+
+                # Disable list context after parsing
+                if self._token_buffer:
+                    self._token_buffer.set_list_context(False)
+            else:
+                # Not a list, advance past 'to' and parse expression normally
+                self._advance_tokens()  # Move past 'to'
+                # Parse the value expression normally
+                let_statement.value = self._parse_expression()
+
         elif self._peek_token.type == TokenType.KW_USING:
             # Function call assignment: Set x using function_name
             self._advance_tokens()  # Move to 'using'
@@ -1969,7 +2217,7 @@ class Parser:
         """Register statement parsing functions for each token type."""
         return {
             TokenType.KW_DEFINE: self._parse_define_statement,
-            TokenType.KW_SET: self._parse_let_statement,
+            TokenType.KW_SET: self._parse_set_statement,
             TokenType.KW_RETURN: self._parse_return_statement,
             TokenType.KW_IF: self._parse_if_statement,
             TokenType.KW_SAY: self._parse_say_statement,

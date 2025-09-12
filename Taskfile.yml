@@ -1,0 +1,9 @@
+# https://taskfile.dev
+
+version: '3'
+
+tasks:
+  cov:low:
+    desc: Show files with the lowest test coverage
+    cmds:
+      - bash -c 'source .venv/bin/activate && pytest --cov=machine_dialect --cov-report=term-missing --no-header -q | grep "machine_dialect" | sort -k4 -n | head -10'

@@ -304,6 +304,65 @@ class ConditionalExpression(Expression):
         return desugared
 
 
+class CollectionAccessExpression(Expression):
+    """Access collection element by index or name.
+
+    Supports multiple access patterns:
+    - Ordinal access: `the first item of list`, `the second item of list`
+    - Numeric access: `item _5_ of list` (one-based indexing)
+    - Property access: `dict`'s name` for named lists
+    - Name access: Direct name access for dictionaries
+
+    Attributes:
+        collection: The collection being accessed.
+        accessor: The index, ordinal, or name used for access.
+        access_type: Type of access ('ordinal', 'numeric', 'name', 'property').
+    """
+
+    def __init__(
+        self, token: Token, collection: Expression, accessor: Expression | str | int, access_type: str
+    ) -> None:
+        """Initialize a CollectionAccessExpression.
+
+        Args:
+            token: The token that begins this expression.
+            collection: The collection being accessed.
+            accessor: The index, ordinal, or name used for access.
+            access_type: Type of access ('ordinal', 'numeric', 'name', 'property').
+        """
+        super().__init__(token)
+        self.collection = collection
+        self.accessor = accessor
+        self.access_type = access_type
+
+    def __str__(self) -> str:
+        """Return the string representation of the collection access.
+
+        Returns:
+            A string representing the collection access pattern.
+        """
+        if self.access_type == "ordinal":
+            return f"the {self.accessor} item of {self.collection}"
+        elif self.access_type == "numeric":
+            return f"item _{self.accessor}_ of {self.collection}"
+        elif self.access_type == "property":
+            return f"{self.collection}'s {self.accessor}"
+        else:  # name
+            return f"{self.collection}[{self.accessor}]"
+
+    def desugar(self) -> "CollectionAccessExpression":
+        """Desugar collection access by recursively desugaring the collection.
+
+        Returns:
+            A new CollectionAccessExpression with desugared collection.
+        """
+        desugared = CollectionAccessExpression(self.token, self.collection.desugar(), self.accessor, self.access_type)
+        # If accessor is an expression, desugar it too
+        if isinstance(self.accessor, Expression):
+            desugared.accessor = self.accessor.desugar()
+        return desugared
+
+
 class ErrorExpression(Expression):
     """An expression that failed to parse correctly.
 

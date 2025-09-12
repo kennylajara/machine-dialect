@@ -7,6 +7,7 @@ from machine_dialect.ast import (
     BlockStatement,
     CallExpression,
     CallStatement,
+    CollectionAccessExpression,
     ConditionalExpression,
     DefineStatement,
     EmptyLiteral,
@@ -854,6 +855,135 @@ class Parser:
         expression.right = self._parse_expression(Precedence.UNARY_SIMPLIFIED)
 
         return expression
+
+    def _parse_ordinal_list_access(self) -> Expression:
+        """Parse ordinal list access: '[the] first item of list'.
+
+        Handles both forms:
+        - 'the first item of list' (with optional 'the')
+        - 'first item of list' (without 'the')
+
+        Returns:
+            A CollectionAccessExpression for ordinal access.
+        """
+        assert self._current_token is not None
+
+        # Check if we're starting with an ordinal directly or with 'the' (stopword)
+        if self._current_token.type == TokenType.MISC_STOPWORD and self._current_token.literal.lower() == "the":
+            # Skip optional 'the'
+            self._advance_tokens()
+
+        # Now we should have an ordinal (first, second, third, last)
+        if self._current_token is None or self._current_token.type not in [
+            TokenType.KW_FIRST,
+            TokenType.KW_SECOND,
+            TokenType.KW_THIRD,
+            TokenType.KW_LAST,
+        ]:
+            # Not a valid ordinal access pattern
+            return ErrorExpression(
+                token=self._current_token or Token(TokenType.MISC_ILLEGAL, "", 0, 0),
+                message="Not a valid ordinal access pattern",
+            )
+
+        ordinal_token = self._current_token
+        ordinal = self._current_token.literal
+
+        # Skip ordinal
+        self._advance_tokens()
+
+        # Expect 'item'
+        if self._current_token is None or self._current_token.type != TokenType.KW_ITEM:
+            msg = f"Expected 'item' after ordinal, got {self._current_token.type if self._current_token else 'EOF'}"
+            return ErrorExpression(token=self._current_token or ordinal_token, message=msg)
+
+        # Skip 'item'
+        self._advance_tokens()
+
+        # Expect 'of' - check the new current token after advancing
+        current = self._current_token
+        if current is None or current.type != TokenType.KW_OF:
+            msg = f"Expected 'of' after 'item', got {self._current_token.type if self._current_token else 'EOF'}"
+            return ErrorExpression(token=self._current_token or ordinal_token, message=msg)
+
+        # Skip 'of'
+        self._advance_tokens()
+
+        # Parse the collection expression
+        collection = self._parse_expression(Precedence.LOWEST)
+
+        return CollectionAccessExpression(
+            token=ordinal_token, collection=collection, accessor=ordinal, access_type="ordinal"
+        )
+
+    def _parse_stopword_expression(self) -> Expression:
+        """Parse expressions that start with stopwords.
+
+        Currently only handles 'the' for list access patterns.
+
+        Returns:
+            An appropriate expression or None if not a valid pattern.
+        """
+        assert self._current_token is not None
+
+        # Check if it's 'the' which might start a list access
+        if self._current_token.literal.lower() == "the":
+            # Look ahead to see if it's followed by an ordinal
+            if self._peek_token and self._peek_token.type in [
+                TokenType.KW_FIRST,
+                TokenType.KW_SECOND,
+                TokenType.KW_THIRD,
+                TokenType.KW_LAST,
+            ]:
+                return self._parse_ordinal_list_access()
+
+        # Otherwise, stopwords aren't valid expression starters
+        return ErrorExpression(
+            token=self._current_token,
+            message=f"Unexpected stopword '{self._current_token.literal}' at start of expression",
+        )
+
+    def _parse_numeric_list_access(self) -> Expression:
+        """Parse numeric list access: 'item _5_ of list'.
+
+        Returns:
+            A CollectionAccessExpression for numeric access.
+        """
+        assert self._current_token is not None
+        assert self._current_token.type == TokenType.KW_ITEM
+
+        item_token = self._current_token
+
+        # Skip 'item'
+        self._advance_tokens()
+
+        # Expect a number literal - check the new current token after advancing
+        current = self._current_token
+        if current is None or current.type != TokenType.LIT_WHOLE_NUMBER:
+            msg = f"Expected number after 'item', got {self._current_token.type if self._current_token else 'EOF'}"
+            return ErrorExpression(token=self._current_token or item_token, message=msg)
+
+        # Get the index (one-based in Machine Dialect)
+        index = int(self._current_token.literal)
+
+        # Skip number
+        self._advance_tokens()
+
+        # Expect 'of' - check the new current token after advancing
+        current = self._current_token
+        if current is None or current.type != TokenType.KW_OF:
+            msg = f"Expected 'of' after number, got {self._current_token.type if self._current_token else 'EOF'}"
+            return ErrorExpression(token=self._current_token or item_token, message=msg)
+
+        # Skip 'of'
+        self._advance_tokens()
+
+        # Parse the collection expression
+        collection = self._parse_expression(Precedence.LOWEST)
+
+        return CollectionAccessExpression(
+            token=item_token, collection=collection, accessor=index, access_type="numeric"
+        )
 
     def _parse_infix_expression(self, left: Expression) -> InfixExpression:
         """Parse an infix expression.
@@ -2181,6 +2311,14 @@ class Parser:
             TokenType.OP_MINUS: self._parse_prefix_expression,
             TokenType.KW_NEGATION: self._parse_prefix_expression,
             TokenType.DELIM_LPAREN: self._parse_grouped_expression,
+            # List access patterns
+            TokenType.KW_FIRST: self._parse_ordinal_list_access,
+            TokenType.KW_SECOND: self._parse_ordinal_list_access,
+            TokenType.KW_THIRD: self._parse_ordinal_list_access,
+            TokenType.KW_LAST: self._parse_ordinal_list_access,
+            TokenType.KW_ITEM: self._parse_numeric_list_access,
+            # Handle 'the' stopword for list access
+            TokenType.MISC_STOPWORD: self._parse_stopword_expression,
         }
 
     @staticmethod

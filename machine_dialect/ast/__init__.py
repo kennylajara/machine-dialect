@@ -2,12 +2,13 @@
 from .ast_node import ASTNode
 from .expressions import (
     Arguments,
+    CollectionAccessExpression,
+    ConditionalExpression,
+    ErrorExpression,
     Expression,
     Identifier,
     InfixExpression,
     PrefixExpression,
-    ErrorExpression,
-    ConditionalExpression,
 )
 from .statements import (
     ActionStatement,
@@ -50,6 +51,7 @@ __all__ = [
     "BlockStatement",
     "CallExpression",
     "CallStatement",
+    "CollectionAccessExpression",
     "ConditionalExpression",
     "DefineStatement",
     "EmptyLiteral",

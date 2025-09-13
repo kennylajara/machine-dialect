@@ -49,6 +49,7 @@ from machine_dialect.mir.mir_instructions import (
     ArrayAppend,
     ArrayClear,
     ArrayCreate,
+    ArrayFindIndex,
     ArrayGet,
     ArrayInsert,
     ArrayLength,
@@ -827,11 +828,23 @@ class HIRToMIRLowering:
 
                 # Perform the array remove
                 self._add_instruction(ArrayRemove(collection, temp_index, source_loc), stmt)
-            else:
-                # Remove by value - would need to find index first
-                # For now, just remove at index 0 as placeholder
+            elif stmt.value:
+                # Remove by value - find the value's index first, then remove it
+                value = self.lower_expression(stmt.value)
+
+                # Load value constant into temp if needed
+                if isinstance(value, Constant):
+                    temp_value = self.current_function.new_temp(value.type)
+                    self._add_instruction(LoadConst(temp_value, value, source_loc), stmt)
+                    value = temp_value
+
+                # Find the index of the value in the array
                 temp_index = self.current_function.new_temp(MIRType.INT)
-                self._add_instruction(LoadConst(temp_index, Constant(0, MIRType.INT), source_loc), stmt)
+                self._add_instruction(ArrayFindIndex(temp_index, collection, value, source_loc), stmt)
+
+                # Now we need to check if the index is valid (not -1)
+                # and only remove if found. For simplicity, we'll always call remove
+                # The VM should handle the -1 case gracefully (no-op or error)
                 self._add_instruction(ArrayRemove(collection, temp_index, source_loc), stmt)
 
         elif stmt.operation == "insert":

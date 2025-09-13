@@ -20,6 +20,7 @@ from machine_dialect.mir.mir_instructions import (
     ArrayAppend,
     ArrayClear,
     ArrayCreate,
+    ArrayFindIndex,
     ArrayGet,
     ArrayInsert,
     ArrayLength,
@@ -208,6 +209,50 @@ class TestCollectionMutationLowering:
                     found_remove = True
                     break
 
+        assert found_remove, "ArrayRemove instruction not found"
+
+    def test_remove_by_value_from_list(self) -> None:
+        """Test Remove by value generates ArrayFindIndex and ArrayRemove."""
+        # Create AST for: Remove _"banana"_ from `fruits`
+        token = Token(TokenType.KW_REMOVE, "Remove", 1, 1)
+        collection = Identifier(token, "fruits")
+        value = StringLiteral(token, "banana")
+
+        stmt = CollectionMutationStatement(
+            token=token,
+            operation="remove",
+            collection=collection,
+            value=value,
+        )
+
+        # Create a program with variable definition
+        define_token = Token(TokenType.KW_DEFINE, "Define", 1, 1)
+        define_stmt = DefineStatement(
+            token=define_token,
+            name=Identifier(token, "fruits"),
+            type_spec=["unordered", "list"],
+        )
+
+        program = Program([define_stmt, stmt])
+
+        # Lower to MIR
+        mir_module = lower_to_mir(program)
+
+        # Check that ArrayFindIndex and ArrayRemove were generated
+        main_func = mir_module.get_function("main")
+        assert main_func is not None
+
+        # Find ArrayFindIndex and ArrayRemove instructions
+        found_find = False
+        found_remove = False
+        for block in main_func.cfg.blocks.values():
+            for inst in block.instructions:
+                if isinstance(inst, ArrayFindIndex):
+                    found_find = True
+                elif isinstance(inst, ArrayRemove):
+                    found_remove = True
+
+        assert found_find, "ArrayFindIndex instruction not found"
         assert found_remove, "ArrayRemove instruction not found"
 
     def test_insert_into_list(self) -> None:

@@ -1474,6 +1474,49 @@ class ArrayInsert(MIRInstruction):
             self.value = new
 
 
+class ArrayFindIndex(MIRInstruction):
+    """Find index of value in array: dest = array.index(value)."""
+
+    def __init__(
+        self,
+        dest: MIRValue,
+        array: MIRValue,
+        value: MIRValue,
+        source_location: tuple[int, int],
+    ) -> None:
+        """Initialize array find index operation.
+
+        Args:
+            dest: Destination for the index (-1 if not found).
+            array: The array to search in.
+            value: The value to find.
+            source_location: Source code location (line, column).
+        """
+        super().__init__(source_location)
+        self.dest = dest
+        self.array = array
+        self.value = value
+
+    def __str__(self) -> str:
+        """Return string representation."""
+        return f"{self.dest} = {self.array}.index({self.value})"
+
+    def get_uses(self) -> list[MIRValue]:
+        """Get operands used."""
+        return [self.array, self.value]
+
+    def get_defs(self) -> list[MIRValue]:
+        """Get destination defined."""
+        return [self.dest]
+
+    def replace_use(self, old: MIRValue, new: MIRValue) -> None:
+        """Replace uses of a value."""
+        if self.array == old:
+            self.array = new
+        if self.value == old:
+            self.value = new
+
+
 class ArrayClear(MIRInstruction):
     """Clear all elements from array: array.clear()."""
 

@@ -1387,3 +1387,123 @@ class ArrayAppend(MIRInstruction):
             self.array = new
         if self.value == old:
             self.value = new
+
+
+class ArrayRemove(MIRInstruction):
+    """Remove element from array at index: array.remove(index)."""
+
+    def __init__(
+        self,
+        array: MIRValue,
+        index: MIRValue,
+        source_location: tuple[int, int],
+    ) -> None:
+        """Initialize array remove operation.
+
+        Args:
+            array: The array to remove from.
+            index: The index to remove at.
+            source_location: Source code location (line, column).
+        """
+        super().__init__(source_location)
+        self.array = array
+        self.index = index
+
+    def __str__(self) -> str:
+        """Return string representation."""
+        return f"{self.array}.remove({self.index})"
+
+    def get_uses(self) -> list[MIRValue]:
+        """Get operands used."""
+        return [self.array, self.index]
+
+    def get_defs(self) -> list[MIRValue]:
+        """No direct defs, modifies array in place."""
+        return []
+
+    def replace_use(self, old: MIRValue, new: MIRValue) -> None:
+        """Replace uses of a value."""
+        if self.array == old:
+            self.array = new
+        if self.index == old:
+            self.index = new
+
+
+class ArrayInsert(MIRInstruction):
+    """Insert element into array at index: array.insert(index, value)."""
+
+    def __init__(
+        self,
+        array: MIRValue,
+        index: MIRValue,
+        value: MIRValue,
+        source_location: tuple[int, int],
+    ) -> None:
+        """Initialize array insert operation.
+
+        Args:
+            array: The array to insert into.
+            index: The index to insert at.
+            value: The value to insert.
+            source_location: Source code location (line, column).
+        """
+        super().__init__(source_location)
+        self.array = array
+        self.index = index
+        self.value = value
+
+    def __str__(self) -> str:
+        """Return string representation."""
+        return f"{self.array}.insert({self.index}, {self.value})"
+
+    def get_uses(self) -> list[MIRValue]:
+        """Get operands used."""
+        return [self.array, self.index, self.value]
+
+    def get_defs(self) -> list[MIRValue]:
+        """No direct defs, modifies array in place."""
+        return []
+
+    def replace_use(self, old: MIRValue, new: MIRValue) -> None:
+        """Replace uses of a value."""
+        if self.array == old:
+            self.array = new
+        if self.index == old:
+            self.index = new
+        if self.value == old:
+            self.value = new
+
+
+class ArrayClear(MIRInstruction):
+    """Clear all elements from array: array.clear()."""
+
+    def __init__(
+        self,
+        array: MIRValue,
+        source_location: tuple[int, int],
+    ) -> None:
+        """Initialize array clear operation.
+
+        Args:
+            array: The array to clear.
+            source_location: Source code location (line, column).
+        """
+        super().__init__(source_location)
+        self.array = array
+
+    def __str__(self) -> str:
+        """Return string representation."""
+        return f"{self.array}.clear()"
+
+    def get_uses(self) -> list[MIRValue]:
+        """Get operands used."""
+        return [self.array]
+
+    def get_defs(self) -> list[MIRValue]:
+        """No direct defs, modifies array in place."""
+        return []
+
+    def replace_use(self, old: MIRValue, new: MIRValue) -> None:
+        """Replace uses of a value."""
+        if self.array == old:
+            self.array = new

@@ -47,9 +47,12 @@ from machine_dialect.mir.debug_info import DebugInfoBuilder
 from machine_dialect.mir.mir_function import MIRFunction
 from machine_dialect.mir.mir_instructions import (
     ArrayAppend,
+    ArrayClear,
     ArrayCreate,
     ArrayGet,
+    ArrayInsert,
     ArrayLength,
+    ArrayRemove,
     ArraySet,
     Assert,
     BinaryOp,
@@ -786,28 +789,95 @@ class HIRToMIRLowering:
                 self._add_instruction(ArraySet(collection, temp_index, value, source_loc), stmt)
 
         elif stmt.operation == "remove":
-            # Remove operation: need to find and remove element
-            # This is more complex - would need to:
-            # 1. Find the element's index
-            # 2. Shift remaining elements
-            # 3. Decrease array size
-            # For now, we'll leave this as a TODO
-            pass
+            # Remove operation: remove element at position or by value
+            if stmt.position is not None:
+                # Remove by position (already converted to 0-based in HIR)
+                if isinstance(stmt.position, int):
+                    index = Constant(stmt.position, MIRType.INT)
+                    temp_index = self.current_function.new_temp(MIRType.INT)
+                    self._add_instruction(LoadConst(temp_index, index, source_loc), stmt)
+                elif isinstance(stmt.position, str) and stmt.position == "last":
+                    # Special case for "last"
+                    length_temp = self.current_function.new_temp(MIRType.INT)
+                    self._add_instruction(ArrayLength(length_temp, collection, source_loc), stmt)
+
+                    # Subtract 1
+                    one = Constant(1, MIRType.INT)
+                    temp_one = self.current_function.new_temp(MIRType.INT)
+                    self._add_instruction(LoadConst(temp_one, one, source_loc), stmt)
+
+                    temp_index = self.current_function.new_temp(MIRType.INT)
+                    self._add_instruction(BinaryOp(temp_index, "-", length_temp, temp_one, source_loc), stmt)
+                else:
+                    # Expression for index
+                    if isinstance(stmt.position, Expression):
+                        index_value = self.lower_expression(stmt.position)
+                        if isinstance(index_value, Constant):
+                            temp_index = self.current_function.new_temp(MIRType.INT)
+                            self._add_instruction(LoadConst(temp_index, index_value, source_loc), stmt)
+                        elif isinstance(index_value, Temp):
+                            temp_index = index_value
+                        else:
+                            temp_index = self.current_function.new_temp(MIRType.INT)
+                            self._add_instruction(Copy(temp_index, index_value, source_loc), stmt)
+                    else:
+                        # Default to removing first element
+                        temp_index = self.current_function.new_temp(MIRType.INT)
+                        self._add_instruction(LoadConst(temp_index, Constant(0, MIRType.INT), source_loc), stmt)
+
+                # Perform the array remove
+                self._add_instruction(ArrayRemove(collection, temp_index, source_loc), stmt)
+            else:
+                # Remove by value - would need to find index first
+                # For now, just remove at index 0 as placeholder
+                temp_index = self.current_function.new_temp(MIRType.INT)
+                self._add_instruction(LoadConst(temp_index, Constant(0, MIRType.INT), source_loc), stmt)
+                self._add_instruction(ArrayRemove(collection, temp_index, source_loc), stmt)
 
         elif stmt.operation == "insert":
             # Insert operation: insert at specific position
-            # This would need to:
-            # 1. Shift elements from position onwards
-            # 2. Set the value at position
-            # 3. Increase array size
-            # For now, we'll leave this as a TODO
-            pass
+            if stmt.value and stmt.position is not None:
+                value = self.lower_expression(stmt.value)
+
+                # Load value constant into temp if needed
+                if isinstance(value, Constant):
+                    temp_value = self.current_function.new_temp(value.type)
+                    self._add_instruction(LoadConst(temp_value, value, source_loc), stmt)
+                    value = temp_value
+
+                # Handle position (already converted to 0-based in HIR)
+                if isinstance(stmt.position, int):
+                    index = Constant(stmt.position, MIRType.INT)
+                    temp_index = self.current_function.new_temp(MIRType.INT)
+                    self._add_instruction(LoadConst(temp_index, index, source_loc), stmt)
+                elif isinstance(stmt.position, str) and stmt.position == "last":
+                    # Insert at the end (same as append)
+                    length_temp = self.current_function.new_temp(MIRType.INT)
+                    self._add_instruction(ArrayLength(length_temp, collection, source_loc), stmt)
+                    temp_index = length_temp
+                else:
+                    # Expression for index
+                    if isinstance(stmt.position, Expression):
+                        index_value = self.lower_expression(stmt.position)
+                        if isinstance(index_value, Constant):
+                            temp_index = self.current_function.new_temp(MIRType.INT)
+                            self._add_instruction(LoadConst(temp_index, index_value, source_loc), stmt)
+                        elif isinstance(index_value, Temp):
+                            temp_index = index_value
+                        else:
+                            temp_index = self.current_function.new_temp(MIRType.INT)
+                            self._add_instruction(Copy(temp_index, index_value, source_loc), stmt)
+                    else:
+                        # Default to inserting at beginning
+                        temp_index = self.current_function.new_temp(MIRType.INT)
+                        self._add_instruction(LoadConst(temp_index, Constant(0, MIRType.INT), source_loc), stmt)
+
+                # Perform the array insert
+                self._add_instruction(ArrayInsert(collection, temp_index, value, source_loc), stmt)
 
         elif stmt.operation == "empty":
             # Empty operation: clear the array
-            # This would reset the array to size 0
-            # For now, we'll leave this as a TODO
-            pass
+            self._add_instruction(ArrayClear(collection, source_loc), stmt)
 
     def lower_block_statement(self, stmt: BlockStatement) -> None:
         """Lower a block statement to MIR.

@@ -18,9 +18,12 @@ from machine_dialect.lexer import Token, TokenType
 from machine_dialect.mir.hir_to_mir import lower_to_mir
 from machine_dialect.mir.mir_instructions import (
     ArrayAppend,
+    ArrayClear,
     ArrayCreate,
     ArrayGet,
+    ArrayInsert,
     ArrayLength,
+    ArrayRemove,
     ArraySet,
     BinaryOp,
     LoadConst,
@@ -165,6 +168,129 @@ class TestCollectionMutationLowering:
         assert found_length, "ArrayLength instruction not found"
         assert found_subtract, "BinaryOp subtract instruction not found"
         assert found_set, "ArraySet instruction not found"
+
+    def test_remove_from_list(self) -> None:
+        """Test Remove operation generates ArrayRemove."""
+        # Create AST for: Remove the second item from `numbers`
+        token = Token(TokenType.KW_REMOVE, "Remove", 1, 1)
+        collection = Identifier(token, "numbers")
+
+        stmt = CollectionMutationStatement(
+            token=token,
+            operation="remove",
+            collection=collection,
+            position=1,  # Index 1 (second item, 0-based)
+            position_type="numeric",
+        )
+
+        # Create a program with variable definition
+        define_token = Token(TokenType.KW_DEFINE, "Define", 1, 1)
+        define_stmt = DefineStatement(
+            token=define_token,
+            name=Identifier(token, "numbers"),
+            type_spec=["ordered", "list"],
+        )
+
+        program = Program([define_stmt, stmt])
+
+        # Lower to MIR
+        mir_module = lower_to_mir(program)
+
+        # Check that ArrayRemove was generated
+        main_func = mir_module.get_function("main")
+        assert main_func is not None
+
+        # Find ArrayRemove instruction
+        found_remove = False
+        for block in main_func.cfg.blocks.values():
+            for inst in block.instructions:
+                if isinstance(inst, ArrayRemove):
+                    found_remove = True
+                    break
+
+        assert found_remove, "ArrayRemove instruction not found"
+
+    def test_insert_into_list(self) -> None:
+        """Test Insert operation generates ArrayInsert."""
+        # Create AST for: Insert _50_ at position 2 in `numbers`
+        token = Token(TokenType.KW_INSERT, "Insert", 1, 1)
+        collection = Identifier(token, "numbers")
+        value = WholeNumberLiteral(token, 50)
+
+        stmt = CollectionMutationStatement(
+            token=token,
+            operation="insert",
+            collection=collection,
+            value=value,
+            position=2,  # Index 2 (third position, 0-based)
+            position_type="numeric",
+        )
+
+        # Create a program with variable definition
+        define_token = Token(TokenType.KW_DEFINE, "Define", 1, 1)
+        define_stmt = DefineStatement(
+            token=define_token,
+            name=Identifier(token, "numbers"),
+            type_spec=["ordered", "list"],
+        )
+
+        program = Program([define_stmt, stmt])
+
+        # Lower to MIR
+        mir_module = lower_to_mir(program)
+
+        # Check that ArrayInsert was generated
+        main_func = mir_module.get_function("main")
+        assert main_func is not None
+
+        # Find ArrayInsert instruction
+        found_insert = False
+        for block in main_func.cfg.blocks.values():
+            for inst in block.instructions:
+                if isinstance(inst, ArrayInsert):
+                    found_insert = True
+                    break
+
+        assert found_insert, "ArrayInsert instruction not found"
+
+    def test_empty_list_operation(self) -> None:
+        """Test Empty operation generates ArrayClear."""
+        # Create AST for: Empty `numbers`
+        token = Token(TokenType.KW_EMPTY, "Empty", 1, 1)
+        collection = Identifier(token, "numbers")
+
+        stmt = CollectionMutationStatement(
+            token=token,
+            operation="empty",
+            collection=collection,
+        )
+
+        # Create a program with variable definition
+        define_token = Token(TokenType.KW_DEFINE, "Define", 1, 1)
+        define_stmt = DefineStatement(
+            token=define_token,
+            name=Identifier(token, "numbers"),
+            type_spec=["ordered", "list"],
+        )
+
+        program = Program([define_stmt, stmt])
+
+        # Lower to MIR
+        mir_module = lower_to_mir(program)
+
+        # Check that ArrayClear was generated
+        main_func = mir_module.get_function("main")
+        assert main_func is not None
+
+        # Find ArrayClear instruction
+        found_clear = False
+        for block in main_func.cfg.blocks.values():
+            for inst in block.instructions:
+                if isinstance(inst, ArrayClear):
+                    found_clear = True
+                    break
+
+        assert found_clear, "ArrayClear instruction not found"
 
 
 class TestCollectionAccessLowering:

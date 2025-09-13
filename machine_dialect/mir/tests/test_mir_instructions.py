@@ -1,6 +1,5 @@
 """Tests for MIR TAC instructions."""
 
-
 from machine_dialect.mir.mir_instructions import (
     BinaryOp,
     Call,

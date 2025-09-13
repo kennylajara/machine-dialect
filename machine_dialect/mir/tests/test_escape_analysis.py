@@ -1,6 +1,5 @@
 """Tests for escape analysis."""
 
-
 from machine_dialect.mir.analyses.escape_analysis import EscapeAnalysis, EscapeState
 from machine_dialect.mir.mir_function import MIRFunction
 from machine_dialect.mir.mir_instructions import (

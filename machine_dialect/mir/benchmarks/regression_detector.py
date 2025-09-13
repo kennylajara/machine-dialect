@@ -9,12 +9,11 @@ from __future__ import annotations
 import json
 import statistics
 from dataclasses import asdict, dataclass
-from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from machine_dialect.ast import Program
-from machine_dialect.mir.benchmarks.compilation_benchmark import BenchmarkResult, CompilationBenchmark
+# Temporarily disabled while compilation_benchmark module is disabled
+# from machine_dialect.mir.benchmarks.compilation_benchmark import BenchmarkResult, CompilationBenchmark
 
 
 @dataclass
@@ -91,36 +90,37 @@ class BaselineMetrics:
     instruction_count_mean: float
     instruction_count_stddev: float
 
-    @classmethod
-    def from_benchmarks(cls, results: list[BenchmarkResult]) -> BaselineMetrics:
-        """Create baseline from benchmark results.
-
-        Args:
-            results: List of benchmark results.
-
-        Returns:
-            Baseline metrics.
-        """
-        if not results:
-            raise ValueError("No results to create baseline from")
-
-        compilation_times = [r.compilation_time for r in results]
-        bytecode_sizes = [r.bytecode_size for r in results]
-        memory_peaks = [r.memory_peak for r in results]
-        instruction_counts = [r.instruction_count for r in results]
-
-        return cls(
-            timestamp=datetime.now().isoformat(),
-            samples=len(results),
-            compilation_time_mean=statistics.mean(compilation_times),
-            compilation_time_stddev=statistics.stdev(compilation_times) if len(compilation_times) > 1 else 0.0,
-            bytecode_size_mean=statistics.mean(bytecode_sizes),
-            bytecode_size_stddev=statistics.stdev(bytecode_sizes) if len(bytecode_sizes) > 1 else 0.0,
-            memory_peak_mean=statistics.mean(memory_peaks),
-            memory_peak_stddev=statistics.stdev(memory_peaks) if len(memory_peaks) > 1 else 0.0,
-            instruction_count_mean=statistics.mean(instruction_counts),
-            instruction_count_stddev=statistics.stdev(instruction_counts) if len(instruction_counts) > 1 else 0.0,
-        )
+    # Temporarily disabled while compilation_benchmark module is disabled
+    # @classmethod
+    # def from_benchmarks(cls, results: list[BenchmarkResult]) -> BaselineMetrics:
+    #     """Create baseline from benchmark results.
+    #
+    #     Args:
+    #         results: List of benchmark results.
+    #
+    #     Returns:
+    #         Baseline metrics.
+    #     """
+    #     if not results:
+    #         raise ValueError("No results to create baseline from")
+    #
+    #     compilation_times = [r.compilation_time for r in results]
+    #     bytecode_sizes = [r.bytecode_size for r in results]
+    #     memory_peaks = [r.memory_peak for r in results]
+    #     instruction_counts = [r.instruction_count for r in results]
+    #
+    #     return cls(
+    #         timestamp=datetime.now().isoformat(),
+    #         samples=len(results),
+    #         compilation_time_mean=statistics.mean(compilation_times),
+    #         compilation_time_stddev=statistics.stdev(compilation_times) if len(compilation_times) > 1 else 0.0,
+    #         bytecode_size_mean=statistics.mean(bytecode_sizes),
+    #         bytecode_size_stddev=statistics.stdev(bytecode_sizes) if len(bytecode_sizes) > 1 else 0.0,
+    #         memory_peak_mean=statistics.mean(memory_peaks),
+    #         memory_peak_stddev=statistics.stdev(memory_peaks) if len(memory_peaks) > 1 else 0.0,
+    #         instruction_count_mean=statistics.mean(instruction_counts),
+    #         instruction_count_stddev=statistics.stdev(instruction_counts) if len(instruction_counts) > 1 else 0.0,
+    #     )
 
 
 class RegressionDetector:
@@ -136,7 +136,8 @@ class RegressionDetector:
         self.baseline_path = baseline_path or Path("baseline.json")
         self.thresholds = thresholds or RegressionThresholds()
         self.baseline: BaselineMetrics | None = None
-        self.current_results: list[BenchmarkResult] = []
+        # self.current_results: list[BenchmarkResult] = []  # Disabled temporarily
+        self.current_results: list[Any] = []  # Using Any temporarily
 
         # Load baseline if it exists
         if self.baseline_path.exists():
@@ -158,90 +159,92 @@ class RegressionDetector:
             json.dump(asdict(baseline), f, indent=2)
         self.baseline = baseline
 
-    def establish_baseline(self, programs: list[Program], names: list[str] | None = None) -> BaselineMetrics:
-        """Establish a new baseline from programs.
+    # Temporarily disabled while compilation_benchmark module is disabled
+    # def establish_baseline(self, programs: list[Program], names: list[str] | None = None) -> BaselineMetrics:
+    #     """Establish a new baseline from programs.
+    #
+    #     Args:
+    #         programs: Programs to benchmark.
+    #         names: Optional names for programs.
+    #
+    #     Returns:
+    #         New baseline metrics.
+    #     """
+    #     if names is None:
+    #         names = [f"baseline_{i}" for i in range(len(programs))]
+    #
+    #     benchmark = CompilationBenchmark()
+    #     results = []
+    #
+    #     for program, name in zip(programs, names, strict=False):
+    #         result = benchmark.benchmark_compilation(program, name)
+    #         if result:
+    #             results.append(result)
+    #
+    #     baseline = BaselineMetrics.from_benchmarks(results)
+    #     self.save_baseline(baseline)
+    #     return baseline
 
-        Args:
-            programs: Programs to benchmark.
-            names: Optional names for programs.
-
-        Returns:
-            New baseline metrics.
-        """
-        if names is None:
-            names = [f"baseline_{i}" for i in range(len(programs))]
-
-        benchmark = CompilationBenchmark()
-        results = []
-
-        for program, name in zip(programs, names, strict=False):
-            result = benchmark.benchmark_compilation(program, name)
-            if result:
-                results.append(result)
-
-        baseline = BaselineMetrics.from_benchmarks(results)
-        self.save_baseline(baseline)
-        return baseline
-
-    def check_regression(self, result: BenchmarkResult) -> list[RegressionResult]:
-        """Check if a benchmark result shows regression.
-
-        Args:
-            result: Benchmark result to check.
-
-        Returns:
-            List of regression results for each metric.
-        """
-        if not self.baseline:
-            raise ValueError("No baseline established for comparison")
-
-        regressions = []
-
-        # Check compilation time
-        regressions.append(
-            self._check_metric(
-                "compilation_time",
-                self.baseline.compilation_time_mean,
-                self.baseline.compilation_time_stddev,
-                result.compilation_time,
-                self.thresholds.compilation_time_percent,
-            )
-        )
-
-        # Check bytecode size
-        regressions.append(
-            self._check_metric(
-                "bytecode_size",
-                self.baseline.bytecode_size_mean,
-                self.baseline.bytecode_size_stddev,
-                result.bytecode_size,
-                self.thresholds.bytecode_size_percent,
-            )
-        )
-
-        # Check memory usage
-        regressions.append(
-            self._check_metric(
-                "memory_peak",
-                self.baseline.memory_peak_mean,
-                self.baseline.memory_peak_stddev,
-                result.memory_peak,
-                self.thresholds.memory_usage_percent,
-            )
-        )
-
-        # Check instruction count
-        regressions.append(
-            self._check_metric(
-                "instruction_count",
-                self.baseline.instruction_count_mean,
-                self.baseline.instruction_count_stddev,
-                result.instruction_count,
-                self.thresholds.instruction_count_percent,
-            )
-        )
-
-        return regressions
+    # Temporarily disabled while compilation_benchmark module is disabled
+    # def check_regression(self, result: BenchmarkResult) -> list[RegressionResult]:
+    #     """Check if a benchmark result shows regression.
+    #
+    #     Args:
+    #         result: Benchmark result to check.
+    #
+    #     Returns:
+    #         List of regression results for each metric.
+    #     """
+    #     if not self.baseline:
+    #         raise ValueError("No baseline established for comparison")
+    #
+    #     regressions = []
+    #
+    #     # Check compilation time
+    #     regressions.append(
+    #         self._check_metric(
+    #             "compilation_time",
+    #             self.baseline.compilation_time_mean,
+    #             self.baseline.compilation_time_stddev,
+    #             result.compilation_time,
+    #             self.thresholds.compilation_time_percent,
+    #         )
+    #     )
+    #
+    #     # Check bytecode size
+    #     regressions.append(
+    #         self._check_metric(
+    #             "bytecode_size",
+    #             self.baseline.bytecode_size_mean,
+    #             self.baseline.bytecode_size_stddev,
+    #             result.bytecode_size,
+    #             self.thresholds.bytecode_size_percent,
+    #         )
+    #     )
+    #
+    #     # Check memory usage
+    #     regressions.append(
+    #         self._check_metric(
+    #             "memory_peak",
+    #             self.baseline.memory_peak_mean,
+    #             self.baseline.memory_peak_stddev,
+    #             result.memory_peak,
+    #             self.thresholds.memory_usage_percent,
+    #         )
+    #     )
+    #
+    #     # Check instruction count
+    #     regressions.append(
+    #         self._check_metric(
+    #             "instruction_count",
+    #             self.baseline.instruction_count_mean,
+    #             self.baseline.instruction_count_stddev,
+    #             result.instruction_count,
+    #             self.thresholds.instruction_count_percent,
+    #         )
+    #     )
+    #
+    #     return regressions
 
     def _check_metric(
         self, name: str, baseline_mean: float, baseline_stddev: float, current_value: float, threshold_percent: float
@@ -293,38 +296,39 @@ class RegressionDetector:
             details=details,
         )
 
-    def analyze_trends(self, results: list[BenchmarkResult], window_size: int = 10) -> dict[str, Any]:
-        """Analyze performance trends over multiple runs.
-
-        Args:
-            results: List of benchmark results.
-            window_size: Size of rolling window for trend analysis.
-
-        Returns:
-            Dictionary of trend analysis results.
-        """
-        if len(results) < 2:
-            return {"error": "Not enough data for trend analysis"}
-
-        trends = {}
-
-        # Compilation time trend
-        compilation_times = [r.compilation_time for r in results]
-        trends["compilation_time"] = self._calculate_trend(compilation_times, window_size)
-
-        # Bytecode size trend
-        bytecode_sizes = [float(r.bytecode_size) for r in results]
-        trends["bytecode_size"] = self._calculate_trend(bytecode_sizes, window_size)
-
-        # Memory usage trend
-        memory_peaks = [float(r.memory_peak) for r in results]
-        trends["memory_peak"] = self._calculate_trend(memory_peaks, window_size)
-
-        # Instruction count trend
-        instruction_counts = [float(r.instruction_count) for r in results]
-        trends["instruction_count"] = self._calculate_trend(instruction_counts, window_size)
-
-        return trends
+    # Temporarily disabled while compilation_benchmark module is disabled
+    # def analyze_trends(self, results: list[BenchmarkResult], window_size: int = 10) -> dict[str, Any]:
+    #     """Analyze performance trends over multiple runs.
+    #
+    #     Args:
+    #         results: List of benchmark results.
+    #         window_size: Size of rolling window for trend analysis.
+    #
+    #     Returns:
+    #         Dictionary of trend analysis results.
+    #     """
+    #     if len(results) < 2:
+    #         return {"error": "Not enough data for trend analysis"}
+    #
+    #     trends = {}
+    #
+    #     # Compilation time trend
+    #     compilation_times = [r.compilation_time for r in results]
+    #     trends["compilation_time"] = self._calculate_trend(compilation_times, window_size)
+    #
+    #     # Bytecode size trend
+    #     bytecode_sizes = [float(r.bytecode_size) for r in results]
+    #     trends["bytecode_size"] = self._calculate_trend(bytecode_sizes, window_size)
+    #
+    #     # Memory usage trend
+    #     memory_peaks = [float(r.memory_peak) for r in results]
+    #     trends["memory_peak"] = self._calculate_trend(memory_peaks, window_size)
+    #
+    #     # Instruction count trend
+    #     instruction_counts = [float(r.instruction_count) for r in results]
+    #     trends["instruction_count"] = self._calculate_trend(instruction_counts, window_size)
+    #
+    #     return trends
 
     def _calculate_trend(self, values: list[float], window_size: int) -> dict[str, Any]:
         """Calculate trend statistics for a metric.

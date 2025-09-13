@@ -94,11 +94,11 @@ class TestConstantMapping:
         remapper = BytecodeRemapper(mapping)
 
         # Main chunk should be unchanged
-        main_remapped = remapper.remap_chunk(0, main_chunk.bytecode)
+        main_remapped = remapper.remap_chunk(0, bytes(main_chunk.bytecode))
         assert main_remapped == main_chunk.bytecode
 
         # Func chunk should be remapped
-        func_remapped = remapper.remap_chunk(1, func_chunk.bytecode)
+        func_remapped = remapper.remap_chunk(1, bytes(func_chunk.bytecode))
         # Check that const indices were updated
         assert func_remapped[2:4] == struct.pack("<H", 2)  # Was 0, now 2
         assert func_remapped[6:8] == struct.pack("<H", 3)  # Was 1, now 3
@@ -180,7 +180,7 @@ class TestConstantMapping:
         remapper = BytecodeRemapper(mapping)
 
         # Should handle empty constants gracefully
-        remapped = remapper.remap_chunk(0, empty_chunk.bytecode)
+        remapped = remapper.remap_chunk(0, bytes(empty_chunk.bytecode))
         assert remapped == empty_chunk.bytecode  # No changes
         assert len(mapping.global_constants) == 0
 
@@ -211,7 +211,7 @@ class TestBytecodeRemapping:
         chunk_map = {0: 10, 1: 11}
         mapping.chunk_mappings = [chunk_map]
 
-        remapped = remapper.remap_chunk(0, bytecode)
+        remapped = remapper.remap_chunk(0, bytes(bytecode))
 
         # Verify indices were updated
         assert struct.unpack("<H", remapped[2:4])[0] == 10
@@ -242,7 +242,7 @@ class TestBytecodeRemapping:
         chunk_map = {2: 2}  # Map local 2 to global 2
         mapping.chunk_mappings = [chunk_map]
 
-        remapped = remapper.remap_chunk(0, bytecode)
+        remapped = remapper.remap_chunk(0, bytes(bytecode))
 
         # Verify message index unchanged (already correct) - now at bytes 3:5 due to assert_type
         assert struct.unpack("<H", remapped[3:5])[0] == 2
@@ -268,7 +268,7 @@ class TestBytecodeRemapping:
         chunk_map = {1: 5, 2: 6}
         mapping.chunk_mappings = [chunk_map]
 
-        remapped = remapper.remap_chunk(0, bytecode)
+        remapped = remapper.remap_chunk(0, bytes(bytecode))
 
         # Verify name indices were updated
         assert struct.unpack("<H", remapped[2:4])[0] == 5
@@ -298,7 +298,7 @@ class TestBytecodeRemapping:
         # No constants to remap in CALL_R
         mapping.chunk_mappings = [{}]
 
-        remapped = remapper.remap_chunk(0, bytecode)
+        remapped = remapper.remap_chunk(0, bytes(bytecode))
         assert remapped == bytecode  # Should be unchanged
 
     def test_malformed_bytecode(self) -> None:
@@ -312,7 +312,7 @@ class TestBytecodeRemapping:
         truncated = bytearray([Opcode.LOAD_CONST_R, 0])
 
         with pytest.raises(InvalidBytecodeError) as exc_info:
-            remapper.remap_chunk(0, truncated)
+            remapper.remap_chunk(0, bytes(truncated))
 
         assert "Truncated instruction" in str(exc_info.value)
         assert "chunk 0" in str(exc_info.value)
@@ -339,7 +339,7 @@ class TestBytecodeRemapping:
         mapping.chunk_mappings = [chunk_map]
 
         with pytest.raises(ConstantIndexError) as exc_info:
-            remapper.remap_chunk(0, bytecode)
+            remapper.remap_chunk(0, bytes(bytecode))
 
         assert "Invalid constant index 5" in str(exc_info.value)
         assert "max: 0" in str(exc_info.value)

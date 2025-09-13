@@ -1,10 +1,11 @@
 """MIR compilation benchmarking tools."""
 
-from machine_dialect.mir.benchmarks.compilation_benchmark import (
-    BenchmarkResult,
-    CompilationBenchmark,
-    run_standard_benchmarks,
-)
+# Temporarily disabled while compilation_benchmark module is disabled
+# from machine_dialect.mir.benchmarks.compilation_benchmark import (
+#     BenchmarkResult,
+#     CompilationBenchmark,
+#     run_standard_benchmarks,
+# )
 from machine_dialect.mir.benchmarks.regression_detector import (
     BaselineMetrics,
     RegressionDetector,
@@ -14,10 +15,10 @@ from machine_dialect.mir.benchmarks.regression_detector import (
 
 __all__ = [
     "BaselineMetrics",
-    "BenchmarkResult",
-    "CompilationBenchmark",
+    # "BenchmarkResult",
+    # "CompilationBenchmark",
     "RegressionDetector",
     "RegressionResult",
     "RegressionThresholds",
-    "run_standard_benchmarks",
+    # "run_standard_benchmarks",
 ]

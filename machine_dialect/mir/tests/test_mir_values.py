@@ -1,6 +1,5 @@
 """Tests for MIR value representations."""
 
-
 from machine_dialect.mir.mir_types import MIRType
 from machine_dialect.mir.mir_values import Constant, FunctionRef, Temp, Variable
 

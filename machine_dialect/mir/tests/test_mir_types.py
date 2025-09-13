@@ -1,6 +1,5 @@
 """Tests for MIR type system."""
 
-
 from machine_dialect.mir.mir_types import (
     MIRType,
     coerce_types,

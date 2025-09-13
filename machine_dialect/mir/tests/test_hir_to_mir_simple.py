@@ -1,6 +1,5 @@
 """Simplified tests for HIR to MIR lowering without token dependencies."""
 
-
 from machine_dialect.mir.hir_to_mir import HIRToMIRLowering
 from machine_dialect.mir.mir_types import MIRType
 

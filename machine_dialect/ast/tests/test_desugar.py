@@ -1,6 +1,5 @@
 """Tests for AST desugaring functionality."""
 
-
 from machine_dialect.ast import (
     ActionStatement,
     Arguments,

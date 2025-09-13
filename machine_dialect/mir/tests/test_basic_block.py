@@ -1,6 +1,5 @@
 """Tests for MIR basic blocks and CFG."""
 
-
 from machine_dialect.mir.basic_block import CFG, BasicBlock
 from machine_dialect.mir.mir_instructions import (
     BinaryOp,

@@ -1,6 +1,5 @@
 """Tests for complex pattern matching in algebraic simplification."""
 
-
 from machine_dialect.mir.basic_block import BasicBlock
 from machine_dialect.mir.mir_function import MIRFunction
 from machine_dialect.mir.mir_instructions import BinaryOp, Copy, LoadConst, UnaryOp

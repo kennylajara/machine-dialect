@@ -10,11 +10,12 @@ from pathlib import Path
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from machine_dialect.mir.benchmarks.compilation_benchmark import CompilationBenchmark  # noqa: E402
-from machine_dialect.mir.benchmarks.comprehensive_regression import (  # noqa: E402
-    ComprehensiveRegressionDetector,
-    create_regression_suite,
-)
+# Temporarily disabled while compilation_benchmark module is disabled
+# from machine_dialect.mir.benchmarks.compilation_benchmark import CompilationBenchmark
+# from machine_dialect.mir.benchmarks.comprehensive_regression import (
+#     ComprehensiveRegressionDetector,
+#     create_regression_suite,
+# )
 from machine_dialect.mir.benchmarks.regression_detector import RegressionThresholds  # noqa: E402
 
 
@@ -77,89 +78,94 @@ def main() -> int:
 
     args = parser.parse_args()
 
-    # Create thresholds
-    thresholds = RegressionThresholds(
+    # Create thresholds (currently unused due to disabled modules)
+    _ = RegressionThresholds(
         compilation_time_percent=args.compilation_threshold,
         bytecode_size_percent=args.bytecode_threshold,
         memory_usage_percent=args.memory_threshold,
     )
 
-    # Create detector
-    detector = ComprehensiveRegressionDetector(
-        baseline_path=args.baseline_path,
-        thresholds=thresholds,
-        expected_outputs_path=args.outputs_path,
-    )
+    # Temporarily disabled while compilation_benchmark module is disabled
+    print("Error: Regression testing is temporarily disabled")
+    print("The compilation_benchmark and comprehensive_regression modules are currently disabled.")
+    return 1
 
-    # Get test suite
-    suite = create_regression_suite()
+    # # Create detector
+    # detector = ComprehensiveRegressionDetector(
+    #     baseline_path=args.baseline_path,
+    #     thresholds=thresholds,
+    #     expected_outputs_path=args.outputs_path,
+    # )
+    #
+    # # Get test suite
+    # suite = create_regression_suite()
+    #
+    # # Filter if specific test requested
+    # if args.test:
+    #     if args.test not in suite:
+    #         print(f"Error: Test '{args.test}' not found in suite")
+    #         print(f"Available tests: {', '.join(suite.keys())}")
+    #         return 1
+    #     suite = {args.test: suite[args.test]}
+    #
+    # # Create benchmark
+    # benchmark = CompilationBenchmark()
 
-    # Filter if specific test requested
-    if args.test:
-        if args.test not in suite:
-            print(f"Error: Test '{args.test}' not found in suite")
-            print(f"Available tests: {', '.join(suite.keys())}")
-            return 1
-        suite = {args.test: suite[args.test]}
+    # # Update baseline if requested
+    # if args.update_baseline:
+    #     print("Updating baseline...")
+    #     programs = list(suite.values())
+    #     names = list(suite.keys())
+    #     baseline = detector.establish_baseline(programs, names)
+    #     print(f"Baseline updated with {baseline.samples} samples")
+    #     return 0
+    #
+    # # Run regression tests
+    # print(f"Running {len(suite)} regression tests...")
+    # print("-" * 60)
+    #
+    # results = []
+    # has_any_regression = False
+    #
+    # for name, program in suite.items():
+    #     if args.verbose:
+    #         print(f"Testing {name}...")
+    #
+    #     # Benchmark
+    #     bench_result = benchmark.benchmark_compilation(program, name)
+    #
+    #     # Check for regression
+    #     result = detector.comprehensive_check(program, name, bench_result)
+    #     results.append(result)
 
-    # Create benchmark
-    benchmark = CompilationBenchmark()
-
-    # Update baseline if requested
-    if args.update_baseline:
-        print("Updating baseline...")
-        programs = list(suite.values())
-        names = list(suite.keys())
-        baseline = detector.establish_baseline(programs, names)
-        print(f"Baseline updated with {baseline.samples} samples")
-        return 0
-
-    # Run regression tests
-    print(f"Running {len(suite)} regression tests...")
-    print("-" * 60)
-
-    results = []
-    has_any_regression = False
-
-    for name, program in suite.items():
-        if args.verbose:
-            print(f"Testing {name}...")
-
-        # Benchmark
-        bench_result = benchmark.benchmark_compilation(program, name)
-
-        # Check for regression
-        result = detector.comprehensive_check(program, name, bench_result)
-        results.append(result)
-
-        if result.has_regression:
-            has_any_regression = True
-            print(f"❌ {name}: REGRESSION DETECTED")
-            if result.has_correctness_issue:
-                print(f"   Correctness: {result.correctness_result.details}")
-            if result.has_performance_issue:
-                for perf in result.performance_results:
-                    if perf.is_regression:
-                        print(f"   {perf.metric_name}: {perf.percent_change:+.1f}%")
-        else:
-            if args.verbose:
-                print(f"✅ {name}: PASS")
-                # Show improvements
-                for perf in result.performance_results:
-                    if perf.is_improvement:
-                        print(f"   {perf.metric_name}: {abs(perf.percent_change):.1f}% faster")
-
-    # Generate report
-    print("\n" + "=" * 60)
-    report = detector.generate_comprehensive_report(results)
-    print(report)
-
-    # Save report to file for CI
-    with open("regression_report.txt", "w") as f:
-        f.write(report)
-
-    # Return exit code
-    return 1 if has_any_regression else 0
+    #     if result.has_regression:
+    #         has_any_regression = True
+    #         print(f"❌ {name}: REGRESSION DETECTED")
+    #         if result.has_correctness_issue:
+    #             print(f"   Correctness: {result.correctness_result.details}")
+    #         if result.has_performance_issue:
+    #             for perf in result.performance_results:
+    #                 if perf.is_regression:
+    #                     print(f"   {perf.metric_name}: {perf.percent_change:+.1f}%")
+    #     else:
+    #         if args.verbose:
+    #             print(f"✅ {name}: PASS")
+    #             # Show improvements
+    #             for perf in result.performance_results:
+    #                 if perf.is_improvement:
+    #                     print(f"   {perf.metric_name}: {abs(perf.percent_change):.1f}% faster")
+    #
+    # # Generate report
+    # print("\n" + "=" * 60)
+    # report = detector.generate_comprehensive_report(results)
+    # print(report)
+    #
+    # # Save report to file for CI
+    # with open("regression_report.txt", "w") as f:
+    #     f.write(report)
+    #
+    # # Return exit code
+    # return 1 if has_any_regression else 0
 
 
 if __name__ == "__main__":

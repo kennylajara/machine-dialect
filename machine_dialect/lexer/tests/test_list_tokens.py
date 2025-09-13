@@ -1,6 +1,5 @@
 """Test list-related token recognition in the lexer."""
 
-
 from machine_dialect.lexer import Lexer, TokenType
 
 

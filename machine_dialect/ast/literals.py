@@ -165,6 +165,20 @@ class UnorderedListLiteral(Expression):
         desugared_elements = [elem.desugar() for elem in self.elements]
         return UnorderedListLiteral(self.token, desugared_elements)
 
+    def to_hir(self) -> "UnorderedListLiteral":
+        """Convert unordered list to HIR representation.
+
+        Returns:
+            HIR representation with desugared elements.
+        """
+        hir_elements = []
+        for elem in self.elements:
+            if hasattr(elem, "to_hir"):
+                hir_elements.append(elem.to_hir())
+            else:
+                hir_elements.append(elem)
+        return UnorderedListLiteral(self.token, hir_elements)
+
 
 class OrderedListLiteral(Expression):
     """Ordered list literal (numbered markers).
@@ -201,6 +215,20 @@ class OrderedListLiteral(Expression):
         desugared_elements = [elem.desugar() for elem in self.elements]
         return OrderedListLiteral(self.token, desugared_elements)
 
+    def to_hir(self) -> "OrderedListLiteral":
+        """Convert ordered list to HIR representation.
+
+        Returns:
+            HIR representation with desugared elements.
+        """
+        hir_elements = []
+        for elem in self.elements:
+            if hasattr(elem, "to_hir"):
+                hir_elements.append(elem.to_hir())
+            else:
+                hir_elements.append(elem)
+        return OrderedListLiteral(self.token, hir_elements)
+
 
 class NamedListLiteral(Expression):
     """Named list literal (dictionary).
@@ -236,3 +264,17 @@ class NamedListLiteral(Expression):
         """
         desugared_entries = [(name, content.desugar()) for name, content in self.entries]
         return NamedListLiteral(self.token, desugared_entries)
+
+    def to_hir(self) -> "NamedListLiteral":
+        """Convert named list to HIR representation.
+
+        Returns:
+            HIR representation with desugared content expressions.
+        """
+        hir_entries = []
+        for name, content in self.entries:
+            if hasattr(content, "to_hir"):
+                hir_entries.append((name, content.to_hir()))
+            else:
+                hir_entries.append((name, content))
+        return NamedListLiteral(self.token, hir_entries)

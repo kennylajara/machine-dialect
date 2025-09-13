@@ -943,6 +943,146 @@ class UtilityStatement(Statement):
         )
 
 
+class CollectionMutationStatement(Statement):
+    """Statement for mutating collections (lists and named lists).
+
+    Handles operations like:
+    - Add _value_ to list
+    - Remove _value_ from list
+    - Set the second item of list to _value_
+    - Set item _5_ of list to _value_
+    - Insert _value_ at position _3_ in list
+    - Empty list
+
+    Attributes:
+        operation: The mutation operation ('add', 'remove', 'set', 'insert', 'empty').
+        collection: The collection expression to mutate.
+        value: The value for add/remove/set/insert operations.
+        position: The position/index for set/insert operations (can be ordinal or numeric).
+        position_type: Type of position ('ordinal', 'numeric', None).
+    """
+
+    def __init__(
+        self,
+        token: Token,
+        operation: str,
+        collection: Expression,
+        value: Expression | None = None,
+        position: Expression | str | int | None = None,
+        position_type: str | None = None,
+    ) -> None:
+        """Initialize a CollectionMutationStatement node.
+
+        Args:
+            token: The token that begins this statement (KW_ADD, KW_REMOVE, etc.).
+            operation: The mutation operation type.
+            collection: The collection to mutate.
+            value: The value for the operation (None for 'empty').
+            position: The position/index for set/insert (ordinal string, numeric int, or expression).
+            position_type: Type of position ('ordinal', 'numeric', or None).
+        """
+        super().__init__(token)
+        self.operation = operation
+        self.collection = collection
+        self.value = value
+        self.position = position
+        self.position_type = position_type
+
+    def __str__(self) -> str:
+        """Return string representation of the mutation statement.
+
+        Returns:
+            A human-readable string representation.
+        """
+        if self.operation == "add":
+            return f"Add {self.value} to {self.collection}."
+        elif self.operation == "remove":
+            return f"Remove {self.value} from {self.collection}."
+        elif self.operation == "set":
+            if self.position_type == "ordinal":
+                return f"Set the {self.position} item of {self.collection} to {self.value}."
+            else:  # numeric
+                return f"Set item _{self.position}_ of {self.collection} to {self.value}."
+        elif self.operation == "insert":
+            return f"Insert {self.value} at position _{self.position}_ in {self.collection}."
+        elif self.operation == "empty":
+            return f"Empty {self.collection}."
+        return f"<collection mutation: {self.operation}>"
+
+    def desugar(self) -> "CollectionMutationStatement":
+        """Desugar collection mutation statement by recursively desugaring components.
+
+        Returns:
+            A new CollectionMutationStatement with desugared components.
+        """
+        desugared = CollectionMutationStatement(
+            self.token,
+            self.operation,
+            self.collection.desugar(),
+            self.value.desugar() if self.value else None,
+            self.position,
+            self.position_type,
+        )
+        # If position is an expression, desugar it
+        if isinstance(self.position, Expression):
+            desugared.position = self.position.desugar()
+        return desugared
+
+    def to_hir(self) -> "CollectionMutationStatement":
+        """Convert collection mutation to HIR representation.
+
+        Converts one-based user indices to zero-based for internal use.
+
+        Returns:
+            HIR representation with adjusted indices.
+        """
+        # Convert collection to HIR
+        hir_collection = self.collection.to_hir() if hasattr(self.collection, "to_hir") else self.collection
+
+        # Convert value to HIR if present
+        hir_value = None
+        if self.value:
+            hir_value = self.value.to_hir() if hasattr(self.value, "to_hir") else self.value
+
+        # Process position based on type
+        hir_position = self.position
+        if self.position_type == "ordinal":
+            # Convert ordinals to zero-based numeric indices
+            ordinal_map = {"first": 0, "second": 1, "third": 2}
+            if isinstance(self.position, str) and self.position.lower() in ordinal_map:
+                hir_position = ordinal_map[self.position.lower()]
+                # Return with numeric type since we converted
+                return CollectionMutationStatement(
+                    self.token,
+                    self.operation,
+                    hir_collection,
+                    hir_value,
+                    hir_position,
+                    "numeric",
+                )
+            elif self.position == "last":
+                # Keep "last" as special case
+                hir_position = "last"
+        elif self.position_type == "numeric":
+            # Convert one-based to zero-based index
+            if isinstance(self.position, int):
+                hir_position = self.position - 1  # Convert to 0-based
+            elif isinstance(self.position, Expression):
+                # For expressions, we'll handle in MIR generation
+                hir_position = self.position.to_hir() if hasattr(self.position, "to_hir") else self.position
+        elif isinstance(self.position, Expression):
+            hir_position = self.position.to_hir() if hasattr(self.position, "to_hir") else self.position
+
+        return CollectionMutationStatement(
+            self.token,
+            self.operation,
+            hir_collection,
+            hir_value,
+            hir_position,
+            self.position_type,
+        )
+
+
 class FunctionStatement(Statement):
     """Unified function statement for Actions, Interactions, and Utilities.
 

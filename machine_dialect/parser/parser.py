@@ -508,6 +508,33 @@ class Parser:
             value=self._current_token.literal,
         )
 
+    def _parse_identifier_or_keyword_as_identifier(self) -> Identifier | None:
+        """Parse an identifier, accepting keywords as identifiers when appropriate.
+
+        This is useful when a keyword appears where we expect an identifier,
+        like variable names that happen to match keywords.
+
+        Returns:
+            An Identifier AST node, or None if current token can't be used as identifier.
+        """
+        if not self._current_token:
+            return None
+
+        # Accept actual identifiers
+        if self._current_token.type == TokenType.MISC_IDENT:
+            return self._parse_identifier()
+
+        # Also accept any keyword that has a literal value as an identifier
+        # This allows using words like "items", "first", etc. as variable names
+        if self._current_token.literal:
+            # Create an identifier from the keyword's literal
+            return Identifier(
+                token=self._current_token,
+                value=self._current_token.literal,
+            )
+
+        return None
+
     def _parse_integer_literal(self) -> WholeNumberLiteral | ErrorExpression:
         assert self._current_token is not None
 
@@ -1494,16 +1521,127 @@ class Parser:
 
         return None
 
-    def _parse_set_statement(self) -> SetStatement | ErrorStatement:
+    def _parse_set_statement(self) -> SetStatement | ErrorStatement | Statement:
         """Parse a Set statement.
 
-        Expects: Set `identifier` to expression
+        Expects:
+        - Set `identifier` to expression
+        - Set the second item of `list` to expression
+        - Set item _5_ of `list` to expression
 
         Returns:
             A SetStatement AST node if successful, ErrorStatement if parsing fails.
         """
+        from machine_dialect.ast.statements import CollectionMutationStatement
+
         assert self._current_token is not None
         statement_token = self._current_token  # Save the 'Set' token
+
+        # Check for collection item assignment patterns
+        # We need to handle both "Set the first item of" and "Set item _1_ of"
+        if self._peek_token:
+            # Since stopwords are auto-skipped, after "Set" we might be directly at "first"/"second" etc
+            # if the user wrote "Set the first..." because "the" gets skipped
+            if self._peek_token.type in (
+                TokenType.KW_FIRST,
+                TokenType.KW_SECOND,
+                TokenType.KW_THIRD,
+                TokenType.KW_LAST,
+            ):
+                # Pattern: Set [the] [ordinal] item of `list` to value
+                # "the" was already skipped if present
+                self._advance_tokens()  # Move to ordinal
+
+                # We're now at the ordinal
+                if not self._current_token or self._current_token.type not in (
+                    TokenType.KW_FIRST,
+                    TokenType.KW_SECOND,
+                    TokenType.KW_THIRD,
+                    TokenType.KW_LAST,
+                ):
+                    return ErrorStatement(
+                        token=statement_token, message="Expected ordinal (first, second, third, last)"
+                    )
+
+                ordinal = self._current_token.literal.lower()
+                self._advance_tokens()  # Move past ordinal
+
+                # Expect "item"
+                if self._current_token and self._current_token.type == TokenType.KW_ITEM:
+                    self._advance_tokens()  # Move past 'item'
+
+                # Expect "of"
+                if self._current_token and self._current_token.type == TokenType.KW_OF:
+                    self._advance_tokens()  # Move past 'of'
+
+                # Parse collection identifier
+                collection = self._parse_identifier_or_keyword_as_identifier()
+                if not collection:
+                    return ErrorStatement(token=statement_token, message="Expected collection identifier")
+                self._advance_tokens()
+
+                # Expect "to"
+                if self._current_token and self._current_token.type == TokenType.KW_TO:
+                    self._advance_tokens()
+
+                # Parse the value
+                value = self._parse_expression(Precedence.LOWEST)
+                self._advance_tokens()
+
+                # Expect period
+                if self._current_token and self._current_token.type != TokenType.PUNCT_PERIOD:
+                    self._expected_token(TokenType.PUNCT_PERIOD)
+
+                return CollectionMutationStatement(
+                    token=statement_token,
+                    operation="set",
+                    collection=collection,
+                    value=value,
+                    position=ordinal,
+                    position_type="ordinal",
+                )
+
+            elif self._peek_token.type == TokenType.KW_ITEM:
+                # Pattern: Set item _5_ of `list` to value
+                self._advance_tokens()  # Move to 'item'
+                self._advance_tokens()  # Move past 'item'
+
+                # Parse numeric index
+                index = self._parse_expression(Precedence.LOWEST)
+                self._advance_tokens()
+
+                # Expect "of"
+                if self._current_token and self._current_token.type == TokenType.KW_OF:
+                    self._advance_tokens()
+
+                # Parse collection identifier
+                collection = self._parse_identifier_or_keyword_as_identifier()
+                if not collection:
+                    return ErrorStatement(token=statement_token, message="Expected collection identifier")
+                self._advance_tokens()
+
+                # Expect "to"
+                if self._current_token and self._current_token.type == TokenType.KW_TO:
+                    self._advance_tokens()
+
+                # Parse the value
+                value = self._parse_expression(Precedence.LOWEST)
+                self._advance_tokens()
+
+                # Expect period
+                if self._current_token and self._current_token.type != TokenType.PUNCT_PERIOD:
+                    self._expected_token(TokenType.PUNCT_PERIOD)
+
+                return CollectionMutationStatement(
+                    token=statement_token,
+                    operation="set",
+                    collection=collection,
+                    value=value,
+                    position=index,
+                    position_type="numeric",
+                )
+
+        # Normal Set statement: Set `identifier` to expression
         let_statement = SetStatement(token=statement_token)
 
         # Expect identifier (which may have come from backticks)
@@ -1686,6 +1824,146 @@ class Parser:
             self._expected_token(TokenType.PUNCT_PERIOD)
 
         return say_statement
+
+    def _parse_collection_mutation_statement(self) -> Statement:
+        """Parse a collection mutation statement.
+
+        Handles:
+        - Add _value_ to `list`.
+        - Remove _value_ from `list`.
+        - Set the second item of `list` to _value_.
+        - Set item _5_ of `list` to _value_.
+        - Insert _value_ at position _3_ in `list`.
+        - Empty `list`.
+
+        Returns:
+            A CollectionMutationStatement AST node.
+        """
+        from machine_dialect.ast.statements import CollectionMutationStatement
+
+        assert self._current_token is not None
+        start_token = self._current_token
+        operation = start_token.literal.lower()
+
+        # Move past the operation keyword
+        self._advance_tokens()
+
+        if operation == "empty":
+            # Empty `list`.
+            # Current token should be the collection identifier
+            collection = self._parse_identifier_or_keyword_as_identifier()
+            if not collection:
+                return ErrorStatement(token=start_token, message="Expected collection identifier after 'Empty'")
+            self._advance_tokens()
+
+            # Expect period
+            if self._current_token and self._current_token.type != TokenType.PUNCT_PERIOD:
+                self._expected_token(TokenType.PUNCT_PERIOD)
+
+            return CollectionMutationStatement(
+                token=start_token,
+                operation="empty",
+                collection=collection,
+            )
+
+        elif operation == "add":
+            # Add _value_ to `list`.
+            value = self._parse_expression(Precedence.LOWEST)
+            self._advance_tokens()
+
+            # Skip "to"
+            if self._current_token and self._current_token.type == TokenType.KW_TO:
+                self._advance_tokens()
+
+            # Parse the collection
+            collection = self._parse_identifier_or_keyword_as_identifier()
+            if not collection:
+                return ErrorStatement(token=start_token, message="Expected collection identifier after 'Add ... to'")
+            self._advance_tokens()
+
+            # Expect period
+            if self._current_token and self._current_token.type != TokenType.PUNCT_PERIOD:
+                self._expected_token(TokenType.PUNCT_PERIOD)
+
+            return CollectionMutationStatement(
+                token=start_token,
+                operation="add",
+                collection=collection,
+                value=value,
+            )
+
+        elif operation == "remove":
+            # Remove _value_ from `list`.
+            value = self._parse_expression(Precedence.LOWEST)
+            self._advance_tokens()
+
+            # Skip "from"
+            if self._current_token and self._current_token.type == TokenType.KW_FROM:
+                self._advance_tokens()
+
+            # Parse the collection
+            collection = self._parse_identifier_or_keyword_as_identifier()
+            if not collection:
+                return ErrorStatement(
+                    token=start_token, message="Expected collection identifier after 'Remove ... from'"
+                )
+            self._advance_tokens()
+
+            # Expect period
+            if self._current_token and self._current_token.type != TokenType.PUNCT_PERIOD:
+                self._expected_token(TokenType.PUNCT_PERIOD)
+
+            return CollectionMutationStatement(
+                token=start_token,
+                operation="remove",
+                collection=collection,
+                value=value,
+            )
+
+        elif operation == "insert":
+            # Insert _value_ at position _3_ in `list`.
+            value = self._parse_expression(Precedence.LOWEST)
+            self._advance_tokens()
+
+            # Skip "at"
+            if self._current_token and self._current_token.literal and self._current_token.literal.lower() == "at":
+                self._advance_tokens()
+
+            # Skip "position" if present
+            if self._current_token and self._current_token.literal.lower() == "position":
+                self._advance_tokens()
+
+            # Parse the position (should be a number)
+            position = self._parse_expression(Precedence.LOWEST)
+            self._advance_tokens()
+
+            # Skip "in"
+            if self._current_token and self._current_token.type == TokenType.KW_IN:
+                self._advance_tokens()
+
+            # Parse the collection
+            collection = self._parse_identifier_or_keyword_as_identifier()
+            if not collection:
+                return ErrorStatement(
+                    token=start_token, message="Expected collection identifier after 'Insert ... at position ... in'"
+                )
+            self._advance_tokens()
+
+            # Expect period
+            if self._current_token and self._current_token.type != TokenType.PUNCT_PERIOD:
+                self._expected_token(TokenType.PUNCT_PERIOD)
+
+            return CollectionMutationStatement(
+                token=start_token,
+                operation="insert",
+                collection=collection,
+                value=value,
+                position=position,
+                position_type="numeric",
+            )
+
+        # Should not reach here
+        return ErrorStatement(token=start_token, message=f"Unhandled collection mutation operation: {operation}")
 
     def _parse_function_call_expression(self) -> Expression:
         """Parse a function call as an expression (for use with 'using' in Set statements).
@@ -2493,6 +2771,11 @@ class Parser:
             TokenType.KW_TELL: self._parse_say_statement,  # Tell is an alias for Say
             TokenType.KW_USE: self._parse_call_statement,
             TokenType.PUNCT_HASH_TRIPLE: self._parse_action_interaction_or_utility,
+            TokenType.KW_ADD: self._parse_collection_mutation_statement,
+            TokenType.KW_REMOVE: self._parse_collection_mutation_statement,
+            TokenType.KW_INSERT: self._parse_collection_mutation_statement,
+            # Note: KW_EMPTY is not registered here because "empty" as a literal is more common
+            # than "Empty `collection`" as a statement. Standalone "empty" will be parsed as an expression.
         }
 
     def _parse_parameter_sections(self) -> tuple[list[Parameter], list[Output]]:

@@ -362,6 +362,42 @@ class CollectionAccessExpression(Expression):
             desugared.accessor = self.accessor.desugar()
         return desugared
 
+    def to_hir(self) -> "CollectionAccessExpression":
+        """Convert collection access to HIR representation.
+
+        Converts one-based user indices to zero-based for internal use.
+
+        Returns:
+            HIR representation with adjusted indices.
+        """
+        # Convert collection to HIR
+        hir_collection = self.collection.to_hir() if hasattr(self.collection, "to_hir") else self.collection
+
+        # Process accessor based on type
+        hir_accessor = self.accessor
+        if self.access_type == "ordinal":
+            # Convert ordinals to zero-based numeric indices
+            ordinal_map = {"first": 0, "second": 1, "third": 2}
+            if isinstance(self.accessor, str) and self.accessor.lower() in ordinal_map:
+                hir_accessor = ordinal_map[self.accessor.lower()]
+                # Change type to numeric since we converted
+                return CollectionAccessExpression(self.token, hir_collection, hir_accessor, "numeric")
+            elif self.accessor == "last":
+                # Keep "last" as special case - will be handled in MIR generation
+                hir_accessor = "last"
+        elif self.access_type == "numeric":
+            # Convert one-based to zero-based index
+            if isinstance(self.accessor, int):
+                hir_accessor = self.accessor - 1  # Convert to 0-based
+            elif isinstance(self.accessor, Expression):
+                # For expressions, we'll need to handle this in MIR generation
+                # by subtracting 1 at runtime
+                hir_accessor = self.accessor.to_hir() if hasattr(self.accessor, "to_hir") else self.accessor
+        elif isinstance(self.accessor, Expression):
+            hir_accessor = self.accessor.to_hir() if hasattr(self.accessor, "to_hir") else self.accessor
+
+        return CollectionAccessExpression(self.token, hir_collection, hir_accessor, self.access_type)
+
 
 class ErrorExpression(Expression):
     """An expression that failed to parse correctly.

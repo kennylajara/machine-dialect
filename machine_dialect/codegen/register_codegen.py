@@ -1026,7 +1026,18 @@ class RegisterBytecodeGenerator:
     def generate_array_create(self, inst: ArrayCreate) -> None:
         """Generate NewArrayR instruction from MIR ArrayCreate."""
         dst = self.get_register(inst.dest)
-        size = self.get_register(inst.size)
+
+        # Handle size - load constant if needed
+        if isinstance(inst.size, Constant):
+            size = self.get_register(inst.size)
+            # Load the constant into the register
+            const_idx = self.add_constant(inst.size.value if hasattr(inst.size, "value") else inst.size)
+            self.track_vm_instruction()
+            self.emit_opcode(Opcode.LOAD_CONST_R)
+            self.emit_u8(size)
+            self.emit_u16(const_idx)
+        else:
+            size = self.get_register(inst.size)
 
         self.track_vm_instruction()
         self.emit_opcode(Opcode.NEW_ARRAY_R)
@@ -1054,8 +1065,30 @@ class RegisterBytecodeGenerator:
     def generate_array_set(self, inst: ArraySet) -> None:
         """Generate ArraySetR instruction from MIR ArraySet."""
         array = self.get_register(inst.array)
-        index = self.get_register(inst.index)
-        value = self.get_register(inst.value)
+
+        # Handle index - load constant if needed
+        if isinstance(inst.index, Constant):
+            index = self.get_register(inst.index)
+            # Load the constant into the register
+            const_idx = self.add_constant(inst.index.value if hasattr(inst.index, "value") else inst.index)
+            self.track_vm_instruction()
+            self.emit_opcode(Opcode.LOAD_CONST_R)
+            self.emit_u8(index)
+            self.emit_u16(const_idx)
+        else:
+            index = self.get_register(inst.index)
+
+        # Handle value - load constant if needed
+        if isinstance(inst.value, Constant):
+            value = self.get_register(inst.value)
+            # Load the constant into the register
+            const_idx = self.add_constant(inst.value.value if hasattr(inst.value, "value") else inst.value)
+            self.track_vm_instruction()
+            self.emit_opcode(Opcode.LOAD_CONST_R)
+            self.emit_u8(value)
+            self.emit_u16(const_idx)
+        else:
+            value = self.get_register(inst.value)
 
         self.track_vm_instruction()
         self.emit_opcode(Opcode.ARRAY_SET_R)

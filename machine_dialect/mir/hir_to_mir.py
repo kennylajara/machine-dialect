@@ -784,14 +784,30 @@ class HIRToMIRLowering:
 
             # Create array with size
             size = Constant(len(expr.elements), MIRType.INT)
+            # Load size constant into register for proper constant pool usage
+            temp_size = self.current_function.new_temp(MIRType.INT)
+            self._add_instruction(LoadConst(temp_size, size, source_loc), expr)
+
             array_var = self.current_function.new_temp(MIRType.ARRAY)
-            self._add_instruction(ArrayCreate(array_var, size, source_loc), expr)
+            self._add_instruction(ArrayCreate(array_var, temp_size, source_loc), expr)
 
             # Add elements to array
             for i, element in enumerate(expr.elements):
                 elem_value = self.lower_expression(element)
+
+                # Load constant values into registers for proper constant pool usage
+                if isinstance(elem_value, Constant):
+                    temp_elem = self.current_function.new_temp(elem_value.type)
+                    self._add_instruction(LoadConst(temp_elem, elem_value, source_loc), expr)
+                    elem_value = temp_elem
+
+                # Create index value
                 index = Constant(i, MIRType.INT)
-                self._add_instruction(ArraySet(array_var, index, elem_value, source_loc), expr)
+                # Load index constant into register too
+                temp_index = self.current_function.new_temp(MIRType.INT)
+                self._add_instruction(LoadConst(temp_index, index, source_loc), expr)
+
+                self._add_instruction(ArraySet(array_var, temp_index, elem_value, source_loc), expr)
 
             return array_var
 
@@ -804,8 +820,12 @@ class HIRToMIRLowering:
 
             # TODO: Implement dictionary operations
             size = Constant(0, MIRType.INT)
+            # Load size constant into register for proper constant pool usage
+            temp_size = self.current_function.new_temp(MIRType.INT)
+            self._add_instruction(LoadConst(temp_size, size, source_loc), expr)
+
             dict_var = self.current_function.new_temp(MIRType.DICT)
-            self._add_instruction(ArrayCreate(dict_var, size, source_loc), expr)
+            self._add_instruction(ArrayCreate(dict_var, temp_size, source_loc), expr)
             return dict_var
 
         # Handle identifier

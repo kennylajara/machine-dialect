@@ -22,9 +22,9 @@ class TestUnorderedLists:
         source = """
 Define `fruits` as an unordered list.
 Set `fruits` to:
-- _"apple"_
-- _"banana"_
-- _"cherry"_
+- _"apple"_.
+- _"banana"_.
+- _"cherry"_.
 """
         parser = Parser()
         program = parser.parse(source)
@@ -54,9 +54,9 @@ Set `fruits` to:
         source = """
 Define `mixed` as unordered list.
 Set `mixed` to:
-- _"text"_
-- _42_
-- _3.14_
+- _"text"_.
+- _42_.
+- _3.14_.
 """
         parser = Parser()
         program = parser.parse(source)
@@ -85,9 +85,9 @@ Set `mixed` to:
         source = """
 Define `numbers` as unordered list.
 Set `numbers` to:
-- _-5_
-- _10_
-- _-3.14_
+- _-5_.
+- _10_.
+- _-3.14_.
 """
         parser = Parser()
         program = parser.parse(source)
@@ -117,9 +117,9 @@ class TestOrderedLists:
         source = """
 Define `steps` as ordered list.
 Set `steps` to:
-1. _"First step"_
-2. _"Second step"_
-3. _"Third step"_
+1. _"First step"_.
+2. _"Second step"_.
+3. _"Third step"_.
 """
         parser = Parser()
         program = parser.parse(source)
@@ -149,9 +149,9 @@ Set `steps` to:
         source = """
 Define `priorities` as ordered list.
 Set `priorities` to:
-1. _"High priority"_
-5. _"Medium priority"_
-10. _"Low priority"_
+1. _"High priority"_.
+5. _"Medium priority"_.
+10. _"Low priority"_.
 """
         parser = Parser()
         program = parser.parse(source)
@@ -173,9 +173,9 @@ class TestNamedLists:
         source = """
 Define `person` as named list.
 Set `person` to:
-- _"name"_: _"Alice"_
-- _"profession"_: _"Software Engineer"_
-- _"age"_: _30_
+- _"name"_: _"Alice"_.
+- _"profession"_: _"Software Engineer"_.
+- _"age"_: _30_.
 """
         parser = Parser()
         program = parser.parse(source)
@@ -215,14 +215,14 @@ class TestListParsingErrors:
             """
             Define `mixed` as list.
             Set `mixed` to:
-            - _"unordered item"_
-            1. _"ordered item"_
+            - _"unordered item"_.
+            1. _"ordered item"_.
             """,
             """
             Define `mixed` as list.
             Set `mixed` to:
-            1. _"unordered item"_
-            - _"ordered item"_
+            1. _"unordered item"_.
+            - _"ordered item"_.
             """,
         ],
     )
@@ -261,7 +261,7 @@ class TestListParsingErrors:
         source = """
 Define `incomplete` as named list.
 Set `incomplete` to:
-- "name": _"test"_
+- "name": _"test"_.
 """
         parser = Parser()
         program = parser.parse(source)

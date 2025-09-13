@@ -625,25 +625,6 @@ class Parser:
             # Update current type after skipping stopwords
             current_type = self._current_token.type if self._current_token else None
 
-        # Debug: print what token we have
-        if self._current_token:
-            print(
-                f"DEBUG: After advancing from colon, current token is: "
-                f"{self._current_token.type} '{self._current_token.literal}' at "
-                f"{self._current_token.line}:{self._current_token.position}"
-            )
-            if self._current_token.literal == "-":
-                print(f"DEBUG: Found dash with type {self._current_token.type}")
-            if self._peek_token:
-                print(f"DEBUG: Peek token is: {self._peek_token.type} '{self._peek_token.literal}'")
-
-            # Also check buffer contents
-            if self._token_buffer:
-                print("DEBUG: Buffer contents:")
-                for i in range(min(4, len(self._token_buffer._buffer))):
-                    tok = self._token_buffer._buffer[i]
-                    print(f"  [{i}]: {tok.type} '{tok.literal}'")
-
         # Now current_token should be the first list item marker (dash or number)
         # Update current_type after advancing
         current_type = self._current_token.type if self._current_token else None
@@ -660,8 +641,8 @@ class Parser:
             if self._peek_token:
                 # Check token after the key using buffer
                 if self._token_buffer:
-                    # peek(2) = token after peek_token
-                    colon_after_key = self._token_buffer.peek(2)
+                    # The buffer's current token is the token after our peek_token
+                    colon_after_key = self._token_buffer.current()
 
                     # Check if we have the pattern: dash, key, colon
                     if colon_after_key and colon_after_key.type == TokenType.PUNCT_COLON:

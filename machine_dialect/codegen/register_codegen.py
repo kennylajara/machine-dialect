@@ -16,15 +16,24 @@ from machine_dialect.codegen.opcodes import Opcode
 from machine_dialect.mir.mir_function import MIRFunction
 from machine_dialect.mir.mir_instructions import (
     ArrayAppend,
+    ArrayClear,
     ArrayCreate,
+    ArrayFindIndex,
     ArrayGet,
+    ArrayInsert,
     ArrayLength,
+    ArrayRemove,
     ArraySet,
     Assert,
     BinaryOp,
     Call,
     ConditionalJump,
     Copy,
+    DictContains,
+    DictCreate,
+    DictGet,
+    DictRemove,
+    DictSet,
     Jump,
     LoadConst,
     LoadVar,
@@ -340,6 +349,24 @@ class RegisterBytecodeGenerator:
             self.generate_array_length(inst)
         elif isinstance(inst, ArrayAppend):
             self.generate_array_append(inst)
+        elif isinstance(inst, ArrayRemove):
+            self.generate_array_remove(inst)
+        elif isinstance(inst, ArrayInsert):
+            self.generate_array_insert(inst)
+        elif isinstance(inst, ArrayClear):
+            self.generate_array_clear(inst)
+        elif isinstance(inst, ArrayFindIndex):
+            self.generate_array_find_index(inst)
+        elif isinstance(inst, DictCreate):
+            self.generate_dict_create(inst)
+        elif isinstance(inst, DictGet):
+            self.generate_dict_get(inst)
+        elif isinstance(inst, DictSet):
+            self.generate_dict_set(inst)
+        elif isinstance(inst, DictRemove):
+            self.generate_dict_remove(inst)
+        elif isinstance(inst, DictContains):
+            self.generate_dict_contains(inst)
         elif isinstance(inst, Scope):
             self.generate_scope(inst)
         elif isinstance(inst, Print):
@@ -1135,6 +1162,137 @@ class RegisterBytecodeGenerator:
 
         if self.debug:
             print(f"  -> Generated ArrayAppend: r{array}.append(r{value})")
+
+    def generate_dict_create(self, inst: DictCreate) -> None:
+        """Generate DictNewR instruction from MIR DictCreate."""
+        dst = self.get_register(inst.dest)
+
+        self.track_vm_instruction()
+        self.emit_opcode(Opcode.DICT_NEW_R)
+        self.emit_u8(dst)
+
+        if self.debug:
+            print(f"  -> Generated DictNewR: r{dst} = new_dict()")
+
+    def generate_dict_get(self, inst: DictGet) -> None:
+        """Generate DictGetR instruction from MIR DictGet."""
+        dst = self.get_register(inst.dest)
+        dict_reg = self.get_register(inst.dict_val)
+        key_reg = self.get_register(inst.key)
+
+        self.track_vm_instruction()
+        self.emit_opcode(Opcode.DICT_GET_R)
+        self.emit_u8(dst)
+        self.emit_u8(dict_reg)
+        self.emit_u8(key_reg)
+
+        if self.debug:
+            print(f"  -> Generated DictGetR: r{dst} = r{dict_reg}[r{key_reg}]")
+
+    def generate_dict_set(self, inst: DictSet) -> None:
+        """Generate DictSetR instruction from MIR DictSet."""
+        dict_reg = self.get_register(inst.dict_val)
+        key_reg = self.get_register(inst.key)
+        value_reg = self.get_register(inst.value)
+
+        self.track_vm_instruction()
+        self.emit_opcode(Opcode.DICT_SET_R)
+        self.emit_u8(dict_reg)
+        self.emit_u8(key_reg)
+        self.emit_u8(value_reg)
+
+        if self.debug:
+            print(f"  -> Generated DictSetR: r{dict_reg}[r{key_reg}] = r{value_reg}")
+
+    def generate_dict_remove(self, inst: DictRemove) -> None:
+        """Generate DictRemoveR instruction from MIR DictRemove."""
+        dict_reg = self.get_register(inst.dict_val)
+        key_reg = self.get_register(inst.key)
+
+        self.track_vm_instruction()
+        self.emit_opcode(Opcode.DICT_REMOVE_R)
+        self.emit_u8(dict_reg)
+        self.emit_u8(key_reg)
+
+        if self.debug:
+            print(f"  -> Generated DictRemoveR: del r{dict_reg}[r{key_reg}]")
+
+    def generate_dict_contains(self, inst: DictContains) -> None:
+        """Generate DictHasKeyR instruction from MIR DictContains."""
+        dst = self.get_register(inst.dest)
+        dict_reg = self.get_register(inst.dict_val)
+        key_reg = self.get_register(inst.key)
+
+        self.track_vm_instruction()
+        self.emit_opcode(Opcode.DICT_HAS_KEY_R)
+        self.emit_u8(dst)
+        self.emit_u8(dict_reg)
+        self.emit_u8(key_reg)
+
+        if self.debug:
+            print(f"  -> Generated DictHasKeyR: r{dst} = r{key_reg} in r{dict_reg}")
+
+    def generate_array_remove(self, inst: ArrayRemove) -> None:
+        """Generate array remove at index.
+
+        This requires shifting elements and needs VM support.
+        """
+        # TODO: This needs actual VM support or complex instruction sequence
+        # For now, emit a comment/debug
+        if self.debug:
+            array = self.get_register(inst.array)
+            index = self.get_register(inst.index)
+            print(f"  -> ArrayRemove: r{array}.remove_at(r{index}) - TODO: needs implementation")
+
+    def generate_array_insert(self, inst: ArrayInsert) -> None:
+        """Generate array insert at index.
+
+        This requires shifting elements and needs VM support.
+        """
+        # TODO: This needs actual VM support or complex instruction sequence
+        if self.debug:
+            array = self.get_register(inst.array)
+            index = self.get_register(inst.index)
+            value = self.get_register(inst.value)
+            print(f"  -> ArrayInsert: r{array}.insert(r{index}, r{value}) - TODO: needs implementation")
+
+    def generate_array_clear(self, inst: ArrayClear) -> None:
+        """Generate array clear.
+
+        This can be implemented as creating a new empty array.
+        """
+        array = self.get_register(inst.array)
+
+        # Create a new empty array (size 0) and assign to the array register
+        zero_reg = 254  # Use a temp register for constant 0
+
+        # Load constant 0
+        const_idx = self.add_constant(0)
+        self.track_vm_instruction()
+        self.emit_opcode(Opcode.LOAD_CONST_R)
+        self.emit_u8(zero_reg)
+        self.emit_u16(const_idx)
+
+        # Create new empty array
+        self.track_vm_instruction()
+        self.emit_opcode(Opcode.NEW_ARRAY_R)
+        self.emit_u8(array)
+        self.emit_u8(zero_reg)
+
+        if self.debug:
+            print(f"  -> Generated ArrayClear: r{array}.clear() as new_array(0)")
+
+    def generate_array_find_index(self, inst: ArrayFindIndex) -> None:
+        """Generate array find index by value.
+
+        This is complex and requires iteration. Needs VM support.
+        """
+        # TODO: This needs actual VM support or complex instruction sequence
+        if self.debug:
+            dest = self.get_register(inst.dest)
+            array = self.get_register(inst.array)
+            value = self.get_register(inst.value)
+            print(f"  -> ArrayFindIndex: r{dest} = r{array}.find_index(r{value}) - TODO: needs implementation")
 
 
 class MetadataCollector:

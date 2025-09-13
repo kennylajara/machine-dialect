@@ -67,13 +67,20 @@ class Opcode(IntEnum):
     ARRAY_SET_R = 35  # ArraySetR { array: u8, index: u8, value: u8 }
     ARRAY_LEN_R = 36  # ArrayLenR { dst: u8, array: u8 }
 
-    # Debug (37-38)
-    DEBUG_PRINT = 37  # DebugPrint { src: u8 }
-    BREAKPOINT = 38  # BreakPoint
+    # Dictionaries (37-41)
+    DICT_NEW_R = 37  # DictNewR { dst: u8 }
+    DICT_GET_R = 38  # DictGetR { dst: u8, dict: u8, key: u8 }
+    DICT_SET_R = 39  # DictSetR { dict: u8, key: u8, value: u8 }
+    DICT_HAS_KEY_R = 40  # DictHasKeyR { dst: u8, dict: u8, key: u8 }
+    DICT_REMOVE_R = 41  # DictRemoveR { dict: u8, key: u8 }
 
-    # System (39-40)
-    HALT = 39  # Halt execution
-    NOP = 40  # No operation
+    # Debug (42-43)
+    DEBUG_PRINT = 42  # DebugPrint { src: u8 }
+    BREAKPOINT = 43  # BreakPoint
+
+    # System (44-45)
+    HALT = 44  # Halt execution
+    NOP = 45  # No operation
 
 
 # Type IDs for type operations
@@ -88,4 +95,5 @@ class TypeId(IntEnum):
     FUNCTION = 0x05
     URL = 0x06
     ARRAY = 0x07
+    DICT = 0x08
     UNKNOWN = 0xFF

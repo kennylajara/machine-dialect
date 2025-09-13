@@ -23,6 +23,8 @@ from machine_dialect.ast import (
     IfStatement,
     InfixExpression,
     InteractionStatement,
+    NamedListLiteral,
+    OrderedListLiteral,
     Parameter,
     PrefixExpression,
     Program,
@@ -31,6 +33,7 @@ from machine_dialect.ast import (
     SetStatement,
     Statement,
     StringLiteral,
+    UnorderedListLiteral,
     URLLiteral,
     UtilityStatement,
     WholeNumberLiteral,
@@ -40,6 +43,8 @@ from machine_dialect.mir.basic_block import BasicBlock
 from machine_dialect.mir.debug_info import DebugInfoBuilder
 from machine_dialect.mir.mir_function import MIRFunction
 from machine_dialect.mir.mir_instructions import (
+    ArrayCreate,
+    ArraySet,
     Assert,
     BinaryOp,
     Call,
@@ -769,6 +774,39 @@ class HIRToMIRLowering:
             return Constant(None, MIRType.EMPTY)
         elif isinstance(expr, URLLiteral):
             return Constant(expr.value, MIRType.URL)
+
+        # Handle list literals
+        elif isinstance(expr, UnorderedListLiteral | OrderedListLiteral):
+            # Get source location
+            source_loc = expr.get_source_location()
+            if source_loc is None:
+                source_loc = (1, 1)
+
+            # Create array with size
+            size = Constant(len(expr.elements), MIRType.INT)
+            array_var = self.current_function.new_temp(MIRType.ARRAY)
+            self._add_instruction(ArrayCreate(array_var, size, source_loc), expr)
+
+            # Add elements to array
+            for i, element in enumerate(expr.elements):
+                elem_value = self.lower_expression(element)
+                index = Constant(i, MIRType.INT)
+                self._add_instruction(ArraySet(array_var, index, elem_value, source_loc), expr)
+
+            return array_var
+
+        elif isinstance(expr, NamedListLiteral):
+            # For named lists (dictionaries), we'd need dict operations
+            # For now, just create an empty array as placeholder
+            source_loc = expr.get_source_location()
+            if source_loc is None:
+                source_loc = (1, 1)
+
+            # TODO: Implement dictionary operations
+            size = Constant(0, MIRType.INT)
+            dict_var = self.current_function.new_temp(MIRType.DICT)
+            self._add_instruction(ArrayCreate(dict_var, size, source_loc), expr)
+            return dict_var
 
         # Handle identifier
         elif isinstance(expr, Identifier):

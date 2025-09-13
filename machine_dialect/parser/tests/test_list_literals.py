@@ -52,7 +52,7 @@ Set `fruits` to:
     def test_mixed_type_unordered_list(self) -> None:
         """Test parsing an unordered list with mixed types."""
         source = """
-Define `mixed` as list.
+Define `mixed` as unordered list.
 Set `mixed` to:
 - _"text"_
 - _42_
@@ -83,7 +83,7 @@ Set `mixed` to:
     def test_list_with_negative_numbers(self) -> None:
         """Test that lists can contain negative numbers."""
         source = """
-Define `numbers` as list.
+Define `numbers` as unordered list.
 Set `numbers` to:
 - _-5_
 - _10_
@@ -115,7 +115,7 @@ class TestOrderedLists:
     def test_simple_ordered_list(self) -> None:
         """Test parsing a simple ordered list."""
         source = """
-Define `steps` as list.
+Define `steps` as ordered list.
 Set `steps` to:
 1. _"First step"_
 2. _"Second step"_
@@ -147,7 +147,7 @@ Set `steps` to:
     def test_non_sequential_ordered_list(self) -> None:
         """Test that ordered lists can have non-sequential numbers."""
         source = """
-Define `priorities` as list.
+Define `priorities` as ordered list.
 Set `priorities` to:
 1. _"High priority"_
 5. _"Medium priority"_

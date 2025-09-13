@@ -15,6 +15,11 @@ from machine_dialect.codegen.opcodes import Opcode
 # Note: ConstantPool is now just a list of (tag, value) tuples
 from machine_dialect.mir.mir_function import MIRFunction
 from machine_dialect.mir.mir_instructions import (
+    ArrayAppend,
+    ArrayCreate,
+    ArrayGet,
+    ArrayLength,
+    ArraySet,
     Assert,
     BinaryOp,
     Call,
@@ -325,6 +330,16 @@ class RegisterBytecodeGenerator:
             self.generate_phi(inst)
         elif isinstance(inst, Assert):
             self.generate_assert(inst)
+        elif isinstance(inst, ArrayCreate):
+            self.generate_array_create(inst)
+        elif isinstance(inst, ArrayGet):
+            self.generate_array_get(inst)
+        elif isinstance(inst, ArraySet):
+            self.generate_array_set(inst)
+        elif isinstance(inst, ArrayLength):
+            self.generate_array_length(inst)
+        elif isinstance(inst, ArrayAppend):
+            self.generate_array_append(inst)
         elif isinstance(inst, Scope):
             self.generate_scope(inst)
         elif isinstance(inst, Print):
@@ -1007,6 +1022,86 @@ class RegisterBytecodeGenerator:
     def emit_i32(self, value: int) -> None:
         """Emit a signed 32-bit value."""
         self.bytecode.extend(struct.pack("<i", value))
+
+    def generate_array_create(self, inst: ArrayCreate) -> None:
+        """Generate NewArrayR instruction from MIR ArrayCreate."""
+        dst = self.get_register(inst.dest)
+        size = self.get_register(inst.size)
+
+        self.track_vm_instruction()
+        self.emit_opcode(Opcode.NEW_ARRAY_R)
+        self.emit_u8(dst)
+        self.emit_u8(size)
+
+        if self.debug:
+            print(f"  -> Generated NewArrayR: r{dst} = new_array(r{size})")
+
+    def generate_array_get(self, inst: ArrayGet) -> None:
+        """Generate ArrayGetR instruction from MIR ArrayGet."""
+        dst = self.get_register(inst.dest)
+        array = self.get_register(inst.array)
+        index = self.get_register(inst.index)
+
+        self.track_vm_instruction()
+        self.emit_opcode(Opcode.ARRAY_GET_R)
+        self.emit_u8(dst)
+        self.emit_u8(array)
+        self.emit_u8(index)
+
+        if self.debug:
+            print(f"  -> Generated ArrayGetR: r{dst} = r{array}[r{index}]")
+
+    def generate_array_set(self, inst: ArraySet) -> None:
+        """Generate ArraySetR instruction from MIR ArraySet."""
+        array = self.get_register(inst.array)
+        index = self.get_register(inst.index)
+        value = self.get_register(inst.value)
+
+        self.track_vm_instruction()
+        self.emit_opcode(Opcode.ARRAY_SET_R)
+        self.emit_u8(array)
+        self.emit_u8(index)
+        self.emit_u8(value)
+
+        if self.debug:
+            print(f"  -> Generated ArraySetR: r{array}[r{index}] = r{value}")
+
+    def generate_array_length(self, inst: ArrayLength) -> None:
+        """Generate ArrayLenR instruction from MIR ArrayLength."""
+        dst = self.get_register(inst.dest)
+        array = self.get_register(inst.array)
+
+        self.track_vm_instruction()
+        self.emit_opcode(Opcode.ARRAY_LEN_R)
+        self.emit_u8(dst)
+        self.emit_u8(array)
+
+        if self.debug:
+            print(f"  -> Generated ArrayLenR: r{dst} = len(r{array})")
+
+    def generate_array_append(self, inst: ArrayAppend) -> None:
+        """Generate array append as set at length position."""
+        array = self.get_register(inst.array)
+        value = self.get_register(inst.value)
+
+        # First get the current length into a temp register
+        # We need to allocate a temp register for the length
+        length_reg = 255  # Use highest register as temp
+
+        self.track_vm_instruction()
+        self.emit_opcode(Opcode.ARRAY_LEN_R)
+        self.emit_u8(length_reg)
+        self.emit_u8(array)
+
+        # Then set array[length] = value
+        self.track_vm_instruction()
+        self.emit_opcode(Opcode.ARRAY_SET_R)
+        self.emit_u8(array)
+        self.emit_u8(length_reg)
+        self.emit_u8(value)
+
+        if self.debug:
+            print(f"  -> Generated ArrayAppend: r{array}.append(r{value})")
 
 
 class MetadataCollector:

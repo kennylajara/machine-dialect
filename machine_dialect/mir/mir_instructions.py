@@ -1183,3 +1183,207 @@ class PopCountOp(MIRInstruction):
         """Replace uses of a value."""
         if self.value == old:
             self.value = new
+
+
+# Array/List operations
+class ArrayCreate(MIRInstruction):
+    """Create a new array: dest = new_array(size)."""
+
+    def __init__(self, dest: MIRValue, size: MIRValue, source_location: tuple[int, int]) -> None:
+        """Initialize array creation.
+
+        Args:
+            dest: Destination to store array reference.
+            size: Initial size of the array.
+            source_location: Source location in original code.
+        """
+        super().__init__(source_location)
+        self.dest = dest
+        self.size = size
+        self.cost = 2
+
+    def __str__(self) -> str:
+        """Return string representation."""
+        return f"{self.dest} = new_array({self.size})"
+
+    def get_uses(self) -> list[MIRValue]:
+        """Get size value used."""
+        return [self.size]
+
+    def get_defs(self) -> list[MIRValue]:
+        """Get destination defined."""
+        return [self.dest]
+
+    def replace_use(self, old: MIRValue, new: MIRValue) -> None:
+        """Replace uses of a value."""
+        if self.size == old:
+            self.size = new
+
+
+class ArrayGet(MIRInstruction):
+    """Get array element: dest = array[index]."""
+
+    def __init__(
+        self,
+        dest: MIRValue,
+        array: MIRValue,
+        index: MIRValue,
+        source_location: tuple[int, int],
+    ) -> None:
+        """Initialize array get operation.
+
+        Args:
+            dest: Destination to store the value.
+            array: Array to get from.
+            index: Index to access.
+            source_location: Source location in original code.
+        """
+        super().__init__(source_location)
+        self.dest = dest
+        self.array = array
+        self.index = index
+        self.is_pure = True
+        self.cost = 1
+
+    def __str__(self) -> str:
+        """Return string representation."""
+        return f"{self.dest} = {self.array}[{self.index}]"
+
+    def get_uses(self) -> list[MIRValue]:
+        """Get operands used."""
+        return [self.array, self.index]
+
+    def get_defs(self) -> list[MIRValue]:
+        """Get destination defined."""
+        return [self.dest]
+
+    def replace_use(self, old: MIRValue, new: MIRValue) -> None:
+        """Replace uses of a value."""
+        if self.array == old:
+            self.array = new
+        if self.index == old:
+            self.index = new
+
+
+class ArraySet(MIRInstruction):
+    """Set array element: array[index] = value."""
+
+    def __init__(
+        self,
+        array: MIRValue,
+        index: MIRValue,
+        value: MIRValue,
+        source_location: tuple[int, int],
+    ) -> None:
+        """Initialize array set operation.
+
+        Args:
+            array: Array to modify.
+            index: Index to set.
+            value: Value to store.
+            source_location: Source location in original code.
+        """
+        super().__init__(source_location)
+        self.array = array
+        self.index = index
+        self.value = value
+        self.has_side_effects = True
+        self.cost = 1
+
+    def __str__(self) -> str:
+        """Return string representation."""
+        return f"{self.array}[{self.index}] = {self.value}"
+
+    def get_uses(self) -> list[MIRValue]:
+        """Get operands used."""
+        return [self.array, self.index, self.value]
+
+    def get_defs(self) -> list[MIRValue]:
+        """No direct defs, modifies array in place."""
+        return []
+
+    def replace_use(self, old: MIRValue, new: MIRValue) -> None:
+        """Replace uses of a value."""
+        if self.array == old:
+            self.array = new
+        if self.index == old:
+            self.index = new
+        if self.value == old:
+            self.value = new
+
+
+class ArrayLength(MIRInstruction):
+    """Get array length: dest = len(array)."""
+
+    def __init__(self, dest: MIRValue, array: MIRValue, source_location: tuple[int, int]) -> None:
+        """Initialize array length operation.
+
+        Args:
+            dest: Destination to store length.
+            array: Array to get length of.
+            source_location: Source location in original code.
+        """
+        super().__init__(source_location)
+        self.dest = dest
+        self.array = array
+        self.is_pure = True
+        self.cost = 1
+
+    def __str__(self) -> str:
+        """Return string representation."""
+        return f"{self.dest} = len({self.array})"
+
+    def get_uses(self) -> list[MIRValue]:
+        """Get array used."""
+        return [self.array]
+
+    def get_defs(self) -> list[MIRValue]:
+        """Get destination defined."""
+        return [self.dest]
+
+    def replace_use(self, old: MIRValue, new: MIRValue) -> None:
+        """Replace uses of a value."""
+        if self.array == old:
+            self.array = new
+
+
+class ArrayAppend(MIRInstruction):
+    """Append to array: array.append(value)."""
+
+    def __init__(
+        self,
+        array: MIRValue,
+        value: MIRValue,
+        source_location: tuple[int, int],
+    ) -> None:
+        """Initialize array append operation.
+
+        Args:
+            array: Array to append to.
+            value: Value to append.
+            source_location: Source location in original code.
+        """
+        super().__init__(source_location)
+        self.array = array
+        self.value = value
+        self.has_side_effects = True
+        self.cost = 2
+
+    def __str__(self) -> str:
+        """Return string representation."""
+        return f"{self.array}.append({self.value})"
+
+    def get_uses(self) -> list[MIRValue]:
+        """Get operands used."""
+        return [self.array, self.value]
+
+    def get_defs(self) -> list[MIRValue]:
+        """No direct defs, modifies array in place."""
+        return []
+
+    def replace_use(self, old: MIRValue, new: MIRValue) -> None:
+        """Replace uses of a value."""
+        if self.array == old:
+            self.array = new
+        if self.value == old:
+            self.value = new

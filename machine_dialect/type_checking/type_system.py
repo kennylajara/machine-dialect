@@ -29,7 +29,10 @@ class MDType(Enum):
     DATE = auto()  # "Date" keyword
     DATETIME = auto()  # "DateTime" keyword
     TIME = auto()  # "Time" keyword
-    LIST = auto()  # "List" keyword
+    LIST = auto()  # "List" keyword (generic list)
+    UNORDERED_LIST = auto()  # Unordered list (dash markers)
+    ORDERED_LIST = auto()  # Ordered list (numbered markers)
+    NAMED_LIST = auto()  # Named list (dictionary with colon syntax)
     EMPTY = auto()  # "Empty" keyword (null/none)
     ANY = auto()  # "Any" keyword (future, dynamic type)
 
@@ -46,6 +49,9 @@ TYPE_NAME_MAP = {
     "DateTime": MDType.DATETIME,
     "Time": MDType.TIME,
     "List": MDType.LIST,
+    "Unordered List": MDType.UNORDERED_LIST,
+    "Ordered List": MDType.ORDERED_LIST,
+    "Named List": MDType.NAMED_LIST,
     "Empty": MDType.EMPTY,
     "Any": MDType.ANY,
 }
@@ -63,6 +69,9 @@ TYPE_DISPLAY_NAMES = {
     MDType.DATETIME: "DateTime",
     MDType.TIME: "Time",
     MDType.LIST: "List",
+    MDType.UNORDERED_LIST: "Unordered List",
+    MDType.ORDERED_LIST: "Ordered List",
+    MDType.NAMED_LIST: "Named List",
     MDType.EMPTY: "Empty",
     MDType.ANY: "Any",
 }
@@ -172,6 +181,12 @@ def get_type_from_value(value: Any) -> MDType | None:
             return MDType.EMPTY
         elif class_name == "URLLiteral":
             return MDType.URL
+        elif class_name == "UnorderedListLiteral":
+            return MDType.UNORDERED_LIST
+        elif class_name == "OrderedListLiteral":
+            return MDType.ORDERED_LIST
+        elif class_name == "NamedListLiteral":
+            return MDType.NAMED_LIST
 
     # Fallback to Python types (for testing or when we have actual values)
     if isinstance(value, bool):
@@ -184,6 +199,10 @@ def get_type_from_value(value: Any) -> MDType | None:
         if value.startswith(("http://", "https://", "ftp://", "file://")):
             return MDType.URL
         return MDType.TEXT
+    elif isinstance(value, list):
+        return MDType.LIST  # Generic list for Python lists
+    elif isinstance(value, dict):
+        return MDType.NAMED_LIST  # Dictionary maps to named list
     elif value == "empty" or value is None:
         return MDType.EMPTY
 

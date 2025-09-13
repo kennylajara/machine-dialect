@@ -528,6 +528,16 @@ class SemanticAnalyzer:
             # Unknown function or complex call expression
             return None
 
+        # List literals - collections
+        elif hasattr(expr, "__class__"):
+            class_name = expr.__class__.__name__
+            if class_name == "UnorderedListLiteral":
+                return TypeInfo("Unordered List")
+            elif class_name == "OrderedListLiteral":
+                return TypeInfo("Ordered List")
+            elif class_name == "NamedListLiteral":
+                return TypeInfo("Named List")
+
         # Error expressions always have unknown type
         elif isinstance(expr, ErrorExpression):
             return None

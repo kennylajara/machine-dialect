@@ -24,6 +24,8 @@ class MIRTypeKind(Enum):
     # Complex types
     FUNCTION = auto()
     URL = auto()
+    ARRAY = auto()  # Arrays (unordered/ordered lists)
+    DICT = auto()  # Dictionary (named lists)
 
     # Special types
     UNION = auto()  # For union types
@@ -45,6 +47,8 @@ class MIRType(Enum):
     # Complex types
     FUNCTION = auto()
     URL = auto()
+    ARRAY = auto()  # Arrays (unordered/ordered lists)
+    DICT = auto()  # Dictionary (named lists)
 
     # Special types
     UNKNOWN = auto()  # Type to be inferred

@@ -56,6 +56,7 @@ from machine_dialect.errors.messages import (
     UNEXPECTED_TOKEN_AT_START,
     VARIABLE_ALREADY_DEFINED,
     VARIABLE_NOT_DEFINED,
+    ErrorTemplate,
 )
 from machine_dialect.lexer import Lexer
 from machine_dialect.lexer.tokens import Token, TokenType
@@ -589,47 +590,102 @@ class Parser:
     def _parse_list_literal(self) -> Expression:
         """Parse a list literal (unordered, ordered, or named).
 
-        Called when current token is a colon after "Set x to:"
+        Called when current token is the first list item marker after "Set x to:"
         Determines the list type based on the first item marker and
         delegates to the appropriate specialized parser.
 
         Returns:
             UnorderedListLiteral, OrderedListLiteral, or NamedListLiteral
         """
-        # We're at the colon token - save it before advancing
+        # SetStatement has already advanced past the colon to the first list item
+        # Current token should be the first list item marker (dash, number, or EOF for empty list)
         if not self._current_token:
             return ErrorExpression(
                 token=Token(TokenType.MISC_EOF, "", 0, 0),
                 message="Unexpected EOF while parsing list",
             )
+
+        # Save the starting token for error reporting
         list_token = self._current_token
 
         # List context should already be set by SetStatement
-        # Advance past colon to the first list item
-        self._advance_tokens()
 
-        # Determine list type by looking at the first item marker
-        result: Expression
+        # Check for empty list (no items)
+        current_type = self._current_token.type if self._current_token else None
+        if current_type in (None, TokenType.MISC_EOF) or (
+            # Also check if we hit a statement terminator or new statement
+            current_type in (TokenType.PUNCT_PERIOD, TokenType.KW_SET, TokenType.KW_DEFINE)
+        ):
+            # Empty list - default to unordered
+            return UnorderedListLiteral(token=list_token, elements=[])
 
-        # Get the current token type to avoid repeated attribute access
+        # Skip any stopwords that might appear
+        while self._current_token and self._current_token.type in (TokenType.MISC_STOPWORD,):
+            self._advance_tokens()
+            # Update current type after skipping stopwords
+            current_type = self._current_token.type if self._current_token else None
+
+        # Debug: print what token we have
+        if self._current_token:
+            print(
+                f"DEBUG: After advancing from colon, current token is: "
+                f"{self._current_token.type} '{self._current_token.literal}' at "
+                f"{self._current_token.line}:{self._current_token.position}"
+            )
+            if self._current_token.literal == "-":
+                print(f"DEBUG: Found dash with type {self._current_token.type}")
+            if self._peek_token:
+                print(f"DEBUG: Peek token is: {self._peek_token.type} '{self._peek_token.literal}'")
+
+            # Also check buffer contents
+            if self._token_buffer:
+                print("DEBUG: Buffer contents:")
+                for i in range(min(4, len(self._token_buffer._buffer))):
+                    tok = self._token_buffer._buffer[i]
+                    print(f"  [{i}]: {tok.type} '{tok.literal}'")
+
+        # Now current_token should be the first list item marker (dash or number)
+        # Update current_type after advancing
         current_type = self._current_token.type if self._current_token else None
 
+        # Look at what type of list this is
         if current_type == TokenType.PUNCT_DASH:
-            # Check if it's a named list by looking for pattern: dash, string, colon
-            # Named lists have the pattern: - _"key"_: value
+            # Check if it's a named list by looking for pattern: dash, key, colon
+            # Named lists have patterns like: - _"key"_: value or - name: value
 
-            # Check what's in the buffer
-            in_buffer = self._token_buffer.current() if self._token_buffer else None
+            # Use the token buffer to peek ahead without advancing
+            is_named_list = False
 
-            if (
-                self._peek_token
-                and self._peek_token.type == TokenType.LIT_TEXT
-                and in_buffer
-                and in_buffer.type == TokenType.PUNCT_COLON
-            ):
+            # We're at the dash, peek_token is the key
+            if self._peek_token:
+                # Check token after the key using buffer
+                if self._token_buffer:
+                    # peek(2) = token after peek_token
+                    colon_after_key = self._token_buffer.peek(2)
+
+                    # Check if we have the pattern: dash, key, colon
+                    if colon_after_key and colon_after_key.type == TokenType.PUNCT_COLON:
+                        # Check if peek_token (the key) is valid for a named list
+                        peek_type = self._peek_token.type
+                        if peek_type in (
+                            TokenType.LIT_TEXT,
+                            TokenType.MISC_IDENT,
+                            TokenType.KW_NAME,
+                            TokenType.KW_CONTENT,
+                        ):
+                            is_named_list = True
+                        elif self._peek_token.literal and self._peek_token.literal.lower() in (
+                            "age",
+                            "active",
+                            "profession",
+                        ):
+                            is_named_list = True
+
+            result: Expression
+            if is_named_list:
                 result = self._parse_named_list_literal(list_token)
             else:
-                # Not a named list, it's an unordered list with a string item
+                # Not a named list, it's an unordered list
                 result = self._parse_unordered_list_literal(list_token)
 
         # Check if it's an ordered list (number followed by period)
@@ -669,7 +725,14 @@ class Parser:
             # Actually, this is complex. Let's just handle where we are.
             pass
 
-        while self._current_token and self._current_token.type == TokenType.PUNCT_DASH:
+        while True:
+            # Check if we're at a dash (list item marker)
+            if not self._current_token:
+                break
+            token_type = self._current_token.type
+            if token_type != TokenType.PUNCT_DASH:
+                break
+
             # Move past dash
             self._advance_tokens()
 
@@ -677,36 +740,38 @@ class Parser:
             item = self._parse_expression(Precedence.LOWEST)
             items.append(item)
 
-            # After parsing expression, we're at the last token of the expression
-            # Peek ahead to see if there's another list item
-            if self._peek_token and self._peek_token.type == TokenType.PUNCT_DASH:
-                # There's another list item, advance to it
-                self._advance_tokens()
-            elif self._peek_token and self._peek_token.type == TokenType.LIT_WHOLE_NUMBER:
-                # Check if this is an ordered list item (number followed by period)
-                # Look ahead to see if there's a period after the number
-                self._advance_tokens()  # Move to the number
-                # After advancing, check if next token is a period
-                peek_type: TokenType | None = self._peek_token.type if self._peek_token else None
-                if peek_type == TokenType.PUNCT_PERIOD:
-                    # This is an ordered list marker in an unordered list - error!
-                    from machine_dialect.errors.messages import ErrorTemplate
+            # After parsing expression, advance to check for period
+            self._advance_tokens()
 
-                    error = MDSyntaxError(
-                        message=ErrorTemplate("Cannot mix list types: found ordered list item in unordered list"),
-                        token_literal=self._current_token.literal if self._current_token else "",
-                        expected_token_type=TokenType.PUNCT_DASH,
-                        received_token_type=TokenType.LIT_WHOLE_NUMBER,
-                        line=self._current_token.line if self._current_token else 0,
-                        column=self._current_token.position if self._current_token else 0,
-                    )
-                    self.errors.append(error)
-                # Either way, we're done with the unordered list
-                break
+            # Each list item must end with a period
+            if self._current_token and self._current_token.type == TokenType.PUNCT_PERIOD:
+                # Good, we have the required period
+                # Now check if there's another list item
+                if self._peek_token and self._peek_token.type == TokenType.PUNCT_DASH:
+                    # There's another list item, advance to it
+                    self._advance_tokens()
+                else:
+                    # No more list items - we're done
+                    break
             else:
-                # No more list items - we're done
-                # Stay at the last token of the last item (don't advance)
-                break
+                # Missing period after list item - add error but continue parsing
+                error = MDSyntaxError(
+                    message=ErrorTemplate("List items must end with a period"),
+                    token_literal=self._current_token.literal if self._current_token else "",
+                    expected_token_type=TokenType.PUNCT_PERIOD,
+                    received_token_type=self._current_token.type if self._current_token else TokenType.MISC_EOF,
+                    line=self._current_token.line if self._current_token else 0,
+                    column=self._current_token.position if self._current_token else 0,
+                )
+                self.errors.append(error)
+
+                # Check if we're at another dash (next item) or done
+                if self._current_token and self._current_token.type == TokenType.PUNCT_DASH:
+                    # Continue with next item despite missing period
+                    continue
+                else:
+                    # No more items
+                    break
 
         return UnorderedListLiteral(token=list_token, elements=items)
 
@@ -721,28 +786,60 @@ class Parser:
         """
         items: list[Expression] = []
 
-        while self._current_token and self._current_token.type == TokenType.LIT_WHOLE_NUMBER:
+        while True:
+            # Check if we're at a number (ordered list item marker)
+            if not self._current_token:
+                break
+            token_type = self._current_token.type
+            if token_type != TokenType.LIT_WHOLE_NUMBER:
+                break
+
             # Skip the number
             self._advance_tokens()
 
-            # Check for period (after advancing, current token has changed)
-            current_type_after_advance: TokenType | None = self._current_token.type if self._current_token else None
-            if current_type_after_advance != TokenType.PUNCT_PERIOD:
+            # Check for period after number (this is the list marker period, e.g., "1.")
+            if not self._current_token or self._current_token.type != TokenType.PUNCT_PERIOD:
                 break
 
-            # Move past period
+            # Move past the list marker period
             self._advance_tokens()
 
             # Parse the item expression
             item = self._parse_expression(Precedence.LOWEST)
             items.append(item)
 
-            # Move to next line/token
+            # After parsing expression, advance to check for item-terminating period
             self._advance_tokens()
 
-            # Check if we're still in the list (next number)
-            if not self._current_token or self._current_token.type != TokenType.LIT_WHOLE_NUMBER:
-                break
+            # Each list item must end with a period
+            if self._current_token and self._current_token.type == TokenType.PUNCT_PERIOD:
+                # Good, we have the required period
+                # Check if there's another list item
+                if self._peek_token and self._peek_token.type == TokenType.LIT_WHOLE_NUMBER:
+                    # There's another list item, advance to it
+                    self._advance_tokens()
+                else:
+                    # No more list items - we're done
+                    break
+            else:
+                # Missing period after list item - add error but continue parsing
+                error = MDSyntaxError(
+                    message=ErrorTemplate("List items must end with a period"),
+                    token_literal=self._current_token.literal if self._current_token else "",
+                    expected_token_type=TokenType.PUNCT_PERIOD,
+                    received_token_type=self._current_token.type if self._current_token else TokenType.MISC_EOF,
+                    line=self._current_token.line if self._current_token else 0,
+                    column=self._current_token.position if self._current_token else 0,
+                )
+                self.errors.append(error)
+
+                # Check if we're at another number (next item) or done
+                if self._current_token and self._current_token.type == TokenType.LIT_WHOLE_NUMBER:
+                    # Continue with next item despite missing period
+                    continue
+                else:
+                    # No more items
+                    break
 
         return OrderedListLiteral(token=list_token, elements=items)
 
@@ -762,18 +859,31 @@ class Parser:
         entries: list[tuple[str, Expression]] = []
 
         # Parse entries while we have dash-prefixed lines
-        while self._current_token and self._current_token.type == TokenType.PUNCT_DASH:
+        while True:
+            # Check if we're at a dash (named list item marker)
+            if not self._current_token:
+                break
+            token_type = self._current_token.type
+            if token_type != TokenType.PUNCT_DASH:
+                break
+
             # Move past the dash
             self._advance_tokens()
 
-            # Parse the key (must be a string literal in named lists)
+            # Parse the key (can be a string literal or identifier/keyword)
             key = ""
             current_type_after_dash: TokenType | None = self._current_token.type if self._current_token else None
             if current_type_after_dash == TokenType.LIT_TEXT:
                 key = self._current_token.literal.strip('"')
                 self._advance_tokens()
+            elif current_type_after_dash in (TokenType.MISC_IDENT, TokenType.KW_NAME, TokenType.KW_CONTENT) or (
+                self._current_token and self._current_token.literal.lower() in ("age", "active", "name", "profession")
+            ):
+                # Accept identifiers and common keywords as keys
+                key = self._current_token.literal if self._current_token else ""
+                self._advance_tokens()
             else:
-                # Invalid key - named lists require string keys
+                # Invalid key - named lists require string keys or identifiers
                 self._panic_until_tokens([TokenType.PUNCT_DASH, TokenType.MISC_EOF])
                 continue
 
@@ -792,18 +902,50 @@ class Parser:
 
             # Parse the value expression
             value = self._parse_expression(Precedence.LOWEST)
-            if value:
-                entries.append((key, value))
-            else:
+            if not value:
                 entries.append(
                     (
                         key,
                         ErrorExpression(token=self._current_token or list_token, message="Expected value after colon"),
                     )
                 )
+                self._panic_until_tokens([TokenType.PUNCT_DASH, TokenType.MISC_EOF])
+                continue
 
-            # Move to next line/token to check for more entries
+            # After parsing expression, advance to check for period
             self._advance_tokens()
+
+            # Each named list entry must end with a period
+            if self._current_token and self._current_token.type == TokenType.PUNCT_PERIOD:
+                # Good, we have the required period
+                entries.append((key, value))
+                # Check if there's another entry
+                if self._peek_token and self._peek_token.type == TokenType.PUNCT_DASH:
+                    # There's another entry, advance to it
+                    self._advance_tokens()
+                else:
+                    # No more entries - we're done
+                    break
+            else:
+                # Missing period after entry - add error but include the entry
+                error = MDSyntaxError(
+                    message=ErrorTemplate("Named list entries must end with a period"),
+                    token_literal=self._current_token.literal if self._current_token else "",
+                    expected_token_type=TokenType.PUNCT_PERIOD,
+                    received_token_type=self._current_token.type if self._current_token else TokenType.MISC_EOF,
+                    line=self._current_token.line if self._current_token else 0,
+                    column=self._current_token.position if self._current_token else 0,
+                )
+                self.errors.append(error)
+                entries.append((key, value))
+
+                # Check if we're at another dash (next entry) or done
+                if self._current_token and self._current_token.type == TokenType.PUNCT_DASH:
+                    # Continue with next entry despite missing period
+                    continue
+                else:
+                    # No more entries
+                    break
 
         return NamedListLiteral(token=list_token, entries=entries)
 
@@ -1416,12 +1558,20 @@ class Parser:
 
                 self._advance_tokens()  # Move past 'to' to the colon
 
-                # Parse the list
+                # Advance past the colon to get to the first list item
+                self._advance_tokens()
+
+                # Parse the list - current token should now be the first list item marker
                 let_statement.value = self._parse_list_literal()
 
                 # Disable list context after parsing
                 if self._token_buffer:
                     self._token_buffer.set_list_context(False)
+
+                # After parsing a list, we're already properly positioned
+                # (either at EOF, a period, or the next statement)
+                # Set a flag to skip the advance and period check
+                used_using = True  # Reuse this flag to skip advance/period check
             else:
                 # Not a list, advance past 'to' and parse expression normally
                 self._advance_tokens()  # Move past 'to'

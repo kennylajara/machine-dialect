@@ -1,7 +1,7 @@
 //! Value representation
 //!
 //! This module defines the Value enum which represents all possible values
-//! in the Machine Dialect VM.
+//! in the Machine Dialect™ VM.
 
 use std::fmt;
 use std::sync::Arc;

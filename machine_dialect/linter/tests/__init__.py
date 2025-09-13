@@ -1,1 +1,1 @@
-"""Tests for the Machine Dialect linter."""
+"""Tests for the Machine Dialect™ linter."""

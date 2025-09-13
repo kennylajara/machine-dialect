@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Standalone benchmark runner for local testing without Docker.
-This allows testing Machine Dialect performance directly.
+This allows testing Machine Dialect™ performance directly.
 """
 
 import json
@@ -192,21 +192,21 @@ class Program {
                 "mode": "jit",
             }
 
-    # Machine Dialect Implementation
+    # Machine Dialect™ Implementation
     if Path("fib.md").exists():
-        # First compile the Machine Dialect code
+        # First compile the Machine Dialect™ code
         compile_result = subprocess.run(
             ["python3", "-m", "machine_dialect", "compile", "fib.md", "-o", "fib.mdb", "--opt-level", "3"],
             capture_output=True,
             text=True,
         )
         if compile_result.returncode == 0:
-            programs["Machine Dialect (Compiled)"] = {
+            programs["Machine Dialect™ (Compiled)"] = {
                 "cmd": ["python3", "-m", "machine_dialect", "run", "fib.mdb"],
                 "mode": "bytecode",
             }
         else:
-            print(f"Machine Dialect compilation failed: {compile_result.stderr}")
+            print(f"Machine Dialect™ compilation failed: {compile_result.stderr}")
 
     return programs
 
@@ -251,7 +251,7 @@ def run_benchmark(name: str, config: dict[str, Any]) -> dict[str, Any]:
 def main() -> None:
     """Main benchmark runner."""
     print("=" * 60)
-    print("Machine Dialect Performance Benchmark")
+    print("Machine Dialect™ Performance Benchmark")
     print("=" * 60)
     print(f"Fibonacci({FIBONACCI_N}) - {ITERATIONS} iterations per language\n")
 

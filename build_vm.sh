@@ -1,9 +1,9 @@
 #!/bin/bash
-# Build script for Machine Dialect Rust VM
+# Build script for Machine Dialect™ Rust VM
 
 set -e
 
-echo "Building Machine Dialect Rust VM..."
+echo "Building Machine Dialect™ Rust VM..."
 echo "=================================="
 echo ""
 

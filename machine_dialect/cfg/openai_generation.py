@@ -1,4 +1,4 @@
-"""Grammar-based generation module for Machine Dialect using GPT-5's CFG support."""
+"""Grammar-based generation module for Machine Dialect™ using GPT-5's CFG support."""
 
 from pathlib import Path
 from typing import Any
@@ -11,11 +11,11 @@ def generate_with_openai(
     max_tokens: int = 500,
     temperature: float = 0.7,
 ) -> str:
-    """Generate Machine Dialect code using GPT-5's context-free grammar constraints.
+    """Generate Machine Dialect™ code using GPT-5's context-free grammar constraints.
 
     This function uses GPT-5's custom tools with CFG to ensure syntactically correct
-    Machine Dialect code generation. The model is constrained to only produce
-    strings that match the Machine Dialect grammar.
+    Machine Dialect™ code generation. The model is constrained to only produce
+    strings that match the Machine Dialect™ grammar.
 
     Args:
         client: OpenAI client instance.
@@ -25,7 +25,7 @@ def generate_with_openai(
         temperature: Sampling temperature (0-2).
 
     Returns:
-        Generated Machine Dialect code that is guaranteed to be syntactically valid.
+        Generated Machine Dialect™ code that is guaranteed to be syntactically valid.
 
     Raises:
         ValueError: If the model doesn't support CFG or response is invalid.
@@ -37,7 +37,7 @@ def generate_with_openai(
             "Please use a GPT-5 model (gpt-5, gpt-5-mini, or gpt-5-nano)."
         )
 
-    # Create the CFG definition for Machine Dialect
+    # Create the CFG definition for Machine Dialect™
     machine_dialect_cfg = _get_machine_dialect_cfg()
 
     # Create the API request using GPT-5's custom tools with CFG
@@ -48,18 +48,18 @@ def generate_with_openai(
             {
                 "role": "developer",
                 "content": (
-                    "You are a Machine Dialect code generator. Generate code that performs the "
-                    "requested task using the Machine Dialect language. The output must conform "
+                    "You are a Machine Dialect™ code generator. Generate code that performs the "
+                    "requested task using the Machine Dialect™ language. The output must conform "
                     "to the provided context-free grammar."
                 ),
             },
-            {"role": "user", "content": f"Generate Machine Dialect code for: {task_description}"},
+            {"role": "user", "content": f"Generate Machine Dialect™ code for: {task_description}"},
         ],
         tools=[
             {
                 "type": "custom",
                 "name": "machine_dialect_generator",
-                "description": "Generates syntactically valid Machine Dialect code",
+                "description": "Generates syntactically valid Machine Dialect™ code",
                 "format": machine_dialect_cfg,
             }
         ],
@@ -81,12 +81,12 @@ def generate_with_openai(
 
 
 def _get_machine_dialect_cfg() -> dict[str, Any]:
-    """Get the Machine Dialect context-free grammar in GPT-5 format.
+    """Get the Machine Dialect™ context-free grammar in GPT-5 format.
 
     Returns:
         Dictionary containing the CFG definition for GPT-5's custom tools.
     """
-    # Read the Machine Dialect Lark grammar file for GPT-5
+    # Read the Machine Dialect™ Lark grammar file for GPT-5
     grammar_path = Path(__file__).parent / "machine_dialect.lark"
 
     with open(grammar_path) as f:

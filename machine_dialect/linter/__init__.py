@@ -1,6 +1,6 @@
-"""Machine Dialect Linter.
+"""Machine Dialect™ Linter.
 
-This module provides linting capabilities for Machine Dialect code,
+This module provides linting capabilities for Machine Dialect™ code,
 including style checking, error detection, and code quality analysis.
 """
 

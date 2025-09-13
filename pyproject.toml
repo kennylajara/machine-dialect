@@ -5,11 +5,11 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "machine-dialect"
 version = "0.1.0"
-description = "Machine Dialect - Natural language programming in Markdown"
+description = "Machine Dialect™ - Natural language programming in Markdown"
 readme = "README.md"
 requires-python = ">=3.12"
 authors = [
-    {name = "Machine Dialect Contributors"},
+    {name = "Lajara AI, LLC"},
 ]
 keywords = ["programming-language", "natural-language", "markdown", "compiler", "vm"]
 classifiers = [

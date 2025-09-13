@@ -1,4 +1,4 @@
-"""Literal expression AST nodes for Machine Dialect."""
+"""Literal expression AST nodes for Machine Dialect™."""
 
 from typing import TYPE_CHECKING
 

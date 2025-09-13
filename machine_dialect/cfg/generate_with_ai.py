@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Generate Machine Dialect code using AI models.
+"""Generate Machine Dialect™ code using AI models.
 
-This module provides functionality to generate Machine Dialect code using
+This module provides functionality to generate Machine Dialect™ code using
 AI language models (such as OpenAI's GPT models). It includes code generation,
 validation, and configuration management for AI API integration.
 
 The module supports:
-- Generating Machine Dialect code from natural language descriptions
+- Generating Machine Dialect™ code from natural language descriptions
 - Validating generated code against the CFG parser
 - Flexible configuration through environment variables or config files
 - Command-line interface for code generation tasks
@@ -40,7 +40,7 @@ def generate_code(
     max_tokens: int = 500,
     validate: bool = True,
 ) -> str:
-    """Generate Machine Dialect code for a given task.
+    """Generate Machine Dialect™ code for a given task.
 
     Args:
         task: Description of what the code should do.
@@ -51,7 +51,7 @@ def generate_code(
         validate: Whether to validate generated code.
 
     Returns:
-        Generated Machine Dialect code.
+        Generated Machine Dialect™ code.
 
     Raises:
         ValueError: If API key or model is not configured.
@@ -135,7 +135,7 @@ Say area."""
 def main() -> int:
     """Main entry point for the AI code generation script.
 
-    Parses command-line arguments and generates Machine Dialect code
+    Parses command-line arguments and generates Machine Dialect™ code
     based on the provided task description. Supports configuration
     overrides, validation, and saving output to files.
 
@@ -148,7 +148,7 @@ def main() -> int:
         >>> main()
         0
     """
-    parser = argparse.ArgumentParser(description="Generate Machine Dialect code using AI models")
+    parser = argparse.ArgumentParser(description="Generate Machine Dialect™ code using AI models")
     parser.add_argument("task", help="Description of what the code should do")
     parser.add_argument("--api-key", help="AI API key (overrides config/env)")
     parser.add_argument("--model", help="AI model to use (overrides config/env)")

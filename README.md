@@ -1,8 +1,8 @@
-# Machine Dialect (.md)
+# Machine Dialect™ (.md)
 
 > ⚠️ **ALPHA VERSION WARNING** ⚠️
 >
-> Machine Dialect is currently in **ALPHA** stage. We are rapidly iterating on the language
+> The Machine Dialect™ language is currently in **ALPHA** stage. We are rapidly iterating on the language
 > design and implementation. During this phase:
 >
 > - **Breaking changes will be frequent** and without deprecation warnings
@@ -13,7 +13,7 @@
 > We encourage experimentation and feedback, but please be aware that code written today
 > may require updates to work with future versions.
 
-**Machine Dialect** is a programming language designed to look like natural language and feel
+The **Machine Dialect™ programming language** is designed to look like natural language and feel
 like structured documentation. It is written in Markdown and intended to be both human-friendly
 and AI-native — readable by people, generatable and parsable by machines.
 
@@ -27,7 +27,7 @@ and AI-native — readable by people, generatable and parsable by machines.
 
 ## 📋 Table of Contents
 
-- [Why Machine Dialect?](#why-machine-dialect)
+- [Why Machine Dialect™?](#why-machine-dialect)
 - [Philosophy](#philosophy)
 - [Language Features](#language-features)
 - [Syntax Examples](#syntax-examples)
@@ -38,12 +38,12 @@ and AI-native — readable by people, generatable and parsable by machines.
 - [Contributing](#contributing)
 - [Status](#status)
 
-## Why Machine Dialect?
+## Why Machine Dialect™?
 
 Modern programming languages were made for humans to instruct machines. But now that machines
 can understand and generate human-like language, it's time to rethink the language itself.
 
-Machine Dialect is for a future where:
+The Machine Dialect™ language is for a future where:
 
 - **AI writes most of the code**, and humans supervise, modify, and approve
 - Code is **visually readable**, even by non-programmers
@@ -77,7 +77,7 @@ Machine Dialect is for a future where:
 
 ### Operators
 
-Machine Dialect supports both symbolic and natural language operators:
+The Machine Dialect™ language supports both symbolic and natural language operators:
 
 | Operation             | Symbols | Natural Forms (Canonical)                             | Aliases                     | Example                              |
 | --------------------- | ------- | ----------------------------------------------------- | --------------------------- | ------------------------------------ |
@@ -97,7 +97,7 @@ Machine Dialect supports both symbolic and natural language operators:
 
 #### Equality Types
 
-Machine Dialect distinguishes between two types of equality:
+The Machine Dialect™ language distinguishes between two types of equality:
 
 - **Value Equality** (`equals`, `is equal to`): Compares values with type coercion. For
   example, `_5_ equals _"5"_` might be true.
@@ -245,7 +245,7 @@ python -m machine_dialect --debug-tokens
 Example session (AST mode):
 
 ```text
-Machine Dialect REPL v0.1.0
+Machine Dialect™ REPL v0.1.0
 Mode: AST Mode
 Type 'exit' to exit, 'help' for help
 --------------------------------------------------
@@ -269,7 +269,7 @@ AST:
 Example session (Token debug mode):
 
 ```text
-Machine Dialect REPL v0.1.0
+Machine Dialect™ REPL v0.1.0
 Mode: Token Debug Mode
 Type 'exit' to exit, 'help' for help
 --------------------------------------------------
@@ -307,7 +307,7 @@ Say **greeting** + _", "_ + **name** + _"!"_.
 
 ### Compiling and Running Programs
 
-Machine Dialect provides a complete toolchain for compiling and executing programs:
+The Machine Dialect™ toolchain provides a complete toolchain for compiling and executing programs:
 
 ```bash
 # Compile a .md file to bytecode (.mdc)
@@ -335,7 +335,7 @@ python -m machine_dialect shell
 
 **Binary format:**
 
-- Compiled files use `.mdc` extension (Machine Dialect Compiled)
+- Compiled files use `.mdc` extension (Machine Dialect™ Compiled)
 - Binary format includes magic number `0xBEBECAFE` for validation
 - Supports both procedural and class-based modules (future)
 
@@ -423,7 +423,7 @@ machine_dialect/
 │   │   ├── constants.py    # Character-to-token mappings
 │   │   ├── lexer.py        # Main lexer implementation
 │   │   └── tokens.py       # Token type definitions
-│   ├── linter/             # Machine Dialect linter
+│   ├── linter/             # Machine Dialect™ linter
 │   │   └── linter.py       # Linting rules
 │   ├── parser/             # Syntax analysis
 │   │   ├── enums.py        # Parser enums (precedence, etc.)
@@ -501,8 +501,10 @@ We welcome contributions! Please follow these guidelines:
 
 ## Acknowledgments
 
-Machine Dialect is inspired by efforts to make programming more accessible and AI-friendly,
+The Machine Dialect™ language is inspired by efforts to make programming more accessible and AI-friendly,
 including natural language programming research and literate programming concepts.
+
+Machine Dialect is a trademark of Lajara AI, LLC.
 
 ______________________________________________________________________
 

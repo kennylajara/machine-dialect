@@ -1,6 +1,6 @@
 """Integration tests for the Rust VM.
 
-Tests the full pipeline from Machine Dialect source to VM execution.
+Tests the full pipeline from Machine Dialect™ source to VM execution.
 """
 
 from __future__ import annotations

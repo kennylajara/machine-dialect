@@ -1,4 +1,4 @@
-"""Acceptance testing module for Machine Dialect components.
+"""Acceptance testing module for Machine Dialect™ components.
 
 This module provides comprehensive acceptance tests that validate
 all components work correctly with the same input.

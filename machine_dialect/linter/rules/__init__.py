@@ -1,4 +1,4 @@
-"""Linting rules for Machine Dialect.
+"""Linting rules for Machine Dialect™.
 
 This module manages the registration and execution of linting rules.
 """

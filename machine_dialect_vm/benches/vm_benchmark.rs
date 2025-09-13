@@ -1,4 +1,4 @@
-//! Performance benchmarks for the Machine Dialect VM
+//! Performance benchmarks for the Machine Dialect™ VM
 
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use machine_dialect_vm::{VM, BytecodeModule};

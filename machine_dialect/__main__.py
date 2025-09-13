@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Machine Dialect CLI.
+"""Machine Dialect™ CLI.
 
-Main command-line interface for the Machine Dialect language.
-Provides commands for compiling, running, and interacting with Machine Dialect programs.
+Main command-line interface for the Machine Dialect™ language.
+Provides commands for compiling, running, and interacting with Machine Dialect™ programs.
 """
 
 import sys
@@ -15,9 +15,9 @@ from machine_dialect.repl.repl import REPL
 
 
 @click.group()
-@click.version_option(version="0.1.0", prog_name="Machine Dialect")
+@click.version_option(version="0.1.0", prog_name="Machine Dialect™")
 def cli() -> None:
-    """Machine Dialect - Natural language programming in Markdown."""
+    """Machine Dialect™ - Natural language programming in Markdown."""
     pass
 
 
@@ -85,7 +85,7 @@ def compile(
     mir_phase: bool,
     opt_level: str,
 ) -> None:
-    """Compile a Machine Dialect source file to bytecode."""
+    """Compile a Machine Dialect™ source file to bytecode."""
     # Create compiler configuration from CLI options
     config = CompilerConfig.from_cli_options(
         opt_level=opt_level,
@@ -117,7 +117,7 @@ def compile(
     help="Enable debug mode",
 )
 def run(file: str, debug: bool) -> None:
-    """Run a Machine Dialect file (source .md or compiled .mdbc)."""
+    """Run a Machine Dialect™ file (source .md or compiled .mdbc)."""
     from pathlib import Path
 
     file_path = Path(file)
@@ -283,7 +283,7 @@ def _run_compiled(bytecode_file: str, debug: bool) -> None:
     help="Run in AST mode (show AST instead of evaluating)",
 )
 def shell(tokens: bool, ast: bool) -> None:
-    """Start an interactive Machine Dialect shell (REPL)."""
+    """Start an interactive Machine Dialect™ shell (REPL)."""
     if tokens and ast:
         click.echo("Error: --tokens and --ast flags are not compatible", err=True)
         sys.exit(1)
@@ -369,7 +369,7 @@ def llm(
     validate: bool,
     verbose: bool,
 ) -> None:
-    """Generate Machine Dialect code using AI models.
+    """Generate Machine Dialect™ code using AI models.
 
     Examples:
         machine-dialect llm "calculate the factorial of 5"
@@ -432,7 +432,7 @@ def llm(
         client = OpenAI(api_key=config.key)
 
         # Generate code
-        click.echo(f"Generating Machine Dialect code with {config.model}...")
+        click.echo(f"Generating Machine Dialect™ code with {config.model}...")
 
         try:
             generated_code = generate_with_openai(

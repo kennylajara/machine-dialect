@@ -1,4 +1,4 @@
-"""Tests for the Machine Dialect compile-time type system."""
+"""Tests for the Machine Dialect™ compile-time type system."""
 
 from machine_dialect.ast import (
     EmptyLiteral,

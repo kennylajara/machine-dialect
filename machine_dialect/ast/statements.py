@@ -1,7 +1,7 @@
-"""AST nodes for statement types in Machine Dialect.
+"""AST nodes for statement types in Machine Dialect™.
 
 This module defines the statement nodes used in the Abstract Syntax Tree (AST)
-for Machine Dialect. Statements are complete units of execution that perform
+for Machine Dialect™. Statements are complete units of execution that perform
 actions but don't produce values (unlike expressions).
 
 Statements include:
@@ -251,7 +251,7 @@ class SetStatement(Statement):
     """A statement that assigns a value to a variable.
 
     Set statements follow the natural language pattern: "Set <variable> to <value>".
-    They are the primary way to assign values to variables in Machine Dialect.
+    They are the primary way to assign values to variables in Machine Dialect™.
 
     Attributes:
         name: The identifier (variable name) to assign to.
@@ -617,7 +617,7 @@ class Output(ASTNode):
 
 
 class ActionStatement(Statement):
-    """Represents an Action statement (private method) in Machine Dialect.
+    """Represents an Action statement (private method) in Machine Dialect™.
 
     Actions are private methods that can only be called within the same scope.
     They are defined using the markdown-style syntax:
@@ -710,7 +710,7 @@ class ActionStatement(Statement):
 
 
 class SayStatement(Statement):
-    """Represents a Say statement (output/display) in Machine Dialect.
+    """Represents a Say statement (output/display) in Machine Dialect™.
 
     Say statements output or display expressions to the user.
     They are similar to print statements in other languages.
@@ -758,7 +758,7 @@ class SayStatement(Statement):
 
 
 class InteractionStatement(Statement):
-    """Represents an Interaction statement (public method) in Machine Dialect.
+    """Represents an Interaction statement (public method) in Machine Dialect™.
 
     Interactions are public methods that can be called from outside the scope.
     They are defined using the markdown-style syntax:
@@ -851,7 +851,7 @@ class InteractionStatement(Statement):
 
 
 class UtilityStatement(Statement):
-    """Represents a Utility statement (function) in Machine Dialect.
+    """Represents a Utility statement (function) in Machine Dialect™.
 
     Utilities are functions that can be called and return values.
     They are defined using the markdown-style syntax:

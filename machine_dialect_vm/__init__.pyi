@@ -5,7 +5,7 @@ from typing import Any
 __version__: str
 
 class RustVM:
-    """Rust VM for executing Machine Dialect bytecode."""
+    """Rust VM for executing Machine Dialect™ bytecode."""
 
     def __init__(self) -> None: ...
     def set_debug(self, enabled: bool) -> None: ...

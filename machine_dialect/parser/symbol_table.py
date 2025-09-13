@@ -1,4 +1,4 @@
-"""Symbol table for tracking variable definitions in Machine Dialect.
+"""Symbol table for tracking variable definitions in Machine Dialect™.
 
 This module provides the symbol table implementation for tracking variable
 definitions and their types. The symbol table supports nested scopes and

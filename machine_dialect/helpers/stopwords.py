@@ -1,4 +1,4 @@
-"""English stopwords module for Machine Dialect.
+"""English stopwords module for Machine Dialect™.
 
 This module provides a curated set of English stopwords commonly used in
 natural language processing. These words are typically filtered out during

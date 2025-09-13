@@ -2,9 +2,9 @@
 
 ## Overview
 
-The AST module defines the node structure for the Machine Dialect language's abstract syntax
+The AST module defines the node structure for the Machine Dialect™ language's abstract syntax
 tree. It provides a comprehensive hierarchy of node types that represent the parsed structure
-of Machine Dialect programs, enabling semantic analysis, interpretation, and code generation.
+of Machine Dialect™ programs, enabling semantic analysis, interpretation, and code generation.
 
 ## Architecture
 

@@ -1,7 +1,7 @@
 """End-to-end test for the Rust VM integration.
 
 This test demonstrates the complete pipeline:
-1. Machine Dialect source code
+1. Machine Dialect™ source code
 2. Lexing and parsing to AST
 3. HIR generation
 4. MIR generation
@@ -30,7 +30,7 @@ from machine_dialect.parser.parser import Parser
 
 def test_simple_arithmetic_pipeline() -> None:
     """Test simple arithmetic through the entire pipeline."""
-    # Machine Dialect source code
+    # Machine Dialect™ source code
     source = """
 # Simple Arithmetic Test
 

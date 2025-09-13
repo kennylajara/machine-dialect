@@ -1,7 +1,7 @@
-"""Violation representation for the Machine Dialect linter.
+"""Violation representation for the Machine Dialect™ linter.
 
 This module defines the Violation class used to represent linting issues
-found in Machine Dialect code.
+found in Machine Dialect™ code.
 """
 
 from dataclasses import dataclass
@@ -21,7 +21,7 @@ class ViolationSeverity(Enum):
 
 @dataclass
 class Violation:
-    """Represents a linting violation found in Machine Dialect code.
+    """Represents a linting violation found in Machine Dialect™ code.
 
     Attributes:
         rule_id: Unique identifier for the rule that was violated.

@@ -1,11 +1,11 @@
-# Machine Dialect Linter
+# Machine Dialect™ Linter
 
-A comprehensive linting tool for Machine Dialect code that helps maintain consistent code style
+A comprehensive linting tool for Machine Dialect™ code that helps maintain consistent code style
 and catch common errors.
 
 ## Overview
 
-The Machine Dialect linter analyzes your Machine Dialect code to:
+The Machine Dialect™ linter analyzes your Machine Dialect™ code to:
 
 - Enforce consistent coding style
 - Detect syntax errors early
@@ -13,10 +13,10 @@ The Machine Dialect linter analyzes your Machine Dialect code to:
 
 ## Installation
 
-The linter is included with the Machine Dialect package. No separate installation is required.
+The linter is included with the Machine Dialect™ package. No separate installation is required.
 
 ```bash
-# Install Machine Dialect (if not already installed)
+# Install Machine Dialect™ (if not already installed)
 uv pip install -e .
 ```
 
@@ -78,7 +78,7 @@ The linter follows a modular architecture with these key components:
 
 ### How It Works
 
-1. **Parsing**: The linter first parses the Machine Dialect code into an Abstract Syntax Tree (AST)
+1. **Parsing**: The linter first parses the Machine Dialect™ code into an Abstract Syntax Tree (AST)
 1. **Visitor Pattern**: It traverses the AST using a visitor pattern
 1. **Rule Application**: Each registered rule is applied to relevant AST nodes
 1. **Violation Collection**: Rules return violations they find
@@ -88,14 +88,14 @@ The linter follows a modular architecture with these key components:
 
 ### Rule Numbering Convention
 
-Machine Dialect follows a specific numbering convention for linting rules:
+Machine Dialect™ follows a specific numbering convention for linting rules:
 
 - **MD001-MD099**: Reserved for traditional Markdown rules, designed to be compatible with
   [markdownlint](https://github.com/DavidAnson/markdownlint/tree/main)
-- **MD101+**: Machine Dialect specific rules
+- **MD101+**: Machine Dialect™ specific rules
 
-This allows Machine Dialect files to be linted with both traditional Markdown linters and
-Machine Dialect specific rules without conflicts.
+This allows Machine Dialect™ files to be linted with both traditional Markdown linters and
+Machine Dialect™ specific rules without conflicts.
 
 ### MD101: Statement Termination
 
@@ -182,7 +182,7 @@ You can integrate the linter into your Git workflow by adding it as a pre-commit
 #!/bin/bash
 # .git/hooks/pre-commit
 
-# Run linter on staged Machine Dialect files
+# Run linter on staged Machine Dialect™ files
 files=$(git diff --cached --name-only --diff-filter=ACM | grep '\.md$')
 if [ -n "$files" ]; then
     python -m machine_dialect.linter $files
@@ -199,7 +199,7 @@ Add the linter to your CI pipeline:
 
 ```yaml
 # GitHub Actions example
-- name: Lint Machine Dialect code
+- name: Lint Machine Dialect™ code
   run: |
     python -m machine_dialect.linter **/*.md
 ```
@@ -242,7 +242,7 @@ When contributing new rules, please:
 
 1. Follow the rule ID naming convention:
    - Use MD001-MD099 only for traditional Markdown compatibility rules
-   - Use MD101+ for Machine Dialect specific rules
+   - Use MD101+ for Machine Dialect™ specific rules
 1. Include comprehensive tests in the `mdrules/` directory
 1. Document the rule with clear examples
 1. Ensure the rule has appropriate severity level
@@ -294,4 +294,4 @@ class Violation:
 
 ## License
 
-The Machine Dialect linter is part of the Machine Dialect project and shares its license.
+The Machine Dialect™ linter is part of the Machine Dialect™ project and shares its license.

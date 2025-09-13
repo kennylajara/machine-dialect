@@ -1,11 +1,11 @@
-"""Examples and usage of the CFG module for Machine Dialect.
+"""Examples and usage of the CFG module for Machine Dialect™.
 
 This module provides demonstration examples of how to use the CFG (Context-Free Grammar)
-parser for Machine Dialect code. It includes examples of parsing variable assignments,
+parser for Machine Dialect™ code. It includes examples of parsing variable assignments,
 conditional statements, logical operations, and code validation.
 
 The examples show:
-- Basic parsing of Machine Dialect syntax
+- Basic parsing of Machine Dialect™ syntax
 - Handling conditional statements with if/else blocks
 - Working with logical operations and boolean values
 - Code validation to check syntax correctness
@@ -21,9 +21,9 @@ from machine_dialect.cfg import CFGParser
 
 
 def example_parse_code() -> None:
-    """Demonstrate parsing Machine Dialect code with the CFG parser.
+    """Demonstrate parsing Machine Dialect™ code with the CFG parser.
 
-    This function shows three examples of parsing Machine Dialect code:
+    This function shows three examples of parsing Machine Dialect™ code:
     1. Simple variable assignment and arithmetic operations
     2. Conditional statements with if/else blocks
     3. Logical operations with boolean values
@@ -110,7 +110,7 @@ def example_generate_prompt() -> None:
     This function serves as a placeholder for future CFG generation
     functionality using GPT-5 or similar language models. Once implemented,
     it will show how to create prompts that guide AI models to generate
-    valid Machine Dialect code following the CFG rules.
+    valid Machine Dialect™ code following the CFG rules.
 
     Note:
         This functionality is not yet implemented and will be added
@@ -126,9 +126,9 @@ def example_generate_prompt() -> None:
 
 
 def example_validate_code() -> None:
-    """Demonstrate validation of Machine Dialect code syntax.
+    """Demonstrate validation of Machine Dialect™ code syntax.
 
-    This function shows examples of both valid and invalid Machine Dialect
+    This function shows examples of both valid and invalid Machine Dialect™
     code to illustrate the validation capabilities of the CFG parser.
     It demonstrates common syntax errors like missing backticks around
     variables and missing periods at the end of statements.
@@ -179,7 +179,7 @@ def main() -> None:
     """Run all CFG parser examples in sequence.
 
     This function executes all the example functions to demonstrate
-    the full capabilities of the CFG parser for Machine Dialect.
+    the full capabilities of the CFG parser for Machine Dialect™.
     It runs parsing examples, generation prompt examples, and
     validation examples, separating each section with visual dividers
     for clarity.

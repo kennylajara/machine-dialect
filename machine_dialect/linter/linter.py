@@ -1,4 +1,4 @@
-"""Main linter class for Machine Dialect.
+"""Main linter class for Machine Dialect™.
 
 This module provides the main Linter class that orchestrates the
 linting process by running rules against an AST.
@@ -21,7 +21,7 @@ from machine_dialect.parser import Parser
 
 
 class Linter:
-    """Main linter class that runs rules against Machine Dialect code.
+    """Main linter class that runs rules against Machine Dialect™ code.
 
     The linter uses a visitor pattern to traverse the AST and apply
     registered rules to each node.
@@ -58,7 +58,7 @@ class Linter:
         """Lint the given source code.
 
         Args:
-            source_code: The Machine Dialect source code to lint.
+            source_code: The Machine Dialect™ source code to lint.
             filename: The filename for error reporting.
 
         Returns:

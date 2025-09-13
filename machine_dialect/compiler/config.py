@@ -1,6 +1,6 @@
 """Compiler configuration module.
 
-This module defines configuration options for the Machine Dialect compiler.
+This module defines configuration options for the Machine Dialect™ compiler.
 """
 
 from dataclasses import dataclass, field

@@ -168,7 +168,7 @@ print fib(30), "\n";
 EOF
 run_benchmark "Perl" "perl fib.pl" "interpreted"
 
-# Machine Dialect Implementation
+# Machine Dialect™ Implementation
 cat > fib.md << 'EOF'
 ### **Utility**: `Fibonacci`
 
@@ -209,22 +209,22 @@ Set `final result` using `Fibonacci` with `m`.
 Say `final result`.
 EOF
 
-# Machine Dialect (Compiled) - using Rust VM
+# Machine Dialect™ (Compiled) - using Rust VM
 if [ -f fib.md ]; then
     # Compile to bytecode first (not timed)
     if python3 -m machine_dialect compile fib.md -o fib.mdbc --opt-level 3 >/dev/null 2>&1; then
         # Check if Rust VM is available
         if python3 -c "import machine_dialect_vm" 2>/dev/null; then
-            run_benchmark "Machine Dialect" \
+            run_benchmark "Machine Dialect™" \
                 "python3 -m machine_dialect run fib.mdbc" "bytecode"
         else
             echo "Rust VM not available - skipping"
         fi
     else
-        echo "Machine Dialect compilation failed - skipping"
+        echo "Machine Dialect™ compilation failed - skipping"
     fi
 else
-    echo "fib.md not found - skipping Machine Dialect"
+    echo "fib.md not found - skipping Machine Dialect™"
 fi
 
 # Finalize JSON
@@ -252,14 +252,14 @@ print("-"*60)
 md_result = None
 for i, r in enumerate(results, 1):
     print(f"{i:<5} {r['language']:<30} {r['median_ms']:<12} {r['mode']:<12}")
-    if r['language'] == 'Machine Dialect':
+    if r['language'] == 'Machine Dialect™':
         md_result = r
 
 print("="*60)
 if md_result:
     print("\nMACHINE DIALECT PERFORMANCE ANALYSIS")
     print("-"*60)
-    print(f"Machine Dialect: {md_result['median_ms']:.1f}ms")
+    print(f"Machine Dialect™: {md_result['median_ms']:.1f}ms")
 
     # Helper function to format performance comparison
     def format_comparison(md_time, other_time):
@@ -273,12 +273,12 @@ if md_result:
 
     # Compare with different language categories
     for r in results:
-        if r['language'] != 'Machine Dialect':
+        if r['language'] != 'Machine Dialect™':
             comparison = format_comparison(md_result['median_ms'], r['median_ms'])
             print(f"  vs {r['language']:<20} {comparison:>12}")
 
     # Find closest competitor
-    closest = min([r for r in results if r['language'] != 'Machine Dialect'],
+    closest = min([r for r in results if r['language'] != 'Machine Dialect™'],
                   key=lambda x: abs(x['median_ms'] - md_result['median_ms']))
     comparison = format_comparison(md_result['median_ms'], closest['median_ms'])
     print(f"\nClosest competitor: {closest['language']} ({closest['median_ms']:.1f}ms - {comparison})\n")
@@ -286,7 +286,7 @@ if md_result:
     # Category comparisons
     compiled = [r for r in results if r['mode'] == 'compiled']
     jit = [r for r in results if r['mode'] == 'jit']
-    interpreted = [r for r in results if r['mode'] == 'interpreted' and r['language'] != 'Machine Dialect']
+    interpreted = [r for r in results if r['mode'] == 'interpreted' and r['language'] != 'Machine Dialect™']
 
     if compiled:
         avg_compiled = sum(r['median_ms'] for r in compiled) / len(compiled)

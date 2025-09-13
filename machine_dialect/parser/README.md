@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Parser module implements a sophisticated hybrid parsing system for the Machine Dialect
+The Parser module implements a sophisticated hybrid parsing system for the Machine Dialect™
 language, combining recursive descent parsing for statements with Pratt parsing (operator
 precedence) for expressions. It transforms a stream of tokens from the lexer into a structured
 Abstract Syntax Tree (AST), featuring robust error recovery and natural language syntax support.

@@ -6,7 +6,7 @@ from machine_dialect.cfg import CFGParser
 
 
 class TestCFGParser:
-    """Test the CFG parser for Machine Dialect."""
+    """Test the CFG parser for Machine Dialect™."""
 
     def setup_method(self) -> None:
         """Set up test fixtures."""
@@ -86,7 +86,7 @@ Give back sum."""
         test_cases = [
             'Give back _"Hello"_.',
             "Give back _'World'_.",
-            'Give back _"Machine Dialect!"_.',
+            'Give back _"Machine Dialect™!"_.',
         ]
 
         for code in test_cases:

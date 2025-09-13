@@ -1,4 +1,4 @@
-"""CFG Parser for simplified Machine Dialect using Lark."""
+"""CFG Parser for simplified Machine Dialect™ using Lark."""
 
 from pathlib import Path
 from typing import Any
@@ -8,7 +8,7 @@ from lark.exceptions import LarkError
 
 
 class CFGParser:
-    """Parser for simplified Machine Dialect using Lark CFG."""
+    """Parser for simplified Machine Dialect™ using Lark CFG."""
 
     def __init__(self) -> None:
         """Initialize the parser with the grammar file."""
@@ -19,10 +19,10 @@ class CFGParser:
         self.parser = Lark(grammar_content, parser="lalr", start="start", debug=False)
 
     def parse(self, code: str) -> Tree[Any]:
-        """Parse Machine Dialect code into an AST.
+        """Parse Machine Dialect™ code into an AST.
 
         Args:
-            code: The Machine Dialect code to parse.
+            code: The Machine Dialect™ code to parse.
 
         Returns:
             A Lark Tree representing the parsed AST.
@@ -47,7 +47,7 @@ class CFGParser:
         """Validate if the code conforms to the grammar.
 
         Args:
-            code: The Machine Dialect code to validate.
+            code: The Machine Dialect™ code to validate.
 
         Returns:
             True if valid, False otherwise.

@@ -1,6 +1,6 @@
-//! Machine Dialect Virtual Machine
+//! Machine Dialect™ Virtual Machine
 //!
-//! A high-performance register-based VM for executing Machine Dialect bytecode.
+//! A high-performance register-based VM for executing Machine Dialect™ bytecode.
 
 pub mod vm;
 pub mod values;

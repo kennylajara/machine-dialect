@@ -125,7 +125,7 @@ class TestGenerateWithOpenAI:
 
         # Developer message
         assert messages[0]["role"] == "developer"
-        assert "Machine Dialect code generator" in messages[0]["content"]
+        assert "Machine Dialect™ code generator" in messages[0]["content"]
         assert "context-free grammar" in messages[0]["content"]
 
         # User message
@@ -161,7 +161,7 @@ class TestValidateModelSupport:
 
 
 class TestMachineDialectCFG:
-    """Test the Machine Dialect CFG structure."""
+    """Test the Machine Dialect™ CFG structure."""
 
     def test_cfg_structure(self) -> None:
         """Test that the CFG has the correct structure."""

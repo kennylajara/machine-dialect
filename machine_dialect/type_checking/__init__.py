@@ -1,4 +1,4 @@
-"""Type system for Machine Dialect compile-time type checking."""
+"""Type system for Machine Dialect™ compile-time type checking."""
 
 from .type_system import (
     TYPE_DISPLAY_NAMES,

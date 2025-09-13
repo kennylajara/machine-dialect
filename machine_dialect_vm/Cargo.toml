@@ -3,7 +3,7 @@ name = "machine_dialect_vm"
 version = "0.1.0"
 edition = "2021"
 authors = ["Kenny Lajara"]
-description = "High-performance register-based VM for Machine Dialect"
+description = "High-performance register-based VM for Machine Dialect™"
 license = "Apache-2.0"
 
 [lib]

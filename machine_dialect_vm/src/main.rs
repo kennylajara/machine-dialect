@@ -1,6 +1,6 @@
-//! Machine Dialect VM CLI
+//! Machine Dialect™ VM CLI
 //!
-//! Command-line interface for running Machine Dialect bytecode files.
+//! Command-line interface for running Machine Dialect™ bytecode files.
 
 use std::path::PathBuf;
 use std::process;

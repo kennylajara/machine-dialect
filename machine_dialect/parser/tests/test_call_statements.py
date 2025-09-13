@@ -1,4 +1,4 @@
-"""Tests for use statements in Machine Dialect."""
+"""Tests for use statements in Machine Dialect™."""
 
 from machine_dialect.ast import (
     Arguments,

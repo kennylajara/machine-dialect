@@ -1,4 +1,4 @@
-"""Tests for Utility statements (functions) in Machine Dialect."""
+"""Tests for Utility statements (functions) in Machine Dialect™."""
 
 from machine_dialect.ast import BlockStatement, SetStatement, UtilityStatement
 from machine_dialect.parser import Parser

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## ⚠️ ALPHA PROJECT - BREAKING CHANGES EXPECTED ⚠️
 
-**CRITICAL**: Machine Dialect is in ALPHA stage. When making changes:
+**CRITICAL**: The Machine Dialect™ language is in ALPHA stage. When making changes:
 
 - **DO NOT worry about backward compatibility** - break things if it improves the design
 - **Prioritize correctness over compatibility** - make the right choice, not the safe choice
@@ -16,7 +16,7 @@ We are iterating fast to find the best design. Stability will come later.
 
 ## Project Overview
 
-Machine Dialect is a natural language programming language that allows writing code using
+The Machine Dialect™ language is a natural language programming language that allows writing code using
 English-like syntax in Markdown files (`.md`). It's designed to be AI-first,
 human-supervisable, and uses natural document structure instead of traditional programming
 syntax.
@@ -143,7 +143,7 @@ python -m machine_dialect --debug-tokens
 
 ### Compilation Pipeline
 
-Machine Dialect uses a modern 5-phase compilation pipeline:
+The Machine Dialect™ compiler uses a modern 5-phase compilation pipeline:
 
 ```text
 Source (.md) → Lexer → Parser → AST → HIR → MIR → Optimization → Bytecode → VM
@@ -280,7 +280,7 @@ cargo build --release
 
 ### Python Linter (`machine_dialect/linter/`)
 
-Rule-based linter for Machine Dialect code validation.
+Rule-based linter for Machine Dialect™ code validation.
 
 ## Development Focus
 

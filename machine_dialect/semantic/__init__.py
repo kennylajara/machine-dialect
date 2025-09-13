@@ -1,4 +1,4 @@
-"""Semantic analysis for Machine Dialect.
+"""Semantic analysis for Machine Dialect™.
 
 This package provides semantic analysis capabilities including:
 - Type checking and inference

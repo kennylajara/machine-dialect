@@ -1,4 +1,4 @@
-// Machine Dialect Grammar for LARK Parser
+// Machine Dialect™ Grammar for LARK Parser
 // This grammar should match the exact syntax of the main parser
 // CRITICAL: 100% feature parity with main parser is MANDATORY
 

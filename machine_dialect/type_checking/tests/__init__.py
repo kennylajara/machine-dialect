@@ -1,1 +1,1 @@
-"""Tests for the Machine Dialect type system."""
+"""Tests for the Machine Dialect™ type system."""

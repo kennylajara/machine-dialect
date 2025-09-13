@@ -1,1 +1,1 @@
-"""Tests for Machine Dialect MIR."""
+"""Tests for Machine Dialect™ MIR."""

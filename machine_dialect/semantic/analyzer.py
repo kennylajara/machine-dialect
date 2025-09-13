@@ -1,4 +1,4 @@
-"""Semantic analyzer for Machine Dialect.
+"""Semantic analyzer for Machine Dialect™.
 
 This module provides semantic analysis capabilities including type checking,
 variable usage validation, and scope analysis.

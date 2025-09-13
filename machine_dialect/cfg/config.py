@@ -1,4 +1,4 @@
-"""Configuration module for Machine Dialect AI API settings."""
+"""Configuration module for Machine Dialect™ AI API settings."""
 
 import configparser
 import os
@@ -38,7 +38,7 @@ class AIAPIConfig:
 
 
 class ConfigLoader:
-    """Loader for Machine Dialect configuration."""
+    """Loader for Machine Dialect™ configuration."""
 
     CONFIG_FILE_NAME = ".mdconfig"
     ENV_MODEL_KEY = "MD_AI_API_MODEL"
@@ -128,7 +128,7 @@ Please configure the AI API in one of the following ways:
    key = your_api_key_here
 
    Note: Only GPT-5 models (gpt-5, gpt-5-mini, gpt-5-nano) support
-   context-free grammar constraints required for Machine Dialect generation.
+   context-free grammar constraints required for Machine Dialect™ generation.
 
 2. Set environment variables:
 

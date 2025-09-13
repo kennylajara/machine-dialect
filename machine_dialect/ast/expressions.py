@@ -1,7 +1,7 @@
-"""AST nodes for expression types in Machine Dialect.
+"""AST nodes for expression types in Machine Dialect™.
 
 This module defines the expression nodes used in the Abstract Syntax Tree (AST)
-for Machine Dialect. Expressions are constructs that can be evaluated to produce
+for Machine Dialect™. Expressions are constructs that can be evaluated to produce
 a value, unlike statements which perform actions.
 
 Expressions include:
@@ -44,7 +44,7 @@ class Identifier(Expression):
     """An identifier expression representing a variable or name.
 
     Identifiers are names that refer to variables, functions, or other
-    named entities in the program. In Machine Dialect, identifiers can
+    named entities in the program. In Machine Dialect™, identifiers can
     be written with or without backticks (e.g., `x` or x).
 
     Attributes:
@@ -261,7 +261,7 @@ class ConditionalExpression(Expression):
     """A conditional (ternary) expression.
 
     Conditional expressions evaluate to one of two values based on a condition.
-    In Machine Dialect, they follow the pattern:
+    In Machine Dialect™, they follow the pattern:
     "value_if_true if/when condition, else/otherwise value_if_false"
 
     Attributes:

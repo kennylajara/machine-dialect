@@ -1,4 +1,4 @@
-"""Streaming lexer implementation for Machine Dialect.
+"""Streaming lexer implementation for Machine Dialect™.
 
 This module provides a Lexer class that generates tokens one at a time
 instead of all at once, enabling memory-efficient parsing of large files.
@@ -10,7 +10,7 @@ from machine_dialect.lexer.tokens import Token, TokenType, lookup_tag_token, loo
 
 
 class Lexer:
-    """Streaming lexer for Machine Dialect language.
+    """Streaming lexer for Machine Dialect™ language.
 
     Generates tokens one at a time from the source code.
     """

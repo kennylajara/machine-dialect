@@ -1,6 +1,6 @@
-"""Machine Dialect exception classes.
+"""Machine Dialect™ exception classes.
 
-This module defines the exception hierarchy for the Machine Dialect language.
+This module defines the exception hierarchy for the Machine Dialect™ language.
 All exceptions inherit from MDBaseException, which provides a common base
 for error handling throughout the system.
 """
@@ -12,9 +12,9 @@ from machine_dialect.errors.messages import ErrorTemplate
 
 
 class MDBaseException(ABC):
-    """Base Machine Dialect Exception.
+    """Base Machine Dialect™ Exception.
 
-    The base class for all built-in Machine Dialect exceptions.
+    The base class for all built-in Machine Dialect™ exceptions.
     This is an abstract base class and should not be instantiated directly.
 
     Attributes:
@@ -25,13 +25,13 @@ class MDBaseException(ABC):
 
     Note:
         This is a pure ABC that does not inherit from Python's Exception.
-        These exceptions represent errors in Machine Dialect code, not Python code.
+        These exceptions represent errors in Machine Dialect™ code, not Python code.
     """
 
     def __init__(
         self, message: ErrorTemplate, line: int, column: int, filename: str | None = None, **kwargs: Any
     ) -> None:
-        """Initialize the Machine Dialect exception.
+        """Initialize the Machine Dialect™ exception.
 
         Args:
             message: The error message template.
@@ -86,7 +86,7 @@ class MDBaseException(ABC):
         """Return the error type identifier for this exception.
 
         This should return a string that identifies the type of error
-        in Machine Dialect terms (e.g., "SyntaxError", "NameError").
+        in Machine Dialect™ terms (e.g., "SyntaxError", "NameError").
 
         Returns:
             The error type as a string.
@@ -95,9 +95,9 @@ class MDBaseException(ABC):
 
 
 class MDException(MDBaseException):
-    """General Machine Dialect Exception.
+    """General Machine Dialect™ Exception.
 
-    This is the base class for all non-syntax Machine Dialect exceptions.
+    This is the base class for all non-syntax Machine Dialect™ exceptions.
     It provides a concrete implementation of MDBaseException that can be
     instantiated directly for general errors.
 
@@ -110,7 +110,7 @@ class MDException(MDBaseException):
         """Return the error type identifier.
 
         Returns:
-            "Exception" for general Machine Dialect exceptions.
+            "Exception" for general Machine Dialect™ exceptions.
         """
         return "Exception"
 
@@ -137,7 +137,7 @@ class MDDivisionByZero(MDException):
 class MDAssertionError(MDException):
     """Raised when an assertion fails.
 
-    This exception is raised when an assert statement fails in Machine Dialect code.
+    This exception is raised when an assert statement fails in Machine Dialect™ code.
     It corresponds to Python's built-in AssertionError.
 
     Example:
@@ -149,7 +149,7 @@ class MDAssertionError(MDException):
 
 
 class MDSystemExit(MDException):
-    """Raised to exit from the Machine Dialect interpreter.
+    """Raised to exit from the Machine Dialect™ interpreter.
 
     This exception is used to exit from the interpreter or terminate
     program execution. It corresponds to Python's SystemExit.
@@ -211,7 +211,7 @@ class MDSyntaxError(MDException):
     """Raised when a syntax error is encountered.
 
     This exception is raised when the parser encounters syntactically
-    incorrect Machine Dialect code. This includes malformed expressions,
+    incorrect Machine Dialect™ code. This includes malformed expressions,
     invalid statement structure, or improper use of keywords.
 
     Example:
@@ -322,7 +322,7 @@ class MDUninitializedError(MDException):
 
 
 class MDRuntimeError(Exception):
-    """Machine Dialect Runtime Error.
+    """Machine Dialect™ Runtime Error.
 
     Raised during runtime execution with optional source location.
     This is used for errors that occur during MIR interpretation or VM execution.

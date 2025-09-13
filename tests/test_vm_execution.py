@@ -1,4 +1,4 @@
-"""Test VM execution of various Machine Dialect programs."""
+"""Test VM execution of various Machine Dialect™ programs."""
 
 from __future__ import annotations
 

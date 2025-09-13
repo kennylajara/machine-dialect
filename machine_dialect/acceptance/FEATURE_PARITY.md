@@ -1,4 +1,4 @@
-# Machine Dialect Feature Parity Report
+# Machine Dialect™ Feature Parity Report
 
 ## Executive Summary
 

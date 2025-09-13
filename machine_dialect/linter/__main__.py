@@ -1,6 +1,6 @@
-"""Command-line interface for the Machine Dialect linter.
+"""Command-line interface for the Machine Dialect™ linter.
 
-This module provides the CLI for running the linter on Machine Dialect files.
+This module provides the CLI for running the linter on Machine Dialect™ files.
 """
 
 import argparse
@@ -48,13 +48,13 @@ def format_violation(violation: Violation, filename: str) -> str:
 
 def main() -> None:
     """Main entry point for the linter CLI."""
-    parser = argparse.ArgumentParser(description="Lint Machine Dialect code for style and errors")
+    parser = argparse.ArgumentParser(description="Lint Machine Dialect™ code for style and errors")
 
     parser.add_argument(
         "files",
         nargs="*",  # Changed from "+" to "*" to make it optional
         type=Path,
-        help="Machine Dialect files to lint",
+        help="Machine Dialect™ files to lint",
     )
 
     parser.add_argument(

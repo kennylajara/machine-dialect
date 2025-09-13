@@ -142,7 +142,7 @@ class TestURLLiterals:
         assert tokens[0].literal == '"data:text/plain;base64,SGVsbG8="'
 
     def test_underscore_wrapped_url(self) -> None:
-        """Test URL detection with underscore wrapping (Machine Dialect syntax)."""
+        """Test URL detection with underscore wrapping (Machine Dialect™ syntax)."""
         source = '_"https://example.com"_'
         tokens = self._tokenize_no_errors(source)
 

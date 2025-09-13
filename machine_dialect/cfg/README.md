@@ -1,11 +1,11 @@
-# Machine Dialect CFG Module
+# Machine Dialect™ CFG Module
 
-This module provides Context Free Grammar (CFG) support for Machine Dialect, enabling structured
+This module provides Context Free Grammar (CFG) support for Machine Dialect™, enabling structured
 generation with GPT-5's CFG capabilities.
 
 ## Features
 
-- **Lark-based Parser**: Fast LALR parser for validating Machine Dialect syntax
+- **Lark-based Parser**: Fast LALR parser for validating Machine Dialect™ syntax
 - **GPT-5 Integration**: Ready-to-use CFG schema for structured generation (GPT-5 only)
 - **Simplified Grammar**: Covers core language features:
   - Variable assignment (`Set` statements)
@@ -25,7 +25,7 @@ uv sync
 
 ## Usage
 
-### Parsing Machine Dialect Code
+### Parsing Machine Dialect™ Code
 
 ```python
 from machine_dialect.cfg import CFGParser
@@ -69,7 +69,7 @@ config = GenerationConfig(
 request = generator.generate_with_cfg(prompt, config)
 
 # The request includes the CFG schema that ensures
-# GPT-5 generates syntactically valid Machine Dialect code
+# GPT-5 generates syntactically valid Machine Dialect™ code
 ```
 
 ### Validating Generated Code

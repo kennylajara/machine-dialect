@@ -1,4 +1,4 @@
-"""Base rule class for Machine Dialect linting rules.
+"""Base rule class for Machine Dialect™ linting rules.
 
 This module defines the abstract base class that all linting rules
 must inherit from.

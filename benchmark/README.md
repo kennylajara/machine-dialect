@@ -1,6 +1,6 @@
-# Machine Dialect Performance Benchmark
+# Machine Dialect™ Performance Benchmark
 
-This benchmark compares Machine Dialect's performance against other programming languages
+This benchmark compares the Machine Dialect™ language performance against other programming languages
 using a recursive Fibonacci(30) implementation.
 
 ## Benchmark Methodology
@@ -30,7 +30,7 @@ Compiled languages use aggressive optimizations:
 - **C/C++**: `-O3 -march=native -mtune=native -flto`
 - **Rust**: `-C opt-level=3 -C target-cpu=native -C lto=fat`
 - **Go**: `-ldflags "-s -w"`
-- **Machine Dialect**: `--opt-level 3` (bytecode compilation)
+- **Machine Dialect™**: `--opt-level 3` (bytecode compilation)
 
 ## Running the Benchmark
 
@@ -80,12 +80,12 @@ Rank  Language                       Median (ms)  Mode
 8     Ruby                           108.853      interpreted
 9     Perl                           235.435      interpreted
 10    C#                             440.874      jit
-11    Machine Dialect                9634.53      bytecode
+11    Machine Dialect™                9634.53      bytecode
 ============================================================
 
 MACHINE DIALECT PERFORMANCE ANALYSIS
 ------------------------------------------------------------
-Machine Dialect: 9634.5ms
+Machine Dialect™: 9634.5ms
   vs C                    3150.6x slower
   vs Rust                 2827.9x slower
   vs C++                  2282.5x slower
@@ -106,7 +106,7 @@ vs avg interpreted languages: 67.5x slower
 
 ## Performance Analysis
 
-Machine Dialect's current bytecode VM implementation shows significant performance gaps:
+The Machine Dialect™ bytecode VM implementation shows significant performance gaps:
 
 | Comparison | Factor | Analysis |
 |------------|--------|----------|
@@ -116,7 +116,7 @@ Machine Dialect's current bytecode VM implementation shows significant performan
 
 ### Key Observations
 
-1. **Closest Competitor**: C# at 440.9ms (21.9x faster than Machine Dialect)
+1. **Closest Competitor**: C# at 440.9ms (21.9x faster than Machine Dialect™)
 2. **Best Case**: Only 21.9x slower than C# (a JIT-compiled language)
 3. **Worst Case**: 3150.6x slower than C (optimized native code)
 4. **VM Overhead**: Current implementation has higher overhead than even interpreted languages

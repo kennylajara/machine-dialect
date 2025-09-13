@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Machine Dialect REPL (Read-Eval-Print Loop).
+"""Machine Dialect™ REPL (Read-Eval-Print Loop).
 
-This module provides an interactive REPL for the Machine Dialect language.
+This module provides an interactive REPL for the Machine Dialect™ language.
 It can operate in multiple modes:
 - Default: Execute code using the Rust VM
 - Debug tokens (--debug-tokens): Tokenizes input and displays tokens
@@ -22,9 +22,9 @@ from machine_dialect.parser.parser import Parser
 
 
 class REPL:
-    """Interactive REPL for Machine Dialect.
+    """Interactive REPL for Machine Dialect™.
 
-    Provides an interactive environment for testing Machine Dialect syntax
+    Provides an interactive environment for testing Machine Dialect™ syntax
     by parsing input and displaying the AST or tokens.
 
     Attributes:
@@ -71,7 +71,7 @@ class REPL:
 
     def print_welcome(self) -> None:
         """Print the welcome message when REPL starts."""
-        print("Machine Dialect REPL v0.1.0")
+        print("Machine Dialect™ REPL v0.1.0")
         if self.debug_tokens:
             mode = "Token Debug Mode"
         elif self.show_ast:
@@ -96,13 +96,13 @@ class REPL:
         if self.debug_tokens:
             print("\nEnter any text to see its tokens.")
         elif self.show_ast:
-            print("\nEnter Machine Dialect code to see its HIR (desugared AST).")
+            print("\nEnter Machine Dialect™ code to see its HIR (desugared AST).")
             print("Source is accumulated across lines until an error occurs.")
         elif self.vm_runner:
-            print("\nEnter Machine Dialect code to execute it on the Rust VM.")
+            print("\nEnter Machine Dialect™ code to execute it on the Rust VM.")
             print("Source is accumulated across lines until an error occurs.")
         else:
-            print("\nEnter Machine Dialect code to see its HIR (desugared AST).")
+            print("\nEnter Machine Dialect™ code to see its HIR (desugared AST).")
             print("Source is accumulated across lines until an error occurs.")
 
         print("\nMulti-line input:")
@@ -176,7 +176,7 @@ class REPL:
         """Tokenize the input and print the results.
 
         Args:
-            input_text: The Machine Dialect code to tokenize.
+            input_text: The Machine Dialect™ code to tokenize.
 
         Note:
             This method handles both successful tokenization and error cases,
@@ -214,7 +214,7 @@ class REPL:
         """Parse the input and print the AST or evaluation result.
 
         Args:
-            input_text: The Machine Dialect code to parse.
+            input_text: The Machine Dialect™ code to parse.
 
         Note:
             This method accumulates source code and attempts to parse it.
@@ -391,12 +391,12 @@ class REPL:
 
 
 def main() -> None:
-    """Entry point for the Machine Dialect REPL.
+    """Entry point for the Machine Dialect™ REPL.
 
     Parses command line arguments and starts the appropriate REPL mode.
     Supports token debug mode and AST display mode via command line flags.
     """
-    parser = argparse.ArgumentParser(description="Machine Dialect REPL")
+    parser = argparse.ArgumentParser(description="Machine Dialect™ REPL")
     parser.add_argument(
         "--debug-tokens",
         action="store_true",

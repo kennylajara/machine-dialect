@@ -1,4 +1,4 @@
-"""Tests for the AI-based Machine Dialect code generation module."""
+"""Tests for the AI-based Machine Dialect™ code generation module."""
 
 from unittest.mock import MagicMock, Mock, mock_open, patch
 

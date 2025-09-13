@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""End-to-end pipeline test for Machine Dialect to Rust VM."""
+"""End-to-end pipeline test for Machine Dialect™ to Rust VM."""
 
 import os
 import struct

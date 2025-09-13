@@ -1,1 +1,1 @@
-"""Tests for the Machine Dialect compiler module."""
+"""Tests for the Machine Dialect™ compiler module."""

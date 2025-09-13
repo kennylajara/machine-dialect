@@ -1,7 +1,7 @@
-"""VM Runner - Manages Rust VM execution for Machine Dialect.
+"""VM Runner - Manages Rust VM execution for Machine Dialect™.
 
 This module provides the integration layer between the Python compiler
-pipeline and the Rust VM for executing Machine Dialect programs.
+pipeline and the Rust VM for executing Machine Dialect™ programs.
 """
 
 from __future__ import annotations
@@ -23,10 +23,10 @@ from machine_dialect.parser.parser import Parser
 
 
 class VMRunner:
-    """Manages compilation and execution of Machine Dialect code on the Rust VM.
+    """Manages compilation and execution of Machine Dialect™ code on the Rust VM.
 
     This class provides a high-level interface for:
-    1. Compiling Machine Dialect source to bytecode
+    1. Compiling Machine Dialect™ source to bytecode
     2. Loading bytecode into the Rust VM
     3. Executing programs and returning results
     """
@@ -60,10 +60,10 @@ class VMRunner:
             ) from e
 
     def compile_to_bytecode(self, source: str, source_path: Path | None = None) -> bytes:
-        """Compile Machine Dialect source code to bytecode.
+        """Compile Machine Dialect™ source code to bytecode.
 
         Args:
-            source: Machine Dialect source code
+            source: Machine Dialect™ source code
             source_path: Optional path to source file
 
         Returns:
@@ -119,10 +119,10 @@ class VMRunner:
         return bytecode_module.serialize()
 
     def execute(self, source: str) -> Any:
-        """Compile and execute Machine Dialect source code.
+        """Compile and execute Machine Dialect™ source code.
 
         Args:
-            source: Machine Dialect source code
+            source: Machine Dialect™ source code
 
         Returns:
             The result of program execution

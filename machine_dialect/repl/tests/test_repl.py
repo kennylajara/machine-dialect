@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Comprehensive unit tests for the Machine Dialect REPL."""
+"""Comprehensive unit tests for the Machine Dialect™ REPL."""
 
 from unittest.mock import Mock, patch
 
@@ -78,7 +78,7 @@ class TestREPLDisplay:
             repl.print_welcome()
 
             calls = [str(call.args[0]) if call.args else "" for call in mock_print.call_args_list]
-            assert "Machine Dialect REPL v0.1.0" in calls
+            assert "Machine Dialect™ REPL v0.1.0" in calls
             assert "Mode: Rust VM Execution Mode" in calls
             assert "Type 'exit' to exit, 'help' for help" in calls
 
@@ -108,7 +108,7 @@ class TestREPLDisplay:
             repl.print_help()
 
             calls = [str(call.args[0]) if call.args else "" for call in mock_print.call_args_list]
-            assert any("Enter Machine Dialect code to execute it on the Rust VM." in call for call in calls)
+            assert any("Enter Machine Dialect™ code to execute it on the Rust VM." in call for call in calls)
             assert any("reset  - Clear accumulated source" in call for call in calls)
 
     @patch("builtins.print")

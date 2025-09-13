@@ -1,10 +1,10 @@
-# Machine Dialect Rust VM
+# Machine Dialect™ Rust VM
 
-High-performance register-based virtual machine for executing Machine Dialect bytecode.
+High-performance register-based virtual machine for executing Machine Dialect™ bytecode.
 
 ## Overview
 
-This is the Phase 0 implementation of the Machine Dialect Rust VM, providing:
+This is the Phase 0 implementation of the Machine Dialect™ Rust VM, providing:
 
 - 256 general-purpose registers
 - Type-safe value system (Empty, Bool, Int, Float, String, Function, URL)

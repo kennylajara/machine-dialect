@@ -1,4 +1,4 @@
-# Machine Dialect CLI Usage
+# Machine Dialect™ CLI Usage
 
 ## Installation
 
@@ -89,7 +89,7 @@ md shell --tokens
 
 ## Example Workflow
 
-1. **Create a Machine Dialect program** (`example.md`):
+1. **Create a Machine Dialect™ program** (`example.md`):
 
    ```markdown
    Set `x` to _10_.
@@ -145,7 +145,7 @@ md shell --tokens
    Goodbye!
    ```
 
-## Machine Dialect Syntax Reminder
+## Machine Dialect™ Syntax Reminder
 
 - **Variables**: Use backticks: `` `variable` ``
 - **Literals**: Use underscores: `_10_`, `_"text"_`, `_Yes_`

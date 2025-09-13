@@ -1,10 +1,10 @@
-# Machine Dialect Syntax Specification
+# Machine Dialect™ Syntax Specification
 
-Machine Dialect is a natural language programming language that uses English-like syntax within
-Markdown documents. This document provides the complete syntax specification based on the
+The Machine Dialect™ language is a natural language programming language that uses English-like
+syntax within Markdown documents. This document provides the complete syntax specification based on the
 implementation analysis.
 
-Machine Dialect source files are Markdown documents (`.md`).
+Machine Dialect™ source files are Markdown documents (`.md`).
 
 ## Lexical Elements
 
@@ -629,7 +629,7 @@ _How many people are in the store_ (**default**: _0_).
 
 ## Compilation Requirements
 
-For valid Machine Dialect code:
+For valid Machine Dialect™ code:
 
 1. All statements must be properly terminated with periods
 1. Identifiers in statements must be in backticks

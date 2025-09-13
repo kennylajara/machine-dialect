@@ -1,4 +1,4 @@
-"""Statement termination rule for Machine Dialect.
+"""Statement termination rule for Machine Dialect™.
 
 This rule checks that all statements are properly terminated with periods.
 """
@@ -16,7 +16,7 @@ from machine_dialect.linter.violations import Violation, ViolationSeverity
 class StatementTerminationRule(Rule):
     """Check that all statements end with periods.
 
-    Machine Dialect requires statements to be terminated with periods.
+    Machine Dialect™ requires statements to be terminated with periods.
     This rule checks that the source code follows this convention.
     """
 

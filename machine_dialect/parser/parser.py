@@ -112,7 +112,7 @@ TYPING_MAP: dict[TokenType, str] = {
 
 
 class Parser:
-    """Parser for Machine Dialect language.
+    """Parser for Machine Dialect™ language.
 
     Transforms source code into an Abstract Syntax Tree (AST) by first
     tokenizing it with the lexer and then parsing the tokens.
@@ -1086,7 +1086,7 @@ class Parser:
             msg = f"Expected number after 'item', got {self._current_token.type if self._current_token else 'EOF'}"
             return ErrorExpression(token=self._current_token or item_token, message=msg)
 
-        # Get the index (one-based in Machine Dialect)
+        # Get the index (one-based in Machine Dialect™)
         index = int(self._current_token.literal)
 
         # Skip number

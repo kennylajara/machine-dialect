@@ -1,6 +1,6 @@
 # CFG Parser Limitations
 
-This document comprehensively lists ALL features supported by the main Machine Dialect
+This document comprehensively lists ALL features supported by the main Machine Dialect™
 parser that are NOT supported by the CFG (Lark-based) parser.
 
 ## 1. Utility (Function) Features
@@ -188,7 +188,7 @@ parser that are NOT supported by the CFG (Lark-based) parser.
 
 ## Summary
 
-The CFG parser is a **simplified validation parser** that covers basic Machine Dialect syntax
+The CFG parser is a **simplified validation parser** that covers basic Machine Dialect™ syntax
 but lacks support for:
 
 1. **Modern function syntax** (utilities, Use keyword, using keyword)
@@ -209,7 +209,7 @@ The CFG parser is suitable for:
 
 The CFG parser is NOT suitable for:
 
-- Modern Machine Dialect programs with utilities
+- Modern Machine Dialect™ programs with utilities
 - Programs with rich documentation
 - Complex type annotations
 - Programs using advanced identifier formats
@@ -223,7 +223,7 @@ For any production use or full language support, **always use the main parser**
 - Educational purposes
 - Simple syntax validation
 - Testing grammar concepts
-- Backward compatibility with very old Machine Dialect code
+- Backward compatibility with very old Machine Dialect™ code
 
 ## Migration Path
 

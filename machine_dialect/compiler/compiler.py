@@ -12,7 +12,7 @@ from machine_dialect.compiler.pipeline import CompilationPipeline
 
 
 class Compiler:
-    """Main compiler class for Machine Dialect.
+    """Main compiler class for Machine Dialect™.
 
     Manages the entire compilation process from source files to bytecode,
     including lexing, parsing, HIR/MIR generation, optimization, and
@@ -37,7 +37,7 @@ class Compiler:
         source_path: str | Path,
         output_path: str | Path | None = None,
     ) -> bool:
-        """Compile a Machine Dialect source file to bytecode.
+        """Compile a Machine Dialect™ source file to bytecode.
 
         Args:
             source_path: Path to the .md source file to compile.

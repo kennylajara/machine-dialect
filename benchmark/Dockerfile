@@ -53,7 +53,7 @@ ENV CARGO_HOME=/root/.cargo
 # Ensure Rust toolchain is properly configured
 RUN /root/.cargo/bin/rustup default stable || true
 
-# Install Machine Dialect and build Rust VM
+# Install Machine Dialect™ and build Rust VM
 WORKDIR /machine_dialect
 COPY ../machine_dialect /machine_dialect/machine_dialect
 COPY ../pyproject.toml /machine_dialect/
@@ -69,7 +69,7 @@ RUN cd /machine_dialect/machine_dialect_vm && \
     maturin build --release --out /tmp && \
     pip3 install --no-cache-dir --break-system-packages /tmp/machine_dialect_vm*.whl
 
-# Install Machine Dialect
+# Install Machine Dialect™
 RUN pip3 install --no-cache-dir --break-system-packages -e /machine_dialect
 
 WORKDIR /workspace
@@ -86,12 +86,12 @@ RUN echo '#!/bin/sh' > /verify.sh && \
     echo 'rustc --version' >> /verify.sh && \
     echo 'ruby --version' >> /verify.sh && \
     echo 'perl -v | head -2 | tail -1' >> /verify.sh && \
-    echo 'python3 -c "import machine_dialect; print(\"Machine Dialect installed\")" 2>/dev/null || echo "Machine Dialect installed"' >> /verify.sh && \
+    echo 'python3 -c "import machine_dialect; print(\"Machine Dialect™ installed\")" 2>/dev/null || echo "Machine Dialect™ installed"' >> /verify.sh && \
     chmod +x /verify.sh
 
 CMD ["/bin/sh"]
 
-LABEL maintainer="Machine Dialect Project" \
+LABEL maintainer="Machine Dialect™ Project" \
       version="1.0.0" \
       description="Multi-language benchmark environment" \
       languages="C,C++,Go,Rust,Java,C#,JavaScript,Python,Ruby,Perl,MachineDialect"

@@ -1,7 +1,7 @@
-"""Machine Dialect MIR (Medium-level Intermediate Representation).
+"""Machine Dialect™ MIR (Medium-level Intermediate Representation).
 
 This module provides a Three-Address Code (TAC) based intermediate representation
-with Static Single Assignment (SSA) support for Machine Dialect compilation.
+with Static Single Assignment (SSA) support for Machine Dialect™ compilation.
 
 The MIR sits between the HIR (desugared AST) and the final code generation
 targets (bytecode and LLVM IR).

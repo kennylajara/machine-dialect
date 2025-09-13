@@ -1,4 +1,4 @@
-"""Type system for compile-time type checking in Machine Dialect.
+"""Type system for compile-time type checking in Machine Dialect™.
 
 This module provides the type system used during compilation for:
 - Type checking variable definitions
@@ -15,7 +15,7 @@ from typing import Any
 
 
 class MDType(Enum):
-    """Machine Dialect type enumeration for compile-time type checking.
+    """Machine Dialect™ type enumeration for compile-time type checking.
 
     Maps to the language's type keywords and provides type compatibility rules.
     """
@@ -212,7 +212,7 @@ def get_type_from_value(value: Any) -> MDType | None:
 def is_assignable_to(value_type: MDType, target_type: MDType) -> bool:
     """Check if a value of one type can be assigned to a variable of another type.
 
-    This implements Machine Dialect's type compatibility rules.
+    This implements the Machine Dialect™ type compatibility rules.
     NO implicit conversions are allowed per the spec.
 
     Args:

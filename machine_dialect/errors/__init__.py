@@ -1,4 +1,4 @@
-"""Error handling for Machine Dialect.
+"""Error handling for Machine Dialect™.
 
 This package provides exception classes and error reporting utilities.
 """

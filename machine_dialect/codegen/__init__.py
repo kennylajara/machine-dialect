@@ -1,4 +1,4 @@
-"""Bytecode generation for Machine Dialect."""
+"""Bytecode generation for Machine Dialect™."""
 
 from .bytecode_serializer import BytecodeWriter
 

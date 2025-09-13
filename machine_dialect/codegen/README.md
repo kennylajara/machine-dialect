@@ -2,7 +2,7 @@
 
 ## Overview
 
-The **Codegen** module provides supporting structures for bytecode generation in Machine Dialect.
+The **Codegen** module provides supporting structures for bytecode generation in Machine Dialect™.
 The actual code generation is now handled by the MIR (Mid-level Intermediate Representation) pipeline.
 
 This module contains:

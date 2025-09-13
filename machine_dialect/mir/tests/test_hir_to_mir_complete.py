@@ -67,8 +67,8 @@ class TestHIRToMIRComplete:
         mir = lower_to_mir(program)
 
         # Should have main function
-        assert mir.get_function("main") is not None
-        main = mir.get_function("main")
+        assert mir.get_function("__main__") is not None
+        main = mir.get_function("__main__")
 
         # Should have entry block with Assert instruction
         assert main is not None
@@ -106,7 +106,7 @@ class TestHIRToMIRComplete:
         mir = lower_to_mir(program)
 
         # Should have Assert for error expression
-        main = mir.get_function("main")
+        main = mir.get_function("__main__")
         assert main is not None
         entry = main.cfg.entry_block
         assert entry is not None
@@ -130,7 +130,7 @@ class TestHIRToMIRComplete:
         mir = lower_to_mir(program)
 
         # Should have Select instruction
-        main = mir.get_function("main")
+        main = mir.get_function("__main__")
         assert main is not None
         entry = main.cfg.entry_block
         assert entry is not None
@@ -146,7 +146,7 @@ class TestHIRToMIRComplete:
         mir = lower_to_mir(program)
 
         # Should have Print instruction
-        main = mir.get_function("main")
+        main = mir.get_function("__main__")
         assert main is not None
         entry = main.cfg.entry_block
         assert entry is not None
@@ -169,7 +169,7 @@ class TestHIRToMIRComplete:
         mir = lower_to_mir(program)
 
         # Should have Scope instructions
-        main = mir.get_function("main")
+        main = mir.get_function("__main__")
         assert main is not None
         entry = main.cfg.entry_block
         assert entry is not None
@@ -261,11 +261,11 @@ class TestHIRToMIRComplete:
         mir = lower_to_mir(program)
 
         # Should create constant with URL type
-        main = mir.get_function("main")
+        main = mir.get_function("__main__")
         assert main is not None
 
         # Check for LoadConst with URL
-        main = mir.get_function("main")
+        main = mir.get_function("__main__")
         assert main is not None
         assert main is not None
         entry = main.cfg.entry_block
@@ -320,7 +320,7 @@ class TestHIRToMIRComplete:
         mir = lower_to_mir(program)
 
         # Should have multiple basic blocks
-        main = mir.get_function("main")
+        main = mir.get_function("__main__")
         assert main is not None
         assert len(main.cfg.blocks) > 3  # At least entry + branches
 
@@ -347,7 +347,7 @@ class TestHIRToMIRComplete:
             mir = lower_to_mir(program)
 
             # Should have BinaryOp with correct operator
-            main = mir.get_function("main")
+            main = mir.get_function("__main__")
             assert main is not None, f"Failed for operator {op}"
             entry = main.cfg.entry_block
             assert entry is not None, f"Failed for operator {op}"
@@ -374,7 +374,7 @@ class TestHIRToMIRComplete:
         )
 
         mir = lower_to_mir(program)
-        main = mir.get_function("main")
+        main = mir.get_function("__main__")
         assert main is not None
         entry = main.cfg.entry_block
         assert entry is not None

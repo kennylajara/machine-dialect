@@ -17,7 +17,7 @@ class TestBytecodeWriter:
     def test_create_writer(self) -> None:
         """Test creating a bytecode writer."""
         writer = BytecodeWriter()
-        assert writer.module_name == "main"
+        assert writer.module_name == "__main__"
         assert len(writer.constants) == 0
         assert len(writer.instructions) == 0
         assert len(writer.functions) == 0

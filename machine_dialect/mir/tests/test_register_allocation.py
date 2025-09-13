@@ -63,7 +63,7 @@ class TestRegisterAllocation:
         )
 
         mir_module = lower_to_mir(program)
-        main_func = mir_module.get_function("main")
+        main_func = mir_module.get_function("__main__")
         assert main_func is not None
 
         # Perform register allocation
@@ -114,7 +114,7 @@ class TestRegisterAllocation:
 
         program = Program(statements=statements)  # type: ignore[arg-type]
         mir_module = lower_to_mir(program)
-        main_func = mir_module.get_function("main")
+        main_func = mir_module.get_function("__main__")
         assert main_func is not None
 
         # Allocate with very limited registers (less than the number of overlapping values)
@@ -174,7 +174,7 @@ class TestRegisterAllocation:
         )
 
         mir_module = lower_to_mir(program)
-        main_func = mir_module.get_function("main")
+        main_func = mir_module.get_function("__main__")
         assert main_func is not None
 
         # Analyze lifetimes
@@ -247,7 +247,7 @@ class TestRegisterAllocation:
         )
 
         mir_module = lower_to_mir(program)
-        main_func = mir_module.get_function("main")
+        main_func = mir_module.get_function("__main__")
         assert main_func is not None
 
         # Analyze lifetimes
@@ -290,7 +290,7 @@ class TestRegisterAllocation:
         )
 
         mir_module = lower_to_mir(program)
-        main_func = mir_module.get_function("main")
+        main_func = mir_module.get_function("__main__")
         assert main_func is not None
 
         allocator = RegisterAllocator(main_func)

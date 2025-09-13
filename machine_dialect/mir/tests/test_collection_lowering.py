@@ -62,7 +62,7 @@ class TestCollectionMutationLowering:
         mir_module = lower_to_mir(program)
 
         # Check that ArrayAppend was generated
-        main_func = mir_module.get_function("main")
+        main_func = mir_module.get_function("__main__")
         assert main_func is not None
 
         # Find ArrayAppend instruction
@@ -106,7 +106,7 @@ class TestCollectionMutationLowering:
         mir_module = lower_to_mir(program)
 
         # Check that ArraySet was generated
-        main_func = mir_module.get_function("main")
+        main_func = mir_module.get_function("__main__")
         assert main_func is not None
 
         # Find ArraySet instruction
@@ -149,7 +149,7 @@ class TestCollectionMutationLowering:
         mir_module = lower_to_mir(program)
 
         # Check that ArrayLength and BinaryOp (subtract) were generated
-        main_func = mir_module.get_function("main")
+        main_func = mir_module.get_function("__main__")
         assert main_func is not None
 
         # Find ArrayLength and BinaryOp instructions
@@ -198,7 +198,7 @@ class TestCollectionMutationLowering:
         mir_module = lower_to_mir(program)
 
         # Check that ArrayRemove was generated
-        main_func = mir_module.get_function("main")
+        main_func = mir_module.get_function("__main__")
         assert main_func is not None
 
         # Find ArrayRemove instruction
@@ -239,7 +239,7 @@ class TestCollectionMutationLowering:
         mir_module = lower_to_mir(program)
 
         # Check that ArrayFindIndex and ArrayRemove were generated
-        main_func = mir_module.get_function("main")
+        main_func = mir_module.get_function("__main__")
         assert main_func is not None
 
         # Find ArrayFindIndex and ArrayRemove instructions
@@ -285,7 +285,7 @@ class TestCollectionMutationLowering:
         mir_module = lower_to_mir(program)
 
         # Check that ArrayInsert was generated
-        main_func = mir_module.get_function("main")
+        main_func = mir_module.get_function("__main__")
         assert main_func is not None
 
         # Find ArrayInsert instruction
@@ -324,7 +324,7 @@ class TestCollectionMutationLowering:
         mir_module = lower_to_mir(program)
 
         # Check that ArrayClear was generated
-        main_func = mir_module.get_function("main")
+        main_func = mir_module.get_function("__main__")
         assert main_func is not None
 
         # Find ArrayClear instruction
@@ -381,7 +381,7 @@ class TestCollectionAccessLowering:
         mir_module = lower_to_mir(program)
 
         # Check that ArrayGet was generated
-        main_func = mir_module.get_function("main")
+        main_func = mir_module.get_function("__main__")
         assert main_func is not None
 
         # Find ArrayGet instruction
@@ -434,7 +434,7 @@ class TestCollectionAccessLowering:
         mir_module = lower_to_mir(program)
 
         # Check that ArrayLength, BinaryOp (subtract), and ArrayGet were generated
-        main_func = mir_module.get_function("main")
+        main_func = mir_module.get_function("__main__")
         assert main_func is not None
 
         found_length = False
@@ -492,7 +492,7 @@ class TestListLiteralLowering:
         mir_module = lower_to_mir(program)
 
         # Check that ArrayCreate and ArraySet were generated
-        main_func = mir_module.get_function("main")
+        main_func = mir_module.get_function("__main__")
         assert main_func is not None
 
         found_create = False
@@ -542,7 +542,7 @@ class TestListLiteralLowering:
         mir_module = lower_to_mir(program)
 
         # Check that ArrayCreate and ArraySet were generated
-        main_func = mir_module.get_function("main")
+        main_func = mir_module.get_function("__main__")
         assert main_func is not None
 
         found_create = False
@@ -586,7 +586,7 @@ class TestListLiteralLowering:
         mir_module = lower_to_mir(program)
 
         # Check that ArrayCreate was generated with size 0
-        main_func = mir_module.get_function("main")
+        main_func = mir_module.get_function("__main__")
         assert main_func is not None
 
         found_create = False

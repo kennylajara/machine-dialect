@@ -51,7 +51,7 @@ class TestDictionaryLowering(unittest.TestCase):
         mir_module = self.lowerer.lower_program(program)
 
         # Check that DictCreate instruction was generated
-        main_func = mir_module.get_function("main")
+        main_func = mir_module.get_function("__main__")
         assert main_func is not None
         # Collect all instructions from all basic blocks
         instructions = []
@@ -96,7 +96,7 @@ class TestDictionaryLowering(unittest.TestCase):
         mir_module = self.lowerer.lower_program(program)
 
         # Check instructions
-        main_func = mir_module.get_function("main")
+        main_func = mir_module.get_function("__main__")
         assert main_func is not None
         # Collect all instructions from all basic blocks
         instructions = []
@@ -136,7 +136,7 @@ class TestDictionaryLowering(unittest.TestCase):
         mir_module = self.lowerer.lower_program(program)
 
         # Check instructions
-        main_func = mir_module.get_function("main")
+        main_func = mir_module.get_function("__main__")
         assert main_func is not None
         # Collect all instructions from all basic blocks
         instructions = []
@@ -173,7 +173,7 @@ class TestDictionaryLowering(unittest.TestCase):
         mir_module = self.lowerer.lower_program(program)
 
         # Check instructions
-        main_func = mir_module.get_function("main")
+        main_func = mir_module.get_function("__main__")
         assert main_func is not None
         # Collect all instructions from all basic blocks
         instructions = []
@@ -225,7 +225,7 @@ class TestDictionaryLowering(unittest.TestCase):
         mir_module = self.lowerer.lower_program(program)
 
         # Check instructions
-        main_func = mir_module.get_function("main")
+        main_func = mir_module.get_function("__main__")
         assert main_func is not None
         # Collect all instructions from all basic blocks
         instructions = []
@@ -278,7 +278,7 @@ class TestDictionaryLowering(unittest.TestCase):
         mir_module = self.lowerer.lower_program(program)
 
         # Check instructions
-        main_func = mir_module.get_function("main")
+        main_func = mir_module.get_function("__main__")
         assert main_func is not None
         # Collect all instructions from all basic blocks
         instructions = []

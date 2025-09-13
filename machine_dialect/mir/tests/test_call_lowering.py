@@ -35,7 +35,7 @@ class TestCallStatementLowering:
         mir_module = lower_to_mir(program)
 
         # Check that main function was created
-        main_func = mir_module.get_function("main")
+        main_func = mir_module.get_function("__main__")
         assert main_func is not None
 
         # Check that call instruction was generated
@@ -74,7 +74,7 @@ class TestCallStatementLowering:
         program = Program(statements=[call])
         mir_module = lower_to_mir(program)
 
-        main_func = mir_module.get_function("main")
+        main_func = mir_module.get_function("__main__")
         assert main_func is not None
 
         # Check that arguments were processed
@@ -108,7 +108,7 @@ class TestCallStatementLowering:
         program = Program(statements=[call])
         mir_module = lower_to_mir(program)
 
-        main_func = mir_module.get_function("main")
+        main_func = mir_module.get_function("__main__")
         assert main_func is not None
 
         # Both arguments should be present
@@ -128,7 +128,7 @@ class TestCallStatementLowering:
         program = Program(statements=[call])
         mir_module = lower_to_mir(program)
 
-        main_func = mir_module.get_function("main")
+        main_func = mir_module.get_function("__main__")
         assert main_func is not None
 
         # Should handle single argument
@@ -153,7 +153,7 @@ class TestCallStatementLowering:
         program = Program(statements=[call])
         mir_module = lower_to_mir(program)
 
-        main_func = mir_module.get_function("main")
+        main_func = mir_module.get_function("__main__")
         assert main_func is not None
 
         # Should handle no arguments

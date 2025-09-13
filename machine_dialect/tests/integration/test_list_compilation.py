@@ -110,7 +110,7 @@ Set `person` to:
             assert context.mir_module is not None
 
             # Check that dictionary operations are generated in MIR
-            main_func = context.mir_module.get_function("main")
+            main_func = context.mir_module.get_function("__main__")
             assert main_func is not None
 
             # Verify DictCreate instruction exists in MIR

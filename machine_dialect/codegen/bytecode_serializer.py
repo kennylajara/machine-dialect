@@ -44,13 +44,13 @@ class BytecodeWriter:
             self.instructions = module.instructions
             self.functions = getattr(module, "function_table", {})
             self.global_names = getattr(module, "global_names", [])
-            self.module_name = getattr(module, "name", "main")
+            self.module_name = getattr(module, "name", "__main__")
         else:
             self.constants = []  # (tag, value) pairs
             self.instructions = []
             self.functions = {}  # name -> instruction offset
             self.global_names = []
-            self.module_name = "main"
+            self.module_name = "__main__"
 
     def set_module_name(self, name: str) -> None:
         """Set the module name."""

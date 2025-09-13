@@ -63,7 +63,7 @@ class TestHIRToMIRLowering:
         program = Program(statements=[])
         module = lower_to_mir(program)
 
-        assert module.name == "main"
+        assert module.name == "__main__"
         assert len(module.functions) == 0
         assert module.main_function is None
 
@@ -80,7 +80,7 @@ class TestHIRToMIRLowering:
         func = FunctionStatement(
             token=self._dummy_token("utility", TokenType.KW_UTILITY),
             visibility=FunctionVisibility.FUNCTION,
-            name=Identifier(self._dummy_token("main"), "main"),
+            name=Identifier(self._dummy_token("__main__"), "__main__"),
             body=body,
         )
         program = Program(statements=[func])
@@ -88,13 +88,13 @@ class TestHIRToMIRLowering:
 
         # Check module has main function
         assert len(module.functions) == 1
-        assert "main" in module.functions
-        assert module.main_function == "main"
+        assert "__main__" in module.functions
+        assert module.main_function == "__main__"
 
         # Check function structure
-        main_func = module.get_function("main")
+        main_func = module.get_function("__main__")
         assert main_func is not None
-        assert main_func.name == "main"
+        assert main_func.name == "__main__"
         assert len(main_func.params) == 0
 
         # Check CFG
@@ -152,13 +152,13 @@ class TestHIRToMIRLowering:
         func = FunctionStatement(
             token=self._dummy_token("utility", TokenType.KW_UTILITY),
             visibility=FunctionVisibility.FUNCTION,
-            name=Identifier(self._dummy_token("main"), "main"),
+            name=Identifier(self._dummy_token("__main__"), "__main__"),
             body=body,
         )
         program = Program(statements=[func])
         module = lower_to_mir(program)
 
-        main_func = module.get_function("main")
+        main_func = module.get_function("__main__")
         assert main_func is not None
         assert main_func.cfg.entry_block is not None
 
@@ -228,13 +228,13 @@ class TestHIRToMIRLowering:
         func = FunctionStatement(
             token=self._dummy_token("utility", TokenType.KW_UTILITY),
             visibility=FunctionVisibility.FUNCTION,
-            name=Identifier(self._dummy_token("main"), "main"),
+            name=Identifier(self._dummy_token("__main__"), "__main__"),
             body=body,
         )
         program = Program(statements=[func])
         module = lower_to_mir(program)
 
-        main_func = module.get_function("main")
+        main_func = module.get_function("__main__")
         assert main_func is not None
         assert main_func.cfg.entry_block is not None
 

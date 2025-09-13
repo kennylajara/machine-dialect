@@ -43,7 +43,7 @@ class Chunk:
 class BytecodeModule:
     """A complete bytecode module."""
 
-    name: str = "main"
+    name: str = "__main__"
     chunks: list[Chunk] = field(default_factory=list)
     function_table: dict[str, int] = field(default_factory=dict)
     global_names: list[str] = field(default_factory=list)

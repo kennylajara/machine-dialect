@@ -277,7 +277,7 @@ class TestOpcodeCompatibility:
     def test_mir_to_bytecode_opcode_mapping(self) -> None:
         """Test that MIR instructions map to correct opcodes."""
         module = MIRModule("test")
-        func = MIRFunction("main")
+        func = MIRFunction("__main__")
         block = BasicBlock("entry")
 
         # Create various MIR instructions
@@ -294,7 +294,7 @@ class TestOpcodeCompatibility:
 
         func.cfg.add_block(block)
         func.cfg.set_entry_block(block)
-        module.functions["main"] = func
+        module.functions["__main__"] = func
 
         # Generate bytecode
         generator = RegisterBytecodeGenerator()

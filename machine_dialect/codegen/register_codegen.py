@@ -232,13 +232,13 @@ class RegisterBytecodeGenerator:
         module = BytecodeModule()
 
         # Process main function
-        if main_func := mir_module.get_function("main"):
+        if main_func := mir_module.get_function("__main__"):
             chunk = self.generate_function(main_func)
             module.chunks.append(chunk)
 
         # Process other functions
         for name, func in mir_module.functions.items():
-            if name != "main":
+            if name != "__main__":
                 chunk = self.generate_function(func)
                 module.add_chunk(chunk)
 
@@ -291,7 +291,7 @@ class RegisterBytecodeGenerator:
         # Create chunk
         chunk = Chunk(
             name=func.name,
-            chunk_type=ChunkType.FUNCTION if func.name != "main" else ChunkType.MAIN,
+            chunk_type=ChunkType.FUNCTION if func.name != "__main__" else ChunkType.MAIN,
             bytecode=self.bytecode,
             constants=self.constants,
             num_locals=self.allocation.next_register,

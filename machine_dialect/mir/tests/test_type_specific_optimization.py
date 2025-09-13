@@ -307,7 +307,7 @@ class TestTypeSpecificOptimization:
         mir_module = lowering.lower_program(program)
 
         # Get the main function
-        main_func = mir_module.get_function("main")
+        main_func = mir_module.get_function("__main__")
         assert main_func is not None
 
         # Check that type information was propagated

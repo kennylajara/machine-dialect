@@ -97,7 +97,7 @@ class MIRInterpreter:
         self.step_count = 0
 
         # Find main function
-        main_func = module.get_function("main")
+        main_func = module.get_function("__main__")
         if not main_func:
             self.state = ExecutionState.ERROR
             raise RuntimeError("No main function found")

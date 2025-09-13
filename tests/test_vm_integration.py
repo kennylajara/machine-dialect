@@ -27,7 +27,7 @@ def test_simple_arithmetic() -> None:
     """Test simple arithmetic operations in the VM."""
     # Create a simple MIR module with arithmetic
     module = MIRModule("test")
-    func = MIRFunction("main")
+    func = MIRFunction("__main__")
 
     # Create a basic block
     from machine_dialect.mir import BasicBlock
@@ -49,7 +49,7 @@ def test_simple_arithmetic() -> None:
     func.cfg.add_block(block)
     func.cfg.set_entry_block(block)
 
-    module.functions["main"] = func
+    module.functions["__main__"] = func
 
     # Generate bytecode
     generator = RegisterBytecodeGenerator()

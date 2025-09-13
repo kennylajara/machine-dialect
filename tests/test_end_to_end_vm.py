@@ -56,11 +56,11 @@ Give back `sum`.
     mir_phase = MIRGenerationPhase()
     mir_module = mir_phase.run(context, hir)
     assert mir_module is not None
-    assert "main" in mir_module.functions
+    assert "__main__" in mir_module.functions
 
     # Step 5: Register allocation
     allocator = RegisterAllocator()
-    main_func = mir_module.functions["main"]
+    main_func = mir_module.functions["__main__"]
     allocation = allocator.allocate_function(main_func)
     assert allocation.next_register > 0
     assert allocation.next_register <= 256
@@ -88,7 +88,7 @@ Give back `sum`.
     assert len(metadata["functions"]) > 0
 
     main_metadata = metadata["functions"][0]
-    assert main_metadata["name"] == "main"
+    assert main_metadata["name"] == "__main__"
     assert "register_types" in main_metadata
     assert "basic_blocks" in main_metadata
 
@@ -131,7 +131,7 @@ Give back `result`.
 
     # Verify MIR has multiple basic blocks for control flow
     assert mir_module is not None
-    main_func = mir_module.functions["main"]
+    main_func = mir_module.functions["__main__"]
     assert len(main_func.cfg.blocks) > 1  # Should have multiple blocks for if/else
 
     # Allocate registers
@@ -185,7 +185,7 @@ def test_bytecode_serialization() -> None:
     # Generate bytecode
     generator = RegisterBytecodeGenerator()
     assert mir_module is not None
-    main_func = mir_module.functions["main"]
+    main_func = mir_module.functions["__main__"]
     allocation = generator.allocator.allocate_function(main_func)
     generator.allocation = allocation
 
@@ -243,7 +243,7 @@ def test_register_allocation_limits() -> None:
     # Allocate registers
     allocator = RegisterAllocator()
     assert mir_module is not None
-    main_func = mir_module.functions["main"]
+    main_func = mir_module.functions["__main__"]
     allocation = allocator.allocate_function(main_func)
 
     # Verify we didn't exceed register limit

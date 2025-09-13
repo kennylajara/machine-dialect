@@ -34,7 +34,7 @@ class TestEndToEndPipeline:
         """Create a simple MIR module that computes (10 + 20) * 2."""
         module = MIRModule("arithmetic_test")
 
-        main_func = MIRFunction("main")
+        main_func = MIRFunction("__main__")
         main_block = BasicBlock("entry")
 
         # Create temporaries for values
@@ -60,7 +60,7 @@ class TestEndToEndPipeline:
 
         main_func.cfg.add_block(main_block)
         main_func.cfg.set_entry_block(main_block)
-        module.functions["main"] = main_func
+        module.functions["__main__"] = main_func
 
         return module
 
@@ -68,7 +68,7 @@ class TestEndToEndPipeline:
         """Create MIR with if-else control flow."""
         module = MIRModule("control_flow_test")
 
-        main_func = MIRFunction("main")
+        main_func = MIRFunction("__main__")
 
         # Create temporaries
         t0 = Temp(MIRType.INT)  # holds 15
@@ -110,7 +110,7 @@ class TestEndToEndPipeline:
         main_func.cfg.connect(entry_block, else_block)
         main_func.cfg.connect(then_block, end_block)
         main_func.cfg.connect(else_block, end_block)
-        module.functions["main"] = main_func
+        module.functions["__main__"] = main_func
 
         return module
 
@@ -133,7 +133,7 @@ class TestEndToEndPipeline:
         add_func.cfg.set_entry_block(add_block)
 
         # Main function: calls add(5, 7)
-        main_func = MIRFunction("main")
+        main_func = MIRFunction("__main__")
         main_block = BasicBlock("entry")
 
         t3 = Temp(MIRType.INT)  # holds 5
@@ -361,7 +361,7 @@ fn main() {
         fact_func.cfg.connect(entry, recursive)
 
         # Main function
-        main_func = MIRFunction("main")
+        main_func = MIRFunction("__main__")
         main_block = BasicBlock("entry")
 
         t6 = Temp(MIRType.INT)  # holds 5

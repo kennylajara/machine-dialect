@@ -116,7 +116,7 @@ class HIRToMIRLowering:
         if self.current_block is not None:
             self.current_block.add_instruction(instruction)
 
-    def lower_program(self, program: Program, module_name: str = "main") -> MIRModule:
+    def lower_program(self, program: Program, module_name: str = "__main__") -> MIRModule:
         """Lower a complete program to MIR.
 
         Args:
@@ -147,12 +147,12 @@ class HIRToMIRLowering:
             self.lower_function(func_stmt)
 
         # If there are top-level statements, create an implicit main function
-        if top_level_statements and not self.module.get_function("main"):
+        if top_level_statements and not self.module.get_function("__main__"):
             self._create_implicit_main(top_level_statements)
 
         # Set main function if it exists
-        if self.module.get_function("main"):
-            self.module.set_main_function("main")
+        if self.module.get_function("__main__"):
+            self.module.set_main_function("__main__")
 
         # Apply SSA construction to all functions
         for func in self.module.functions.values():
@@ -171,7 +171,7 @@ class HIRToMIRLowering:
             statements: The top-level statements to include in main.
         """
         # Create main function
-        main = MIRFunction("main", [], MIRType.EMPTY)
+        main = MIRFunction("__main__", [], MIRType.EMPTY)
         self.current_function = main
 
         # Create entry block
@@ -382,8 +382,8 @@ class HIRToMIRLowering:
                 else MIRType.UNKNOWN
             )
 
-            # Check if we're inside a function (not main)
-            if self.current_function and self.current_function.name != "main":
+            # Check if we're inside a function (not __main__)
+            if self.current_function and self.current_function.name != "__main__":
                 # Check if this is a parameter
                 is_param = any(p.name == var_name for p in self.current_function.params)
                 if is_param:
@@ -443,8 +443,8 @@ class HIRToMIRLowering:
         mir_type = ast_type_to_mir_type(stmt.type_spec)
 
         # Create typed variable in MIR
-        # Check if we're inside a function (not main) to determine scope
-        if self.current_function and self.current_function.name != "main":
+        # Check if we're inside a function (not __main__) to determine scope
+        if self.current_function and self.current_function.name != "__main__":
             # This is a function-local variable
             scope = VariableScope.LOCAL
         else:
@@ -1422,7 +1422,7 @@ class HIRToMIRLowering:
         return label
 
 
-def lower_to_mir(program: Program, module_name: str = "main") -> MIRModule:
+def lower_to_mir(program: Program, module_name: str = "__main__") -> MIRModule:
     """Lower a program to MIR.
 
     Args:

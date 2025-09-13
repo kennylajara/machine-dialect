@@ -10,11 +10,14 @@ from machine_dialect.ast import (
     ASTNode,
     BlockStatement,
     CallStatement,
+    CollectionAccessExpression,
+    CollectionMutationStatement,
     ConditionalExpression,
     DefineStatement,
     EmptyLiteral,
     ErrorExpression,
     ErrorStatement,
+    Expression,
     ExpressionStatement,
     FloatLiteral,
     FunctionStatement,
@@ -43,7 +46,10 @@ from machine_dialect.mir.basic_block import BasicBlock
 from machine_dialect.mir.debug_info import DebugInfoBuilder
 from machine_dialect.mir.mir_function import MIRFunction
 from machine_dialect.mir.mir_instructions import (
+    ArrayAppend,
     ArrayCreate,
+    ArrayGet,
+    ArrayLength,
     ArraySet,
     Assert,
     BinaryOp,
@@ -68,6 +74,7 @@ from machine_dialect.mir.mir_values import (
     FunctionRef,
     MIRValue,
     ScopedVariable,
+    Temp,
     Variable,
     VariableScope,
 )
@@ -218,6 +225,8 @@ class HIRToMIRLowering:
             self.lower_call_statement(stmt)
         elif isinstance(stmt, SayStatement):
             self.lower_say_statement(stmt)
+        elif isinstance(stmt, CollectionMutationStatement):
+            self.lower_collection_mutation(stmt)
         elif isinstance(stmt, BlockStatement):
             self.lower_block_statement(stmt)
         elif isinstance(stmt, ExpressionStatement):
@@ -682,6 +691,124 @@ class HIRToMIRLowering:
                 value = temp
             self._add_instruction(Print(value, source_loc), stmt)
 
+    def lower_collection_mutation(self, stmt: CollectionMutationStatement) -> None:
+        """Lower a collection mutation statement to MIR.
+
+        Handles operations like:
+        - Add _value_ to list
+        - Remove _value_ from list
+        - Set the second item of list to _value_
+        - Insert _value_ at position _3_ in list
+        - Empty list
+
+        Args:
+            stmt: The collection mutation statement to lower.
+        """
+        if not self.current_block or not self.current_function:
+            return
+
+        # Get source location from the statement
+        source_loc = stmt.get_source_location()
+        if source_loc is None:
+            source_loc = (1, 1)
+
+        # Lower the collection expression
+        collection = self.lower_expression(stmt.collection)
+
+        # Ensure collection is loaded into a temp if it's a variable
+        if isinstance(collection, Variable):
+            temp_collection = self.current_function.new_temp(collection.type)
+            self._add_instruction(Copy(temp_collection, collection, source_loc), stmt)
+            collection = temp_collection
+
+        # Handle different operations
+        if stmt.operation == "add":
+            # Add operation: append to array
+            if stmt.value:
+                value = self.lower_expression(stmt.value)
+
+                # Load constant into temp if needed
+                if isinstance(value, Constant):
+                    temp_value = self.current_function.new_temp(value.type)
+                    self._add_instruction(LoadConst(temp_value, value, source_loc), stmt)
+                    value = temp_value
+
+                # Use ArrayAppend instruction
+                self._add_instruction(ArrayAppend(collection, value, source_loc), stmt)
+
+        elif stmt.operation == "set":
+            # Set operation: array[index] = value
+            if stmt.value and stmt.position is not None:
+                value = self.lower_expression(stmt.value)
+
+                # Load value constant into temp if needed
+                if isinstance(value, Constant):
+                    temp_value = self.current_function.new_temp(value.type)
+                    self._add_instruction(LoadConst(temp_value, value, source_loc), stmt)
+                    value = temp_value
+
+                # Handle position (already converted to 0-based in HIR)
+                if isinstance(stmt.position, int):
+                    index = Constant(stmt.position, MIRType.INT)
+                    temp_index = self.current_function.new_temp(MIRType.INT)
+                    self._add_instruction(LoadConst(temp_index, index, source_loc), stmt)
+                elif isinstance(stmt.position, str) and stmt.position == "last":
+                    # Special case for "last" - get array length - 1
+                    length_temp = self.current_function.new_temp(MIRType.INT)
+                    self._add_instruction(ArrayLength(length_temp, collection, source_loc), stmt)
+
+                    # Subtract 1
+                    one = Constant(1, MIRType.INT)
+                    temp_one = self.current_function.new_temp(MIRType.INT)
+                    self._add_instruction(LoadConst(temp_one, one, source_loc), stmt)
+
+                    temp_index = self.current_function.new_temp(MIRType.INT)
+                    self._add_instruction(BinaryOp(temp_index, "-", length_temp, temp_one, source_loc), stmt)
+                else:
+                    # Expression for index
+                    if isinstance(stmt.position, Expression):
+                        index_value = self.lower_expression(stmt.position)
+                        if isinstance(index_value, Constant):
+                            temp_index = self.current_function.new_temp(MIRType.INT)
+                            self._add_instruction(LoadConst(temp_index, index_value, source_loc), stmt)
+                        elif isinstance(index_value, Temp):
+                            temp_index = index_value
+                        else:
+                            # Handle other MIRValue types - shouldn't happen but be safe
+                            temp_index = self.current_function.new_temp(MIRType.INT)
+                            self._add_instruction(Copy(temp_index, index_value, source_loc), stmt)
+                    else:
+                        # This shouldn't happen if HIR is correct, but handle gracefully
+                        temp_index = self.current_function.new_temp(MIRType.INT)
+                        self._add_instruction(LoadConst(temp_index, Constant(0, MIRType.INT), source_loc), stmt)
+
+                # Perform the array set
+                self._add_instruction(ArraySet(collection, temp_index, value, source_loc), stmt)
+
+        elif stmt.operation == "remove":
+            # Remove operation: need to find and remove element
+            # This is more complex - would need to:
+            # 1. Find the element's index
+            # 2. Shift remaining elements
+            # 3. Decrease array size
+            # For now, we'll leave this as a TODO
+            pass
+
+        elif stmt.operation == "insert":
+            # Insert operation: insert at specific position
+            # This would need to:
+            # 1. Shift elements from position onwards
+            # 2. Set the value at position
+            # 3. Increase array size
+            # For now, we'll leave this as a TODO
+            pass
+
+        elif stmt.operation == "empty":
+            # Empty operation: clear the array
+            # This would reset the array to size 0
+            # For now, we'll leave this as a TODO
+            pass
+
     def lower_block_statement(self, stmt: BlockStatement) -> None:
         """Lower a block statement to MIR.
 
@@ -827,6 +954,66 @@ class HIRToMIRLowering:
             dict_var = self.current_function.new_temp(MIRType.DICT)
             self._add_instruction(ArrayCreate(dict_var, temp_size, source_loc), expr)
             return dict_var
+
+        # Handle collection access
+        elif isinstance(expr, CollectionAccessExpression):
+            source_loc = expr.get_source_location()
+            if source_loc is None:
+                source_loc = (1, 1)
+
+            # Lower the collection
+            collection = self.lower_expression(expr.collection)
+
+            # Ensure collection is in a temp register
+            if isinstance(collection, Constant):
+                temp_collection = self.current_function.new_temp(MIRType.ARRAY)
+                self._add_instruction(LoadConst(temp_collection, collection, source_loc), expr)
+                collection = temp_collection
+
+            # Handle index based on access type
+            if expr.access_type == "numeric":
+                # Numeric index (already 0-based from HIR)
+                if isinstance(expr.accessor, int):
+                    index = Constant(expr.accessor, MIRType.INT)
+                    temp_index = self.current_function.new_temp(MIRType.INT)
+                    self._add_instruction(LoadConst(temp_index, index, source_loc), expr)
+                else:
+                    # Expression for index
+                    if isinstance(expr.accessor, Expression):
+                        index_value = self.lower_expression(expr.accessor)
+                        if isinstance(index_value, Constant):
+                            temp_index = self.current_function.new_temp(MIRType.INT)
+                            self._add_instruction(LoadConst(temp_index, index_value, source_loc), expr)
+                        elif isinstance(index_value, Temp):
+                            temp_index = index_value
+                        else:
+                            # Handle other MIRValue types
+                            temp_index = self.current_function.new_temp(MIRType.INT)
+                            self._add_instruction(Copy(temp_index, index_value, source_loc), expr)
+                    else:
+                        # This shouldn't happen, but handle gracefully
+                        temp_index = self.current_function.new_temp(MIRType.INT)
+                        self._add_instruction(LoadConst(temp_index, Constant(0, MIRType.INT), source_loc), expr)
+            elif expr.access_type == "ordinal" and expr.accessor == "last":
+                # Special case for "last"
+                length_temp = self.current_function.new_temp(MIRType.INT)
+                self._add_instruction(ArrayLength(length_temp, collection, source_loc), expr)
+
+                # Subtract 1
+                one = Constant(1, MIRType.INT)
+                temp_one = self.current_function.new_temp(MIRType.INT)
+                self._add_instruction(LoadConst(temp_one, one, source_loc), expr)
+
+                temp_index = self.current_function.new_temp(MIRType.INT)
+                self._add_instruction(BinaryOp(temp_index, "-", length_temp, temp_one, source_loc), expr)
+            else:
+                # Other access types - not yet supported
+                return Constant(None, MIRType.ERROR)
+
+            # Perform the array get
+            result = self.current_function.new_temp(MIRType.UNKNOWN)
+            self._add_instruction(ArrayGet(result, collection, temp_index, source_loc), expr)
+            return result
 
         # Handle identifier
         elif isinstance(expr, Identifier):

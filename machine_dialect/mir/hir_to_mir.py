@@ -1022,20 +1022,53 @@ class HIRToMIRLowering:
             return array_var
 
         elif isinstance(expr, NamedListLiteral):
-            # For named lists (dictionaries), we'd need dict operations
-            # For now, just create an empty array as placeholder
+            # Create a dictionary and populate it with key-value pairs
             source_loc = expr.get_source_location()
             if source_loc is None:
                 source_loc = (1, 1)
 
-            # TODO: Implement dictionary operations
-            size = Constant(0, MIRType.INT)
-            # Load size constant into register for proper constant pool usage
-            temp_size = self.current_function.new_temp(MIRType.INT)
-            self._add_instruction(LoadConst(temp_size, size, source_loc), expr)
+            # Import DictCreate and DictSet
+            from machine_dialect.mir.mir_instructions import DictCreate, DictSet
 
+            # Create an empty dictionary
             dict_var = self.current_function.new_temp(MIRType.DICT)
-            self._add_instruction(ArrayCreate(dict_var, temp_size, source_loc), expr)
+            self._add_instruction(DictCreate(dict_var, source_loc), expr)
+
+            # Add each key-value pair
+            for key, value in expr.entries:
+                # Handle key - can be a string or an Identifier expression
+                if isinstance(key, str):
+                    # Direct string key
+                    key_str = Constant(key, MIRType.STRING)
+                    key_value = self.current_function.new_temp(MIRType.STRING)
+                    self._add_instruction(LoadConst(key_value, key_str, source_loc), expr)
+                elif isinstance(key, Identifier):
+                    # Identifier used as key - convert to string
+                    key_str = Constant(key.value, MIRType.STRING)
+                    key_value = self.current_function.new_temp(MIRType.STRING)
+                    self._add_instruction(LoadConst(key_value, key_str, source_loc), expr)
+                else:
+                    # Other expression types - lower them
+                    key_val = self.lower_expression(key)
+                    if isinstance(key_val, Constant):
+                        # Load constant into temp
+                        key_value = self.current_function.new_temp(MIRType.STRING)
+                        self._add_instruction(LoadConst(key_value, key_val, source_loc), expr)
+                    else:
+                        # Already in temp register
+                        key_value = key_val
+
+                # Lower the value expression
+                value_val = self.lower_expression(value)
+                # Ensure value is in a temp
+                if isinstance(value_val, Constant):
+                    temp_val = self.current_function.new_temp(self._get_mir_type(value_val))
+                    self._add_instruction(LoadConst(temp_val, value_val, source_loc), expr)
+                    value_val = temp_val
+
+                # Set the key-value pair in the dictionary
+                self._add_instruction(DictSet(dict_var, key_value, value_val, source_loc), expr)
+
             return dict_var
 
         # Handle collection access
@@ -1052,6 +1085,9 @@ class HIRToMIRLowering:
                 temp_collection = self.current_function.new_temp(MIRType.ARRAY)
                 self._add_instruction(LoadConst(temp_collection, collection, source_loc), expr)
                 collection = temp_collection
+
+            # Import DictGet for dictionary access
+            from machine_dialect.mir.mir_instructions import DictGet
 
             # Handle index based on access type
             if expr.access_type == "numeric":
@@ -1077,6 +1113,12 @@ class HIRToMIRLowering:
                         # This shouldn't happen, but handle gracefully
                         temp_index = self.current_function.new_temp(MIRType.INT)
                         self._add_instruction(LoadConst(temp_index, Constant(0, MIRType.INT), source_loc), expr)
+
+                # Perform array get
+                result = self.current_function.new_temp(MIRType.UNKNOWN)
+                self._add_instruction(ArrayGet(result, collection, temp_index, source_loc), expr)
+                return result
+
             elif expr.access_type == "ordinal" and expr.accessor == "last":
                 # Special case for "last"
                 length_temp = self.current_function.new_temp(MIRType.INT)
@@ -1089,14 +1131,48 @@ class HIRToMIRLowering:
 
                 temp_index = self.current_function.new_temp(MIRType.INT)
                 self._add_instruction(BinaryOp(temp_index, "-", length_temp, temp_one, source_loc), expr)
+
+                # Perform array get
+                result = self.current_function.new_temp(MIRType.UNKNOWN)
+                self._add_instruction(ArrayGet(result, collection, temp_index, source_loc), expr)
+                return result
+
+            elif expr.access_type in ("property", "name"):
+                # Dictionary property or name access
+                # Get the key as a string or MIRValue
+                dict_key: MIRValue
+                if isinstance(expr.accessor, str):
+                    key_const = Constant(expr.accessor, MIRType.STRING)
+                    temp_key = self.current_function.new_temp(MIRType.STRING)
+                    self._add_instruction(LoadConst(temp_key, key_const, source_loc), expr)
+                    dict_key = temp_key
+                elif isinstance(expr.accessor, Identifier):
+                    key_const = Constant(expr.accessor.value, MIRType.STRING)
+                    temp_key = self.current_function.new_temp(MIRType.STRING)
+                    self._add_instruction(LoadConst(temp_key, key_const, source_loc), expr)
+                    dict_key = temp_key
+                elif isinstance(expr.accessor, Expression):
+                    dict_key = self.lower_expression(expr.accessor)
+                    if isinstance(dict_key, Constant):
+                        temp_key = self.current_function.new_temp(MIRType.STRING)
+                        self._add_instruction(LoadConst(temp_key, dict_key, source_loc), expr)
+                        dict_key = temp_key
+                    # Otherwise dict_key is already a proper MIRValue (likely Temp)
+                else:
+                    # Fallback - shouldn't normally happen
+                    key_const = Constant(str(expr.accessor), MIRType.STRING)
+                    temp_key = self.current_function.new_temp(MIRType.STRING)
+                    self._add_instruction(LoadConst(temp_key, key_const, source_loc), expr)
+                    dict_key = temp_key
+
+                # Perform dictionary get
+                result = self.current_function.new_temp(MIRType.UNKNOWN)
+                self._add_instruction(DictGet(result, collection, dict_key, source_loc), expr)
+                return result
+
             else:
                 # Other access types - not yet supported
                 return Constant(None, MIRType.ERROR)
-
-            # Perform the array get
-            result = self.current_function.new_temp(MIRType.UNKNOWN)
-            self._add_instruction(ArrayGet(result, collection, temp_index, source_loc), expr)
-            return result
 
         # Handle identifier
         elif isinstance(expr, Identifier):
@@ -1307,6 +1383,30 @@ class HIRToMIRLowering:
 
         # Default: return error value
         return Constant(None, MIRType.ERROR)
+
+    def _get_mir_type(self, value: MIRValue) -> MIRType:
+        """Get the MIR type of a value.
+
+        Args:
+            value: The MIR value to get the type of.
+
+        Returns:
+            The MIR type of the value, or UNKNOWN for union types.
+        """
+        if isinstance(value, Constant):
+            const_type = value.type
+            if isinstance(const_type, MIRType):
+                return const_type
+            # If it's a MIRUnionType, return UNKNOWN
+            return MIRType.UNKNOWN
+        elif hasattr(value, "type"):
+            val_type = value.type
+            if isinstance(val_type, MIRType):
+                return val_type
+            # If it's a MIRUnionType or anything else, return UNKNOWN for now
+            return MIRType.UNKNOWN
+        else:
+            return MIRType.UNKNOWN
 
     def generate_label(self, prefix: str = "L") -> str:
         """Generate a unique label.

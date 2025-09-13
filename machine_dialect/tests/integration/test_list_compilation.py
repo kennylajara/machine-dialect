@@ -109,12 +109,28 @@ Set `person` to:
             assert hasattr(context, "mir_module")
             assert context.mir_module is not None
 
-            # Named lists currently compile to empty arrays (TODO)
-            bytecode_module, metadata = generate_bytecode_from_mir(context.mir_module)
-            serialized = bytecode_module.serialize()
+            # Check that dictionary operations are generated in MIR
+            main_func = context.mir_module.get_function("main")
+            assert main_func is not None
 
-            # Should at least create an array structure
-            assert b"\x21" in serialized, "No array creation instruction"
+            # Verify DictCreate instruction exists in MIR
+            from machine_dialect.mir.mir_instructions import DictCreate, DictSet
+
+            dict_creates = []
+            dict_sets = []
+            for block in main_func.cfg.blocks.values():
+                for inst in block.instructions:
+                    if isinstance(inst, DictCreate):
+                        dict_creates.append(inst)
+                    elif isinstance(inst, DictSet):
+                        dict_sets.append(inst)
+
+            assert len(dict_creates) > 0, "No DictCreate instructions found in MIR"
+            assert len(dict_sets) >= 3, "Expected at least 3 DictSet instructions for name, age, and active"
+
+            # TODO: Bytecode generation for dictionary operations not yet implemented
+            # Once implemented, the bytecode should contain dictionary creation/set instructions
+            # For now, we just verify the MIR is correct
 
         finally:
             test_file.unlink(missing_ok=True)

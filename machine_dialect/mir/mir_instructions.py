@@ -8,7 +8,7 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 from .mir_types import MIRType, MIRUnionType
-from .mir_values import Constant, FunctionRef, MIRValue, Variable
+from .mir_values import Constant, FunctionRef, MIRValue, Temp, Variable
 
 
 class MIRInstruction(ABC):
@@ -1550,3 +1550,211 @@ class ArrayClear(MIRInstruction):
         """Replace uses of a value."""
         if self.array == old:
             self.array = new
+
+
+# Dictionary Operations
+
+
+class DictCreate(MIRInstruction):
+    """Create a new dictionary: dest = {}."""
+
+    def __init__(
+        self,
+        dest: Temp,
+        source_location: tuple[int, int],
+    ) -> None:
+        """Initialize dictionary creation.
+
+        Args:
+            dest: Destination temp for the new dictionary.
+            source_location: Source code location (line, column).
+        """
+        super().__init__(source_location)
+        self.dest = dest
+
+    def __str__(self) -> str:
+        """Return string representation."""
+        return f"{self.dest} = {{}}"
+
+    def get_uses(self) -> list[MIRValue]:
+        """DictCreate uses nothing."""
+        return []
+
+    def get_defs(self) -> list[MIRValue]:
+        """Get defined value."""
+        return [self.dest]
+
+    def replace_use(self, old: MIRValue, new: MIRValue) -> None:
+        """Replace uses of a value."""
+        pass  # No uses to replace
+
+
+class DictGet(MIRInstruction):
+    """Get value from dictionary by key: dest = dict[key]."""
+
+    def __init__(
+        self,
+        dest: Temp,
+        dict_val: MIRValue,
+        key: MIRValue,
+        source_location: tuple[int, int],
+    ) -> None:
+        """Initialize dictionary get operation.
+
+        Args:
+            dest: Destination temp for the value.
+            dict_val: The dictionary to get from.
+            key: The key to look up.
+            source_location: Source code location (line, column).
+        """
+        super().__init__(source_location)
+        self.dest = dest
+        self.dict_val = dict_val
+        self.key = key
+
+    def __str__(self) -> str:
+        """Return string representation."""
+        return f"{self.dest} = {self.dict_val}[{self.key}]"
+
+    def get_uses(self) -> list[MIRValue]:
+        """Get operands used."""
+        return [self.dict_val, self.key]
+
+    def get_defs(self) -> list[MIRValue]:
+        """Get defined value."""
+        return [self.dest]
+
+    def replace_use(self, old: MIRValue, new: MIRValue) -> None:
+        """Replace uses of a value."""
+        if self.dict_val == old:
+            self.dict_val = new
+        if self.key == old:
+            self.key = new
+
+
+class DictSet(MIRInstruction):
+    """Set value in dictionary: dict[key] = value."""
+
+    def __init__(
+        self,
+        dict_val: MIRValue,
+        key: MIRValue,
+        value: MIRValue,
+        source_location: tuple[int, int],
+    ) -> None:
+        """Initialize dictionary set operation.
+
+        Args:
+            dict_val: The dictionary to modify.
+            key: The key to set.
+            value: The value to set.
+            source_location: Source code location (line, column).
+        """
+        super().__init__(source_location)
+        self.dict_val = dict_val
+        self.key = key
+        self.value = value
+
+    def __str__(self) -> str:
+        """Return string representation."""
+        return f"{self.dict_val}[{self.key}] = {self.value}"
+
+    def get_uses(self) -> list[MIRValue]:
+        """Get operands used."""
+        return [self.dict_val, self.key, self.value]
+
+    def get_defs(self) -> list[MIRValue]:
+        """No direct defs, modifies dict in place."""
+        return []
+
+    def replace_use(self, old: MIRValue, new: MIRValue) -> None:
+        """Replace uses of a value."""
+        if self.dict_val == old:
+            self.dict_val = new
+        if self.key == old:
+            self.key = new
+        if self.value == old:
+            self.value = new
+
+
+class DictRemove(MIRInstruction):
+    """Remove key from dictionary: del dict[key]."""
+
+    def __init__(
+        self,
+        dict_val: MIRValue,
+        key: MIRValue,
+        source_location: tuple[int, int],
+    ) -> None:
+        """Initialize dictionary remove operation.
+
+        Args:
+            dict_val: The dictionary to modify.
+            key: The key to remove.
+            source_location: Source code location (line, column).
+        """
+        super().__init__(source_location)
+        self.dict_val = dict_val
+        self.key = key
+
+    def __str__(self) -> str:
+        """Return string representation."""
+        return f"del {self.dict_val}[{self.key}]"
+
+    def get_uses(self) -> list[MIRValue]:
+        """Get operands used."""
+        return [self.dict_val, self.key]
+
+    def get_defs(self) -> list[MIRValue]:
+        """No direct defs, modifies dict in place."""
+        return []
+
+    def replace_use(self, old: MIRValue, new: MIRValue) -> None:
+        """Replace uses of a value."""
+        if self.dict_val == old:
+            self.dict_val = new
+        if self.key == old:
+            self.key = new
+
+
+class DictContains(MIRInstruction):
+    """Check if key exists in dictionary: dest = key in dict."""
+
+    def __init__(
+        self,
+        dest: Temp,
+        dict_val: MIRValue,
+        key: MIRValue,
+        source_location: tuple[int, int],
+    ) -> None:
+        """Initialize dictionary contains check.
+
+        Args:
+            dest: Destination temp for the boolean result.
+            dict_val: The dictionary to check.
+            key: The key to look for.
+            source_location: Source code location (line, column).
+        """
+        super().__init__(source_location)
+        self.dest = dest
+        self.dict_val = dict_val
+        self.key = key
+
+    def __str__(self) -> str:
+        """Return string representation."""
+        return f"{self.dest} = {self.key} in {self.dict_val}"
+
+    def get_uses(self) -> list[MIRValue]:
+        """Get operands used."""
+        return [self.dict_val, self.key]
+
+    def get_defs(self) -> list[MIRValue]:
+        """Get defined value."""
+        return [self.dest]
+
+    def replace_use(self, old: MIRValue, new: MIRValue) -> None:
+        """Replace uses of a value."""
+        if self.dict_val == old:
+            self.dict_val = new
+        if self.key == old:
+            self.key = new

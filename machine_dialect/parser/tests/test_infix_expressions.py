@@ -302,12 +302,12 @@ class TestInfixExpressions:
             ("10 is the same as 10", 10, "equals", 10),
             ("foo is the same as bar", "foo", "equals", "bar"),
             ("3.14 equals 3.14", 3.14, "equals", 3.14),
-            ("value equals 42", "value", "equals", 42),
+            ("`value` equals 42", "value", "equals", 42),
             # Inequality variations
             ("5 is not 10", 5, "is not", 10),
             ("x is not z", "x", "is not", "z"),
             ("5 isn't 10", 5, "is not", 10),
-            ("value isn't 0", "value", "is not", 0),
+            ("`value` isn't 0", "value", "is not", 0),
             ("10 is not equal to 20", 10, "is not", 20),
             ("foo is not equal to bar", "foo", "is not", "bar"),
             ("5 doesn't equal 10", 5, "is not", 10),
@@ -321,7 +321,7 @@ class TestInfixExpressions:
             ("total is more than limit", "total", ">", "limit"),
             # Less than variations
             ("5 is less than 10", 5, "<", 10),
-            ("value is less than max", "value", "<", "max"),
+            ("`value` is less than max", "value", "<", "max"),
             ("3 is under 10", 3, "<", 10),
             ("price is under budget", "price", "<", "budget"),
             ("2 is fewer than 5", 2, "<", 5),
@@ -332,7 +332,7 @@ class TestInfixExpressions:
             ("5 is at least 5", 5, ">=", 5),
             ("score is at least passing", "score", ">=", "passing"),
             ("10 is no less than 5", 10, ">=", 5),
-            ("value is no less than minimum", "value", ">=", "minimum"),
+            ("`value` is no less than minimum", "value", ">=", "minimum"),
             # Less than or equal variations
             ("5 is less than or equal to 10", 5, "<=", 10),
             ("x is less than or equal to max", "x", "<=", "max"),
@@ -367,7 +367,7 @@ class TestInfixExpressions:
             # With logical operators
             ("x is equal to 5 and y is greater than 10", "((x equals 5) and (y > 10))"),
             ("foo is not bar or baz is less than qux", "((foo is not bar) or (baz < qux))"),
-            ("value is at least 0 and value is at most 100", "((value >= 0) and (value <= 100))"),
+            ("`value` is at least 0 and `value` is at most 100", "((value >= 0) and (value <= 100))"),
             # With arithmetic
             ("x + 5 is equal to 10", "((x + 5) equals 10)"),
             ("2 * y is greater than 20", "((2 * y) > 20)"),
@@ -439,9 +439,9 @@ class TestInfixExpressions:
             assert statement.expression is not None
 
             # Check string representation matches expected precedence
-            assert (
-                str(statement.expression) == expected
-            ), f"For '{source}': expected {expected}, got {statement.expression!s}"
+            assert str(statement.expression) == expected, (
+                f"For '{source}': expected {expected}, got {statement.expression!s}"
+            )
 
     def test_grouped_expressions(self) -> None:
         """Test parsing expressions with parentheses for grouping."""
@@ -491,9 +491,9 @@ class TestInfixExpressions:
             assert isinstance(statement, ExpressionStatement)
             assert statement.expression is not None
 
-            assert (
-                str(statement.expression) == expected
-            ), f"For '{source}': expected {expected}, got {statement.expression!s}"
+            assert str(statement.expression) == expected, (
+                f"For '{source}': expected {expected}, got {statement.expression!s}"
+            )
 
     def test_complex_logical_with_comparison(self) -> None:
         """Test parsing complex expressions with comparison and logical operators."""
@@ -565,9 +565,9 @@ class TestInfixExpressions:
             assert isinstance(statement, ExpressionStatement)
             assert statement.expression is not None
 
-            assert (
-                str(statement.expression) == expected
-            ), f"For '{source}': expected {expected}, got {statement.expression!s}"
+            assert str(statement.expression) == expected, (
+                f"For '{source}': expected {expected}, got {statement.expression!s}"
+            )
 
     def test_multiple_infix_expressions(self) -> None:
         """Test parsing multiple infix expressions in sequence."""
@@ -675,6 +675,6 @@ class TestInfixExpressions:
 
         # Check that at least one error contains the expected message
         error_messages = [str(error) for error in parser.errors]
-        assert any(
-            expected_error in msg for msg in error_messages
-        ), f"Expected error containing '{expected_error}' for '{source}', but got: {error_messages}"
+        assert any(expected_error in msg for msg in error_messages), (
+            f"Expected error containing '{expected_error}' for '{source}', but got: {error_messages}"
+        )

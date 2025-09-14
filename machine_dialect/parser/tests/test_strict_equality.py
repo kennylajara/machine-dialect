@@ -38,7 +38,7 @@ class TestStrictEqualityExpressions:
             # Strict equality with identifiers
             ("x is strictly equal to y", "x", "is strictly equal to", "y"),
             ("foo is exactly equal to bar", "foo", "is strictly equal to", "bar"),
-            ("value is identical to expected", "value", "is strictly equal to", "expected"),
+            ("`value` is identical to expected", "value", "is strictly equal to", "expected"),
             # Mixed types (would fail at runtime for strict equality)
             ("5 is strictly equal to 5.0", 5, "is strictly equal to", 5.0),
             ("Yes is strictly equal to 1", True, "is strictly equal to", 1),
@@ -159,8 +159,8 @@ class TestStrictEqualityExpressions:
             (
                 """
                 Define `result` as Text or Empty.
-                if value is not strictly equal to empty then:
-                > set `result` to value.
+                if `value` is not strictly equal to empty then:
+                > set `result` to `value`.
                 """,
                 "value",
                 "is not strictly equal to",

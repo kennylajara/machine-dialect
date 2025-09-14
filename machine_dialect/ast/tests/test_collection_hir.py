@@ -1,6 +1,5 @@
 """Test HIR generation for collection operations."""
 
-
 from machine_dialect.ast.expressions import CollectionAccessExpression, Identifier
 from machine_dialect.ast.literals import UnorderedListLiteral, WholeNumberLiteral
 from machine_dialect.ast.statements import CollectionMutationStatement

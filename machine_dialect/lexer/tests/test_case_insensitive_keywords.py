@@ -42,13 +42,13 @@ class TestCaseInsensitiveKeywords:
                 # Special case for boolean literals which canonicalize to Yes/No
                 if token_type in (TokenType.LIT_YES, TokenType.LIT_NO):
                     expected = "Yes" if token_type == TokenType.LIT_YES else "No"
-                    assert (
-                        tokens[0].literal == expected
-                    ), f"Expected literal '{expected}' for '{variant}', got '{tokens[0].literal}'"
+                    assert tokens[0].literal == expected, (
+                        f"Expected literal '{expected}' for '{variant}', got '{tokens[0].literal}'"
+                    )
                 else:
-                    assert (
-                        tokens[0].literal == canonical_form
-                    ), f"Expected literal '{canonical_form}' for '{variant}', got '{tokens[0].literal}'"
+                    assert tokens[0].literal == canonical_form, (
+                        f"Expected literal '{canonical_form}' for '{variant}', got '{tokens[0].literal}'"
+                    )
 
     def test_double_asterisk_keywords_all_cases(self) -> None:
         """Test that all keywords work with double-asterisk wrapping in different cases."""

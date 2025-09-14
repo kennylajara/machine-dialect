@@ -16,7 +16,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 #     ComprehensiveRegressionDetector,
 #     create_regression_suite,
 # )
-from machine_dialect.mir.benchmarks.regression_detector import RegressionThresholds  # noqa: E402
+from machine_dialect.mir.benchmarks.regression_detector import RegressionThresholds
 
 
 def main() -> int:

@@ -42,7 +42,7 @@ class TestMIRValidation:
         module.set_main_function("main")
 
         # Should validate successfully
-        success, errors, warnings = validate_module(module)
+        success, errors, _warnings = validate_module(module)
         assert success
         assert len(errors) == 0
 
@@ -50,7 +50,7 @@ class TestMIRValidation:
         """Test validation fails for module without name."""
         module = MIRModule("")
 
-        success, errors, warnings = validate_module(module)
+        success, errors, _warnings = validate_module(module)
         assert not success
         assert any("name" in error.lower() for error in errors)
 
@@ -59,7 +59,7 @@ class TestMIRValidation:
         module = MIRModule("test")
         module.set_main_function("nonexistent")
 
-        success, errors, warnings = validate_module(module)
+        success, errors, _warnings = validate_module(module)
         assert not success
         assert any("main" in error.lower() and "not found" in error.lower() for error in errors)
 
@@ -77,14 +77,14 @@ class TestMIRValidation:
         func.cfg.add_block(entry)
 
         # Validate with different name
-        success, errors, warnings = validate_function(func)
+        success, errors, _warnings = validate_function(func)
         assert success  # Should pass when validating directly
 
         # But fail when in module with wrong name
         module = MIRModule("test")
         module.functions["bar"] = func  # Wrong name in dict
 
-        success, errors, warnings = validate_module(module)
+        success, errors, _warnings = validate_module(module)
         assert not success
         assert any("mismatch" in error.lower() for error in errors)
 
@@ -96,7 +96,7 @@ class TestMIRValidation:
 
         func = MIRFunction("test", [param1, param2], MIRType.EMPTY)
 
-        success, errors, warnings = validate_function(func)
+        success, errors, _warnings = validate_function(func)
         assert not success
         assert any("duplicate" in error.lower() for error in errors)
 
@@ -105,7 +105,7 @@ class TestMIRValidation:
         func = MIRFunction("test", [], MIRType.EMPTY)
         # Don't set entry block
 
-        success, errors, warnings = validate_function(func)
+        success, errors, _warnings = validate_function(func)
         assert not success
         assert any("entry" in error.lower() for error in errors)
 
@@ -124,7 +124,7 @@ class TestMIRValidation:
         block1.successors.append(block2)
         # Don't add block1 to block2's predecessors
 
-        success, errors, warnings = validate_function(func)
+        success, errors, _warnings = validate_function(func)
         assert not success
         assert any("inconsistent" in error.lower() for error in errors)
 
@@ -141,7 +141,7 @@ class TestMIRValidation:
 
         entry.add_instruction(Return((1, 1)))
 
-        success, errors, warnings = validate_function(func)
+        success, _errors, warnings = validate_function(func)
         assert success  # Should still pass
         assert any("unreachable" in warning.lower() for warning in warnings)
 
@@ -161,7 +161,7 @@ class TestMIRValidation:
         entry.add_instruction(BinaryOp(result, "invalid_op", t1, t2, (1, 1)))
         entry.add_instruction(Return((1, 1)))
 
-        success, errors, warnings = validate_function(func)
+        success, errors, _warnings = validate_function(func)
         assert not success
         assert any("invalid" in error.lower() and "operator" in error.lower() for error in errors)
 
@@ -176,7 +176,7 @@ class TestMIRValidation:
         # Jump to block that doesn't exist
         entry.add_instruction(Jump("nonexistent", (1, 1)))
 
-        success, errors, warnings = validate_function(func)
+        success, errors, _warnings = validate_function(func)
         assert not success
         assert any("not found" in error.lower() for error in errors)
 
@@ -196,7 +196,7 @@ class TestMIRValidation:
         # Invalid: false_label doesn't exist
         entry.add_instruction(ConditionalJump(cond, "then", (1, 1), "nonexistent"))
 
-        success, errors, warnings = validate_function(func)
+        success, errors, _warnings = validate_function(func)
         assert not success
         assert any("not found" in error.lower() for error in errors)
 
@@ -237,7 +237,7 @@ class TestMIRValidation:
         merge.add_instruction(phi)
         merge.add_instruction(Return((1, 1)))
 
-        success, errors, warnings = validate_function(func)
+        success, errors, _warnings = validate_function(func)
         assert not success
         assert any("not a predecessor" in error.lower() for error in errors)
 
@@ -275,7 +275,7 @@ class TestMIRValidation:
         merge.add_instruction(phi)
         merge.add_instruction(Return((1, 1)))
 
-        success, errors, warnings = validate_function(func)
+        success, _errors, warnings = validate_function(func)
         assert success  # Should pass with warning
         assert any("missing" in warning.lower() for warning in warnings)
 
@@ -291,7 +291,7 @@ class TestMIRValidation:
         val = func.new_temp(MIRType.INT)
         entry.add_instruction(Return((1, 1), val))
 
-        success, errors, warnings = validate_function(func)
+        success, _errors, warnings = validate_function(func)
         assert success  # Should pass with warning
         assert any("return" in warning.lower() for warning in warnings)
 
@@ -314,7 +314,7 @@ class TestMIRValidation:
 
         block2.add_instruction(Return((1, 1)))
 
-        success, errors, warnings = validate_function(func)
+        success, _errors, warnings = validate_function(func)
         assert success  # Should pass with warning
         assert any("terminator" in warning.lower() for warning in warnings)
 
@@ -334,7 +334,7 @@ class TestMIRValidation:
         entry.add_instruction(Call(result, func_ref, [arg], (1, 1)))
         entry.add_instruction(Return((1, 1)))
 
-        success, errors, warnings = validate_function(func)
+        success, _errors, _warnings = validate_function(func)
         assert success
 
     def test_complete_validation_integration(self) -> None:
@@ -373,6 +373,6 @@ class TestMIRValidation:
         module.set_main_function("main")
 
         # Should validate successfully
-        success, errors, warnings = validate_module(module)
+        success, errors, _warnings = validate_module(module)
         assert success
         assert len(errors) == 0

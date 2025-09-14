@@ -48,7 +48,7 @@ Set `result` to empty."""
         """Test using empty in comparison expressions."""
         test_cases = [
             ("x equals empty", "`x`", "equals", "empty"),
-            ("value is not empty", "`value`", "is not", "empty"),
+            ("`value` is not empty", "`value`", "is not", "empty"),
             ("result is strictly equal to empty", "`result`", "is strictly equal to", "empty"),
         ]
 

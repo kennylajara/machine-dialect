@@ -7,7 +7,6 @@ This tests the complete pipeline:
 - Execute in VM
 """
 
-
 from machine_dialect.compiler import Compiler
 from machine_dialect.compiler.config import CompilerConfig, OptimizationLevel
 
@@ -198,6 +197,7 @@ Say `bool`.
         """Test creating an empty list and adding to it."""
         source = """
 Define `empty_list` as unordered list.
+Set `empty_list` to blank.
 
 Add _"first"_ to `empty_list`.
 Add _"second"_ to `empty_list`.

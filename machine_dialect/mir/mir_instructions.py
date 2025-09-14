@@ -1758,3 +1758,40 @@ class DictContains(MIRInstruction):
             self.dict_val = new
         if self.key == old:
             self.key = new
+
+
+class DictClear(MIRInstruction):
+    """Clear all entries from dictionary: dict.clear()."""
+
+    def __init__(
+        self,
+        dict_val: MIRValue,
+        source_location: tuple[int, int],
+    ) -> None:
+        """Initialize dictionary clear operation.
+
+        Args:
+            dict_val: The dictionary to clear.
+            source_location: Source code location (line, column).
+        """
+        super().__init__(source_location)
+        self.dict_val = dict_val
+        self.has_side_effects = True
+        self.cost = 2
+
+    def __str__(self) -> str:
+        """String representation for debugging."""
+        return f"DictClear {self.dict_val}"
+
+    def get_uses(self) -> list[MIRValue]:
+        """Get operands used."""
+        return [self.dict_val]
+
+    def get_defs(self) -> list[MIRValue]:
+        """Get defined values."""
+        return []  # Modifies dict in-place
+
+    def replace_use(self, old: MIRValue, new: MIRValue) -> None:
+        """Replace uses of a value."""
+        if self.dict_val == old:
+            self.dict_val = new

@@ -41,7 +41,7 @@ Set `shopping` to:
             assert context.mir_module is not None
 
             # Generate bytecode
-            bytecode_module, metadata = generate_bytecode_from_mir(context.mir_module)
+            bytecode_module, _metadata = generate_bytecode_from_mir(context.mir_module)
 
             # Check bytecode was generated
             assert bytecode_module is not None
@@ -76,7 +76,7 @@ Set `steps` to:
             assert hasattr(context, "mir_module")
             assert context.mir_module is not None
 
-            bytecode_module, metadata = generate_bytecode_from_mir(context.mir_module)
+            bytecode_module, _metadata = generate_bytecode_from_mir(context.mir_module)
             serialized = bytecode_module.serialize()
 
             # Check for array creation
@@ -92,9 +92,9 @@ Set `steps` to:
         source = """
 Define `person` as named list.
 Set `person` to:
-- name: _"Alice"_.
-- age: _30_.
-- active: _yes_.
+- _"name"_: _"Alice"_.
+- _"age"_: _30_.
+- _"active"_: _yes_.
 """
         config = CompilerConfig(verbose=False)
         pipeline = CompilationPipeline(config)
@@ -158,7 +158,7 @@ Set `data` to:
             assert not context.has_errors(), f"Compilation errors: {context.errors}"
             assert context.mir_module is not None
 
-            bytecode_module, metadata = generate_bytecode_from_mir(context.mir_module)
+            bytecode_module, _metadata = generate_bytecode_from_mir(context.mir_module)
             serialized = bytecode_module.serialize()
 
             # Should handle all types
@@ -202,7 +202,7 @@ Set `matrix` to:
             assert not context.has_errors(), f"Compilation errors: {context.errors}"
             assert context.mir_module is not None
 
-            bytecode_module, metadata = generate_bytecode_from_mir(context.mir_module)
+            bytecode_module, _metadata = generate_bytecode_from_mir(context.mir_module)
             serialized = bytecode_module.serialize()
 
             # Should have multiple array creations
@@ -231,7 +231,7 @@ Set `empty_list` to:
             assert not context.has_errors(), f"Compilation errors: {context.errors}"
             assert context.mir_module is not None
 
-            bytecode_module, metadata = generate_bytecode_from_mir(context.mir_module)
+            bytecode_module, _metadata = generate_bytecode_from_mir(context.mir_module)
             serialized = bytecode_module.serialize()
 
             # Should create array with size 0
@@ -290,7 +290,7 @@ Set `nums` to:
             assert context.mir_module is not None
 
             # Generate bytecode
-            bytecode_module, metadata = generate_bytecode_from_mir(context.mir_module)
+            bytecode_module, _metadata = generate_bytecode_from_mir(context.mir_module)
 
             # Check constant pool contains our values
             # Constants are stored as (tag, value) tuples
@@ -329,7 +329,7 @@ Set `mixed` to:
             assert not context.has_errors()
             assert context.mir_module is not None
 
-            bytecode_module, metadata = generate_bytecode_from_mir(context.mir_module)
+            bytecode_module, _metadata = generate_bytecode_from_mir(context.mir_module)
 
             # Check constant pool contains our values
             from machine_dialect.codegen.bytecode_module import ConstantTag

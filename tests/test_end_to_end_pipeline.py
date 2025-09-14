@@ -11,7 +11,7 @@ from pathlib import Path
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from machine_dialect.mir import (  # noqa: E402
+from machine_dialect.mir import (
     BasicBlock,
     BinaryOp,
     Call,
@@ -23,8 +23,8 @@ from machine_dialect.mir import (  # noqa: E402
     Phi,
     Return,
 )
-from machine_dialect.mir.mir_types import MIRType  # noqa: E402
-from machine_dialect.mir.mir_values import Constant, Temp  # noqa: E402
+from machine_dialect.mir.mir_types import MIRType
+from machine_dialect.mir.mir_values import Constant, Temp
 
 
 class TestEndToEndPipeline:

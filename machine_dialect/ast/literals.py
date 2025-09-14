@@ -278,3 +278,32 @@ class NamedListLiteral(Expression):
             else:
                 hir_entries.append((name, content))
         return NamedListLiteral(self.token, hir_entries)
+
+
+class BlankLiteral(Expression):
+    """Represents a blank literal for empty collections.
+
+    Used in expressions like:
+    - Set `list` to blank.
+    - Set `dict` to blank.
+    """
+
+    def __init__(self, token: Token) -> None:
+        """Initialize blank literal.
+
+        Args:
+            token: The 'blank' token.
+        """
+        self.token = token
+
+    def __str__(self) -> str:
+        """Return string representation."""
+        return "blank"
+
+    def desugar(self) -> "BlankLiteral":
+        """Desugar to self."""
+        return self
+
+    def to_hir(self) -> "BlankLiteral":
+        """Convert to HIR representation."""
+        return self

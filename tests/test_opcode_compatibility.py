@@ -71,10 +71,15 @@ class TestOpcodeCompatibility:
             "ARRAY_GET_R": 34,
             "ARRAY_SET_R": 35,
             "ARRAY_LEN_R": 36,
-            "DEBUG_PRINT": 37,
-            "BREAKPOINT": 38,
-            "HALT": 39,
-            "NOP": 40,
+            "DICT_NEW_R": 37,
+            "DICT_GET_R": 38,
+            "DICT_SET_R": 39,
+            "DICT_HAS_KEY_R": 40,
+            "DICT_REMOVE_R": 41,
+            "DEBUG_PRINT": 42,
+            "BREAKPOINT": 43,
+            "HALT": 44,
+            "NOP": 45,
         }
 
         # First, verify the count matches
@@ -337,9 +342,9 @@ class TestOpcodeCompatibility:
 
         for name, expected_value in expected_tags.items():
             actual_value = getattr(ConstantTag, name)
-            assert (
-                actual_value == expected_value
-            ), f"ConstantTag.{name} = {actual_value:#x}, expected {expected_value:#x}"
+            assert actual_value == expected_value, (
+                f"ConstantTag.{name} = {actual_value:#x}, expected {expected_value:#x}"
+            )
 
     def test_rust_vm_recognizes_all_opcodes(self) -> None:
         """Test that the Rust VM's decoder handles all opcodes we define."""
@@ -402,6 +407,12 @@ class TestOpcodeCompatibility:
             Opcode.ARRAY_GET_R: lambda: bytecode.extend([Opcode.ARRAY_GET_R, 2, 0, 1]),
             Opcode.ARRAY_SET_R: lambda: bytecode.extend([Opcode.ARRAY_SET_R, 0, 1, 2]),
             Opcode.ARRAY_LEN_R: lambda: bytecode.extend([Opcode.ARRAY_LEN_R, 1, 0]),
+            # Dictionary ops
+            Opcode.DICT_NEW_R: lambda: bytecode.extend([Opcode.DICT_NEW_R, 0]),
+            Opcode.DICT_GET_R: lambda: bytecode.extend([Opcode.DICT_GET_R, 2, 0, 1]),
+            Opcode.DICT_SET_R: lambda: bytecode.extend([Opcode.DICT_SET_R, 0, 1, 2]),
+            Opcode.DICT_HAS_KEY_R: lambda: bytecode.extend([Opcode.DICT_HAS_KEY_R, 2, 0, 1]),
+            Opcode.DICT_REMOVE_R: lambda: bytecode.extend([Opcode.DICT_REMOVE_R, 0, 1]),
             # Debug
             Opcode.DEBUG_PRINT: lambda: bytecode.extend([Opcode.DEBUG_PRINT, 0]),
             Opcode.BREAKPOINT: lambda: bytecode.extend([Opcode.BREAKPOINT]),

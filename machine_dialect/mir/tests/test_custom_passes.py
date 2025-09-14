@@ -34,7 +34,7 @@ def test_custom_passes_override_default() -> None:
     # Run with custom passes at optimization level 2
     # Level 2 would normally run many passes, but custom passes should override
     custom_passes = ["constant-propagation", "dce"]
-    optimized, stats = optimize_mir(module, optimization_level=2, custom_passes=custom_passes)
+    _optimized, stats = optimize_mir(module, optimization_level=2, custom_passes=custom_passes)
 
     # Verify that only our custom passes ran (plus their dependencies)
     # constant-propagation depends on use-def-chains analysis
@@ -51,7 +51,7 @@ def test_no_custom_passes_uses_default() -> None:
     module = create_simple_module()
 
     # Run at level 2 without custom passes
-    optimized, stats = optimize_mir(module, optimization_level=2)
+    _optimized, stats = optimize_mir(module, optimization_level=2)
 
     # At level 2, we should see standard optimizations
     assert "constant-propagation" in stats or "constant-folding" in stats
@@ -65,7 +65,7 @@ def test_custom_passes_empty_list() -> None:
     module = create_simple_module()
 
     # Run with empty custom passes list
-    optimized, stats = optimize_mir(module, optimization_level=2, custom_passes=[])
+    _optimized, stats = optimize_mir(module, optimization_level=2, custom_passes=[])
 
     # No optimization passes should have run
     assert len(stats) == 0
@@ -77,7 +77,7 @@ def test_custom_passes_at_level_0() -> None:
 
     # Level 0 normally runs no optimizations, but custom passes should still run
     custom_passes = ["dce"]
-    optimized, stats = optimize_mir(module, optimization_level=0, custom_passes=custom_passes)
+    _optimized, stats = optimize_mir(module, optimization_level=0, custom_passes=custom_passes)
 
     # DCE should have run despite level 0
     assert "dce" in stats
@@ -89,7 +89,7 @@ def test_custom_passes_with_dependencies() -> None:
 
     # constant-propagation requires use-def-chains analysis
     custom_passes = ["constant-propagation"]
-    optimized, stats = optimize_mir(module, optimization_level=1, custom_passes=custom_passes)
+    _optimized, stats = optimize_mir(module, optimization_level=1, custom_passes=custom_passes)
 
     # Both the optimization and its required analysis should be in stats
     assert "constant-propagation" in stats
@@ -105,7 +105,7 @@ def test_custom_passes_preserve_module() -> None:
 
     # Run with custom passes
     custom_passes = ["dce"]
-    optimized, stats = optimize_mir(module, optimization_level=1, custom_passes=custom_passes)
+    optimized, _stats = optimize_mir(module, optimization_level=1, custom_passes=custom_passes)
 
     # Module structure should be preserved
     assert len(optimized.functions) == original_func_count
@@ -125,7 +125,7 @@ def test_invalid_custom_pass_name() -> None:
     # The actual behavior depends on the pass manager implementation
     # For now, we just verify it doesn't crash
     try:
-        optimized, stats = optimize_mir(module, optimization_level=1, custom_passes=custom_passes)
+        _optimized, stats = optimize_mir(module, optimization_level=1, custom_passes=custom_passes)
         # If it succeeds, the valid pass should still run
         assert "dce" in stats or len(stats) >= 0
     except (KeyError, ValueError):
@@ -139,7 +139,7 @@ def test_custom_passes_order_preserved() -> None:
 
     # Specify passes in a specific order
     custom_passes = ["dce", "constant-propagation", "dce"]
-    optimized, stats = optimize_mir(module, optimization_level=1, custom_passes=custom_passes)
+    _optimized, stats = optimize_mir(module, optimization_level=1, custom_passes=custom_passes)
 
     # Both passes should have run
     # Note: stats might aggregate multiple runs of the same pass
@@ -158,7 +158,7 @@ def test_custom_passes_with_config() -> None:
 
     # Run with custom passes and custom config
     custom_passes = ["constant-propagation"]
-    optimized, stats = optimize_mir(module, optimization_level=2, config=config, custom_passes=custom_passes)
+    _optimized, stats = optimize_mir(module, optimization_level=2, config=config, custom_passes=custom_passes)
 
     # Custom passes should override the config's default pipeline
     assert "constant-propagation" in stats

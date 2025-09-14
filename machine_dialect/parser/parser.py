@@ -37,7 +37,7 @@ from machine_dialect.ast import (
     WholeNumberLiteral,
     YesNoLiteral,
 )
-from machine_dialect.errors.exceptions import MDBaseException, MDNameError, MDSyntaxError
+from machine_dialect.errors.exceptions import MDBaseException, MDNameError, MDSyntaxError, MDTypeError
 from machine_dialect.errors.messages import (
     EMPTY_ELSE_BLOCK,
     EMPTY_IF_CONSEQUENCE,
@@ -659,7 +659,7 @@ class Parser:
         # Look at what type of list this is
         if current_type == TokenType.PUNCT_DASH:
             # Check if it's a named list by looking for pattern: dash, key, colon
-            # Named lists have patterns like: - _"key"_: value or - name: value
+            # Named lists have patterns like: - _"key"_: value
 
             # Use the token buffer to peek ahead without advancing
             is_named_list = False
@@ -878,20 +878,22 @@ class Parser:
             # Move past the dash
             self._advance_tokens()
 
-            # Parse the key (can be a string literal or identifier/keyword)
+            # Parse the key (MUST be a string literal)
             key = ""
             current_type_after_dash: TokenType | None = self._current_token.type if self._current_token else None
             if current_type_after_dash == TokenType.LIT_TEXT:
                 key = self._current_token.literal.strip('"')
                 self._advance_tokens()
-            elif current_type_after_dash in (TokenType.MISC_IDENT, TokenType.KW_NAME, TokenType.KW_CONTENT) or (
-                self._current_token and self._current_token.literal.lower() in ("age", "active", "name", "profession")
-            ):
-                # Accept identifiers and common keywords as keys
-                key = self._current_token.literal if self._current_token else ""
-                self._advance_tokens()
             else:
-                # Invalid key - named lists require string keys or identifiers
+                # Invalid key - named lists require string literal keys only
+                if self._current_token:
+                    self.errors.append(
+                        MDTypeError(
+                            message=f"Named list keys must be string literals. Got {self._current_token.literal}",
+                            line=self._current_token.line,
+                            column=self._current_token.position,
+                        )
+                    )
                 self._panic_until_tokens([TokenType.PUNCT_DASH, TokenType.MISC_EOF])
                 continue
 
@@ -1694,8 +1696,16 @@ class Parser:
             else:
                 # Not a list, advance past 'to' and parse expression normally
                 self._advance_tokens()  # Move past 'to'
-                # Parse the value expression normally
-                let_statement.value = self._parse_expression()
+
+                # Check for "blank" keyword for empty collections
+                if self._current_token and self._current_token.type == TokenType.KW_BLANK:
+                    from machine_dialect.ast import BlankLiteral
+
+                    let_statement.value = BlankLiteral(self._current_token)
+                    # Don't advance here - let the normal flow handle it
+                else:
+                    # Parse the value expression normally
+                    let_statement.value = self._parse_expression()
 
         elif self._peek_token.type == TokenType.KW_USING:
             # Function call assignment: Set x using function_name
@@ -1848,27 +1858,13 @@ class Parser:
         # Move past the operation keyword
         self._advance_tokens()
 
-        if operation == "empty":
-            # Empty `list`.
-            # Current token should be the collection identifier
-            collection = self._parse_identifier_or_keyword_as_identifier()
-            if not collection:
-                return ErrorStatement(token=start_token, message="Expected collection identifier after 'Empty'")
-            self._advance_tokens()
+        if operation == "add":
+            # Two syntaxes:
+            # 1. Add _value_ to `list`. (for arrays)
+            # 2. Add "key" to `dict` with value _value_. (for named lists)
 
-            # Expect period
-            if self._current_token and self._current_token.type != TokenType.PUNCT_PERIOD:
-                self._expected_token(TokenType.PUNCT_PERIOD)
-
-            return CollectionMutationStatement(
-                token=start_token,
-                operation="empty",
-                collection=collection,
-            )
-
-        elif operation == "add":
-            # Add _value_ to `list`.
-            value = self._parse_expression(Precedence.LOWEST)
+            # Parse the first value/key
+            first_value = self._parse_expression(Precedence.LOWEST)
             self._advance_tokens()
 
             # Skip "to"
@@ -1881,19 +1877,50 @@ class Parser:
                 return ErrorStatement(token=start_token, message="Expected collection identifier after 'Add ... to'")
             self._advance_tokens()
 
-            # Expect period
-            if self._current_token and self._current_token.type != TokenType.PUNCT_PERIOD:
-                self._expected_token(TokenType.PUNCT_PERIOD)
+            # Check if this is dictionary syntax (with value)
+            current_token_type = self._current_token.type if self._current_token else None
+            if current_token_type == TokenType.KW_WITH:
+                self._advance_tokens()
 
-            return CollectionMutationStatement(
-                token=start_token,
-                operation="add",
-                collection=collection,
-                value=value,
-            )
+                # Skip "value" if present
+                if self._current_token and self._current_token.type == TokenType.KW_VALUE:
+                    self._advance_tokens()
+
+                # Parse the actual value
+                dict_value = self._parse_expression(Precedence.LOWEST)
+                self._advance_tokens()
+
+                # Expect period
+                if self._current_token and self._current_token.type != TokenType.PUNCT_PERIOD:
+                    self._expected_token(TokenType.PUNCT_PERIOD)
+
+                return CollectionMutationStatement(
+                    token=start_token,
+                    operation="add",
+                    collection=collection,
+                    value=dict_value,
+                    position=first_value,  # The key
+                    position_type="key",
+                )
+            else:
+                # Regular array syntax
+                # Expect period
+                if self._current_token and self._current_token.type != TokenType.PUNCT_PERIOD:
+                    self._expected_token(TokenType.PUNCT_PERIOD)
+
+                return CollectionMutationStatement(
+                    token=start_token,
+                    operation="add",
+                    collection=collection,
+                    value=first_value,
+                )
 
         elif operation == "remove":
-            # Remove _value_ from `list`.
+            # Two syntaxes:
+            # 1. Remove _value_ from `list`. (for arrays - removes by value)
+            # 2. Remove "key" from `dict`. (for named lists - removes by key)
+            # Note: The semantic analyzer will determine which one based on collection type
+
             value = self._parse_expression(Precedence.LOWEST)
             self._advance_tokens()
 
@@ -1960,6 +1987,63 @@ class Parser:
                 value=value,
                 position=position,
                 position_type="numeric",
+            )
+
+        elif operation == "clear":
+            # Clear `collection`.
+            # Parse the collection identifier
+            collection = self._parse_identifier_or_keyword_as_identifier()
+            if not collection:
+                return ErrorStatement(token=start_token, message="Expected collection identifier after 'Clear'")
+
+            # Advance past the identifier to check for period
+            self._advance_tokens()
+
+            # Expect period
+            if self._current_token and self._current_token.type != TokenType.PUNCT_PERIOD:
+                self._expected_token(TokenType.PUNCT_PERIOD)
+
+            return CollectionMutationStatement(
+                token=start_token,
+                operation="clear",
+                collection=collection,
+            )
+
+        elif operation == "update":
+            # Update "key" in `dict` to _value_.
+            # Parse the key (should be a string literal)
+            key = self._parse_expression(Precedence.LOWEST)
+            self._advance_tokens()
+
+            # Skip "in"
+            if self._current_token and self._current_token.type == TokenType.KW_IN:
+                self._advance_tokens()
+
+            # Parse the collection
+            collection = self._parse_identifier_or_keyword_as_identifier()
+            if not collection:
+                return ErrorStatement(token=start_token, message="Expected collection identifier after 'Update ... in'")
+            self._advance_tokens()
+
+            # Skip "to"
+            if self._current_token and self._current_token.type == TokenType.KW_TO:
+                self._advance_tokens()
+
+            # Parse the value
+            value = self._parse_expression(Precedence.LOWEST)
+            self._advance_tokens()
+
+            # Expect period
+            if self._current_token and self._current_token.type != TokenType.PUNCT_PERIOD:
+                self._expected_token(TokenType.PUNCT_PERIOD)
+
+            return CollectionMutationStatement(
+                token=start_token,
+                operation="update",
+                collection=collection,
+                value=value,
+                position=key,  # Using position field to store the key
+                position_type="key",
             )
 
         # Should not reach here
@@ -2774,6 +2858,8 @@ class Parser:
             TokenType.KW_ADD: self._parse_collection_mutation_statement,
             TokenType.KW_REMOVE: self._parse_collection_mutation_statement,
             TokenType.KW_INSERT: self._parse_collection_mutation_statement,
+            TokenType.KW_CLEAR: self._parse_collection_mutation_statement,
+            TokenType.KW_UPDATE: self._parse_collection_mutation_statement,
             # Note: KW_EMPTY is not registered here because "empty" as a literal is more common
             # than "Empty `collection`" as a statement. Standalone "empty" will be parsed as an expression.
         }
@@ -3150,7 +3236,7 @@ class Parser:
 
         # Check if the value's type is compatible with the variable's type spec
         type_spec = TypeSpec(var_info.type_spec)
-        is_compatible, error_msg = check_type_compatibility(value_type, type_spec)
+        is_compatible, _error_msg = check_type_compatibility(value_type, type_spec)
 
         if not is_compatible:
             # Create a detailed error message

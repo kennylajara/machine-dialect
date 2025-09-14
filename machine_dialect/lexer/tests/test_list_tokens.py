@@ -197,7 +197,7 @@ class TestComplexListScenarios:
 
     def test_list_with_colon(self) -> None:
         """Test dash followed by identifier and colon (named list syntax)."""
-        lexer = Lexer("- name: value")
+        lexer = Lexer("- name: `value`")
 
         token = lexer.next_token(in_list_context=True)
         assert token.type == TokenType.PUNCT_DASH

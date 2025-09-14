@@ -104,9 +104,9 @@ def _assert_integer_literal(expression: Expression, expected_value: int) -> None
     assert isinstance(expression, WholeNumberLiteral), f"Expected WholeNumberLiteral, got {type(expression).__name__}"
     integer_literal = expression
     assert integer_literal.value == expected_value, f"Integer value={integer_literal.value} != {expected_value}"
-    assert integer_literal.token.literal == str(
-        expected_value
-    ), f"Integer token literal={integer_literal.token.literal} != {expected_value}"
+    assert integer_literal.token.literal == str(expected_value), (
+        f"Integer token literal={integer_literal.token.literal} != {expected_value}"
+    )
 
 
 def _assert_float_literal(expression: Expression, expected_value: float) -> None:

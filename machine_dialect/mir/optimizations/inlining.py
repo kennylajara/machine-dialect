@@ -289,7 +289,7 @@ class FunctionInlining(ModulePass):
             value_map[param_var] = arg
 
         # Clone the callee's CFG
-        cloned_blocks, entry_block, return_blocks = self._clone_function_body(callee, caller, value_map, transformer)
+        _cloned_blocks, entry_block, return_blocks = self._clone_function_body(callee, caller, value_map, transformer)
 
         # Split the call block at the call instruction
         call_idx = call_block.instructions.index(call_inst)

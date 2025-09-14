@@ -1,6 +1,5 @@
 """Tests for collection operation lowering from HIR to MIR."""
 
-
 from machine_dialect.ast import (
     CollectionAccessExpression,
     CollectionMutationStatement,
@@ -299,14 +298,14 @@ class TestCollectionMutationLowering:
         assert found_insert, "ArrayInsert instruction not found"
 
     def test_empty_list_operation(self) -> None:
-        """Test Empty operation generates ArrayClear."""
-        # Create AST for: Empty `numbers`
-        token = Token(TokenType.KW_EMPTY, "Empty", 1, 1)
+        """Test Clear operation generates ArrayClear."""
+        # Create AST for: Clear `numbers`
+        token = Token(TokenType.KW_CLEAR, "Clear", 1, 1)
         collection = Identifier(token, "numbers")
 
         stmt = CollectionMutationStatement(
             token=token,
-            operation="empty",
+            operation="clear",
             collection=collection,
         )
 

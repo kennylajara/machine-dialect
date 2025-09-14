@@ -132,6 +132,6 @@ class TestWholeNumberLiteralExpressions:
 
         # Check that the error mentions the invalid token
         error_messages = [str(error) for error in parser.errors]
-        assert any(
-            error_substring in msg for msg in error_messages
-        ), f"Expected error to mention '{error_substring}', got errors: {error_messages}"
+        assert any(error_substring in msg for msg in error_messages), (
+            f"Expected error to mention '{error_substring}', got errors: {error_messages}"
+        )

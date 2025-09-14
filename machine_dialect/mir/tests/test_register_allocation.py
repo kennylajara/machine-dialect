@@ -122,9 +122,9 @@ class TestRegisterAllocation:
         allocation = allocator.allocate()
 
         # Check that some values were spilled (we have 15+ values but only 8 registers)
-        assert (
-            len(allocation.spilled_values) > 0
-        ), f"Expected spilling but got none. Allocated: {allocation.max_registers} registers"
+        assert len(allocation.spilled_values) > 0, (
+            f"Expected spilling but got none. Allocated: {allocation.max_registers} registers"
+        )
         # Should use most of the available registers
         assert allocation.max_registers <= 8 and allocation.max_registers >= 5
 

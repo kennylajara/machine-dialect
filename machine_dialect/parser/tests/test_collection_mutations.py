@@ -1,6 +1,5 @@
 """Test collection mutation statements in Machine Dialect™."""
 
-
 from machine_dialect.ast import (
     Identifier,
     SetStatement,
@@ -18,16 +17,17 @@ class TestCollectionMutations:
         """Test Add operation on lists."""
         source = """
 Define `items` as Unordered List.
+Set `items` to blank.
 Add _4_ to `items`.
 """
         parser = Parser()
         program = parser.parse(source)
 
         assert len(parser.errors) == 0, f"Parser errors: {parser.errors}"
-        assert len(program.statements) == 2
+        assert len(program.statements) == 3
 
         # Check Add statement
-        add_stmt = program.statements[1]
+        add_stmt = program.statements[2]
         assert isinstance(add_stmt, CollectionMutationStatement)
         assert add_stmt.operation == "add"
         assert isinstance(add_stmt.collection, Identifier)
@@ -39,16 +39,18 @@ Add _4_ to `items`.
         """Test Remove operation on lists."""
         source = """
 Define `items` as Unordered List.
+Set `items` to:
+- _2_.
 Remove _2_ from `items`.
 """
         parser = Parser()
         program = parser.parse(source)
 
         assert len(parser.errors) == 0, f"Parser errors: {parser.errors}"
-        assert len(program.statements) == 2
+        assert len(program.statements) == 3
 
         # Check Remove statement
-        remove_stmt = program.statements[1]
+        remove_stmt = program.statements[2]
         assert isinstance(remove_stmt, CollectionMutationStatement)
         assert remove_stmt.operation == "remove"
         assert isinstance(remove_stmt.collection, Identifier)
@@ -60,16 +62,19 @@ Remove _2_ from `items`.
         """Test Set item using ordinal (first, second, third)."""
         source = """
 Define `items` as Unordered List.
+Set `items` to:
+- _1_.
+- _2_.
 Set the first item of `items` to _10_.
 """
         parser = Parser()
         program = parser.parse(source)
 
         assert len(parser.errors) == 0, f"Parser errors: {parser.errors}"
-        assert len(program.statements) == 2
+        assert len(program.statements) == 3
 
         # Check Set item statement
-        set_stmt = program.statements[1]
+        set_stmt = program.statements[2]
         assert isinstance(set_stmt, CollectionMutationStatement)
         assert set_stmt.operation == "set"
         assert isinstance(set_stmt.collection, Identifier)
@@ -83,16 +88,20 @@ Set the first item of `items` to _10_.
         """Test Set item using numeric index."""
         source = """
 Define `items` as Unordered List.
+Set `items` to:
+- _1_.
+- _2_.
+- _3_.
 Set item _2_ of `items` to _20_.
 """
         parser = Parser()
         program = parser.parse(source)
 
         assert len(parser.errors) == 0, f"Parser errors: {parser.errors}"
-        assert len(program.statements) == 2
+        assert len(program.statements) == 3
 
         # Check Set item statement
-        set_stmt = program.statements[1]
+        set_stmt = program.statements[2]
         assert isinstance(set_stmt, CollectionMutationStatement)
         assert set_stmt.operation == "set"
         assert isinstance(set_stmt.collection, Identifier)
@@ -108,16 +117,19 @@ Set item _2_ of `items` to _20_.
         """Test Insert operation at specific position."""
         source = """
 Define `items` as Unordered List.
+Set `items` to:
+- _1_.
+- _3_.
 Insert _15_ at position _2_ in `items`.
 """
         parser = Parser()
         program = parser.parse(source)
 
         assert len(parser.errors) == 0, f"Parser errors: {parser.errors}"
-        assert len(program.statements) == 2
+        assert len(program.statements) == 3
 
         # Check Insert statement
-        insert_stmt = program.statements[1]
+        insert_stmt = program.statements[2]
         assert isinstance(insert_stmt, CollectionMutationStatement)
         assert insert_stmt.operation == "insert"
         assert isinstance(insert_stmt.collection, Identifier)
@@ -132,6 +144,11 @@ Insert _15_ at position _2_ in `items`.
         """Test multiple ordinal Set operations."""
         source = """
 Define `items` as Ordered List.
+Set `items` to:
+1. _1_.
+2. _2_.
+3. _3_.
+4. _4_.
 Set the first item of `items` to _100_.
 Set the second item of `items` to _200_.
 Set the third item of `items` to _300_.
@@ -141,13 +158,13 @@ Set the last item of `items` to _999_.
         program = parser.parse(source)
 
         assert len(parser.errors) == 0, f"Parser errors: {parser.errors}"
-        assert len(program.statements) == 5
+        assert len(program.statements) == 6
 
         # Check each Set statement
         ordinals = ["first", "second", "third", "last"]
         values = [100, 200, 300, 999]
 
-        for i, (ordinal, value) in enumerate(zip(ordinals, values, strict=True), 1):
+        for i, (ordinal, value) in enumerate(zip(ordinals, values, strict=True), 2):
             set_stmt = program.statements[i]
             assert isinstance(set_stmt, CollectionMutationStatement)
             assert set_stmt.operation == "set"
@@ -161,23 +178,25 @@ Set the last item of `items` to _999_.
         """Test that keywords can be used as variable names in collection contexts."""
         source = """
 Define `first` as Unordered List.
+Set `first` to blank.
 Add _1_ to `first`.
 Define `items` as Unordered List.
+Set `items` to blank.
 Add _2_ to `items`.
 """
         parser = Parser()
         program = parser.parse(source)
 
         assert len(parser.errors) == 0, f"Parser errors: {parser.errors}"
-        assert len(program.statements) == 4
+        assert len(program.statements) == 6
 
         # Check that both 'first' (a keyword) and 'items' work as identifiers
-        add_stmt1 = program.statements[1]
+        add_stmt1 = program.statements[2]
         assert isinstance(add_stmt1, CollectionMutationStatement)
         assert isinstance(add_stmt1.collection, Identifier)
         assert add_stmt1.collection.value == "first"
 
-        add_stmt2 = program.statements[3]
+        add_stmt2 = program.statements[5]
         assert isinstance(add_stmt2, CollectionMutationStatement)
         assert isinstance(add_stmt2.collection, Identifier)
         assert add_stmt2.collection.value == "items"
@@ -186,16 +205,19 @@ Add _2_ to `items`.
         """Test that 'Set first item of' works without 'the'."""
         source = """
 Define `items` as Unordered List.
+Set `items` to:
+- _1_.
+- _2_.
 Set first item of `items` to _10_.
 """
         parser = Parser()
         program = parser.parse(source)
 
         assert len(parser.errors) == 0, f"Parser errors: {parser.errors}"
-        assert len(program.statements) == 2
+        assert len(program.statements) == 3
 
         # Should parse the same as "Set the first item of"
-        set_stmt = program.statements[1]
+        set_stmt = program.statements[2]
         assert isinstance(set_stmt, CollectionMutationStatement)
         assert set_stmt.operation == "set"
         assert set_stmt.position == "first"

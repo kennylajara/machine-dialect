@@ -73,7 +73,7 @@ class TestStrictEqualityOperators:
 
     def test_strict_inequality_in_expression(self) -> None:
         """Test strict inequality operators in complete expressions."""
-        source = "if value is not identical to null then process"
+        source = "if `value` is not identical to `null` then `process`"
         lexer = Lexer(source)
 
         expected_tokens = [

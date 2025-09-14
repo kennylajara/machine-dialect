@@ -81,6 +81,8 @@ class TokenType(Enum):
     KW_AND = auto()
     KW_AS = auto()
     KW_BEHAVIOR = auto()
+    KW_BLANK = auto()  # For empty collections: Set `list` to blank
+    KW_CLEAR = auto()  # For clearing collections: Clear `dict` or Clear all entries from `dict`
     KW_CONTENT = auto()  # For named lists: content/contents in name-content pairs
     KW_DATATYPE = auto()
     KW_DATE = auto()
@@ -134,9 +136,11 @@ class TokenType(Enum):
     KW_TRAIT = auto()
     KW_UNORDERED_LIST = auto()  # Compound type: "unordered list"
     KW_URL = auto()
+    KW_UPDATE = auto()  # For dictionary operations: Update "key" in `dict` to _value_
     KW_USE = auto()
     KW_USING = auto()
     KW_UTILITY = auto()
+    KW_VALUE = auto()  # For dictionary operations: Add "key" to `dict` with value _x_
     KW_WHERE = auto()
     KW_WHOLE_NUMBER = auto()
     KW_WITH = auto()
@@ -212,6 +216,8 @@ keywords_mapping: dict[str, TokenType] = {
     "action": TokenType.KW_ACTION,
     # List operations: Add _"item"_ to `list`
     "add": TokenType.KW_ADD,
+    # Clear collections
+    "clear": TokenType.KW_CLEAR,
     # logic and: true and false
     "and": TokenType.KW_AND,
     # Use function:
@@ -229,6 +235,8 @@ keywords_mapping: dict[str, TokenType] = {
     "behaviors": TokenType.KW_BEHAVIOR,
     "behaviour": TokenType.KW_BEHAVIOR,
     "behaviours": TokenType.KW_BEHAVIOR,
+    # blank for empty collections
+    "blank": TokenType.KW_BLANK,
     # Named lists: content/contents in name-content pairs
     "content": TokenType.KW_CONTENT,
     "contents": TokenType.KW_CONTENT,
@@ -375,6 +383,10 @@ keywords_mapping: dict[str, TokenType] = {
     #   tell **alice** to **walk**.
     #   tell **alice** to **walk** with `speed` = `10`.
     "where": TokenType.KW_WHERE,
+    # Update dictionary entries
+    "update": TokenType.KW_UPDATE,
+    # Value keyword for dictionary operations
+    "value": TokenType.KW_VALUE,
     "with": TokenType.KW_WITH,
     # type indicators
     "URL": TokenType.KW_URL,

@@ -30,9 +30,9 @@ class TestCallStatementErrors:
 
         assert len(parser.errors) > 0
         error_messages = [str(err).lower() for err in parser.errors]
-        assert any(
-            "expected identifier" in msg or "function name" in msg for msg in error_messages
-        ), f"Expected error about invalid function name type, got: {parser.errors}"
+        assert any("expected identifier" in msg or "function name" in msg for msg in error_messages), (
+            f"Expected error about invalid function name type, got: {parser.errors}"
+        )
 
     def test_call_without_period(self) -> None:
         """Test that use statement without period produces an error."""
@@ -43,9 +43,9 @@ class TestCallStatementErrors:
 
         assert len(parser.errors) > 0
         error_messages = [str(err).lower() for err in parser.errors]
-        assert any(
-            "period" in msg or "punct_period" in msg for msg in error_messages
-        ), f"Expected error about missing period, got: {parser.errors}"
+        assert any("period" in msg or "punct_period" in msg for msg in error_messages), (
+            f"Expected error about missing period, got: {parser.errors}"
+        )
 
     def test_call_with_invalid_argument_value(self) -> None:
         """Test that use with truly invalid argument value produces an error."""
@@ -57,9 +57,9 @@ class TestCallStatementErrors:
         # Should have an error about invalid argument
         assert len(parser.errors) > 0
         error_messages = [str(err).lower() for err in parser.errors]
-        assert any(
-            "invalid" in msg or "no suitable parse function" in msg for msg in error_messages
-        ), f"Expected error about invalid argument, got: {parser.errors}"
+        assert any("invalid" in msg or "no suitable parse function" in msg for msg in error_messages), (
+            f"Expected error about invalid argument, got: {parser.errors}"
+        )
 
     def test_call_with_missing_comma_between_positional_args(self) -> None:
         """Test that missing comma between arguments produces an error."""
@@ -71,9 +71,9 @@ class TestCallStatementErrors:
         # Should have an error about missing comma
         assert len(parser.errors) > 0
         error_messages = [str(err).lower() for err in parser.errors]
-        assert any(
-            "comma" in msg or "unexpected" in msg for msg in error_messages
-        ), f"Expected error about missing comma, got: {parser.errors}"
+        assert any("comma" in msg or "unexpected" in msg for msg in error_messages), (
+            f"Expected error about missing comma, got: {parser.errors}"
+        )
 
         # Should still parse both arguments (error recovery)
         assert len(program.statements) == 1
@@ -138,9 +138,9 @@ class TestCallStatementErrors:
         # Should produce an error about missing comma
         assert len(parser.errors) > 0
         error_messages = [str(err).lower() for err in parser.errors]
-        assert any(
-            "comma" in msg or "unexpected" in msg for msg in error_messages
-        ), f"Expected error about missing comma, got: {parser.errors}"
+        assert any("comma" in msg or "unexpected" in msg for msg in error_messages), (
+            f"Expected error about missing comma, got: {parser.errors}"
+        )
 
         # With error recovery, it should still parse both arguments
         assert len(program.statements) == 1

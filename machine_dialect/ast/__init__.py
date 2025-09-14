@@ -41,6 +41,7 @@ from .literals import (
     UnorderedListLiteral,
     OrderedListLiteral,
     NamedListLiteral,
+    BlankLiteral,
 )
 from .call_expression import CallExpression
 
@@ -49,6 +50,7 @@ __all__ = [
     "ASTNode",
     "ActionStatement",
     "Arguments",
+    "BlankLiteral",
     "BlockStatement",
     "CallExpression",
     "CallStatement",

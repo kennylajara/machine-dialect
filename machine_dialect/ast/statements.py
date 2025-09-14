@@ -947,19 +947,26 @@ class CollectionMutationStatement(Statement):
     """Statement for mutating collections (lists and named lists).
 
     Handles operations like:
+    Arrays (Ordered/Unordered Lists):
     - Add _value_ to list
     - Remove _value_ from list
     - Set the second item of list to _value_
     - Set item _5_ of list to _value_
     - Insert _value_ at position _3_ in list
-    - Empty list
+    - Clear list
+
+    Named Lists (Dictionaries):
+    - Add "key" to dict with value _value_
+    - Remove "key" from dict
+    - Update "key" in dict to _value_
+    - Clear dict
 
     Attributes:
-        operation: The mutation operation ('add', 'remove', 'set', 'insert', 'empty').
+        operation: The mutation operation ('add', 'remove', 'set', 'insert', 'clear', 'update').
         collection: The collection expression to mutate.
-        value: The value for add/remove/set/insert operations.
-        position: The position/index for set/insert operations (can be ordinal or numeric).
-        position_type: Type of position ('ordinal', 'numeric', None).
+        value: The value for add/remove/set/insert/update operations.
+        position: The position/index/key for set/insert/update operations (can be ordinal, numeric, or key).
+        position_type: Type of position ('ordinal', 'numeric', 'key', None).
     """
 
     def __init__(
@@ -995,7 +1002,10 @@ class CollectionMutationStatement(Statement):
             A human-readable string representation.
         """
         if self.operation == "add":
-            return f"Add {self.value} to {self.collection}."
+            if self.position_type == "key":
+                return f"Add {self.position} to {self.collection} with value {self.value}."
+            else:
+                return f"Add {self.value} to {self.collection}."
         elif self.operation == "remove":
             return f"Remove {self.value} from {self.collection}."
         elif self.operation == "set":
@@ -1005,8 +1015,10 @@ class CollectionMutationStatement(Statement):
                 return f"Set item _{self.position}_ of {self.collection} to {self.value}."
         elif self.operation == "insert":
             return f"Insert {self.value} at position _{self.position}_ in {self.collection}."
-        elif self.operation == "empty":
-            return f"Empty {self.collection}."
+        elif self.operation == "clear":
+            return f"Clear {self.collection}."
+        elif self.operation == "update":
+            return f"Update {self.position} in {self.collection} to {self.value}."
         return f"<collection mutation: {self.operation}>"
 
     def desugar(self) -> "CollectionMutationStatement":

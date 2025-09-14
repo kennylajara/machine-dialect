@@ -14,13 +14,13 @@ def assert_expected_token(actual: Token, expected: Token) -> None:
         expected: The expected token.
     """
     assert actual.type == expected.type, f"Token type mismatch: got {actual.type}, expected {expected.type}"
-    assert (
-        actual.literal == expected.literal
-    ), f"Token literal mismatch: got '{actual.literal}', expected '{expected.literal}'"
+    assert actual.literal == expected.literal, (
+        f"Token literal mismatch: got '{actual.literal}', expected '{expected.literal}'"
+    )
     assert actual.line == expected.line, f"Token line mismatch: got {actual.line}, expected {expected.line}"
-    assert (
-        actual.position == expected.position
-    ), f"Token position mismatch: got {actual.position}, expected {expected.position}"
+    assert actual.position == expected.position, (
+        f"Token position mismatch: got {actual.position}, expected {expected.position}"
+    )
 
 
 def assert_eof(token: Token) -> None:

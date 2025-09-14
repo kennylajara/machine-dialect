@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from machine_dialect.ast import (
+    CollectionMutationStatement,
     DefineStatement,
     EmptyLiteral,
     Expression,
@@ -112,6 +113,7 @@ class SemanticAnalyzer:
         from machine_dialect.ast.statements import (
             ActionStatement,
             CallStatement,
+            CollectionMutationStatement,
             FunctionStatement,
             IfStatement,
             InteractionStatement,
@@ -147,6 +149,8 @@ class SemanticAnalyzer:
                 self._analyze_expression(stmt.function_name)
             if stmt.arguments:
                 self._analyze_expression(stmt.arguments)
+        elif isinstance(stmt, CollectionMutationStatement):
+            self._analyze_collection_mutation_statement(stmt)
         elif hasattr(stmt, "expression"):  # ExpressionStatement
             self._analyze_expression(stmt.expression)
         elif hasattr(stmt, "statements"):  # BlockStatement
@@ -354,6 +358,87 @@ class SemanticAnalyzer:
 
         # Mark variable as initialized
         self.symbol_table.mark_initialized(var_name)
+
+    def _analyze_collection_mutation_statement(self, stmt: CollectionMutationStatement) -> None:
+        """Analyze a collection mutation statement.
+
+        Validates that the operation is appropriate for the collection type.
+
+        Args:
+            stmt: CollectionMutationStatement to analyze
+        """
+
+        # Analyze the collection expression to get its type
+        collection_type = self._analyze_expression(stmt.collection)
+        if not collection_type:
+            return
+
+        # Check if it's a Named List (dictionary) or array
+        is_named_list = collection_type.type_name == "Named List"
+        is_array = collection_type.type_name in ["Ordered List", "Unordered List", "List"]
+
+        # Validate operations based on collection type
+        if stmt.operation in ["add", "update", "remove"]:
+            if is_named_list:
+                # Named List operations
+                if stmt.operation == "add" and stmt.position_type != "key":
+                    self.errors.append(
+                        MDTypeError(
+                            'Add operation on Named List requires a key. Use: Add "key" to `dict` with value _value_.',
+                            stmt.token.line,
+                            stmt.token.position,
+                        )
+                    )
+                elif stmt.operation == "update" and stmt.position_type != "key":
+                    self.errors.append(
+                        MDTypeError(
+                            'Update operation on Named List requires a key. Use: Update "key" in `dict` to _value_.',
+                            stmt.token.line,
+                            stmt.token.position,
+                        )
+                    )
+                # For Named Lists, remove should work with keys (strings)
+                if stmt.operation == "remove" and stmt.value:
+                    value_type = self._infer_expression_type(stmt.value)
+                    if value_type and value_type.type_name != "Text":
+                        self.errors.append(
+                            MDTypeError(
+                                f"Remove from Named List requires a string key. Got {value_type.type_name}.",
+                                stmt.token.line,
+                                stmt.token.position,
+                            )
+                        )
+            elif is_array:
+                # Array operations shouldn't have key type
+                if stmt.position_type == "key":
+                    self.errors.append(
+                        MDTypeError(
+                            f"Operation '{stmt.operation}' with key is not valid for "
+                            f"{collection_type.type_name}. Keys are only for Named Lists.",
+                            stmt.token.line,
+                            stmt.token.position,
+                        )
+                    )
+
+        elif stmt.operation in ["set", "insert"]:
+            # These operations are only for arrays
+            if is_named_list:
+                self.errors.append(
+                    MDTypeError(
+                        f"Operation '{stmt.operation}' is not valid for Named Lists. Use 'Update' instead.",
+                        stmt.token.line,
+                        stmt.token.position,
+                    )
+                )
+        elif stmt.operation == "clear":
+            # Clear operation works for all collection types
+            pass
+
+        # Analyze value and position expressions if present
+        if stmt.value:
+            self._analyze_expression(stmt.value)
+        if stmt.position and isinstance(stmt.position, Expression):
+            self._analyze_expression(stmt.position)
 
     def _analyze_expression(self, expr: Expression | None) -> TypeInfo | None:
         """Analyze an expression and return its type.

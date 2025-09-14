@@ -8,6 +8,7 @@ from machine_dialect.ast import (
     ActionStatement,
     Arguments,
     ASTNode,
+    BlankLiteral,
     BlockStatement,
     CallStatement,
     CollectionAccessExpression,
@@ -60,6 +61,7 @@ from machine_dialect.mir.mir_instructions import (
     Call,
     ConditionalJump,
     Copy,
+    DictCreate,
     Jump,
     LoadConst,
     MIRInstruction,
@@ -363,7 +365,12 @@ class HIRToMIRLowering:
 
         # Lower the value expression
         if stmt.value is not None:
-            value = self.lower_expression(stmt.value)
+            # Special handling for BlankLiteral - creates empty collection
+            if isinstance(stmt.value, BlankLiteral):
+                # We'll handle this after we know the variable's type
+                value = None  # Placeholder, will be set based on variable type
+            else:
+                value = self.lower_expression(stmt.value)
         else:
             # This shouldn't happen but handle gracefully
             value = Constant(None, MIRType.ERROR)
@@ -376,9 +383,11 @@ class HIRToMIRLowering:
             # Create with inferred type for error recovery
             var_type = (
                 value.type
-                if hasattr(value, "type")
+                if value and hasattr(value, "type")
                 else infer_ast_expression_type(stmt.value, self.type_context)
-                if stmt.value
+                if stmt.value and not isinstance(stmt.value, BlankLiteral)
+                else MIRType.ARRAY  # Default to array for BlankLiteral
+                if isinstance(stmt.value, BlankLiteral)
                 else MIRType.UNKNOWN
             )
 
@@ -402,31 +411,74 @@ class HIRToMIRLowering:
 
             # Track variable for debugging
             self.debug_builder.track_variable(var_name, var, str(var_type), is_parameter=False)
+
+            # Handle BlankLiteral for new variable
+            if isinstance(stmt.value, BlankLiteral):
+                # Create empty collection based on inferred type
+                if var_type == MIRType.DICT:
+                    # Create empty dictionary
+                    dict_var = self.current_function.new_temp(MIRType.DICT)
+                    self._add_instruction(DictCreate(dict_var, source_loc), stmt)
+                    value = dict_var
+                else:
+                    # Default to empty array
+                    size = Constant(0, MIRType.INT)
+                    temp_size = self.current_function.new_temp(MIRType.INT)
+                    self._add_instruction(LoadConst(temp_size, size, source_loc), stmt)
+                    array_var = self.current_function.new_temp(MIRType.ARRAY)
+                    self._add_instruction(ArrayCreate(array_var, temp_size, source_loc), stmt)
+                    value = array_var
         else:
             var = self.variable_map[var_name]
 
+            # Handle BlankLiteral based on variable type
+            if isinstance(stmt.value, BlankLiteral):
+                # Create empty collection based on variable type
+                if var.type == MIRType.ARRAY:
+                    # Create empty array
+                    size = Constant(0, MIRType.INT)
+                    temp_size = self.current_function.new_temp(MIRType.INT)
+                    self._add_instruction(LoadConst(temp_size, size, source_loc), stmt)
+                    array_var = self.current_function.new_temp(MIRType.ARRAY)
+                    self._add_instruction(ArrayCreate(array_var, temp_size, source_loc), stmt)
+                    value = array_var
+                elif var.type == MIRType.DICT:
+                    # Create empty dictionary
+                    dict_var = self.current_function.new_temp(MIRType.DICT)
+                    self._add_instruction(DictCreate(dict_var, source_loc), stmt)
+                    value = dict_var
+                else:
+                    # For other types or unknown types, default to empty array
+                    size = Constant(0, MIRType.INT)
+                    temp_size = self.current_function.new_temp(MIRType.INT)
+                    self._add_instruction(LoadConst(temp_size, size, source_loc), stmt)
+                    array_var = self.current_function.new_temp(MIRType.ARRAY)
+                    self._add_instruction(ArrayCreate(array_var, temp_size, source_loc), stmt)
+                    value = array_var
+
             # For union types, track the actual runtime type being assigned
             if var_name in self.union_type_context:
-                if hasattr(value, "type") and value.type != MIRType.UNKNOWN:
+                if value and hasattr(value, "type") and value.type != MIRType.UNKNOWN:
                     # This assignment narrows the type for flow-sensitive analysis
                     # Store this info for optimization passes
                     if hasattr(var, "runtime_type"):
                         var.runtime_type = value.type
             else:
                 # Update type context if we have better type info
-                if hasattr(value, "type") and value.type != MIRType.UNKNOWN:
+                if value and hasattr(value, "type") and value.type != MIRType.UNKNOWN:
                     self.type_context[var_name] = value.type
 
         # If the value is a constant, load it into a temporary first
-        if isinstance(value, Constant):
+        if value and isinstance(value, Constant):
             # Create a temporary variable for the constant
             temp = self.current_function.new_temp(value.type)
             self._add_instruction(LoadConst(temp, value, source_loc), stmt)
             # Use the temp as the source
             value = temp
 
-        # Store the value
-        self._add_instruction(StoreVar(var, value, source_loc), stmt)
+        # Store the value (value should always be set by now)
+        if value:
+            self._add_instruction(StoreVar(var, value, source_loc), stmt)
 
     def _convert_define_statement(self, stmt: DefineStatement) -> None:
         """Convert DefineStatement to MIR with enhanced type tracking.
@@ -699,11 +751,18 @@ class HIRToMIRLowering:
         """Lower a collection mutation statement to MIR.
 
         Handles operations like:
+        Arrays (Ordered/Unordered Lists):
         - Add _value_ to list
         - Remove _value_ from list
         - Set the second item of list to _value_
         - Insert _value_ at position _3_ in list
-        - Empty list
+        - Clear list
+
+        Named Lists (Dictionaries):
+        - Add "key" to dict with value _value_
+        - Remove "key" from dict
+        - Update "key" in dict to _value_
+        - Clear dict
 
         Args:
             stmt: The collection mutation statement to lower.
@@ -725,20 +784,62 @@ class HIRToMIRLowering:
             self._add_instruction(Copy(temp_collection, collection, source_loc), stmt)
             collection = temp_collection
 
+        # Determine if this is a dictionary operation based on position_type
+        is_dict_operation = stmt.position_type == "key" or (
+            collection.type == MIRType.DICT if hasattr(collection, "type") else False
+        )
+
         # Handle different operations
         if stmt.operation == "add":
-            # Add operation: append to array
-            if stmt.value:
-                value = self.lower_expression(stmt.value)
+            if is_dict_operation and stmt.position:
+                # Dictionary: Add "key" to dict with value _value_
+                # Import dictionary instructions
+                from machine_dialect.mir.mir_instructions import DictSet
 
-                # Load constant into temp if needed
-                if isinstance(value, Constant):
-                    temp_value = self.current_function.new_temp(value.type)
-                    self._add_instruction(LoadConst(temp_value, value, source_loc), stmt)
-                    value = temp_value
+                # Lower the key (stored in position field)
+                # Convert position to appropriate AST node if it's a raw value
+                position_node: Expression | None
+                if isinstance(stmt.position, str):
+                    position_node = StringLiteral(token=stmt.token, value=stmt.position)
+                elif isinstance(stmt.position, int):
+                    position_node = WholeNumberLiteral(token=stmt.token, value=stmt.position)
+                else:
+                    position_node = stmt.position
 
-                # Use ArrayAppend instruction
-                self._add_instruction(ArrayAppend(collection, value, source_loc), stmt)
+                if position_node:
+                    key = self.lower_expression(position_node)
+                else:
+                    # Should not happen but handle gracefully
+                    key = Constant("", MIRType.STRING)
+
+                if isinstance(key, Constant):
+                    temp_key = self.current_function.new_temp(MIRType.STRING)
+                    self._add_instruction(LoadConst(temp_key, key, source_loc), stmt)
+                    key = temp_key
+
+                # Lower the value
+                if stmt.value:
+                    value = self.lower_expression(stmt.value)
+                    if isinstance(value, Constant):
+                        temp_value = self.current_function.new_temp(value.type)
+                        self._add_instruction(LoadConst(temp_value, value, source_loc), stmt)
+                        value = temp_value
+
+                    # Use DictSet to add key-value pair
+                    self._add_instruction(DictSet(collection, key, value, source_loc), stmt)
+            else:
+                # Array: Add _value_ to list
+                if stmt.value:
+                    value = self.lower_expression(stmt.value)
+
+                    # Load constant into temp if needed
+                    if isinstance(value, Constant):
+                        temp_value = self.current_function.new_temp(value.type)
+                        self._add_instruction(LoadConst(temp_value, value, source_loc), stmt)
+                        value = temp_value
+
+                    # Use ArrayAppend instruction
+                    self._add_instruction(ArrayAppend(collection, value, source_loc), stmt)
 
         elif stmt.operation == "set":
             # Set operation: array[index] = value
@@ -790,8 +891,21 @@ class HIRToMIRLowering:
                 self._add_instruction(ArraySet(collection, temp_index, value, source_loc), stmt)
 
         elif stmt.operation == "remove":
-            # Remove operation: remove element at position or by value
-            if stmt.position is not None:
+            if is_dict_operation:
+                # Dictionary: Remove "key" from dict
+                from machine_dialect.mir.mir_instructions import DictRemove
+
+                if stmt.value:
+                    # The key is stored in the value field for remove operations
+                    key = self.lower_expression(stmt.value)
+                    if isinstance(key, Constant):
+                        temp_key = self.current_function.new_temp(MIRType.STRING)
+                        self._add_instruction(LoadConst(temp_key, key, source_loc), stmt)
+                        key = temp_key
+
+                    # Use DictRemove to remove the key
+                    self._add_instruction(DictRemove(collection, key, source_loc), stmt)
+            elif stmt.position is not None:
                 # Remove by position (already converted to 0-based in HIR)
                 if isinstance(stmt.position, int):
                     index = Constant(stmt.position, MIRType.INT)
@@ -888,9 +1002,50 @@ class HIRToMIRLowering:
                 # Perform the array insert
                 self._add_instruction(ArrayInsert(collection, temp_index, value, source_loc), stmt)
 
-        elif stmt.operation == "empty":
-            # Empty operation: clear the array
-            self._add_instruction(ArrayClear(collection, source_loc), stmt)
+        elif stmt.operation == "update":
+            # Update operation: only for dictionaries
+            if is_dict_operation and stmt.position and stmt.value:
+                from machine_dialect.mir.mir_instructions import DictSet
+
+                # Lower the key (stored in position field)
+                # Convert position to appropriate AST node if it's a raw value
+                update_position_node: Expression | None
+                if isinstance(stmt.position, str):
+                    update_position_node = StringLiteral(token=stmt.token, value=stmt.position)
+                elif isinstance(stmt.position, int):
+                    update_position_node = WholeNumberLiteral(token=stmt.token, value=stmt.position)
+                else:
+                    update_position_node = stmt.position
+
+                if update_position_node:
+                    key = self.lower_expression(update_position_node)
+                else:
+                    # Should not happen but handle gracefully
+                    key = Constant("", MIRType.STRING)
+
+                if isinstance(key, Constant):
+                    temp_key = self.current_function.new_temp(MIRType.STRING)
+                    self._add_instruction(LoadConst(temp_key, key, source_loc), stmt)
+                    key = temp_key
+
+                # Lower the value
+                value = self.lower_expression(stmt.value)
+                if isinstance(value, Constant):
+                    temp_value = self.current_function.new_temp(value.type)
+                    self._add_instruction(LoadConst(temp_value, value, source_loc), stmt)
+                    value = temp_value
+
+                # Use DictSet to update the key-value pair
+                self._add_instruction(DictSet(collection, key, value, source_loc), stmt)
+
+        elif stmt.operation == "clear":
+            # Clear operation: works for both arrays and dictionaries
+            if is_dict_operation or collection.type == MIRType.DICT if hasattr(collection, "type") else False:
+                from machine_dialect.mir.mir_instructions import DictClear
+
+                self._add_instruction(DictClear(collection, source_loc), stmt)
+            else:
+                self._add_instruction(ArrayClear(collection, source_loc), stmt)
 
     def lower_block_statement(self, stmt: BlockStatement) -> None:
         """Lower a block statement to MIR.

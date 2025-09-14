@@ -121,9 +121,9 @@ class TestFibonacciE2E:
 
         # Verify output contains expected strings
         assert len(output_lines) >= 2, f"Expected at least 2 lines of output, got: {output_lines}"
-        assert (
-            output_lines[0] == "Fibonacci of 10 is:"
-        ), f"First line should be 'Fibonacci of 10 is:', got: {output_lines[0]}"
+        assert output_lines[0] == "Fibonacci of 10 is:", (
+            f"First line should be 'Fibonacci of 10 is:', got: {output_lines[0]}"
+        )
         assert output_lines[1] == "55", f"Second line should be '55', got: {output_lines[1]}"
 
     def test_fibonacci_all_levels_produce_same_result(self, capsys: Any) -> None:
@@ -160,6 +160,6 @@ class TestFibonacciE2E:
             # Get output from interpreter
             output_lines = interpreter.get_output()
 
-            assert (
-                output_lines == expected_output
-            ), f"Output mismatch at {level}. Expected {expected_output}, got {output_lines}"
+            assert output_lines == expected_output, (
+                f"Output mismatch at {level}. Expected {expected_output}, got {output_lines}"
+            )

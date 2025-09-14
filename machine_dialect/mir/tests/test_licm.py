@@ -305,12 +305,12 @@ class TestLICM:
         )
 
         # If LICM worked, these should NOT be in the loop body anymore
-        assert (
-            not loop_has_load_const_10
-        ), f"LoadConst(10) should be removed from loop body, instructions: {loop_body.instructions}"
-        assert (
-            not loop_has_mult
-        ), f"BinaryOp(*) should be removed from loop body, instructions: {loop_body.instructions}"
+        assert not loop_has_load_const_10, (
+            f"LoadConst(10) should be removed from loop body, instructions: {loop_body.instructions}"
+        )
+        assert not loop_has_mult, (
+            f"BinaryOp(*) should be removed from loop body, instructions: {loop_body.instructions}"
+        )
 
         # Check statistics from the actual instance that ran
         if hasattr(self.pass_manager, "_last_run_pass"):

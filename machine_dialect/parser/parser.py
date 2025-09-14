@@ -91,6 +91,9 @@ PRECEDENCES: dict[TokenType, Precedence] = {
     TokenType.OP_STAR: Precedence.MATH_PROD_DIV_MOD,
     TokenType.OP_DIVISION: Precedence.MATH_PROD_DIV_MOD,
     TokenType.OP_CARET: Precedence.MATH_EXPONENT,
+    # Dictionary extraction operators (postfix-like)
+    TokenType.OP_THE_NAMES_OF: Precedence.UNARY_POST_OPERATOR,
+    TokenType.OP_THE_CONTENTS_OF: Precedence.UNARY_POST_OPERATOR,
 }
 
 TYPING_MAP: dict[TokenType, str] = {
@@ -1071,14 +1074,15 @@ class Parser:
     def _parse_stopword_expression(self) -> Expression:
         """Parse expressions that start with stopwords.
 
-        Currently only handles 'the' for list access patterns.
+        Handles:
+        - 'the' for list access patterns (the first/second/third/last item of)
 
         Returns:
             An appropriate expression or None if not a valid pattern.
         """
         assert self._current_token is not None
 
-        # Check if it's 'the' which might start a list access
+        # Check if it's 'the' which might start various patterns
         if self._current_token.literal.lower() == "the":
             # Look ahead to see if it's followed by an ordinal
             if self._peek_token and self._peek_token.type in [
@@ -1093,6 +1097,124 @@ class Parser:
         return ErrorExpression(
             token=self._current_token,
             message=f"Unexpected stopword '{self._current_token.literal}' at start of expression",
+        )
+
+    def _parse_dict_extraction_prefix(self) -> Expression:
+        """Parse dictionary extraction as a prefix operator.
+
+        Examples:
+            the names of `person` -> DictExtraction(dictionary=person, extract_type="names")
+            the contents of `config` -> DictExtraction(dictionary=config, extract_type="contents")
+
+        Returns:
+            A DictExtraction expression.
+        """
+        assert self._current_token is not None
+        operator_token = self._current_token
+
+        # Determine extraction type based on operator
+        if operator_token.type == TokenType.OP_THE_NAMES_OF:
+            extract_type = "names"
+        elif operator_token.type == TokenType.OP_THE_CONTENTS_OF:
+            extract_type = "contents"
+        else:
+            msg = f"Unknown dictionary extraction operator: {operator_token.type}"
+            return ErrorExpression(token=operator_token, message=msg)
+
+        # Skip the operator
+        self._advance_tokens()
+
+        # Parse the dictionary expression
+        dictionary = self._parse_expression(Precedence.UNARY_POST_OPERATOR)
+
+        if dictionary is None:
+            msg = "Expected dictionary expression after extraction operator"
+            return ErrorExpression(token=self._current_token or operator_token, message=msg)
+
+        # Import here to avoid circular dependency
+        from machine_dialect.ast.dict_extraction import DictExtraction
+
+        return DictExtraction(token=operator_token, dictionary=dictionary, extract_type=extract_type)
+
+    def _parse_dict_extraction_infix(self, dictionary: Expression) -> Expression:
+        """Parse dictionary extraction as an infix operator.
+
+        Examples:
+            `person` the names of -> DictExtraction(dictionary=person, extract_type="names")
+            `config` the contents of -> DictExtraction(dictionary=config, extract_type="contents")
+
+        Args:
+            dictionary: The dictionary expression to extract from
+
+        Returns:
+            A DictExtraction expression.
+        """
+        assert self._current_token is not None
+        operator_token = self._current_token
+
+        # Determine extraction type based on operator
+        if operator_token.type == TokenType.OP_THE_NAMES_OF:
+            extract_type = "names"
+        elif operator_token.type == TokenType.OP_THE_CONTENTS_OF:
+            extract_type = "contents"
+        else:
+            msg = f"Unknown dictionary extraction operator: {operator_token.type}"
+            return ErrorExpression(token=operator_token, message=msg)
+
+        # Import here to avoid circular dependency
+        from machine_dialect.ast.dict_extraction import DictExtraction
+
+        return DictExtraction(token=operator_token, dictionary=dictionary, extract_type=extract_type)
+
+    # TODO: Refactor this function to an infix expression
+    def _parse_possessive_access(self) -> Expression:
+        """Parse possessive property access: `person`'s _"name"_.
+
+        When the lexer sees `person`'s, it emits a PUNCT_APOSTROPHE_S token
+        with the identifier as the literal. We then need to parse the property name
+        as a string literal.
+
+        Returns:
+            A CollectionAccessExpression for property access.
+        """
+        assert self._current_token is not None
+        assert self._current_token.type == TokenType.PUNCT_APOSTROPHE_S
+
+        # The literal contains the identifier name (e.g., "person")
+        dict_name = self._current_token.literal
+        token = self._current_token
+
+        # Create an identifier for the dictionary
+        dict_identifier = Identifier(Token(TokenType.MISC_IDENT, dict_name, token.line, token.position), dict_name)
+
+        # Skip the possessive token
+        self._advance_tokens()
+
+        # Now we expect a string literal for the property name
+        # Note: after _advance_tokens(), current_token has changed from PUNCT_APOSTROPHE_S
+        if self._current_token is None or self._current_token.type != TokenType.LIT_TEXT:  # type: ignore[comparison-overlap]
+            msg = (
+                "Expected string literal for property name after possessive, got "
+                f"{self._current_token.type if self._current_token else 'EOF'}"
+            )
+            return ErrorExpression(token=self._current_token or token, message=msg)
+
+        # Extract the property name from the string literal (remove quotes)
+        property_literal = self._current_token.literal
+        # Remove quotes from the literal
+        if property_literal.startswith('"') and property_literal.endswith('"'):
+            property_name = property_literal[1:-1]
+        elif property_literal.startswith("'") and property_literal.endswith("'"):
+            property_name = property_literal[1:-1]
+        else:
+            property_name = property_literal
+
+        # Skip the property name
+        self._advance_tokens()
+
+        # Create a collection access expression with property access type
+        return CollectionAccessExpression(
+            token=token, collection=dict_identifier, accessor=property_name, access_type="property"
         )
 
     def _parse_numeric_list_access(self) -> Expression:
@@ -2763,6 +2885,9 @@ class Parser:
             TokenType.KW_OR: self._parse_infix_expression,
             # Conditional/ternary expressions
             TokenType.KW_IF: self._parse_conditional_expression,
+            # Dictionary extraction operators
+            TokenType.OP_THE_NAMES_OF: self._parse_dict_extraction_infix,
+            TokenType.OP_THE_CONTENTS_OF: self._parse_dict_extraction_infix,
         }
 
     def _register_prefix_funcs(self) -> PrefixParseFuncs:
@@ -2812,6 +2937,11 @@ class Parser:
             TokenType.KW_ITEM: self._parse_numeric_list_access,
             # Handle 'the' stopword for list access
             TokenType.MISC_STOPWORD: self._parse_stopword_expression,
+            # Handle possessive syntax
+            TokenType.PUNCT_APOSTROPHE_S: self._parse_possessive_access,
+            # Dictionary extraction operators can also be prefix
+            TokenType.OP_THE_NAMES_OF: self._parse_dict_extraction_prefix,
+            TokenType.OP_THE_CONTENTS_OF: self._parse_dict_extraction_prefix,
         }
 
     @staticmethod

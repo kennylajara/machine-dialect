@@ -838,6 +838,15 @@ class Lexer:
                         canonical_literal = identifier
 
                     if token_type != TokenType.MISC_ILLEGAL:
+                        # Check if this identifier is followed by 's for possessive
+                        # This allows us to handle `person`'s name patterns
+                        if self.current_char == "'" and self.peek() == "s":
+                            # Skip the apostrophe and 's'
+                            self.advance()  # Skip '
+                            self.advance()  # Skip 's'
+                            # Return a special token that indicates possessive access
+                            # The literal includes the identifier for context
+                            return Token(TokenType.PUNCT_APOSTROPHE_S, canonical_literal, token_line, identifier_column)
                         return Token(token_type, canonical_literal, token_line, identifier_column)
 
             # Invalid backtick usage

@@ -67,20 +67,22 @@ class Opcode(IntEnum):
     ARRAY_SET_R = 35  # ArraySetR { array: u8, index: u8, value: u8 }
     ARRAY_LEN_R = 36  # ArrayLenR { dst: u8, array: u8 }
 
-    # Dictionaries (37-41)
+    # Dictionaries (37-43)
     DICT_NEW_R = 37  # DictNewR { dst: u8 }
     DICT_GET_R = 38  # DictGetR { dst: u8, dict: u8, key: u8 }
     DICT_SET_R = 39  # DictSetR { dict: u8, key: u8, value: u8 }
     DICT_HAS_KEY_R = 40  # DictHasKeyR { dst: u8, dict: u8, key: u8 }
     DICT_REMOVE_R = 41  # DictRemoveR { dict: u8, key: u8 }
+    DICT_KEYS_R = 42  # DictKeysR { dst: u8, dict: u8 }
+    DICT_VALUES_R = 43  # DictValuesR { dst: u8, dict: u8 }
 
-    # Debug (42-43)
-    DEBUG_PRINT = 42  # DebugPrint { src: u8 }
-    BREAKPOINT = 43  # BreakPoint
+    # Debug (44-45)
+    DEBUG_PRINT = 44  # DebugPrint { src: u8 }
+    BREAKPOINT = 45  # BreakPoint
 
-    # System (44-45)
-    HALT = 44  # Halt execution
-    NOP = 45  # No operation
+    # System (46-47)
+    HALT = 46  # Halt execution
+    NOP = 47  # No operation
 
 
 # Type IDs for type operations

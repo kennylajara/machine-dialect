@@ -10,6 +10,7 @@ from .expressions import (
     InfixExpression,
     PrefixExpression,
 )
+from .dict_extraction import DictExtraction
 from .statements import (
     ActionStatement,
     BlockStatement,
@@ -58,6 +59,7 @@ __all__ = [
     "CollectionMutationStatement",
     "ConditionalExpression",
     "DefineStatement",
+    "DictExtraction",
     "EmptyLiteral",
     "ErrorExpression",
     "ErrorStatement",

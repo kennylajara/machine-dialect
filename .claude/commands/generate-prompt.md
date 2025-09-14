@@ -186,13 +186,15 @@ Specify the desired output format:
 
 ## Generate the Optimized Prompt
 
-Generate the optimized prompt following ALL these best practices. The prompt should be immediately usable and achieve >95% accuracy for the specified task.
+Generate the optimized prompt following ALL these best practices. The prompt should be
+immediately usable and achieve >95% accuracy for the specified task.
 
 ### Save the Generated Prompt
 
 After generating the prompt:
 
-1. **Extract a command name** from the user's requirements (e.g., if they ask for "a prompt to refactor code", use `refactor-code`)
+1. **Extract a command name** from the user's requirements (e.g., if they ask for
+   "a prompt to refactor code", use `refactor-code`)
 2. **Create a new command file** at `.claude/commands/[command-name].md`
 3. **Format the saved prompt** as a ready-to-use Claude command:
    - Add a descriptive title as an H1 header
@@ -200,15 +202,15 @@ After generating the prompt:
    - Place the generated prompt content directly (without wrapping in code blocks)
    - Ensure it's immediately executable when selected from the command menu
 
-**Example saved command structure:**
+   **Example saved command structure:**
 
-```markdown
-# [Command Title]
-
-[Brief description of what this command does]
-
-[The generated prompt content - ready to execute]
-```
+   ```markdown
+   # [Command Title]
+   
+   [Brief description of what this command does]
+   
+   [The generated prompt content - ready to execute]
+   ```
 
 4. **Inform the user** that the prompt has been saved and can be accessed via the command menu
 

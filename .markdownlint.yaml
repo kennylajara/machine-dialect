@@ -16,8 +16,15 @@ MD041: false
 # Allow colon at the end of headings:
 MD026: false
 
-# Allow inline HTML for collapsible sections
+# Allow inline HTML for collapsible sections and Claude prompting tags
 MD033:
   allowed_elements:
     - details
     - summary
+    - thinking
+    - context
+    - examples
+    - example
+    - instructions
+    - constraints
+    - answer

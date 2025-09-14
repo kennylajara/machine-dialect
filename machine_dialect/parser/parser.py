@@ -1,5 +1,8 @@
+# mypy: disable-error-code="comparison-overlap"
+
 import re
 from collections.abc import Callable
+from copy import copy
 
 from machine_dialect.ast import (
     ActionStatement,
@@ -44,16 +47,21 @@ from machine_dialect.errors.messages import (
     EXPECTED_DETAILS_CLOSE,
     EXPECTED_EXPRESSION,
     EXPECTED_FUNCTION_NAME,
+    EXPECTED_IDENTIFIER_AFTER,
+    EXPECTED_TOKEN,
+    EXPECTED_TOKEN_AFTER,
     INVALID_ARGUMENT_VALUE,
     INVALID_FLOAT_LITERAL,
     INVALID_INTEGER_LITERAL,
+    INVALID_TYPE_NAME,
     MISSING_COMMA_BETWEEN_ARGS,
     MISSING_DEPTH_TRANSITION,
     NAME_UNDEFINED,
     NO_PARSE_FUNCTION,
     UNEXPECTED_BLOCK_DEPTH,
-    UNEXPECTED_TOKEN,
+    UNEXPECTED_STATEMENT,
     UNEXPECTED_TOKEN_AT_START,
+    UNHANDLED_OPERATION,
     VARIABLE_ALREADY_DEFINED,
     VARIABLE_NOT_DEFINED,
     ErrorTemplate,
@@ -91,6 +99,9 @@ PRECEDENCES: dict[TokenType, Precedence] = {
     TokenType.OP_STAR: Precedence.MATH_PROD_DIV_MOD,
     TokenType.OP_DIVISION: Precedence.MATH_PROD_DIV_MOD,
     TokenType.OP_CARET: Precedence.MATH_EXPONENT,
+    # Dictionary extraction operators (postfix-like)
+    TokenType.OP_THE_NAMES_OF: Precedence.UNARY_POST_OPERATOR,
+    TokenType.OP_THE_CONTENTS_OF: Precedence.UNARY_POST_OPERATOR,
 }
 
 TYPING_MAP: dict[TokenType, str] = {
@@ -109,6 +120,8 @@ TYPING_MAP: dict[TokenType, str] = {
     TokenType.KW_NAMED_LIST: "Named List",
     TokenType.KW_EMPTY: "Empty",
 }
+
+__all__ = ["Parser"]
 
 
 class Parser:
@@ -188,7 +201,7 @@ class Parser:
             if self._current_token == token_before:
                 self._advance_tokens()
             # After parsing a statement, skip any trailing period
-            elif self._current_token and self._current_token.type == TokenType.PUNCT_PERIOD:  # type: ignore[comparison-overlap]
+            elif self._current_token and self._current_token.type == TokenType.PUNCT_PERIOD:
                 self._advance_tokens()
 
         # Perform semantic analysis if requested
@@ -230,7 +243,7 @@ class Parser:
             List of MDBaseException instances representing all errors found
             during lexical analysis and parsing.
         """
-        return self._errors
+        return copy(self._errors)
 
     def _skip_frontmatter(self) -> None:
         """Skip YAML frontmatter section if present at the beginning of the document.
@@ -243,7 +256,7 @@ class Parser:
             # Skip tokens until we find the closing frontmatter delimiter
             self._advance_tokens()
 
-            while self._current_token and self._current_token.type != TokenType.MISC_EOF:  # type: ignore[comparison-overlap]
+            while self._current_token and self._current_token.type != TokenType.MISC_EOF:
                 if self._current_token.type == TokenType.PUNCT_FRONTMATTER:
                     # Found closing delimiter, skip it and exit
                     self._advance_tokens()
@@ -276,56 +289,6 @@ class Parser:
             # No buffer available
             self._peek_token = Token(TokenType.MISC_EOF, "", line=1, position=1)
 
-    def _expected_token(self, token_type: TokenType) -> bool:
-        """Check if the next token matches the expected type and consume it.
-
-        Args:
-            token_type: The expected token type.
-
-        Returns:
-            True if the token matched and was consumed, False otherwise.
-        """
-        assert self._peek_token is not None
-        if self._peek_token.type == token_type:
-            self._advance_tokens()
-            return True
-
-        self._expected_token_error(token_type)
-        return False
-
-    def _expected_token_error(self, token_type: TokenType) -> None:
-        """Record an error for an unexpected token.
-
-        Creates and adds an error to the errors list when the parser
-        encounters a token different from what was expected. If we expected
-        an identifier and got MISC_ILLEGAL, it's a name error. Otherwise,
-        it's a syntax error.
-
-        Args:
-            token_type: The token type that was expected but not found.
-        """
-        assert self._peek_token is not None
-
-        # If we expected an identifier and got an illegal token, it's a name error
-        error: MDBaseException
-        if token_type == TokenType.MISC_IDENT and self._peek_token.type == TokenType.MISC_ILLEGAL:
-            error = MDNameError(
-                message=NAME_UNDEFINED,
-                name=self._peek_token.literal,
-                line=self._peek_token.line,
-                column=self._peek_token.position,
-            )
-        else:
-            error = MDSyntaxError(
-                message=UNEXPECTED_TOKEN,
-                token_literal=self._peek_token.literal,
-                expected_token_type=token_type,
-                received_token_type=self._peek_token.type,
-                line=self._peek_token.line,
-                column=self._peek_token.position,
-            )
-        self.errors.append(error)
-
     def _current_precedence(self) -> Precedence:
         """Get the precedence of the current token.
 
@@ -344,26 +307,30 @@ class Parser:
         assert self._peek_token is not None
         return PRECEDENCES.get(self._peek_token.type, Precedence.LOWEST)
 
-    def _panic_mode_recovery(self) -> list[Token]:
-        """Enter panic mode: skip tokens until finding a period.
+    def _panic_recovery(self, stop_at: list[TokenType] | None = None, stop_at_types: bool = False) -> list[Token]:
+        """Unified error recovery: skip tokens until finding synchronization point.
 
-        This allows the parser to recover from errors and continue
-        parsing the rest of the input to find more errors. Collects
-        all skipped tokens to preserve them in the error statement.
+        Args:
+            stop_at: Token types to stop at (default: [PERIOD, EOF])
+            stop_at_types: If True, also stop at type keywords
 
         Returns:
-            List of tokens that were skipped during panic recovery.
+            List of tokens that were skipped during recovery.
         """
-        self._panic_count += 1
+        self._panic_count += 1  # Always increment to prevent infinite loops
+
+        if stop_at is None:
+            stop_at = [TokenType.PUNCT_PERIOD, TokenType.MISC_EOF]
+
         skipped_tokens = []
 
-        # Skip tokens until the next token is a period or EOF
-        while self._peek_token is not None and self._peek_token.type not in (
-            TokenType.PUNCT_PERIOD,
-            TokenType.MISC_EOF,
-        ):
+        # Skip tokens until finding a synchronization point
+        while self._peek_token is not None and self._peek_token.type not in stop_at:
             self._advance_tokens()
             if self._current_token is not None:
+                # Check if we should stop at type keywords
+                if stop_at_types and self._is_type_token(self._current_token.type):
+                    break
                 skipped_tokens.append(self._current_token)
 
         # Advance one more token to move past the last error token
@@ -372,6 +339,143 @@ class Parser:
             self._advance_tokens()
 
         return skipped_tokens
+
+    def _report_error_and_recover(
+        self,
+        template: ErrorTemplate,
+        error_type: str = "syntax",
+        expected_token: TokenType | None = None,
+        recovery_tokens: list[TokenType] | None = None,
+        recovery_to_types: bool = False,
+        skip_recovery: bool = False,
+        is_expression: bool = False,
+        **kwargs: str,
+    ) -> ErrorStatement | ErrorExpression:
+        """Unified error handling: always adds error to list and returns appropriate error node.
+
+        Args:
+            template: ErrorTemplate with the error message
+            error_type: Type of error - "syntax", "name", or "type"
+            expected_token: Expected token type (for syntax errors)
+            recovery_tokens: Specific tokens to recover to
+            recovery_to_types: If True, recover to type keywords
+            skip_recovery: If True, skip error recovery
+            is_expression: If True, return ErrorExpression instead of ErrorStatement
+            **kwargs: Template substitution parameters
+
+        Returns:
+            ErrorStatement or ErrorExpression with consistent error reporting.
+        """
+        # Determine which token to use for error reporting
+        # If we have an expected_token, we're likely checking peek_token
+        # Otherwise, use current_token
+        if expected_token and self._peek_token:
+            token = self._peek_token or Token(TokenType.MISC_EOF, "", 0, 0)
+        else:
+            token = self._current_token or Token(TokenType.MISC_EOF, "", 0, 0)
+
+        # Create appropriate error type
+        error: MDBaseException
+        if error_type == "name":
+            error = MDNameError(message=template, line=token.line, column=token.position, **kwargs)
+        elif error_type == "type":
+            error = MDTypeError(message=template, line=token.line, column=token.position, **kwargs)
+        else:  # syntax
+            # Special case: if we expected an identifier and got something else, it's a name error
+            # This covers illegal characters, punctuation, keywords, etc. being used as identifiers
+            if expected_token == TokenType.MISC_IDENT and token.type != TokenType.MISC_IDENT:
+                from machine_dialect.errors.messages import ILLEGAL_CHARACTER
+
+                # Get a human-readable name for the expected token
+                expected_name = "identifier"
+                error = MDNameError(
+                    message=ILLEGAL_CHARACTER,
+                    line=token.line,
+                    column=token.position,
+                    expected=expected_name,
+                    character=token.literal,
+                )
+            else:
+                error = MDSyntaxError(message=template, line=token.line, column=token.position, **kwargs)
+
+        # ALWAYS add the error to ensure consistency
+        self._errors.append(error)
+
+        # Perform recovery unless explicitly skipped
+        skipped = []
+        if not skip_recovery:
+            skipped = self._panic_recovery(stop_at=recovery_tokens, stop_at_types=recovery_to_types)
+
+        # Get formatted message
+        formatted_message = template.format(**kwargs) if kwargs else template.substitute()
+
+        # Return appropriate error node type
+        if is_expression:
+            return ErrorExpression(token=token, message=formatted_message)
+        else:
+            return ErrorStatement(token=token, skipped_tokens=skipped, message=formatted_message)
+
+    def _expect_token(
+        self,
+        token_type: TokenType,
+        context: str | None = None,
+        error_message: str | None = None,
+        error_node: ErrorExpression | None = None,
+    ) -> ErrorStatement | ErrorExpression | None:
+        """Unified token expectation with automatic error handling.
+
+        Args:
+            token_type: Expected token type
+            context: Context for error message (e.g., "after 'Set'")
+            error_message: Full custom error message (overrides auto-generated)
+            error_node: Custom ErrorExpression to return (for expression contexts)
+
+        Returns:
+            None if token matches (advances and continues)
+            ErrorExpression if error_node provided and token doesn't match
+            ErrorStatement if token doesn't match (with appropriate recovery)
+        """
+        if self._peek_token and self._peek_token.type == token_type:
+            self._advance_tokens()
+            return None  # Success, continue parsing
+
+        # Token doesn't match - use appropriate error template
+        from machine_dialect.errors.messages import EXPECTED_TOKEN, EXPECTED_TOKEN_AFTER
+
+        if context:
+            # Use "Expected X after Y" template
+            token_name = token_type.name.lower().replace("_", " ")
+            template = EXPECTED_TOKEN_AFTER
+            kwargs = {"expected": token_name, "after": context}
+        else:
+            # Use simple "Expected X" template
+            token_name = token_type.name.lower().replace("_", " ")
+            template = EXPECTED_TOKEN
+            # Get the actual token type that was found
+            actual_token = self._peek_token if self._peek_token else None
+            got_type = actual_token.type.name if actual_token else "EOF"
+            kwargs = {"token": token_name, "got_token_type": got_type}
+
+        # Special handling for period (statement terminator)
+        skip_recovery = token_type == TokenType.PUNCT_PERIOD
+
+        # Always use _report_error_and_recover for error reporting
+        error_statement = self._report_error_and_recover(
+            template=template,
+            expected_token=token_type,
+            skip_recovery=skip_recovery or error_node is not None,  # Skip recovery for expressions too
+            error_type="syntax",
+            recovery_tokens=None,
+            recovery_to_types=False,
+            is_expression=False,
+            **kwargs,
+        )
+
+        # If custom error node provided, return it instead of the ErrorStatement
+        if error_node is not None:
+            return error_node
+
+        return error_statement
 
     def _parse_expression(self, precedence: Precedence = Precedence.LOWEST) -> Expression:
         """Parse an expression with a given precedence level.
@@ -386,54 +490,47 @@ class Parser:
 
         # Handle illegal tokens
         if self._current_token.type == TokenType.MISC_ILLEGAL:
-            error_token = self._current_token
-            name_error = MDNameError(
-                message=NAME_UNDEFINED,
+            # Use unified error handling for undefined names
+            result = self._report_error_and_recover(
+                template=NAME_UNDEFINED,
+                error_type="name",
                 name=self._current_token.literal,
-                line=self._current_token.line,
-                column=self._current_token.position,
+                skip_recovery=True,  # Don't recover - let caller handle advancement
+                is_expression=True,
             )
-            self.errors.append(name_error)
-            # Don't advance here - let the caller handle advancement for consistency
-            # This ensures we don't double-advance and skip tokens
-            # Return an ErrorExpression to preserve AST structure
-            return ErrorExpression(token=error_token, message=f"Name '{error_token.literal}' is not defined")
+            assert isinstance(result, ErrorExpression)
+            return result
 
         if self._current_token.type not in self._prefix_parse_funcs:
             # Check if it's an infix operator at the start
-            error_token = self._current_token
             # Determine which error template to use and its parameters
             if self._current_token.type in self._infix_parse_funcs:
-                syntax_error = MDSyntaxError(
-                    message=UNEXPECTED_TOKEN_AT_START,
+                error_expr = self._report_error_and_recover(
+                    template=UNEXPECTED_TOKEN_AT_START,
                     token=self._current_token.literal,
-                    line=self._current_token.line,
-                    column=self._current_token.position,
+                    skip_recovery=True,
+                    is_expression=True,
                 )
-                error_message = UNEXPECTED_TOKEN_AT_START.substitute(token=self._current_token.literal)
             elif self._current_token.type == TokenType.MISC_EOF:
-                syntax_error = MDSyntaxError(
-                    message=EXPECTED_EXPRESSION,
+                error_expr = self._report_error_and_recover(
+                    template=EXPECTED_EXPRESSION,
                     got="<end-of-file>",
-                    line=self._current_token.line,
-                    column=self._current_token.position,
+                    skip_recovery=True,
+                    is_expression=True,
                 )
-                error_message = EXPECTED_EXPRESSION.substitute(got="<end-of-file>")
             else:
-                syntax_error = MDSyntaxError(
-                    message=NO_PARSE_FUNCTION,
+                error_expr = self._report_error_and_recover(
+                    template=NO_PARSE_FUNCTION,
                     literal=self._current_token.literal,
-                    line=self._current_token.line,
-                    column=self._current_token.position,
+                    skip_recovery=True,
+                    is_expression=True,
                 )
-                error_message = NO_PARSE_FUNCTION.substitute(literal=self._current_token.literal)
 
-            self.errors.append(syntax_error)
             # Advance past the problematic token so we can continue parsing
             if self._current_token.type != TokenType.MISC_EOF:
                 self._advance_tokens()
-            # Return an ErrorExpression to preserve AST structure
-            return ErrorExpression(token=error_token, message=error_message)
+            assert isinstance(error_expr, ErrorExpression)
+            return error_expr
 
         prefix_parse_fn = self._prefix_parse_funcs[self._current_token.type]
 
@@ -455,7 +552,7 @@ class Parser:
 
         return left_expression
 
-    def _parse_expression_statement(self) -> ExpressionStatement:
+    def _parse_expression_statement(self) -> ExpressionStatement | ErrorStatement:
         assert self._current_token is not None
 
         expression = self._parse_expression()
@@ -468,7 +565,9 @@ class Parser:
         # Require trailing period if not at EOF or if we're in a block
         assert self._peek_token is not None
         if self._peek_token.type != TokenType.MISC_EOF or self._block_depth > 0:
-            self._expected_token(TokenType.PUNCT_PERIOD)
+            if error := self._expect_token(TokenType.PUNCT_PERIOD):
+                assert isinstance(error, ErrorStatement)
+                return error
 
         # Advance past the last token of the expression
         # Expression parsing leaves us at the last token, not after it
@@ -485,15 +584,14 @@ class Parser:
             value = float(self._current_token.literal)
         except ValueError:
             # This shouldn't happen if the lexer is working correctly
-            error = MDSyntaxError(
-                message=INVALID_FLOAT_LITERAL,
+            result = self._report_error_and_recover(
+                template=INVALID_FLOAT_LITERAL,
                 literal=self._current_token.literal,
-                line=self._current_token.line,
-                column=self._current_token.position,
+                skip_recovery=True,
+                is_expression=True,
             )
-            self.errors.append(error)
-            error_message = INVALID_FLOAT_LITERAL.substitute(literal=self._current_token.literal)
-            return ErrorExpression(token=self._current_token, message=error_message)
+            assert isinstance(result, ErrorExpression)
+            return result
 
         return FloatLiteral(
             token=self._current_token,
@@ -544,15 +642,14 @@ class Parser:
             value = int(self._current_token.literal)
         except ValueError:
             # This shouldn't happen if the lexer is working correctly
-            error = MDSyntaxError(
-                message=INVALID_INTEGER_LITERAL,
+            result = self._report_error_and_recover(
+                template=INVALID_INTEGER_LITERAL,
                 literal=self._current_token.literal,
-                line=self._current_token.line,
-                column=self._current_token.position,
+                skip_recovery=True,
+                is_expression=True,
             )
-            self.errors.append(error)
-            error_message = INVALID_INTEGER_LITERAL.substitute(literal=self._current_token.literal)
-            return ErrorExpression(token=self._current_token, message=error_message)
+            assert isinstance(result, ErrorExpression)
+            return result
 
         return WholeNumberLiteral(
             token=self._current_token,
@@ -762,16 +859,16 @@ class Parser:
                     # No more list items - we're done
                     break
             else:
-                # Missing period after list item - add error but continue parsing
-                error = MDSyntaxError(
-                    message=ErrorTemplate("List items must end with a period"),
-                    token_literal=self._current_token.literal if self._current_token else "",
-                    expected_token_type=TokenType.PUNCT_PERIOD,
-                    received_token_type=self._current_token.type if self._current_token else TokenType.MISC_EOF,
-                    line=self._current_token.line if self._current_token else 0,
-                    column=self._current_token.position if self._current_token else 0,
+                # Missing period after list item - use unified error handling
+                from machine_dialect.errors.messages import EXPECTED_TOKEN_AFTER
+
+                self._report_error_and_recover(
+                    template=EXPECTED_TOKEN_AFTER,
+                    expected_token=TokenType.PUNCT_PERIOD,
+                    skip_recovery=True,  # We'll handle recovery manually below
+                    expected="period",
+                    after="list item",
                 )
-                self.errors.append(error)
 
                 # Check if we're at another dash (next item) or done
                 if self._current_token and self._current_token.type == TokenType.PUNCT_DASH:
@@ -830,16 +927,16 @@ class Parser:
                     # No more list items - we're done
                     break
             else:
-                # Missing period after list item - add error but continue parsing
-                error = MDSyntaxError(
-                    message=ErrorTemplate("List items must end with a period"),
-                    token_literal=self._current_token.literal if self._current_token else "",
-                    expected_token_type=TokenType.PUNCT_PERIOD,
-                    received_token_type=self._current_token.type if self._current_token else TokenType.MISC_EOF,
-                    line=self._current_token.line if self._current_token else 0,
-                    column=self._current_token.position if self._current_token else 0,
+                # Missing period after list item - use unified error handling
+                from machine_dialect.errors.messages import EXPECTED_TOKEN_AFTER
+
+                self._report_error_and_recover(
+                    template=EXPECTED_TOKEN_AFTER,
+                    expected_token=TokenType.PUNCT_PERIOD,
+                    skip_recovery=True,  # We'll handle recovery manually below
+                    expected="period",
+                    after="list item",
                 )
-                self.errors.append(error)
 
                 # Check if we're at another number (next item) or done
                 if self._current_token and self._current_token.type == TokenType.LIT_WHOLE_NUMBER:
@@ -887,14 +984,16 @@ class Parser:
             else:
                 # Invalid key - named lists require string literal keys only
                 if self._current_token:
-                    self.errors.append(
-                        MDTypeError(
-                            message=f"Named list keys must be string literals. Got {self._current_token.literal}",
-                            line=self._current_token.line,
-                            column=self._current_token.position,
-                        )
+                    from machine_dialect.errors.messages import INVALID_NAMED_LIST_KEY
+
+                    self._report_error_and_recover(
+                        template=INVALID_NAMED_LIST_KEY,
+                        error_type="type",
+                        literal=self._current_token.literal,
+                        recovery_tokens=[TokenType.PUNCT_DASH, TokenType.MISC_EOF],
                     )
-                self._panic_until_tokens([TokenType.PUNCT_DASH, TokenType.MISC_EOF])
+                else:
+                    self._panic_recovery(stop_at=[TokenType.PUNCT_DASH, TokenType.MISC_EOF])
                 continue
 
             # Expect colon
@@ -905,7 +1004,7 @@ class Parser:
                 entries.append(
                     (key, ErrorExpression(token=self._current_token or list_token, message="Expected colon after key"))
                 )
-                self._panic_until_tokens([TokenType.PUNCT_DASH, TokenType.MISC_EOF])
+                self._panic_recovery(stop_at=[TokenType.PUNCT_DASH, TokenType.MISC_EOF])
                 continue
 
             self._advance_tokens()  # Move past colon
@@ -919,7 +1018,7 @@ class Parser:
                         ErrorExpression(token=self._current_token or list_token, message="Expected value after colon"),
                     )
                 )
-                self._panic_until_tokens([TokenType.PUNCT_DASH, TokenType.MISC_EOF])
+                self._panic_recovery(stop_at=[TokenType.PUNCT_DASH, TokenType.MISC_EOF])
                 continue
 
             # After parsing expression, advance to check for period
@@ -938,15 +1037,15 @@ class Parser:
                     break
             else:
                 # Missing period after entry - add error but include the entry
-                error = MDSyntaxError(
-                    message=ErrorTemplate("Named list entries must end with a period"),
-                    token_literal=self._current_token.literal if self._current_token else "",
-                    expected_token_type=TokenType.PUNCT_PERIOD,
-                    received_token_type=self._current_token.type if self._current_token else TokenType.MISC_EOF,
-                    line=self._current_token.line if self._current_token else 0,
-                    column=self._current_token.position if self._current_token else 0,
+                from machine_dialect.errors.messages import EXPECTED_TOKEN_AFTER
+
+                self._report_error_and_recover(
+                    template=EXPECTED_TOKEN_AFTER,
+                    expected_token=TokenType.PUNCT_PERIOD,
+                    skip_recovery=True,  # We'll handle recovery manually below
+                    expected="period",
+                    after="named list entry",
                 )
-                self.errors.append(error)
                 entries.append((key, value))
 
                 # Check if we're at another dash (next entry) or done
@@ -1071,14 +1170,15 @@ class Parser:
     def _parse_stopword_expression(self) -> Expression:
         """Parse expressions that start with stopwords.
 
-        Currently only handles 'the' for list access patterns.
+        Handles:
+        - 'the' for list access patterns (the first/second/third/last item of)
 
         Returns:
             An appropriate expression or None if not a valid pattern.
         """
         assert self._current_token is not None
 
-        # Check if it's 'the' which might start a list access
+        # Check if it's 'the' which might start various patterns
         if self._current_token.literal.lower() == "the":
             # Look ahead to see if it's followed by an ordinal
             if self._peek_token and self._peek_token.type in [
@@ -1093,6 +1193,124 @@ class Parser:
         return ErrorExpression(
             token=self._current_token,
             message=f"Unexpected stopword '{self._current_token.literal}' at start of expression",
+        )
+
+    def _parse_dict_extraction_prefix(self) -> Expression:
+        """Parse dictionary extraction as a prefix operator.
+
+        Examples:
+            the names of `person` -> DictExtraction(dictionary=person, extract_type="names")
+            the contents of `config` -> DictExtraction(dictionary=config, extract_type="contents")
+
+        Returns:
+            A DictExtraction expression.
+        """
+        assert self._current_token is not None
+        operator_token = self._current_token
+
+        # Determine extraction type based on operator
+        if operator_token.type == TokenType.OP_THE_NAMES_OF:
+            extract_type = "names"
+        elif operator_token.type == TokenType.OP_THE_CONTENTS_OF:
+            extract_type = "contents"
+        else:
+            msg = f"Unknown dictionary extraction operator: {operator_token.type}"
+            return ErrorExpression(token=operator_token, message=msg)
+
+        # Skip the operator
+        self._advance_tokens()
+
+        # Parse the dictionary expression
+        dictionary = self._parse_expression(Precedence.UNARY_POST_OPERATOR)
+
+        if dictionary is None:
+            msg = "Expected dictionary expression after extraction operator"
+            return ErrorExpression(token=self._current_token or operator_token, message=msg)
+
+        # Import here to avoid circular dependency
+        from machine_dialect.ast.dict_extraction import DictExtraction
+
+        return DictExtraction(token=operator_token, dictionary=dictionary, extract_type=extract_type)
+
+    def _parse_dict_extraction_infix(self, dictionary: Expression) -> Expression:
+        """Parse dictionary extraction as an infix operator.
+
+        Examples:
+            `person` the names of -> DictExtraction(dictionary=person, extract_type="names")
+            `config` the contents of -> DictExtraction(dictionary=config, extract_type="contents")
+
+        Args:
+            dictionary: The dictionary expression to extract from
+
+        Returns:
+            A DictExtraction expression.
+        """
+        assert self._current_token is not None
+        operator_token = self._current_token
+
+        # Determine extraction type based on operator
+        if operator_token.type == TokenType.OP_THE_NAMES_OF:
+            extract_type = "names"
+        elif operator_token.type == TokenType.OP_THE_CONTENTS_OF:
+            extract_type = "contents"
+        else:
+            msg = f"Unknown dictionary extraction operator: {operator_token.type}"
+            return ErrorExpression(token=operator_token, message=msg)
+
+        # Import here to avoid circular dependency
+        from machine_dialect.ast.dict_extraction import DictExtraction
+
+        return DictExtraction(token=operator_token, dictionary=dictionary, extract_type=extract_type)
+
+    # TODO: Refactor this function to an infix expression
+    def _parse_possessive_access(self) -> Expression:
+        """Parse possessive property access: `person`'s _"name"_.
+
+        When the lexer sees `person`'s, it emits a PUNCT_APOSTROPHE_S token
+        with the identifier as the literal. We then need to parse the property name
+        as a string literal.
+
+        Returns:
+            A CollectionAccessExpression for property access.
+        """
+        assert self._current_token is not None
+        assert self._current_token.type == TokenType.PUNCT_APOSTROPHE_S
+
+        # The literal contains the identifier name (e.g., "person")
+        dict_name = self._current_token.literal
+        token = self._current_token
+
+        # Create an identifier for the dictionary
+        dict_identifier = Identifier(Token(TokenType.MISC_IDENT, dict_name, token.line, token.position), dict_name)
+
+        # Skip the possessive token
+        self._advance_tokens()
+
+        # Now we expect a string literal for the property name
+        # Note: after _advance_tokens(), current_token has changed from PUNCT_APOSTROPHE_S
+        if self._current_token is None or self._current_token.type != TokenType.LIT_TEXT:
+            msg = (
+                "Expected string literal for property name after possessive, got "
+                f"{self._current_token.type if self._current_token else 'EOF'}"
+            )
+            return ErrorExpression(token=self._current_token or token, message=msg)
+
+        # Extract the property name from the string literal (remove quotes)
+        property_literal = self._current_token.literal
+        # Remove quotes from the literal
+        if property_literal.startswith('"') and property_literal.endswith('"'):
+            property_name = property_literal[1:-1]
+        elif property_literal.startswith("'") and property_literal.endswith("'"):
+            property_name = property_literal[1:-1]
+        else:
+            property_name = property_literal
+
+        # Skip the property name
+        self._advance_tokens()
+
+        # Create a collection access expression with property access type
+        return CollectionAccessExpression(
+            token=token, collection=dict_identifier, accessor=property_name, access_type="property"
         )
 
     def _parse_numeric_list_access(self) -> Expression:
@@ -1206,10 +1424,13 @@ class Parser:
         expression = self._parse_expression(Precedence.LOWEST)
 
         # Expect closing parenthesis
-        if not self._expected_token(TokenType.DELIM_RPAREN):
-            # Return error expression for unclosed parenthesis
-            assert self._current_token is not None
-            return ErrorExpression(token=self._current_token, message="Expected closing parenthesis")
+        assert self._current_token is not None
+        if error := self._expect_token(
+            TokenType.DELIM_RPAREN,
+            error_node=ErrorExpression(token=self._current_token, message="Expected closing parenthesis"),
+        ):
+            assert isinstance(error, ErrorExpression)
+            return error
 
         return expression
 
@@ -1289,17 +1510,16 @@ class Parser:
 
         # Check if we have an identifier
         if not self._current_token or self._current_token.type != TokenType.MISC_IDENT:
-            error = MDSyntaxError(
-                message=UNEXPECTED_TOKEN,
-                token_literal=self._current_token.literal if self._current_token else "EOF",
-                expected_token_type=TokenType.MISC_IDENT,
-                received_token_type=self._current_token.type if self._current_token else TokenType.MISC_EOF,
-                line=self._current_token.line if self._current_token else 0,
-                column=self._current_token.position if self._current_token else 0,
+            # Report error and get recovery result
+            error_stmt = self._report_error_and_recover(
+                template=EXPECTED_IDENTIFIER_AFTER,
+                expected_token=TokenType.MISC_IDENT,
+                what="variable",
+                after="'Define'",
+                recovery_tokens=[TokenType.KW_AS, TokenType.PUNCT_PERIOD, TokenType.MISC_EOF],
             )
-            self.errors.append(error)
-            # Try to recover at 'as' keyword if present
-            skipped = self._panic_until_tokens([TokenType.KW_AS, TokenType.PUNCT_PERIOD, TokenType.MISC_EOF])
+
+            # Try to continue parsing if we recovered at 'as' keyword
             if self._current_token and self._current_token.type == TokenType.KW_AS:
                 # Found 'as', try to continue parsing from here
                 name = Identifier(statement_token, "<error>")  # Placeholder name
@@ -1307,11 +1527,9 @@ class Parser:
                 type_spec = self._parse_type_spec()
                 if type_spec:
                     return DefineStatement(statement_token, name, type_spec, None)
-            return ErrorStatement(
-                token=statement_token,
-                skipped_tokens=skipped,
-                message="Expected variable name after 'Define'",
-            )
+
+            assert isinstance(error_stmt, ErrorStatement)
+            return error_stmt
 
         # Parse the identifier
         name = self._parse_identifier()
@@ -1320,23 +1538,22 @@ class Parser:
         self._advance_tokens()
 
         # Skip any stopwords between identifier and "as"
-        while self._current_token and self._current_token.type == TokenType.MISC_STOPWORD:  # type: ignore[comparison-overlap]
+        while self._current_token and self._current_token.type == TokenType.MISC_STOPWORD:
             self._advance_tokens()
 
         # Expect "as" keyword - we should be at "as" now
         # Re-check current_token to help MyPy's type narrowing
-        if self._current_token is None or self._current_token.type != TokenType.KW_AS:  # type: ignore[comparison-overlap]
-            error = MDSyntaxError(
-                message=UNEXPECTED_TOKEN,
-                token_literal=self._current_token.literal if self._current_token else "EOF",
-                expected_token_type=TokenType.KW_AS,
-                received_token_type=self._current_token.type if self._current_token else TokenType.MISC_EOF,
-                line=self._current_token.line if self._current_token else 0,
-                column=self._current_token.position if self._current_token else 0,
+        if self._current_token is None or self._current_token.type != TokenType.KW_AS:
+            # Report error with recovery to type keywords
+            error_stmt = self._report_error_and_recover(
+                template=EXPECTED_TOKEN_AFTER,
+                expected_token=TokenType.KW_AS,
+                expected="'as'",
+                after=f"variable name '{name.value}'",
+                recovery_to_types=True,
             )
-            self.errors.append(error)
-            # Try to recover at next type keyword
-            skipped = self._panic_until_type_or_period()
+
+            # If we recovered at a type keyword, try to continue parsing
             if self._current_token and self._is_type_token(self._current_token.type):
                 # Found a type, try to continue parsing
                 type_spec = self._parse_type_spec()
@@ -1346,12 +1563,17 @@ class Parser:
                         name.value, type_spec, statement_token.line, statement_token.position
                     )
                     return DefineStatement(statement_token, name, type_spec, None)
-            skipped = self._panic_mode_recovery()
-            return ErrorStatement(
-                token=statement_token,
-                skipped_tokens=skipped,
-                message=f"Expected 'as' after variable name '{name.value}'",
-            )
+
+            # Need additional recovery if we didn't find a type
+            if not isinstance(error_stmt, ErrorStatement):
+                # This shouldn't happen, but handle it just in case
+                skipped = self._panic_recovery()
+                return ErrorStatement(
+                    token=statement_token,
+                    skipped_tokens=skipped,
+                    message=f"Expected 'as' after variable name '{name.value}'",
+                )
+            return error_stmt
 
         # Move past "as"
         self._advance_tokens()
@@ -1359,20 +1581,17 @@ class Parser:
         # Parse type specification
         type_spec = self._parse_type_spec()
         if not type_spec:
-            error = MDSyntaxError(
-                message=UNEXPECTED_TOKEN,
-                token_literal=self._current_token.literal if self._current_token else "EOF",
-                expected_token_type=TokenType.KW_TEXT,  # Use TEXT as representative type
-                received_token_type=self._current_token.type if self._current_token else TokenType.MISC_EOF,
-                line=self._current_token.line if self._current_token else 0,
-                column=self._current_token.position if self._current_token else 0,
-            )
-            self.errors.append(error)
-            skipped = self._panic_mode_recovery()
-            return ErrorStatement(
-                token=statement_token,
-                skipped_tokens=skipped,
-                message="Expected type name after 'as'",
+            # Get the invalid type name token
+            invalid_name = self._current_token.literal if self._current_token else "unknown"
+            # Generate valid types list from TYPING_MAP
+            valid_types = list(TYPING_MAP.values())
+            return self._report_error_and_recover(
+                template=INVALID_TYPE_NAME,
+                name=invalid_name,
+                valid_types=", ".join(valid_types),
+                expected_token=TokenType.KW_TEXT,  # Use TEXT as representative type
+                expected="type name",
+                after="'as'",
             )
 
         # Optional: (default: value) clause
@@ -1382,50 +1601,36 @@ class Parser:
 
             # Expect "default" - we should be at "default" now
             if not self._current_token or self._current_token.type != TokenType.KW_DEFAULT:
-                error = MDSyntaxError(
-                    message=UNEXPECTED_TOKEN,
-                    token_literal=self._current_token.literal if self._current_token else "EOF",
-                    expected_token_type=TokenType.KW_DEFAULT,
-                    received_token_type=self._current_token.type if self._current_token else TokenType.MISC_EOF,
-                    line=self._current_token.line if self._current_token else 0,
-                    column=self._current_token.position if self._current_token else 0,
+                # Report error and handle recovery to closing paren
+                error_stmt = self._report_error_and_recover(
+                    template=EXPECTED_TOKEN_AFTER,
+                    expected_token=TokenType.KW_DEFAULT,
+                    expected="'default'",
+                    after="'('",
+                    recovery_tokens=[TokenType.DELIM_RPAREN, TokenType.PUNCT_PERIOD, TokenType.MISC_EOF],
                 )
-                self.errors.append(error)
-                # Try to recover by finding the closing paren
-                while self._current_token and self._current_token.type not in (
-                    TokenType.DELIM_RPAREN,
-                    TokenType.PUNCT_PERIOD,
-                    TokenType.MISC_EOF,
-                ):
-                    self._advance_tokens()
+                # If we found the closing paren, advance past it
                 if self._current_token and self._current_token.type == TokenType.DELIM_RPAREN:
                     self._advance_tokens()
-                return ErrorStatement(statement_token, message="Expected 'default' after '('")
+                return error_stmt
 
             # Move past "default"
             self._advance_tokens()
 
             # Expect ":" - we should be at ":"
             if not self._current_token or self._current_token.type != TokenType.PUNCT_COLON:
-                error = MDSyntaxError(
-                    message=UNEXPECTED_TOKEN,
-                    token_literal=self._current_token.literal if self._current_token else "EOF",
-                    expected_token_type=TokenType.PUNCT_COLON,
-                    received_token_type=self._current_token.type if self._current_token else TokenType.MISC_EOF,
-                    line=self._current_token.line if self._current_token else 0,
-                    column=self._current_token.position if self._current_token else 0,
+                # Report error and handle recovery to closing paren
+                error_stmt = self._report_error_and_recover(
+                    template=EXPECTED_TOKEN_AFTER,
+                    expected_token=TokenType.PUNCT_COLON,
+                    expected="':'",
+                    after="'default'",
+                    recovery_tokens=[TokenType.DELIM_RPAREN, TokenType.PUNCT_PERIOD, TokenType.MISC_EOF],
                 )
-                self.errors.append(error)
-                # Try to recover
-                while self._current_token and self._current_token.type not in (
-                    TokenType.DELIM_RPAREN,
-                    TokenType.PUNCT_PERIOD,
-                    TokenType.MISC_EOF,
-                ):
-                    self._advance_tokens()
+                # If we found the closing paren, advance past it
                 if self._current_token and self._current_token.type == TokenType.DELIM_RPAREN:
                     self._advance_tokens()
-                return ErrorStatement(statement_token, message="Expected ':' after 'default'")
+                return error_stmt
 
             # Move past ":"
             self._advance_tokens()
@@ -1435,16 +1640,14 @@ class Parser:
 
             # Expect ")" - check if we're at the closing paren
             if self._peek_token and self._peek_token.type != TokenType.DELIM_RPAREN:
-                error = MDSyntaxError(
-                    message=UNEXPECTED_TOKEN,
-                    token_literal=self._peek_token.literal if self._peek_token else "EOF",
-                    expected_token_type=TokenType.DELIM_RPAREN,
-                    received_token_type=self._peek_token.type if self._peek_token else TokenType.MISC_EOF,
-                    line=self._peek_token.line if self._peek_token else 0,
-                    column=self._peek_token.position if self._peek_token else 0,
+                # Report error but don't return - continue to create the statement
+                self._report_error_and_recover(
+                    template=EXPECTED_TOKEN_AFTER,
+                    expected_token=TokenType.DELIM_RPAREN,
+                    expected="')'",
+                    after="default value",
+                    skip_recovery=True,  # Don't recover, continue processing
                 )
-                self.errors.append(error)
-                # Don't return error, continue to create the statement
             elif self._peek_token:
                 self._advance_tokens()  # Move to ")"
                 self._advance_tokens()  # Skip ")"
@@ -1492,15 +1695,13 @@ class Parser:
                 types.append(type_name)
             else:
                 # If we don't find a type after "or", that's an error
-                error = MDSyntaxError(
-                    message=UNEXPECTED_TOKEN,
-                    token_literal=self._current_token.literal if self._current_token else "EOF",
-                    expected_token_type=TokenType.KW_TEXT,  # Use TEXT as representative
-                    received_token_type=self._current_token.type if self._current_token else TokenType.MISC_EOF,
-                    line=self._current_token.line if self._current_token else 0,
-                    column=self._current_token.position if self._current_token else 0,
+                self._report_error_and_recover(
+                    template=EXPECTED_TOKEN_AFTER,
+                    expected_token=TokenType.KW_TEXT,  # Use TEXT as representative
+                    expected="type name",
+                    after="'or'",
+                    skip_recovery=True,  # Continue with what we have
                 )
-                self.errors.append(error)
                 break
 
         return types
@@ -1579,7 +1780,14 @@ class Parser:
                 # Parse collection identifier
                 collection = self._parse_identifier_or_keyword_as_identifier()
                 if not collection:
-                    return ErrorStatement(token=statement_token, message="Expected collection identifier")
+                    error_stmt = self._report_error_and_recover(
+                        template=EXPECTED_TOKEN,
+                        expected_token=TokenType.MISC_IDENT,
+                        token="collection identifier",
+                        got_token_type=self._current_token.type.name if self._current_token else "EOF",
+                    )
+                    assert isinstance(error_stmt, ErrorStatement)
+                    return error_stmt
                 self._advance_tokens()
 
                 # Expect "to"
@@ -1592,7 +1800,9 @@ class Parser:
 
                 # Expect period
                 if self._current_token and self._current_token.type != TokenType.PUNCT_PERIOD:
-                    self._expected_token(TokenType.PUNCT_PERIOD)
+                    if error := self._expect_token(TokenType.PUNCT_PERIOD):
+                        assert isinstance(error, ErrorStatement)
+                        return error
 
                 return CollectionMutationStatement(
                     token=statement_token,
@@ -1619,7 +1829,14 @@ class Parser:
                 # Parse collection identifier
                 collection = self._parse_identifier_or_keyword_as_identifier()
                 if not collection:
-                    return ErrorStatement(token=statement_token, message="Expected collection identifier")
+                    error_stmt = self._report_error_and_recover(
+                        template=EXPECTED_TOKEN,
+                        expected_token=TokenType.MISC_IDENT,
+                        token="collection identifier",
+                        got_token_type=self._current_token.type.name if self._current_token else "EOF",
+                    )
+                    assert isinstance(error_stmt, ErrorStatement)
+                    return error_stmt
                 self._advance_tokens()
 
                 # Expect "to"
@@ -1632,7 +1849,9 @@ class Parser:
 
                 # Expect period
                 if self._current_token and self._current_token.type != TokenType.PUNCT_PERIOD:
-                    self._expected_token(TokenType.PUNCT_PERIOD)
+                    if error := self._expect_token(TokenType.PUNCT_PERIOD):
+                        assert isinstance(error, ErrorStatement)
+                        return error
 
                 return CollectionMutationStatement(
                     token=statement_token,
@@ -1647,11 +1866,9 @@ class Parser:
         let_statement = SetStatement(token=statement_token)
 
         # Expect identifier (which may have come from backticks)
-        if not self._expected_token(TokenType.MISC_IDENT):
-            skipped = self._panic_mode_recovery()
-            return ErrorStatement(
-                token=statement_token, skipped_tokens=skipped, message="Expected identifier after 'Set'"
-            )
+        if error := self._expect_token(TokenType.MISC_IDENT, "'Set'"):
+            assert isinstance(error, ErrorStatement)
+            return error
 
         # Use the identifier value directly (backticks already stripped by lexer)
         let_statement.name = self._parse_identifier()
@@ -1719,21 +1936,16 @@ class Parser:
             # so we'll skip the advance_tokens() call below for this branch
             used_using = True
         else:
-            # Report the error
+            # Report the error using unified error handling
             assert self._peek_token is not None
-            error = MDSyntaxError(
-                message=UNEXPECTED_TOKEN,
-                token_literal=self._peek_token.literal,
-                expected_token_type=TokenType.KW_TO,  # For compatibility with tests
-                received_token_type=self._peek_token.type,
-                line=self._peek_token.line,
-                column=self._peek_token.position,
+            error_stmt = self._report_error_and_recover(
+                template=EXPECTED_TOKEN,
+                expected_token=TokenType.KW_TO,
+                token="'to' or 'using' keyword",
+                got_token_type=self._peek_token.type.name if self._peek_token else "EOF",
             )
-            self.errors.append(error)
-            skipped = self._panic_mode_recovery()
-            return ErrorStatement(
-                token=statement_token, skipped_tokens=skipped, message="Expected 'to' or 'using' keyword"
-            )
+            assert isinstance(error_stmt, ErrorStatement)
+            return error_stmt
 
         # Advance past the last token of the expression
         # Expression parsing leaves us at the last token, not after it
@@ -1765,12 +1977,14 @@ class Parser:
         if self._current_token and self._current_token.type == TokenType.PUNCT_PERIOD:
             # Already at period, no need to expect one
             pass
-        elif self._peek_token.type != TokenType.MISC_EOF or self._block_depth > 0:  # type: ignore[comparison-overlap]
-            self._expected_token(TokenType.PUNCT_PERIOD)
+        elif self._peek_token.type != TokenType.MISC_EOF or self._block_depth > 0:
+            if error := self._expect_token(TokenType.PUNCT_PERIOD):
+                assert isinstance(error, ErrorStatement)
+                return error
 
         return let_statement
 
-    def _parse_return_statement(self) -> ReturnStatement:
+    def _parse_return_statement(self) -> ReturnStatement | ErrorStatement:
         """Parse a return statement.
 
         Expects: give back expression or gives back expression
@@ -1800,11 +2014,13 @@ class Parser:
                 # Already at period, no need to expect one
                 pass
             elif self._peek_token.type != TokenType.MISC_EOF or self._block_depth > 0:
-                self._expected_token(TokenType.PUNCT_PERIOD)
+                if error := self._expect_token(TokenType.PUNCT_PERIOD):
+                    assert isinstance(error, ErrorStatement)
+                    return error
 
         return return_statement
 
-    def _parse_say_statement(self) -> SayStatement:
+    def _parse_say_statement(self) -> SayStatement | ErrorStatement:
         """Parse a Say or Tell statement.
 
         Syntax: Say <expression>. or Tell <expression>.
@@ -1831,7 +2047,9 @@ class Parser:
             self._advance_tokens()
         # But if we're already at a period (after error recovery), don't expect another
         elif self._current_token and self._current_token.type != TokenType.PUNCT_PERIOD:
-            self._expected_token(TokenType.PUNCT_PERIOD)
+            if error := self._expect_token(TokenType.PUNCT_PERIOD):
+                assert isinstance(error, ErrorStatement)
+                return error
 
         return say_statement
 
@@ -1874,7 +2092,14 @@ class Parser:
             # Parse the collection
             collection = self._parse_identifier_or_keyword_as_identifier()
             if not collection:
-                return ErrorStatement(token=start_token, message="Expected collection identifier after 'Add ... to'")
+                error_stmt = self._report_error_and_recover(
+                    template=EXPECTED_IDENTIFIER_AFTER,
+                    expected_token=TokenType.MISC_IDENT,
+                    what="collection",
+                    after="'Add ... to'",
+                )
+                assert isinstance(error_stmt, ErrorStatement)
+                return error_stmt
             self._advance_tokens()
 
             # Check if this is dictionary syntax (with value)
@@ -1892,7 +2117,9 @@ class Parser:
 
                 # Expect period
                 if self._current_token and self._current_token.type != TokenType.PUNCT_PERIOD:
-                    self._expected_token(TokenType.PUNCT_PERIOD)
+                    if error := self._expect_token(TokenType.PUNCT_PERIOD):
+                        assert isinstance(error, ErrorStatement)
+                        return error
 
                 return CollectionMutationStatement(
                     token=start_token,
@@ -1906,7 +2133,9 @@ class Parser:
                 # Regular array syntax
                 # Expect period
                 if self._current_token and self._current_token.type != TokenType.PUNCT_PERIOD:
-                    self._expected_token(TokenType.PUNCT_PERIOD)
+                    if error := self._expect_token(TokenType.PUNCT_PERIOD):
+                        assert isinstance(error, ErrorStatement)
+                        return error
 
                 return CollectionMutationStatement(
                     token=start_token,
@@ -1938,7 +2167,9 @@ class Parser:
 
             # Expect period
             if self._current_token and self._current_token.type != TokenType.PUNCT_PERIOD:
-                self._expected_token(TokenType.PUNCT_PERIOD)
+                if error := self._expect_token(TokenType.PUNCT_PERIOD):
+                    assert isinstance(error, ErrorStatement)
+                    return error
 
             return CollectionMutationStatement(
                 token=start_token,
@@ -1978,7 +2209,9 @@ class Parser:
 
             # Expect period
             if self._current_token and self._current_token.type != TokenType.PUNCT_PERIOD:
-                self._expected_token(TokenType.PUNCT_PERIOD)
+                if error := self._expect_token(TokenType.PUNCT_PERIOD):
+                    assert isinstance(error, ErrorStatement)
+                    return error
 
             return CollectionMutationStatement(
                 token=start_token,
@@ -1994,14 +2227,23 @@ class Parser:
             # Parse the collection identifier
             collection = self._parse_identifier_or_keyword_as_identifier()
             if not collection:
-                return ErrorStatement(token=start_token, message="Expected collection identifier after 'Clear'")
+                error_stmt = self._report_error_and_recover(
+                    template=EXPECTED_IDENTIFIER_AFTER,
+                    expected_token=TokenType.MISC_IDENT,
+                    what="collection",
+                    after="'Clear'",
+                )
+                assert isinstance(error_stmt, ErrorStatement)
+                return error_stmt
 
             # Advance past the identifier to check for period
             self._advance_tokens()
 
             # Expect period
             if self._current_token and self._current_token.type != TokenType.PUNCT_PERIOD:
-                self._expected_token(TokenType.PUNCT_PERIOD)
+                if error := self._expect_token(TokenType.PUNCT_PERIOD):
+                    assert isinstance(error, ErrorStatement)
+                    return error
 
             return CollectionMutationStatement(
                 token=start_token,
@@ -2022,7 +2264,14 @@ class Parser:
             # Parse the collection
             collection = self._parse_identifier_or_keyword_as_identifier()
             if not collection:
-                return ErrorStatement(token=start_token, message="Expected collection identifier after 'Update ... in'")
+                error_stmt = self._report_error_and_recover(
+                    template=EXPECTED_IDENTIFIER_AFTER,
+                    expected_token=TokenType.MISC_IDENT,
+                    what="collection",
+                    after="'Update ... in'",
+                )
+                assert isinstance(error_stmt, ErrorStatement)
+                return error_stmt
             self._advance_tokens()
 
             # Skip "to"
@@ -2035,7 +2284,9 @@ class Parser:
 
             # Expect period
             if self._current_token and self._current_token.type != TokenType.PUNCT_PERIOD:
-                self._expected_token(TokenType.PUNCT_PERIOD)
+                if error := self._expect_token(TokenType.PUNCT_PERIOD):
+                    assert isinstance(error, ErrorStatement)
+                    return error
 
             return CollectionMutationStatement(
                 token=start_token,
@@ -2047,7 +2298,11 @@ class Parser:
             )
 
         # Should not reach here
-        return ErrorStatement(token=start_token, message=f"Unhandled collection mutation operation: {operation}")
+        error_stmt = self._report_error_and_recover(
+            template=UNHANDLED_OPERATION, what="collection mutation", operation=operation
+        )
+        assert isinstance(error_stmt, ErrorStatement)
+        return error_stmt
 
     def _parse_function_call_expression(self) -> Expression:
         """Parse a function call as an expression (for use with 'using' in Set statements).
@@ -2066,28 +2321,25 @@ class Parser:
             self._advance_tokens()
         else:
             # Error: expected identifier for function name
-            error = MDSyntaxError(
-                message=EXPECTED_FUNCTION_NAME,
-                token_type=self._current_token.type if self._current_token else "EOF",
-                line=self._current_token.line if self._current_token else 0,
-                column=self._current_token.position if self._current_token else 0,
+            result = self._report_error_and_recover(
+                template=EXPECTED_FUNCTION_NAME,
+                token_type=str(self._current_token.type) if self._current_token else "EOF",
+                skip_recovery=True,
+                is_expression=True,
             )
-            self.errors.append(error)
-            error_message = EXPECTED_FUNCTION_NAME.substitute(
-                token_type=self._current_token.type if self._current_token else "EOF"
-            )
-            return ErrorExpression(token=self._current_token, message=error_message)
+            assert isinstance(result, ErrorExpression)
+            return result
 
         # Create the CallExpression
         call_expression = CallExpression(token=call_token, function_name=function_name)
 
         # Check for arguments
-        if self._current_token and self._current_token.type == TokenType.KW_WITH:  # type: ignore[comparison-overlap]
+        if self._current_token and self._current_token.type == TokenType.KW_WITH:
             # Positional arguments
             with_token = self._current_token
             self._advance_tokens()
             call_expression.arguments = self._parse_positional_arguments(with_token)
-        elif self._current_token and self._current_token.type == TokenType.KW_WHERE:  # type: ignore[comparison-overlap]
+        elif self._current_token and self._current_token.type == TokenType.KW_WHERE:
             # Named arguments
             where_token = self._current_token
             self._advance_tokens()
@@ -2095,7 +2347,7 @@ class Parser:
 
         return call_expression
 
-    def _parse_call_statement(self) -> CallStatement:
+    def _parse_call_statement(self) -> CallStatement | ErrorStatement:
         """Parse a Use statement.
 
         Syntax: use <function> [with <arguments>] or use <function> [where <named arguments>].
@@ -2112,25 +2364,22 @@ class Parser:
         self._advance_tokens()
 
         # Parse the function name (must be an identifier in backticks)
-        if self._current_token and self._current_token.type == TokenType.MISC_IDENT:  # type: ignore[comparison-overlap]
+        if self._current_token and self._current_token.type == TokenType.MISC_IDENT:
             function_name = Identifier(self._current_token, self._current_token.literal)
             self._advance_tokens()
         else:
             # Record error for missing or invalid function name
             error_token = self._current_token or Token(TokenType.MISC_EOF, "", 0, 0)
-            self.errors.append(
-                MDSyntaxError(
-                    message=EXPECTED_FUNCTION_NAME,
-                    token_type=str(error_token.type),
-                    line=error_token.line,
-                    column=error_token.position,
-                )
+            self._report_error_and_recover(
+                template=EXPECTED_FUNCTION_NAME,
+                token_type=str(error_token.type),
+                skip_recovery=True,  # Continue parsing to find more errors
             )
             function_name = None
 
         # Check for 'with' or 'where' keyword for arguments
         arguments: Arguments | None = None
-        if self._current_token and self._current_token.type == TokenType.KW_WITH:  # type: ignore[comparison-overlap]
+        if self._current_token and self._current_token.type == TokenType.KW_WITH:
             # 'with' is for positional arguments
             with_token = self._current_token
             self._advance_tokens()  # Move past 'with'
@@ -2138,7 +2387,7 @@ class Parser:
             # Parse positional arguments
             arguments = self._parse_positional_arguments(with_token)
 
-        elif self._current_token and self._current_token.type == TokenType.KW_WHERE:  # type: ignore[comparison-overlap]
+        elif self._current_token and self._current_token.type == TokenType.KW_WHERE:
             # 'where' is for named arguments
             where_token = self._current_token
             self._advance_tokens()  # Move past 'where'
@@ -2153,8 +2402,10 @@ class Parser:
         if self._peek_token and self._peek_token.type == TokenType.PUNCT_PERIOD:
             self._advance_tokens()
         # But if we're already at a period (after error recovery), don't expect another
-        elif self._current_token and self._current_token.type != TokenType.PUNCT_PERIOD:  # type: ignore[comparison-overlap]
-            self._expected_token(TokenType.PUNCT_PERIOD)
+        elif self._current_token and self._current_token.type != TokenType.PUNCT_PERIOD:
+            if error := self._expect_token(TokenType.PUNCT_PERIOD):
+                assert isinstance(error, ErrorStatement)
+                return error
 
         return call_statement
 
@@ -2208,13 +2459,10 @@ class Parser:
             return empty_value
         else:
             # Unknown token type for argument
-            self.errors.append(
-                MDSyntaxError(
-                    message=INVALID_ARGUMENT_VALUE,
-                    literal=token.literal,
-                    line=token.line,
-                    column=token.position,
-                )
+            self._report_error_and_recover(
+                template=INVALID_ARGUMENT_VALUE,
+                literal=token.literal,
+                skip_recovery=True,  # We'll handle advancement manually
             )
             self._advance_tokens()  # Skip the invalid token
             return None
@@ -2260,13 +2508,10 @@ class Parser:
                     TokenType.KW_EMPTY,
                 ):
                     # Report error but continue parsing (error recovery)
-                    syntax_error = MDSyntaxError(
-                        message=MISSING_COMMA_BETWEEN_ARGS,
-                        line=self._current_token.line,
-                        column=self._current_token.position,
+                    self._report_error_and_recover(
+                        template=MISSING_COMMA_BETWEEN_ARGS,
+                        skip_recovery=True,  # Continue parsing the next argument
                     )
-                    self.errors.append(syntax_error)
-                    # Continue parsing the next argument for error recovery
                     continue
                 else:
                     # Not an argument, stop parsing
@@ -2295,15 +2540,27 @@ class Parser:
                 self._advance_tokens()
             else:
                 # Error: expected identifier
-                self._expected_token(TokenType.MISC_IDENT)
+                self._report_error_and_recover(
+                    template=EXPECTED_TOKEN,
+                    expected_token=TokenType.MISC_IDENT,
+                    skip_recovery=True,
+                    token="parameter name",
+                    got_token_type=self._current_token.type.name if self._current_token else "EOF",
+                )
                 break
 
             # Expect 'is' keyword - mypy doesn't realize _advance_tokens() changes _current_token
             assert self._current_token is not None  # Help mypy understand
-            if self._current_token.type == TokenType.KW_IS:  # type: ignore[comparison-overlap]
+            if self._current_token.type == TokenType.KW_IS:
                 self._advance_tokens()
             else:
-                self._expected_token(TokenType.KW_IS)
+                self._report_error_and_recover(
+                    template=EXPECTED_TOKEN_AFTER,
+                    expected_token=TokenType.KW_IS,
+                    skip_recovery=True,
+                    expected="'is' keyword",
+                    after="parameter name",
+                )
                 break
 
             # Parse the value
@@ -2328,7 +2585,7 @@ class Parser:
 
         return arguments
 
-    def _parse_if_statement(self) -> IfStatement:
+    def _parse_if_statement(self) -> IfStatement | ErrorStatement:
         """Parse an if statement with block statements.
 
         Expects: if/when/whenever <condition> [then]: <block> [else/otherwise: <block>]
@@ -2354,9 +2611,9 @@ class Parser:
             self._advance_tokens()  # Move to 'then'
 
         # Expect colon
-        if not self._expected_token(TokenType.PUNCT_COLON):
-            # Create error statement if no colon
-            return IfStatement(token=if_statement.token, condition=if_statement.condition)
+        if error := self._expect_token(TokenType.PUNCT_COLON, "if condition"):
+            assert isinstance(error, ErrorStatement)
+            return error
 
         # Parse the consequence block
         # If we're inside a block, nested if statements should have deeper blocks
@@ -2365,12 +2622,9 @@ class Parser:
 
         # Check if the consequence block is empty - this is an error
         if not if_statement.consequence or len(if_statement.consequence.statements) == 0:
-            self._errors.append(
-                MDSyntaxError(
-                    line=if_statement.token.line,
-                    column=if_statement.token.position,
-                    message=EMPTY_IF_CONSEQUENCE,
-                )
+            self._report_error_and_recover(
+                template=EMPTY_IF_CONSEQUENCE,
+                skip_recovery=True,  # No recovery needed, continue parsing
             )
 
         # Check for else/otherwise clause
@@ -2388,12 +2642,9 @@ class Parser:
 
             # Check if the alternative block is empty - this is also an error
             if not if_statement.alternative or len(if_statement.alternative.statements) == 0:
-                self._errors.append(
-                    MDSyntaxError(
-                        line=self._current_token.line if self._current_token else if_statement.token.line,
-                        column=self._current_token.position if self._current_token else if_statement.token.position,
-                        message=EMPTY_ELSE_BLOCK,
-                    )
+                self._report_error_and_recover(
+                    template=EMPTY_ELSE_BLOCK,
+                    skip_recovery=True,  # No recovery needed, continue parsing
                 )
         elif self._block_depth == 0:
             # No else clause and we're at top level (not inside a block)
@@ -2438,7 +2689,7 @@ class Parser:
         assert self._current_token.type == TokenType.PUNCT_HASH_TRIPLE
 
         # Save the ### token for the statement
-        hash_token = self._current_token
+        # hash_token = self._current_token  # Currently unused, but may be needed for error reporting
 
         # Move past ###
         self._advance_tokens()
@@ -2449,12 +2700,11 @@ class Parser:
             TokenType.KW_INTERACTION,
             TokenType.KW_UTILITY,
         ):
-            skipped = self._panic_mode_recovery()
-            return ErrorStatement(
-                token=hash_token,
-                skipped_tokens=skipped,
-                message="Expected **Action**, **Interaction**, or **Utility** after ###",
+            error_stmt = self._report_error_and_recover(
+                template=EXPECTED_TOKEN_AFTER, expected="**Action**, **Interaction**, or **Utility**", after="###"
             )
+            assert isinstance(error_stmt, ErrorStatement)
+            return error_stmt
 
         statement_type = self._current_token.type
         keyword_token = self._current_token
@@ -2463,20 +2713,23 @@ class Parser:
         self._advance_tokens()
 
         # Expect colon - should be at current position
-        if not self._current_token or self._current_token.type != TokenType.PUNCT_COLON:  # type: ignore[comparison-overlap]
-            skipped = self._panic_mode_recovery()
-            return ErrorStatement(
-                token=keyword_token, skipped_tokens=skipped, message="Expected ':' after Action/Interaction/Utility"
+        if not self._current_token or self._current_token.type != TokenType.PUNCT_COLON:
+            error_stmt = self._report_error_and_recover(
+                template=EXPECTED_TOKEN_AFTER,
+                expected_token=TokenType.PUNCT_COLON,
+                expected="':'",
+                after="Action/Interaction/Utility",
             )
+            assert isinstance(error_stmt, ErrorStatement)
+            return error_stmt
 
         # Move past colon
         self._advance_tokens()
 
         # Expect backtick-wrapped name
         if not self._current_token or self._current_token.type != TokenType.MISC_IDENT:
-            skipped = self._panic_mode_recovery()
-            return ErrorStatement(
-                token=keyword_token, skipped_tokens=skipped, message="Expected identifier in backticks for name"
+            return self._report_error_and_recover(
+                template=EXPECTED_TOKEN, expected_token=TokenType.MISC_IDENT, token="identifier in backticks for name"
             )
 
         name = Identifier(self._current_token, self._current_token.literal)
@@ -2484,8 +2737,9 @@ class Parser:
 
         # Now expect <details> tag - should be at current position
         if not self._current_token or self._current_token.type != TokenType.TAG_DETAILS_START:
-            skipped = self._panic_mode_recovery()
-            return ErrorStatement(token=keyword_token, skipped_tokens=skipped, message="Expected <details> tag")
+            return self._report_error_and_recover(
+                template=EXPECTED_TOKEN, expected_token=TokenType.TAG_DETAILS_START, token="<details> tag"
+            )
 
         # Move past <details>
         self._advance_tokens()
@@ -2518,24 +2772,18 @@ class Parser:
                     # The user likely forgot to add a transition line
                     nested_depth = ">" * (self._block_depth + 1)  # The depth they were at (e.g., >>)
                     parent_depth = ">" * self._block_depth  # The depth they need to transition to (e.g., >)
-                    self._errors.append(
-                        MDSyntaxError(
-                            line=self._current_token.line,
-                            column=self._current_token.position,
-                            message=MISSING_DEPTH_TRANSITION,
-                            nested_depth=nested_depth,
-                            parent_depth=parent_depth,
-                            token_type=self._current_token.type.name,
-                        )
+                    self._report_error_and_recover(
+                        template=MISSING_DEPTH_TRANSITION,
+                        nested_depth=nested_depth,
+                        parent_depth=parent_depth,
+                        token_type=self._current_token.type.name,
+                        skip_recovery=True,  # Continue parsing
                     )
                 else:
-                    self._errors.append(
-                        MDSyntaxError(
-                            line=self._current_token.line,
-                            column=self._current_token.position,
-                            message=EXPECTED_DETAILS_CLOSE,
-                            token_type=self._current_token.type.name,
-                        )
+                    self._report_error_and_recover(
+                        template=EXPECTED_DETAILS_CLOSE,
+                        token_type=self._current_token.type.name,
+                        skip_recovery=True,  # Continue parsing
                     )
 
         # Check for parameter sections (#### Inputs: and #### Outputs:)
@@ -2562,10 +2810,7 @@ class Parser:
             )
         else:
             # This should never happen since we check for valid types above
-            skipped = self._panic_mode_recovery()
-            return ErrorStatement(
-                token=keyword_token, skipped_tokens=skipped, message=f"Unexpected statement type: {statement_type}"
-            )
+            return self._report_error_and_recover(template=UNEXPECTED_STATEMENT, type=statement_type)
 
     def _parse_block_statement(self, expected_depth: int = 1) -> BlockStatement:
         """Parse a block of statements marked by '>' symbols.
@@ -2652,14 +2897,11 @@ class Parser:
                     break
             elif current_depth > expected_depth:
                 # Nested block or error - for now treat as error
-                self._errors.append(
-                    MDSyntaxError(
-                        line=self._current_token.line if self._current_token else 0,
-                        column=self._current_token.position if self._current_token else 0,
-                        message=UNEXPECTED_BLOCK_DEPTH,
-                        expected=expected_depth,
-                        actual=current_depth,
-                    )
+                self._report_error_and_recover(
+                    template=UNEXPECTED_BLOCK_DEPTH,
+                    expected=str(expected_depth),
+                    actual=str(current_depth),
+                    skip_recovery=True,  # We'll handle recovery manually
                 )
                 # Skip to next line
                 while self._current_token and self._current_token.type not in (
@@ -2763,6 +3005,9 @@ class Parser:
             TokenType.KW_OR: self._parse_infix_expression,
             # Conditional/ternary expressions
             TokenType.KW_IF: self._parse_conditional_expression,
+            # Dictionary extraction operators
+            TokenType.OP_THE_NAMES_OF: self._parse_dict_extraction_infix,
+            TokenType.OP_THE_CONTENTS_OF: self._parse_dict_extraction_infix,
         }
 
     def _register_prefix_funcs(self) -> PrefixParseFuncs:
@@ -2812,6 +3057,11 @@ class Parser:
             TokenType.KW_ITEM: self._parse_numeric_list_access,
             # Handle 'the' stopword for list access
             TokenType.MISC_STOPWORD: self._parse_stopword_expression,
+            # Handle possessive syntax
+            TokenType.PUNCT_APOSTROPHE_S: self._parse_possessive_access,
+            # Dictionary extraction operators can also be prefix
+            TokenType.OP_THE_NAMES_OF: self._parse_dict_extraction_prefix,
+            TokenType.OP_THE_CONTENTS_OF: self._parse_dict_extraction_prefix,
         }
 
     @staticmethod
@@ -3178,19 +3428,21 @@ class Parser:
                 # Extract the original definition line from error message
                 match = re.search(r"line (\d+)", str(e))
                 original_line = int(match.group(1)) if match else line
-                self.errors.append(
-                    MDNameError(
-                        message=VARIABLE_ALREADY_DEFINED,
-                        line=line,  # Current line where redefinition happened
-                        column=position,
-                        # Pass template substitution params as kwargs
-                        name=name,
-                        original_line=original_line,  # Template now expects 'original_line'
-                    )
+                self._report_error_and_recover(
+                    template=VARIABLE_ALREADY_DEFINED,
+                    error_type="name",
+                    name=name,
+                    original_line=str(original_line),
+                    skip_recovery=True,  # No recovery needed for semantic errors
                 )
             else:
                 # Fallback for other NameError cases
-                self.errors.append(MDNameError(message=NAME_UNDEFINED, name=name, line=line, column=position))
+                self._report_error_and_recover(
+                    template=NAME_UNDEFINED,
+                    error_type="name",
+                    name=name,
+                    skip_recovery=True,  # No recovery needed for semantic errors
+                )
 
     def _check_variable_defined(self, name: str, line: int, position: int) -> bool:
         """Check if a variable is defined.
@@ -3205,7 +3457,12 @@ class Parser:
         """
         info = self._symbol_table.lookup(name)
         if not info:
-            self.errors.append(MDNameError(message=VARIABLE_NOT_DEFINED, name=name, line=line, column=position))
+            self._report_error_and_recover(
+                template=VARIABLE_NOT_DEFINED,
+                error_type="name",
+                name=name,
+                skip_recovery=True,  # No recovery needed for semantic errors
+            )
             return False
         return True
 
@@ -3244,52 +3501,19 @@ class Parser:
             from machine_dialect.type_checking import TYPE_DISPLAY_NAMES
 
             actual_type_name = TYPE_DISPLAY_NAMES.get(value_type, "unknown")
-            self.errors.append(
-                MDSyntaxError(
-                    message=ASSIGNMENT_TYPE_MISMATCH,
-                    line=line,
-                    column=position,
-                    variable=variable_name,
-                    expected_type=str(type_spec),
-                    actual_type=actual_type_name,
-                )
+            self._report_error_and_recover(
+                template=ASSIGNMENT_TYPE_MISMATCH,
+                error_type="type",  # This is a type error
+                variable=variable_name,
+                expected_type=str(type_spec),
+                actual_type=actual_type_name,
+                skip_recovery=True,  # No recovery needed for semantic errors
             )
             return False
 
         # Mark the variable as initialized on successful type check
         self._symbol_table.mark_initialized(variable_name)
         return True
-
-    def _panic_until_tokens(self, token_types: list[TokenType]) -> list[Token]:
-        """Skip tokens until finding one of the specified token types.
-
-        Args:
-            token_types: List of token types to stop at
-
-        Returns:
-            List of tokens that were skipped
-        """
-        skipped_tokens = []
-        while self._current_token and self._current_token.type not in token_types:
-            skipped_tokens.append(self._current_token)
-            self._advance_tokens()
-        return skipped_tokens
-
-    def _panic_until_type_or_period(self) -> list[Token]:
-        """Skip tokens until finding a type keyword or period.
-
-        Returns:
-            List of tokens that were skipped
-        """
-        skipped_tokens = []
-        while self._current_token:
-            if self._current_token.type in (TokenType.PUNCT_PERIOD, TokenType.MISC_EOF):
-                break
-            if self._is_type_token(self._current_token.type):
-                break
-            skipped_tokens.append(self._current_token)
-            self._advance_tokens()
-        return skipped_tokens
 
     def _is_type_token(self, token_type: TokenType) -> bool:
         """Check if a token type represents a type keyword.

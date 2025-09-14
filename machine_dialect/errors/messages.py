@@ -3,7 +3,9 @@ from typing import Any
 
 
 class ErrorTemplate(Template):
-    """Custom template class that prevents direct string usage in error messages."""
+    """Custom template class that prevents direct string usage in error messages.
+
+    DO NOT USE THIS CLASS DIRECTLY, USE THE CONSTANTS DEFINED BELOW"""
 
     def format(self, **kwargs: Any) -> str:
         """Format the template with keyword arguments.
@@ -46,12 +48,24 @@ MISSING_DEPTH_TRANSITION = ErrorTemplate(
 )
 UNEXPECTED_BLOCK_DEPTH = ErrorTemplate("Unexpected block depth: expected $expected '>' but got $actual")
 
+# Collection and list errors
+INVALID_NAMED_LIST_KEY = ErrorTemplate("Named list keys must be string literals. Got $literal")
+
 # Use statement errors
 EXPECTED_FUNCTION_NAME = ErrorTemplate("Expected identifier for function name, got $token_type")
 EXPECTED_IDENTIFIER_FOR_NAMED_ARG = ErrorTemplate("Expected identifier for named argument, got $type_name")
 POSITIONAL_AFTER_NAMED = ErrorTemplate("Positional arguments cannot appear after named arguments")
 INVALID_ARGUMENT_VALUE = ErrorTemplate("Invalid argument value: '$literal'")
 MISSING_COMMA_BETWEEN_ARGS = ErrorTemplate("Expected comma between arguments")
+
+# Generic parser errors
+EXPECTED_TOKEN_AFTER = ErrorTemplate("Expected $expected after $after")
+EXPECTED_IDENTIFIER_AFTER = ErrorTemplate("Expected $what identifier after $after")
+EXPECTED_TOKEN = ErrorTemplate("Expected $token, got $got_token_type")
+ILLEGAL_CHARACTER = ErrorTemplate("Expected $expected but found illegal character '$character'")
+UNEXPECTED_STATEMENT = ErrorTemplate("Unexpected statement type: $type")
+UNHANDLED_OPERATION = ErrorTemplate("Unhandled $what operation: $operation")
+INVALID_TYPE_NAME = ErrorTemplate("'$name' is not a valid type name. Expected one of: $valid_types")
 
 # Interpreter errors
 UNKNOWN_PREFIX_OPERATOR = ErrorTemplate("Unknown prefix operator: $operator")

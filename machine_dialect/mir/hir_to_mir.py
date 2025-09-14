@@ -852,8 +852,9 @@ class HIRToMIRLowering:
                     self._add_instruction(LoadConst(temp_value, value, source_loc), stmt)
                     value = temp_value
 
-                # Handle position (already converted to 0-based in HIR)
+                # Handle position
                 if isinstance(stmt.position, int):
+                    # Integer indices are already 0-based from HIR
                     index = Constant(stmt.position, MIRType.INT)
                     temp_index = self.current_function.new_temp(MIRType.INT)
                     self._add_instruction(LoadConst(temp_index, index, source_loc), stmt)
@@ -870,18 +871,26 @@ class HIRToMIRLowering:
                     temp_index = self.current_function.new_temp(MIRType.INT)
                     self._add_instruction(BinaryOp(temp_index, "-", length_temp, temp_one, source_loc), stmt)
                 else:
-                    # Expression for index
+                    # Expression-based indices need to subtract 1 (convert from 1-based to 0-based)
                     if isinstance(stmt.position, Expression):
                         index_value = self.lower_expression(stmt.position)
                         if isinstance(index_value, Constant):
-                            temp_index = self.current_function.new_temp(MIRType.INT)
-                            self._add_instruction(LoadConst(temp_index, index_value, source_loc), stmt)
+                            temp_expr = self.current_function.new_temp(MIRType.INT)
+                            self._add_instruction(LoadConst(temp_expr, index_value, source_loc), stmt)
                         elif isinstance(index_value, Temp):
-                            temp_index = index_value
+                            temp_expr = index_value
                         else:
-                            # Handle other MIRValue types - shouldn't happen but be safe
-                            temp_index = self.current_function.new_temp(MIRType.INT)
-                            self._add_instruction(Copy(temp_index, index_value, source_loc), stmt)
+                            # Handle other MIRValue types
+                            temp_expr = self.current_function.new_temp(MIRType.INT)
+                            self._add_instruction(Copy(temp_expr, index_value, source_loc), stmt)
+
+                        # Subtract 1 to convert from 1-based to 0-based
+                        one = Constant(1, MIRType.INT)
+                        temp_one = self.current_function.new_temp(MIRType.INT)
+                        self._add_instruction(LoadConst(temp_one, one, source_loc), stmt)
+
+                        temp_index = self.current_function.new_temp(MIRType.INT)
+                        self._add_instruction(BinaryOp(temp_index, "-", temp_expr, temp_one, source_loc), stmt)
                     else:
                         # This shouldn't happen if HIR is correct, but handle gracefully
                         temp_index = self.current_function.new_temp(MIRType.INT)
@@ -906,8 +915,9 @@ class HIRToMIRLowering:
                     # Use DictRemove to remove the key
                     self._add_instruction(DictRemove(collection, key, source_loc), stmt)
             elif stmt.position is not None:
-                # Remove by position (already converted to 0-based in HIR)
+                # Remove by position
                 if isinstance(stmt.position, int):
+                    # Integer indices are already 0-based from HIR
                     index = Constant(stmt.position, MIRType.INT)
                     temp_index = self.current_function.new_temp(MIRType.INT)
                     self._add_instruction(LoadConst(temp_index, index, source_loc), stmt)
@@ -924,17 +934,25 @@ class HIRToMIRLowering:
                     temp_index = self.current_function.new_temp(MIRType.INT)
                     self._add_instruction(BinaryOp(temp_index, "-", length_temp, temp_one, source_loc), stmt)
                 else:
-                    # Expression for index
+                    # Expression-based indices need to subtract 1 (convert from 1-based to 0-based)
                     if isinstance(stmt.position, Expression):
                         index_value = self.lower_expression(stmt.position)
                         if isinstance(index_value, Constant):
-                            temp_index = self.current_function.new_temp(MIRType.INT)
-                            self._add_instruction(LoadConst(temp_index, index_value, source_loc), stmt)
+                            temp_expr = self.current_function.new_temp(MIRType.INT)
+                            self._add_instruction(LoadConst(temp_expr, index_value, source_loc), stmt)
                         elif isinstance(index_value, Temp):
-                            temp_index = index_value
+                            temp_expr = index_value
                         else:
-                            temp_index = self.current_function.new_temp(MIRType.INT)
-                            self._add_instruction(Copy(temp_index, index_value, source_loc), stmt)
+                            temp_expr = self.current_function.new_temp(MIRType.INT)
+                            self._add_instruction(Copy(temp_expr, index_value, source_loc), stmt)
+
+                        # Subtract 1 to convert from 1-based to 0-based
+                        one = Constant(1, MIRType.INT)
+                        temp_one = self.current_function.new_temp(MIRType.INT)
+                        self._add_instruction(LoadConst(temp_one, one, source_loc), stmt)
+
+                        temp_index = self.current_function.new_temp(MIRType.INT)
+                        self._add_instruction(BinaryOp(temp_index, "-", temp_expr, temp_one, source_loc), stmt)
                     else:
                         # Default to removing first element
                         temp_index = self.current_function.new_temp(MIRType.INT)
@@ -972,8 +990,9 @@ class HIRToMIRLowering:
                     self._add_instruction(LoadConst(temp_value, value, source_loc), stmt)
                     value = temp_value
 
-                # Handle position (already converted to 0-based in HIR)
+                # Handle position
                 if isinstance(stmt.position, int):
+                    # Integer indices are already 0-based from HIR
                     index = Constant(stmt.position, MIRType.INT)
                     temp_index = self.current_function.new_temp(MIRType.INT)
                     self._add_instruction(LoadConst(temp_index, index, source_loc), stmt)
@@ -983,17 +1002,25 @@ class HIRToMIRLowering:
                     self._add_instruction(ArrayLength(length_temp, collection, source_loc), stmt)
                     temp_index = length_temp
                 else:
-                    # Expression for index
+                    # Expression-based indices need to subtract 1 (convert from 1-based to 0-based)
                     if isinstance(stmt.position, Expression):
                         index_value = self.lower_expression(stmt.position)
                         if isinstance(index_value, Constant):
-                            temp_index = self.current_function.new_temp(MIRType.INT)
-                            self._add_instruction(LoadConst(temp_index, index_value, source_loc), stmt)
+                            temp_expr = self.current_function.new_temp(MIRType.INT)
+                            self._add_instruction(LoadConst(temp_expr, index_value, source_loc), stmt)
                         elif isinstance(index_value, Temp):
-                            temp_index = index_value
+                            temp_expr = index_value
                         else:
-                            temp_index = self.current_function.new_temp(MIRType.INT)
-                            self._add_instruction(Copy(temp_index, index_value, source_loc), stmt)
+                            temp_expr = self.current_function.new_temp(MIRType.INT)
+                            self._add_instruction(Copy(temp_expr, index_value, source_loc), stmt)
+
+                        # Subtract 1 to convert from 1-based to 0-based
+                        one = Constant(1, MIRType.INT)
+                        temp_one = self.current_function.new_temp(MIRType.INT)
+                        self._add_instruction(LoadConst(temp_one, one, source_loc), stmt)
+
+                        temp_index = self.current_function.new_temp(MIRType.INT)
+                        self._add_instruction(BinaryOp(temp_index, "-", temp_expr, temp_one, source_loc), stmt)
                     else:
                         # Default to inserting at beginning
                         temp_index = self.current_function.new_temp(MIRType.INT)
@@ -1246,24 +1273,33 @@ class HIRToMIRLowering:
 
             # Handle index based on access type
             if expr.access_type == "numeric":
-                # Numeric index (already 0-based from HIR)
+                # Numeric index
                 if isinstance(expr.accessor, int):
+                    # Integer indices are already 0-based from HIR
                     index = Constant(expr.accessor, MIRType.INT)
                     temp_index = self.current_function.new_temp(MIRType.INT)
                     self._add_instruction(LoadConst(temp_index, index, source_loc), expr)
                 else:
-                    # Expression for index
+                    # Expression-based indices need to subtract 1 (convert from 1-based to 0-based)
                     if isinstance(expr.accessor, Expression):
                         index_value = self.lower_expression(expr.accessor)
                         if isinstance(index_value, Constant):
-                            temp_index = self.current_function.new_temp(MIRType.INT)
-                            self._add_instruction(LoadConst(temp_index, index_value, source_loc), expr)
+                            temp_expr = self.current_function.new_temp(MIRType.INT)
+                            self._add_instruction(LoadConst(temp_expr, index_value, source_loc), expr)
                         elif isinstance(index_value, Temp):
-                            temp_index = index_value
+                            temp_expr = index_value
                         else:
                             # Handle other MIRValue types
-                            temp_index = self.current_function.new_temp(MIRType.INT)
-                            self._add_instruction(Copy(temp_index, index_value, source_loc), expr)
+                            temp_expr = self.current_function.new_temp(MIRType.INT)
+                            self._add_instruction(Copy(temp_expr, index_value, source_loc), expr)
+
+                        # Subtract 1 to convert from 1-based to 0-based
+                        one = Constant(1, MIRType.INT)
+                        temp_one = self.current_function.new_temp(MIRType.INT)
+                        self._add_instruction(LoadConst(temp_one, one, source_loc), expr)
+
+                        temp_index = self.current_function.new_temp(MIRType.INT)
+                        self._add_instruction(BinaryOp(temp_index, "-", temp_expr, temp_one, source_loc), expr)
                     else:
                         # This shouldn't happen, but handle gracefully
                         temp_index = self.current_function.new_temp(MIRType.INT)
@@ -1343,6 +1379,43 @@ class HIRToMIRLowering:
             else:
                 # Unknown identifier, return error value
                 return Constant(None, MIRType.ERROR)
+
+        # Handle dictionary extraction (the names of, the contents of)
+        elif hasattr(expr, "__class__") and expr.__class__.__name__ == "DictExtraction":
+            # Import here to avoid circular dependency
+            from machine_dialect.ast.dict_extraction import DictExtraction
+            from machine_dialect.mir.mir_instructions import DictKeys, DictValues
+
+            if isinstance(expr, DictExtraction):
+                # Get source location
+                source_loc = expr.get_source_location()
+                if source_loc is None:
+                    source_loc = (0, 0)
+
+                # Lower the dictionary expression
+                dict_value = self.lower_expression(expr.dictionary)
+
+                # Load into temp if it's a constant
+                if isinstance(dict_value, Constant):
+                    temp_dict = self.current_function.new_temp(MIRType.DICT)
+                    self._add_instruction(LoadConst(temp_dict, dict_value, source_loc), expr)
+                    dict_value = temp_dict
+                elif not isinstance(dict_value, Temp):
+                    # Ensure it's a temp register
+                    temp_dict = self.current_function.new_temp(MIRType.DICT)
+                    self._add_instruction(Copy(temp_dict, dict_value, source_loc), expr)
+                    dict_value = temp_dict
+
+                # Create result temp for the extracted array
+                result = self.current_function.new_temp(MIRType.ARRAY)
+
+                # Generate appropriate extraction instruction
+                if expr.extract_type == "names":
+                    self._add_instruction(DictKeys(result, dict_value, source_loc), expr)
+                else:  # contents
+                    self._add_instruction(DictValues(result, dict_value, source_loc), expr)
+
+                return result
 
         # Handle infix expression
         elif isinstance(expr, InfixExpression):

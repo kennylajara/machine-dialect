@@ -1717,6 +1717,86 @@ class DictRemove(MIRInstruction):
             self.key = new
 
 
+class DictKeys(MIRInstruction):
+    """Get all keys from a dictionary as an array: dest = dict.keys()."""
+
+    def __init__(
+        self,
+        dest: MIRValue,
+        dict_val: MIRValue,
+        source_location: tuple[int, int],
+    ) -> None:
+        """Initialize dictionary keys extraction.
+
+        Args:
+            dest: Destination register for the keys array.
+            dict_val: The dictionary to get keys from.
+            source_location: Source code location (line, column).
+        """
+        super().__init__(source_location)
+        self.dest = dest
+        self.dict_val = dict_val
+
+    def __str__(self) -> str:
+        """Return string representation."""
+        return f"{self.dest} = {self.dict_val}.keys()"
+
+    def get_uses(self) -> list[MIRValue]:
+        """Get operands used."""
+        return [self.dict_val]
+
+    def get_defs(self) -> list[MIRValue]:
+        """Get values defined."""
+        return [self.dest]
+
+    def replace_use(self, old: MIRValue, new: MIRValue) -> None:
+        """Replace uses of a value."""
+        if self.dict_val == old:
+            self.dict_val = new
+        if self.dest == old:
+            self.dest = new
+
+
+class DictValues(MIRInstruction):
+    """Get all values from a dictionary as an array: dest = dict.values()."""
+
+    def __init__(
+        self,
+        dest: MIRValue,
+        dict_val: MIRValue,
+        source_location: tuple[int, int],
+    ) -> None:
+        """Initialize dictionary values extraction.
+
+        Args:
+            dest: Destination register for the values array.
+            dict_val: The dictionary to get values from.
+            source_location: Source code location (line, column).
+        """
+        super().__init__(source_location)
+        self.dest = dest
+        self.dict_val = dict_val
+
+    def __str__(self) -> str:
+        """Return string representation."""
+        return f"{self.dest} = {self.dict_val}.values()"
+
+    def get_uses(self) -> list[MIRValue]:
+        """Get operands used."""
+        return [self.dict_val]
+
+    def get_defs(self) -> list[MIRValue]:
+        """Get values defined."""
+        return [self.dest]
+
+    def replace_use(self, old: MIRValue, new: MIRValue) -> None:
+        """Replace uses of a value."""
+        if self.dict_val == old:
+            self.dict_val = new
+        if self.dest == old:
+            self.dest = new
+
+
 class DictContains(MIRInstruction):
     """Check if key exists in dictionary: dest = key in dict."""
 

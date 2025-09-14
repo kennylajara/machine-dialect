@@ -5,7 +5,7 @@ to track variable definitions and validate variable usage.
 """
 
 from machine_dialect.ast import DefineStatement, SetStatement
-from machine_dialect.errors.exceptions import MDNameError, MDSyntaxError, MDTypeError
+from machine_dialect.errors.exceptions import MDNameError, MDTypeError
 from machine_dialect.parser import Parser
 
 
@@ -264,7 +264,9 @@ class TestDefineTypeChecking:
         # Should have a type error
         assert len(parser.errors) > 0
         # Find type-related errors
-        type_errors = [e for e in parser.errors if isinstance(e, MDSyntaxError)]
+        from machine_dialect.errors import MDTypeError
+
+        type_errors = [e for e in parser.errors if isinstance(e, MDTypeError)]
         assert len(type_errors) > 0
 
     def test_type_mismatch_text_to_whole_number(self) -> None:

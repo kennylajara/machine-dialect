@@ -66,11 +66,16 @@ class TestParseErrors:
         # Should have three errors (one for each invalid prefix)
         assert len(parser.errors) == 3
 
-        # Check each error
-        expected_literals = ["*", "+", "/"]
-        for error, expected_literal in zip(parser.errors, expected_literals, strict=True):
+        # Check the error messages
+        expected_messages = [
+            "unexpected token '*' at start of expression",
+            "unexpected token '+' at start of expression",
+            "unexpected token '/' at start of expression",
+        ]
+
+        for error, expected_msg in zip(parser.errors, expected_messages, strict=True):
             assert isinstance(error, MDSyntaxError)
-            assert f"unexpected token '{expected_literal}' at start of expression" in str(error)
+            assert expected_msg in str(error), f"Expected '{expected_msg}' in '{error!s}'"
 
     def test_error_location_tracking(self) -> None:
         """Test that errors track correct line and column positions."""

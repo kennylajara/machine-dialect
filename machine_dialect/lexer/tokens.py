@@ -39,6 +39,8 @@ class TokenType(Enum):
     OP_NEGATION = auto()
     OP_TWO_STARS = auto()
     OP_CARET = auto()  # Exponentiation operator ^
+    OP_THE_NAMES_OF = auto()  # Dictionary keys extraction operator
+    OP_THE_CONTENTS_OF = auto()  # Dictionary values extraction operator
 
     # Delimiters
     DELIM_LPAREN = auto()
@@ -58,6 +60,7 @@ class TokenType(Enum):
     PUNCT_BACKSLASH = auto()
     PUNCT_FRONTMATTER = auto()  # Triple dash (---) for YAML frontmatter
     PUNCT_DASH = auto()  # Single dash (-) for list markers
+    PUNCT_APOSTROPHE_S = auto()  # Possessive apostrophe-s ('s) for property access
 
     # Literals
     LIT_FLOAT = auto()
@@ -186,8 +189,9 @@ def is_valid_identifier(literal: str) -> bool:
 
     Valid identifiers:
     - Start with a letter (a-z, A-Z) or underscore (_)
-    - Followed by any number of letters, digits, underscores, spaces, or hyphens
+    - Followed by any number of letters, digits, underscores, spaces, hyphens, or apostrophes
     - Cannot be empty
+    - Apostrophes cannot be at the beginning/end of the identifier or any word
     - Special case: underscore followed by only digits is ILLEGAL (e.g., _42, _123)
     - Special case: underscore(s) + digits + underscore(s) is ILLEGAL (e.g., _42_, __42__)
     """
@@ -206,8 +210,22 @@ def is_valid_identifier(literal: str) -> bool:
             # This is an invalid pattern like _42, __42, _123abc, etc.
             return False
 
-    # Rest can be alphanumeric, underscore, space, or hyphen
-    return all(c.isalnum() or c in ("_", " ", "-") for c in literal[1:])
+    # Check apostrophe placement rules
+    if "'" in literal:
+        # Apostrophe cannot be at the beginning or end
+        if literal[0] == "'" or literal[-1] == "'":
+            return False
+
+        # Split by spaces to check each word
+        words = literal.split(" ")
+        for word in words:
+            if word and "'" in word:
+                # Apostrophe cannot be at the beginning or end of any word
+                if word[0] == "'" or word[-1] == "'":
+                    return False
+
+    # Rest can be alphanumeric, underscore, space, hyphen, or apostrophe
+    return all(c.isalnum() or c in ("_", " ", "-", "'") for c in literal[1:])
 
 
 keywords_mapping: dict[str, TokenType] = {
@@ -327,6 +345,9 @@ keywords_mapping: dict[str, TokenType] = {
     "Number": TokenType.KW_NUMBER,
     # List access: item _5_ of `list`
     "of": TokenType.KW_OF,
+    # Dictionary extraction operators (multi-word)
+    "the names of": TokenType.OP_THE_NAMES_OF,
+    "the contents of": TokenType.OP_THE_CONTENTS_OF,
     # optional parameter modifier
     "optional": TokenType.KW_OPTIONAL,
     # logic or: true or false

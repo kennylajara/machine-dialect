@@ -18,15 +18,16 @@ class TestExpectedTokenErrors:
 
         parser.parse(source)
 
-        # Should have syntax error
+        # Should have name error when non-identifier used as identifier
         assert parser.has_errors() is True
         # With panic recovery, we get 1 error and skip to EOF (no period)
         assert len(parser.errors) == 1
-        assert isinstance(parser.errors[0], MDSyntaxError)
+        assert isinstance(parser.errors[0], MDNameError)
 
-        # Error should mention expected identifier
+        # Error should mention expected identifier and the illegal character
         error_msg = str(parser.errors[0])
-        assert "misc_ident" in error_msg.lower() or "identifier" in error_msg.lower()
+        assert "identifier" in error_msg.lower()
+        assert "42" in error_msg  # The illegal character should be in the message
 
     def test_missing_to_keyword(self) -> None:
         """Test error when Set statement is missing the 'to' keyword."""
@@ -61,11 +62,16 @@ Set to "hello".
         # Should have multiple errors (including undefined variable errors)
         assert parser.has_errors() is True
         # With periods, panic recovery allows finding syntax + name errors
-        assert len(parser.errors) >= 3
+        assert len(parser.errors) == 4
 
         # Check for expected error types - mix of syntax and name errors
+        # Line 1: "Set 42" - MDNameError (42 is not valid identifier)
+        # Line 2: "Set price" - MDNameError (undefined variable) + MDSyntaxError (missing 'to')
+        # Line 3: "Set to" - MDNameError ('to' is not valid identifier)
+        name_errors = [e for e in parser.errors if isinstance(e, MDNameError)]
         syntax_errors = [e for e in parser.errors if isinstance(e, MDSyntaxError)]
-        assert len(syntax_errors) >= 3  # At least 3 syntax errors from malformed Set statements
+        assert len(name_errors) == 3  # 3 name errors
+        assert len(syntax_errors) == 1  # 1 syntax error
 
     def test_empty_identifier(self) -> None:
         """Test error with empty backtick identifier."""
@@ -95,15 +101,11 @@ Set to "hello".
 
         parser.parse(source)
 
-        # With panic recovery, we get 1 syntax error
-        assert len(parser.errors) >= 1
-        # Find the syntax error (not name error)
-        error = None
-        for e in parser.errors:
-            if isinstance(e, MDSyntaxError):
-                error = e
-                break
-        assert error is not None
+        # With panic recovery, we get 1 name error (42 is not valid identifier)
+        assert len(parser.errors) == 1
+        # The error should be MDNameError since 42 is not a valid identifier
+        error = parser.errors[0]
+        assert isinstance(error, MDNameError)
 
         # Check that error has location information
         assert hasattr(error, "_line")
@@ -141,8 +143,11 @@ Set `Z` 99.
 
         # Should have errors for first and third statements
         assert parser.has_errors() is True
-        # We expect at least 2 errors: expected identifier in first, missing 'to' in third
-        assert len(parser.errors) >= 2
+        # We expect 4 errors:
+        # Line 1: expected identifier (42 is invalid)
+        # Line 2: undefined variable 'price'
+        # Line 3: undefined variable 'Z' + missing 'to'
+        assert len(parser.errors) == 4
 
         # The parser should attempt to parse all statements, even if some fail
         # Due to error recovery, we may get fewer successfully parsed statements
@@ -166,7 +171,7 @@ Set `Z` 99.
 
         # Should have multiple errors
         assert parser.has_errors() is True
-        assert len(parser.errors) >= 1
+        assert len(parser.errors) == 1
 
     def test_eof_during_parsing(self) -> None:
         """Test error when EOF is encountered while expecting a token."""
@@ -177,7 +182,7 @@ Set `Z` 99.
 
         # Should have an error for missing 'to'
         assert parser.has_errors() is True
-        assert len(parser.errors) >= 1
+        assert len(parser.errors) == 1
         # Find syntax error (may not be first if there are name errors)
         syntax_errors = [e for e in parser.errors if isinstance(e, MDSyntaxError)]
-        assert len(syntax_errors) >= 1
+        assert len(syntax_errors) == 1

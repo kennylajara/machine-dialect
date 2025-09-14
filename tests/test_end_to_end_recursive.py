@@ -59,7 +59,7 @@ Say `final result`.
 class TestFibonacciE2E:
     """End-to-end tests for Fibonacci utility."""
 
-    @pytest.mark.parametrize(  # type: ignore[misc]
+    @pytest.mark.parametrize(
         "optimization_level",
         [
             OptimizationLevel.NONE,

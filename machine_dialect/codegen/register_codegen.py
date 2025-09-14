@@ -32,8 +32,10 @@ from machine_dialect.mir.mir_instructions import (
     DictContains,
     DictCreate,
     DictGet,
+    DictKeys,
     DictRemove,
     DictSet,
+    DictValues,
     Jump,
     LoadConst,
     LoadVar,
@@ -367,13 +369,16 @@ class RegisterBytecodeGenerator:
             self.generate_dict_remove(inst)
         elif isinstance(inst, DictContains):
             self.generate_dict_contains(inst)
+        elif isinstance(inst, DictKeys):
+            self.generate_dict_keys(inst)
+        elif isinstance(inst, DictValues):
+            self.generate_dict_values(inst)
         elif isinstance(inst, Scope):
             self.generate_scope(inst)
         elif isinstance(inst, Print):
             self.generate_print(inst)
         elif isinstance(inst, Nop):
             pass  # No operation
-        # TODO: Add more instruction types
 
     def generate_load_const(self, inst: LoadConst) -> None:
         """Generate LoadConstR instruction."""
@@ -1255,6 +1260,43 @@ class RegisterBytecodeGenerator:
             index = self.get_register(inst.index)
             value = self.get_register(inst.value)
             print(f"  -> ArrayInsert: r{array}.insert(r{index}, r{value}) - TODO: needs implementation")
+
+    def generate_dict_keys(self, inst: DictKeys) -> None:
+        """Generate dictionary keys extraction.
+
+        Args:
+            inst: DictKeys instruction.
+        """
+        dst = self.get_register(inst.dest)
+        dict_reg = self.get_register(inst.dict_val)
+
+        # Emit DictKeysR instruction
+        self.track_vm_instruction()
+        self.emit_opcode(Opcode.DICT_KEYS_R)
+        self.emit_u8(dst)
+        self.emit_u8(dict_reg)
+
+        if self.debug:
+            print(f"  -> Generated DictKeysR: r{dst} = r{dict_reg}.keys()")
+
+    def generate_dict_values(self, inst: DictValues) -> None:
+        """Generate dictionary values extraction.
+
+        Args:
+            inst: DictValues instruction.
+        """
+
+        dst = self.get_register(inst.dest)
+        dict_reg = self.get_register(inst.dict_val)
+
+        # Emit DictValuesR instruction
+        self.track_vm_instruction()
+        self.emit_opcode(Opcode.DICT_VALUES_R)
+        self.emit_u8(dst)
+        self.emit_u8(dict_reg)
+
+        if self.debug:
+            print(f"  -> Generated DictValuesR: r{dst} = r{dict_reg}.values()")
 
     def generate_array_clear(self, inst: ArrayClear) -> None:
         """Generate array clear.

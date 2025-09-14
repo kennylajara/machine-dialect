@@ -76,10 +76,12 @@ class TestOpcodeCompatibility:
             "DICT_SET_R": 39,
             "DICT_HAS_KEY_R": 40,
             "DICT_REMOVE_R": 41,
-            "DEBUG_PRINT": 42,
-            "BREAKPOINT": 43,
-            "HALT": 44,
-            "NOP": 45,
+            "DICT_KEYS_R": 42,
+            "DICT_VALUES_R": 43,
+            "DEBUG_PRINT": 44,
+            "BREAKPOINT": 45,
+            "HALT": 46,
+            "NOP": 47,
         }
 
         # First, verify the count matches
@@ -413,6 +415,8 @@ class TestOpcodeCompatibility:
             Opcode.DICT_SET_R: lambda: bytecode.extend([Opcode.DICT_SET_R, 0, 1, 2]),
             Opcode.DICT_HAS_KEY_R: lambda: bytecode.extend([Opcode.DICT_HAS_KEY_R, 2, 0, 1]),
             Opcode.DICT_REMOVE_R: lambda: bytecode.extend([Opcode.DICT_REMOVE_R, 0, 1]),
+            Opcode.DICT_KEYS_R: lambda: bytecode.extend([Opcode.DICT_KEYS_R, 1, 0]),
+            Opcode.DICT_VALUES_R: lambda: bytecode.extend([Opcode.DICT_VALUES_R, 1, 0]),
             # Debug
             Opcode.DEBUG_PRINT: lambda: bytecode.extend([Opcode.DEBUG_PRINT, 0]),
             Opcode.BREAKPOINT: lambda: bytecode.extend([Opcode.BREAKPOINT]),

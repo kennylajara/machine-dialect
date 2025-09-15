@@ -181,6 +181,8 @@ class RegisterBytecodeGenerator:
         self.pending_jumps: list[tuple[int, str, int]] = []
         self.debug = debug
         self.current_function: MIRFunction | None = None
+        # Label counter for generating unique labels
+        self.label_counter = 0
 
     @staticmethod
     def is_ssa_variable(var: MIRValue) -> bool:
@@ -1055,6 +1057,15 @@ class RegisterBytecodeGenerator:
         """Emit a signed 32-bit value."""
         self.bytecode.extend(struct.pack("<i", value))
 
+    def add_label(self, label: str) -> None:
+        """Add a label at the current bytecode position.
+
+        Args:
+            label: The label to add.
+        """
+        # Map label to current instruction index
+        self.block_offsets[label] = len(self.instruction_offsets)
+
     def generate_array_create(self, inst: ArrayCreate) -> None:
         """Generate NewArrayR instruction from MIR ArrayCreate."""
         dst = self.get_register(inst.dest)
@@ -1238,28 +1249,347 @@ class RegisterBytecodeGenerator:
             print(f"  -> Generated DictHasKeyR: r{dst} = r{key_reg} in r{dict_reg}")
 
     def generate_array_remove(self, inst: ArrayRemove) -> None:
-        """Generate array remove at index.
+        """Generate array remove at index using copy emulation.
 
-        This requires shifting elements and needs VM support.
+        Emulates array.remove_at(index) by:
+        1. Get original array length
+        2. Create new array with length - 1
+        3. Copy elements [0:index] to new array
+        4. Copy elements [index+1:] to new[index:]
+        5. Replace original array with new array
         """
-        # TODO: This needs actual VM support or complex instruction sequence
-        # For now, emit a comment/debug
+        array = self.get_register(inst.array)
+        index = self.get_register(inst.index)
+
+        # Allocate temporary registers
+        old_len_reg = 247  # Original length
+        new_len_reg = 248  # New length (old - 1)
+        new_array_reg = 249  # New array
+        i_reg = 250  # Loop counter for source
+        j_reg = 251  # Loop counter for destination
+        element_reg = 252  # Temporary for element
+        cmp_reg = 253  # Comparison result
+        const_one_reg = 254  # Constant 1
+
+        # Get original array length
+        self.track_vm_instruction()
+        self.emit_opcode(Opcode.ARRAY_LEN_R)
+        self.emit_u8(old_len_reg)
+        self.emit_u8(array)
+
+        # Calculate new length (old - 1)
+        const_one = self.add_constant(1)
+        self.track_vm_instruction()
+        self.emit_opcode(Opcode.LOAD_CONST_R)
+        self.emit_u8(const_one_reg)
+        self.emit_u16(const_one)
+
+        self.track_vm_instruction()
+        self.emit_opcode(Opcode.SUB_R)
+        self.emit_u8(new_len_reg)
+        self.emit_u8(old_len_reg)
+        self.emit_u8(const_one_reg)
+
+        # Create new array with new length
+        self.track_vm_instruction()
+        self.emit_opcode(Opcode.NEW_ARRAY_R)
+        self.emit_u8(new_array_reg)
+        self.emit_u8(new_len_reg)
+
+        # Initialize loop counters to 0
+        const_zero = self.add_constant(0)
+        self.track_vm_instruction()
+        self.emit_opcode(Opcode.LOAD_CONST_R)
+        self.emit_u8(i_reg)
+        self.emit_u16(const_zero)
+
+        self.track_vm_instruction()
+        self.emit_opcode(Opcode.LOAD_CONST_R)
+        self.emit_u8(j_reg)
+        self.emit_u16(const_zero)
+
+        # Generate unique labels
+        copy_loop_label = f"remove_copy_{self.label_counter}"
+        skip_removed_label = f"remove_skip_{self.label_counter}"
+        copy_element_label = f"remove_element_{self.label_counter}"
+        remove_done_label = f"remove_done_{self.label_counter}"
+        self.label_counter += 1
+
+        # --- Main copy loop ---
+        self.add_label(copy_loop_label)
+
+        # Check if i < old_len
+        self.track_vm_instruction()
+        self.emit_opcode(Opcode.LT_R)
+        self.emit_u8(cmp_reg)
+        self.emit_u8(i_reg)
+        self.emit_u8(old_len_reg)
+
+        # If not (i >= old_len), we're done
+        self.track_vm_instruction()
+        self.emit_opcode(Opcode.JUMP_IF_NOT_R)
+        self.emit_u8(cmp_reg)
+        self.pending_jumps.append((len(self.bytecode), remove_done_label, len(self.instruction_offsets) - 1))
+        self.emit_i32(0)  # Placeholder
+
+        # Check if i == index (skip this element)
+        self.track_vm_instruction()
+        self.emit_opcode(Opcode.EQ_R)
+        self.emit_u8(cmp_reg)
+        self.emit_u8(i_reg)
+        self.emit_u8(index)
+
+        # If i == index, skip copying this element
+        self.track_vm_instruction()
+        self.emit_opcode(Opcode.JUMP_IF_R)
+        self.emit_u8(cmp_reg)
+        self.pending_jumps.append((len(self.bytecode), skip_removed_label, len(self.instruction_offsets) - 1))
+        self.emit_i32(0)  # Placeholder
+
+        # --- Copy element from old[i] to new[j] ---
+        self.add_label(copy_element_label)
+
+        # Get element from original array[i]
+        self.track_vm_instruction()
+        self.emit_opcode(Opcode.ARRAY_GET_R)
+        self.emit_u8(element_reg)
+        self.emit_u8(array)
+        self.emit_u8(i_reg)
+
+        # Set new[j] = element
+        self.track_vm_instruction()
+        self.emit_opcode(Opcode.ARRAY_SET_R)
+        self.emit_u8(new_array_reg)
+        self.emit_u8(j_reg)
+        self.emit_u8(element_reg)
+
+        # Increment j (destination index)
+        self.track_vm_instruction()
+        self.emit_opcode(Opcode.ADD_R)
+        self.emit_u8(j_reg)
+        self.emit_u8(j_reg)
+        self.emit_u8(const_one_reg)
+
+        # --- Skip removed element (just increment i) ---
+        self.add_label(skip_removed_label)
+
+        # Increment i (source index)
+        self.track_vm_instruction()
+        self.emit_opcode(Opcode.ADD_R)
+        self.emit_u8(i_reg)
+        self.emit_u8(i_reg)
+        self.emit_u8(const_one_reg)
+
+        # Jump back to loop start
+        self.track_vm_instruction()
+        self.emit_opcode(Opcode.JUMP_R)
+        self.pending_jumps.append((len(self.bytecode), copy_loop_label, len(self.instruction_offsets) - 1))
+        self.emit_i32(0)  # Placeholder
+
+        # --- Replace original array with new array ---
+        self.add_label(remove_done_label)
+
+        # Move new array to original array register
+        self.track_vm_instruction()
+        self.emit_opcode(Opcode.MOVE_R)
+        self.emit_u8(array)
+        self.emit_u8(new_array_reg)
+
         if self.debug:
-            array = self.get_register(inst.array)
-            index = self.get_register(inst.index)
-            print(f"  -> ArrayRemove: r{array}.remove_at(r{index}) - TODO: needs implementation")
+            print(f"  -> Generated ArrayRemove: r{array}.remove_at(r{index}) using copy emulation")
 
     def generate_array_insert(self, inst: ArrayInsert) -> None:
-        """Generate array insert at index.
+        """Generate array insert at index using copy emulation.
 
-        This requires shifting elements and needs VM support.
+        Emulates array.insert(index, value) by:
+        1. Get original array length
+        2. Create new array with length + 1
+        3. Copy elements [0:index] to new array
+        4. Set new[index] = value
+        5. Copy elements [index:] to new[index+1:]
+        6. Replace original array with new array
         """
-        # TODO: This needs actual VM support or complex instruction sequence
+        array = self.get_register(inst.array)
+        index = self.get_register(inst.index)
+        value = self.get_register(inst.value)
+
+        # Allocate temporary registers
+        old_len_reg = 248  # Original length
+        new_len_reg = 249  # New length (old + 1)
+        new_array_reg = 250  # New array
+        i_reg = 251  # Loop counter
+        element_reg = 252  # Temporary for element
+        cmp_reg = 253  # Comparison result
+        const_one_reg = 254  # Constant 1
+
+        # Get original array length
+        self.track_vm_instruction()
+        self.emit_opcode(Opcode.ARRAY_LEN_R)
+        self.emit_u8(old_len_reg)
+        self.emit_u8(array)
+
+        # Calculate new length (old + 1)
+        const_one = self.add_constant(1)
+        self.track_vm_instruction()
+        self.emit_opcode(Opcode.LOAD_CONST_R)
+        self.emit_u8(const_one_reg)
+        self.emit_u16(const_one)
+
+        self.track_vm_instruction()
+        self.emit_opcode(Opcode.ADD_R)
+        self.emit_u8(new_len_reg)
+        self.emit_u8(old_len_reg)
+        self.emit_u8(const_one_reg)
+
+        # Create new array with new length
+        self.track_vm_instruction()
+        self.emit_opcode(Opcode.NEW_ARRAY_R)
+        self.emit_u8(new_array_reg)
+        self.emit_u8(new_len_reg)
+
+        # Initialize loop counter to 0
+        const_zero = self.add_constant(0)
+        self.track_vm_instruction()
+        self.emit_opcode(Opcode.LOAD_CONST_R)
+        self.emit_u8(i_reg)
+        self.emit_u16(const_zero)
+
+        # Generate unique labels
+        copy_before_label = f"insert_copy_before_{self.label_counter}"
+        copy_after_label = f"insert_copy_after_{self.label_counter}"
+        insert_done_label = f"insert_done_{self.label_counter}"
+        self.label_counter += 1
+
+        # --- Copy elements before insertion point ---
+        self.add_label(copy_before_label)
+
+        # Check if i < index
+        self.track_vm_instruction()
+        self.emit_opcode(Opcode.LT_R)
+        self.emit_u8(cmp_reg)
+        self.emit_u8(i_reg)
+        self.emit_u8(index)
+
+        # If not (i >= index), skip to insert value
+        self.track_vm_instruction()
+        self.emit_opcode(Opcode.JUMP_IF_NOT_R)
+        self.emit_u8(cmp_reg)
+        self.pending_jumps.append((len(self.bytecode), copy_after_label, len(self.instruction_offsets) - 1))
+        self.emit_i32(0)  # Placeholder
+
+        # Get element from original array
+        self.track_vm_instruction()
+        self.emit_opcode(Opcode.ARRAY_GET_R)
+        self.emit_u8(element_reg)
+        self.emit_u8(array)
+        self.emit_u8(i_reg)
+
+        # Set element in new array at same position
+        self.track_vm_instruction()
+        self.emit_opcode(Opcode.ARRAY_SET_R)
+        self.emit_u8(new_array_reg)
+        self.emit_u8(i_reg)
+        self.emit_u8(element_reg)
+
+        # Increment i
+        self.track_vm_instruction()
+        self.emit_opcode(Opcode.ADD_R)
+        self.emit_u8(i_reg)
+        self.emit_u8(i_reg)
+        self.emit_u8(const_one_reg)
+
+        # Jump back to loop start
+        self.track_vm_instruction()
+        self.emit_opcode(Opcode.JUMP_R)
+        self.pending_jumps.append((len(self.bytecode), copy_before_label, len(self.instruction_offsets) - 1))
+        self.emit_i32(0)  # Placeholder
+
+        # --- Insert the value at index ---
+        self.add_label(copy_after_label)
+
+        # Set new[index] = value
+        self.track_vm_instruction()
+        self.emit_opcode(Opcode.ARRAY_SET_R)
+        self.emit_u8(new_array_reg)
+        self.emit_u8(index)
+        self.emit_u8(value)
+
+        # Reset i to index for copying remaining elements
+        self.track_vm_instruction()
+        self.emit_opcode(Opcode.MOVE_R)
+        self.emit_u8(i_reg)
+        self.emit_u8(index)
+
+        # --- Copy elements after insertion point ---
+        copy_rest_label = f"insert_copy_rest_{self.label_counter - 1}"
+        self.add_label(copy_rest_label)
+
+        # Check if i < old_len
+        self.track_vm_instruction()
+        self.emit_opcode(Opcode.LT_R)
+        self.emit_u8(cmp_reg)
+        self.emit_u8(i_reg)
+        self.emit_u8(old_len_reg)
+
+        # If not (i >= old_len), we're done
+        self.track_vm_instruction()
+        self.emit_opcode(Opcode.JUMP_IF_NOT_R)
+        self.emit_u8(cmp_reg)
+        self.pending_jumps.append((len(self.bytecode), insert_done_label, len(self.instruction_offsets) - 1))
+        self.emit_i32(0)  # Placeholder
+
+        # Get element from original array[i]
+        self.track_vm_instruction()
+        self.emit_opcode(Opcode.ARRAY_GET_R)
+        self.emit_u8(element_reg)
+        self.emit_u8(array)
+        self.emit_u8(i_reg)
+
+        # Calculate destination index (i + 1) using element_reg temporarily
+        self.track_vm_instruction()
+        self.emit_opcode(Opcode.ADD_R)
+        self.emit_u8(element_reg)
+        self.emit_u8(i_reg)
+        self.emit_u8(const_one_reg)
+
+        # Get element from original array[i] again (since we overwrote element_reg)
+        self.track_vm_instruction()
+        self.emit_opcode(Opcode.ARRAY_GET_R)
+        self.emit_u8(cmp_reg)  # Use cmp_reg temporarily for the element
+        self.emit_u8(array)
+        self.emit_u8(i_reg)
+
+        # Set new[i+1] = element
+        self.track_vm_instruction()
+        self.emit_opcode(Opcode.ARRAY_SET_R)
+        self.emit_u8(new_array_reg)
+        self.emit_u8(element_reg)  # This is i+1
+        self.emit_u8(cmp_reg)  # This is the element
+
+        # Increment i
+        self.track_vm_instruction()
+        self.emit_opcode(Opcode.ADD_R)
+        self.emit_u8(i_reg)
+        self.emit_u8(i_reg)
+        self.emit_u8(const_one_reg)
+
+        # Jump back to copy rest loop
+        self.track_vm_instruction()
+        self.emit_opcode(Opcode.JUMP_R)
+        self.pending_jumps.append((len(self.bytecode), copy_rest_label, len(self.instruction_offsets) - 1))
+        self.emit_i32(0)  # Placeholder
+
+        # --- Replace original array with new array ---
+        self.add_label(insert_done_label)
+
+        # Move new array to original array register
+        self.track_vm_instruction()
+        self.emit_opcode(Opcode.MOVE_R)
+        self.emit_u8(array)
+        self.emit_u8(new_array_reg)
+
         if self.debug:
-            array = self.get_register(inst.array)
-            index = self.get_register(inst.index)
-            value = self.get_register(inst.value)
-            print(f"  -> ArrayInsert: r{array}.insert(r{index}, r{value}) - TODO: needs implementation")
+            print(f"  -> Generated ArrayInsert: r{array}.insert(r{index}, r{value}) using copy emulation")
 
     def generate_dict_keys(self, inst: DictKeys) -> None:
         """Generate dictionary keys extraction.
@@ -1325,16 +1655,131 @@ class RegisterBytecodeGenerator:
             print(f"  -> Generated ArrayClear: r{array}.clear() as new_array(0)")
 
     def generate_array_find_index(self, inst: ArrayFindIndex) -> None:
-        """Generate array find index by value.
+        """Generate array find index by value using loop emulation.
 
-        This is complex and requires iteration. Needs VM support.
+        Emulates array.find(value) by iterating through the array:
+        1. Get array length
+        2. Initialize index to 0
+        3. Loop through array:
+           - Get element at current index
+           - Compare with target value
+           - If equal, store index and exit
+           - Otherwise increment index and continue
+        4. If not found, store -1
         """
-        # TODO: This needs actual VM support or complex instruction sequence
+        dest = self.get_register(inst.dest)
+        array = self.get_register(inst.array)
+        value = self.get_register(inst.value)
+
+        # Allocate temporary registers
+        length_reg = 250  # Array length
+        index_reg = 251  # Current index
+        element_reg = 252  # Current element
+        cmp_reg = 253  # Comparison result
+
+        # Generate unique labels for this loop
+        loop_start_label = f"find_loop_{self.label_counter}"
+        loop_end_label = f"find_end_{self.label_counter}"
+        found_label = f"find_found_{self.label_counter}"
+        self.label_counter += 1
+
+        # Get array length
+        self.track_vm_instruction()
+        self.emit_opcode(Opcode.ARRAY_LEN_R)
+        self.emit_u8(length_reg)
+        self.emit_u8(array)
+
+        # Initialize index to 0
+        const_idx = self.add_constant(0)
+        self.track_vm_instruction()
+        self.emit_opcode(Opcode.LOAD_CONST_R)
+        self.emit_u8(index_reg)
+        self.emit_u16(const_idx)
+
+        # Loop start
+        self.add_label(loop_start_label)
+
+        # Check if index < length
+        self.track_vm_instruction()
+        self.emit_opcode(Opcode.LT_R)
+        self.emit_u8(cmp_reg)
+        self.emit_u8(index_reg)
+        self.emit_u8(length_reg)
+
+        # If not (index >= length), jump to end (not found)
+        self.track_vm_instruction()
+        self.emit_opcode(Opcode.JUMP_IF_NOT_R)
+        self.emit_u8(cmp_reg)
+        self.pending_jumps.append((len(self.bytecode), loop_end_label, len(self.instruction_offsets) - 1))
+        self.emit_i32(0)  # Placeholder
+
+        # Get element at current index
+        self.track_vm_instruction()
+        self.emit_opcode(Opcode.ARRAY_GET_R)
+        self.emit_u8(element_reg)
+        self.emit_u8(array)
+        self.emit_u8(index_reg)
+
+        # Compare element with target value
+        self.track_vm_instruction()
+        self.emit_opcode(Opcode.EQ_R)
+        self.emit_u8(cmp_reg)
+        self.emit_u8(element_reg)
+        self.emit_u8(value)
+
+        # If equal, jump to found
+        self.track_vm_instruction()
+        self.emit_opcode(Opcode.JUMP_IF_R)
+        self.emit_u8(cmp_reg)
+        self.pending_jumps.append((len(self.bytecode), found_label, len(self.instruction_offsets) - 1))
+        self.emit_i32(0)  # Placeholder
+
+        # Increment index
+        const_one = self.add_constant(1)
+        self.track_vm_instruction()
+        self.emit_opcode(Opcode.LOAD_CONST_R)
+        self.emit_u8(element_reg)  # Reuse element_reg for constant 1
+        self.emit_u16(const_one)
+
+        self.track_vm_instruction()
+        self.emit_opcode(Opcode.ADD_R)
+        self.emit_u8(index_reg)
+        self.emit_u8(index_reg)
+        self.emit_u8(element_reg)
+
+        # Jump back to loop start
+        self.track_vm_instruction()
+        self.emit_opcode(Opcode.JUMP_R)
+        self.pending_jumps.append((len(self.bytecode), loop_start_label, len(self.instruction_offsets) - 1))
+        self.emit_i32(0)  # Placeholder
+
+        # Found label - copy index to dest
+        self.add_label(found_label)
+        self.track_vm_instruction()
+        self.emit_opcode(Opcode.MOVE_R)
+        self.emit_u8(dest)
+        self.emit_u8(index_reg)
+
+        # Jump to end (skip not found case)
+        end_jump_label = f"find_exit_{self.label_counter - 1}"
+        self.track_vm_instruction()
+        self.emit_opcode(Opcode.JUMP_R)
+        self.pending_jumps.append((len(self.bytecode), end_jump_label, len(self.instruction_offsets) - 1))
+        self.emit_i32(0)  # Placeholder
+
+        # Not found - set dest to -1
+        self.add_label(loop_end_label)
+        const_neg_one = self.add_constant(-1)
+        self.track_vm_instruction()
+        self.emit_opcode(Opcode.LOAD_CONST_R)
+        self.emit_u8(dest)
+        self.emit_u16(const_neg_one)
+
+        # Exit label
+        self.add_label(end_jump_label)
+
         if self.debug:
-            dest = self.get_register(inst.dest)
-            array = self.get_register(inst.array)
-            value = self.get_register(inst.value)
-            print(f"  -> ArrayFindIndex: r{dest} = r{array}.find_index(r{value}) - TODO: needs implementation")
+            print(f"  -> Generated ArrayFindIndex: r{dest} = find_index(r{array}, r{value}) using loop emulation")
 
 
 class MetadataCollector:

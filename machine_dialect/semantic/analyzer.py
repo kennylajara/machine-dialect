@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from machine_dialect.ast import (
+    CollectionAccessExpression,
     CollectionMutationStatement,
     DefineStatement,
     EmptyLiteral,
@@ -15,16 +16,20 @@ from machine_dialect.ast import (
     FloatLiteral,
     Identifier,
     InfixExpression,
+    NamedListLiteral,
+    OrderedListLiteral,
     PrefixExpression,
     Program,
     SetStatement,
     Statement,
     StringLiteral,
+    UnorderedListLiteral,
     URLLiteral,
     WholeNumberLiteral,
     YesNoLiteral,
 )
-from machine_dialect.errors.exceptions import MDException, MDNameError, MDTypeError, MDUninitializedError
+from machine_dialect.errors.exceptions import MDException, MDNameError, MDTypeError, MDUninitializedError, MDValueError
+from machine_dialect.errors.messages import ErrorTemplate
 from machine_dialect.parser.parser import TYPING_MAP
 from machine_dialect.parser.symbol_table import SymbolTable
 from machine_dialect.semantic.error_messages import ErrorMessageGenerator
@@ -476,6 +481,10 @@ class SemanticAnalyzer:
                 )
                 self.errors.append(MDUninitializedError(error_msg, expr.token.line, expr.token.position))
 
+        # Check collection access
+        elif isinstance(expr, CollectionAccessExpression):
+            self._analyze_collection_access(expr)
+
         return type_info
 
     def _infer_expression_type(self, expr: Expression) -> TypeInfo | None:
@@ -614,17 +623,130 @@ class SemanticAnalyzer:
             return None
 
         # List literals - collections
-        elif hasattr(expr, "__class__"):
-            class_name = expr.__class__.__name__
-            if class_name == "UnorderedListLiteral":
-                return TypeInfo("Unordered List")
-            elif class_name == "OrderedListLiteral":
-                return TypeInfo("Ordered List")
-            elif class_name == "NamedListLiteral":
-                return TypeInfo("Named List")
+        elif isinstance(expr, UnorderedListLiteral):
+            return TypeInfo(
+                "Unordered List", is_literal=True, literal_value=expr.elements if hasattr(expr, "elements") else []
+            )
+        elif isinstance(expr, OrderedListLiteral):
+            return TypeInfo(
+                "Ordered List", is_literal=True, literal_value=expr.elements if hasattr(expr, "elements") else []
+            )
+        elif isinstance(expr, NamedListLiteral):
+            return TypeInfo(
+                "Named List", is_literal=True, literal_value=expr.entries if hasattr(expr, "entries") else {}
+            )
+
+        # Collection access
+        elif isinstance(expr, CollectionAccessExpression):
+            # The return type depends on the collection being accessed
+            # For now, return a generic type
+            return TypeInfo("Any")
 
         # Error expressions always have unknown type
         elif isinstance(expr, ErrorExpression):
             return None
 
         return None
+
+    def _analyze_collection_access(self, expr: CollectionAccessExpression) -> None:
+        """Analyze collection access for bounds and type checking.
+
+        Args:
+            expr: CollectionAccessExpression to analyze
+        """
+        # First, analyze the collection being accessed
+        if expr.collection:
+            collection_type = self._infer_expression_type(expr.collection)
+
+            # Check if we're accessing a non-collection
+            if collection_type and collection_type.type_name not in ["Unordered List", "Ordered List", "Named List"]:
+                error_msg = ErrorTemplate(
+                    f"Cannot access elements of non-collection type '{collection_type.type_name}'"
+                )
+                self.errors.append(MDTypeError(error_msg, expr.token.line, expr.token.position))
+                return
+
+            # Special case: if collection is an identifier that was defined but never set, it's empty
+            if isinstance(expr.collection, Identifier):
+                var_info = self.symbol_table.lookup(expr.collection.value)
+                if var_info and not var_info.initialized:
+                    # Variable defined but not initialized means it's empty
+                    if var_info.type_spec[0] in ["Unordered List", "Ordered List", "Named List"]:
+                        error_msg = ErrorTemplate(f"Cannot access elements from empty list '{expr.collection.value}'")
+                        self.errors.append(MDValueError(error_msg, expr.token.line, expr.token.position))
+                        return
+
+            # If the collection is a literal with known elements, check bounds
+            if collection_type and collection_type.is_literal and collection_type.literal_value is not None:
+                elements = collection_type.literal_value
+
+                # Check for empty collection access
+                if isinstance(elements, list) and len(elements) == 0:
+                    error_msg = ErrorTemplate("Cannot access elements from an empty list")
+                    self.errors.append(MDValueError(error_msg, expr.token.line, expr.token.position))
+                    return
+
+                # Check bounds for numeric/ordinal access
+                if expr.access_type in ["numeric", "ordinal"]:
+                    # Try to get the index value
+                    if expr.accessor:
+                        # Only call _infer_expression_type if accessor is an Expression
+                        if isinstance(expr.accessor, Expression):
+                            accessor_type = self._infer_expression_type(expr.accessor)
+                        else:
+                            # For str/int accessors, create a TypeInfo directly
+                            if isinstance(expr.accessor, int):
+                                accessor_type = TypeInfo("Whole Number", is_literal=True, literal_value=expr.accessor)
+                            elif isinstance(expr.accessor, str):
+                                accessor_type = TypeInfo("Text", is_literal=True, literal_value=expr.accessor)
+                            else:
+                                accessor_type = None
+
+                        # Check for zero or negative index
+                        if accessor_type and accessor_type.is_literal and accessor_type.literal_value is not None:
+                            index_value = accessor_type.literal_value
+
+                            # Handle ordinal keywords
+                            if expr.access_type == "ordinal" and isinstance(expr.accessor, (str, Expression)):
+                                # For ordinal access, accessor is a string like "first", "second"
+                                if isinstance(expr.accessor, str):
+                                    accessor_str = expr.accessor
+                                elif hasattr(expr.accessor, "value"):
+                                    accessor_str = expr.accessor.value
+                                else:
+                                    accessor_str = str(expr.accessor)
+
+                                if accessor_str == "first":
+                                    index_value = 1
+                                elif accessor_str == "second":
+                                    index_value = 2
+                                elif accessor_str == "third":
+                                    index_value = 3
+                                elif accessor_str == "last":
+                                    if len(elements) == 0:
+                                        error_msg = ErrorTemplate("Cannot access 'last' element of an empty list")
+                                        self.errors.append(
+                                            MDValueError(error_msg, expr.token.line, expr.token.position)
+                                        )
+                                        return
+                                    index_value = len(elements)
+
+                            # Check for invalid indices
+                            if isinstance(index_value, (int, float)):
+                                if index_value <= 0:
+                                    error_msg = ErrorTemplate(
+                                        f"Invalid index {index_value}: Machine Dialect uses one-based "
+                                        "indexing (indices start at 1)"
+                                    )
+                                    self.errors.append(MDValueError(error_msg, expr.token.line, expr.token.position))
+                                    return
+                                elif isinstance(elements, list) and index_value > len(elements):
+                                    error_msg = ErrorTemplate(
+                                        f"Index {index_value} is out of bounds for list with {len(elements)} elements"
+                                    )
+                                    self.errors.append(MDValueError(error_msg, expr.token.line, expr.token.position))
+                                    return
+
+            # Also analyze the accessor expression itself if it's an Expression
+            if expr.accessor and isinstance(expr.accessor, Expression):
+                self._analyze_expression(expr.accessor)

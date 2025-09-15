@@ -560,6 +560,183 @@ impl VM {
                 }
             }
 
+            // Dictionary operations
+            Instruction::DictNewR { dst } => {
+                use std::collections::HashMap;
+                self.registers.set(dst, Value::Dict(Arc::new(HashMap::new())));
+            }
+
+            Instruction::DictGetR { dst, dict, key } => {
+                let dict_value = self.registers.get(dict);
+                let key_value = self.registers.get(key);
+
+                match (dict_value, key_value) {
+                    (Value::Dict(d), Value::String(k)) => {
+                        let value = d.get(k.as_ref()).cloned().unwrap_or(Value::Empty);
+                        self.registers.set(dst, value);
+                    }
+                    (Value::Dict(_), _) => {
+                        return Err(RuntimeError::TypeMismatch {
+                            expected: "string key".to_string(),
+                            found: key_value.type_of().to_string(),
+                        });
+                    }
+                    _ => {
+                        return Err(RuntimeError::TypeMismatch {
+                            expected: "dict".to_string(),
+                            found: dict_value.type_of().to_string(),
+                        });
+                    }
+                }
+            }
+
+            Instruction::DictSetR { dict, key, value } => {
+                let dict_value = self.registers.get(dict);
+                let key_value = self.registers.get(key);
+                let new_value = self.registers.get(value).clone();
+
+                match (dict_value, key_value) {
+                    (Value::Dict(d), Value::String(k)) => {
+                        // Clone the Arc and use make_mut for copy-on-write semantics
+                        let mut d_clone = d.clone();
+                        let d_mut = Arc::make_mut(&mut d_clone);
+                        d_mut.insert(k.as_ref().clone(), new_value);
+                        self.registers.set(dict, Value::Dict(d_clone));
+                    }
+                    (Value::Dict(_), _) => {
+                        return Err(RuntimeError::TypeMismatch {
+                            expected: "string key".to_string(),
+                            found: key_value.type_of().to_string(),
+                        });
+                    }
+                    _ => {
+                        return Err(RuntimeError::TypeMismatch {
+                            expected: "dict".to_string(),
+                            found: dict_value.type_of().to_string(),
+                        });
+                    }
+                }
+            }
+
+            Instruction::DictRemoveR { dict, key } => {
+                let dict_value = self.registers.get(dict);
+                let key_value = self.registers.get(key);
+
+                match (dict_value, key_value) {
+                    (Value::Dict(d), Value::String(k)) => {
+                        let mut d_clone = d.clone();
+                        let d_mut = Arc::make_mut(&mut d_clone);
+                        d_mut.remove(k.as_ref());
+                        self.registers.set(dict, Value::Dict(d_clone));
+                    }
+                    (Value::Dict(_), _) => {
+                        return Err(RuntimeError::TypeMismatch {
+                            expected: "string key".to_string(),
+                            found: key_value.type_of().to_string(),
+                        });
+                    }
+                    _ => {
+                        return Err(RuntimeError::TypeMismatch {
+                            expected: "dict".to_string(),
+                            found: dict_value.type_of().to_string(),
+                        });
+                    }
+                }
+            }
+
+            Instruction::DictContainsR { dst, dict, key } => {
+                let dict_value = self.registers.get(dict);
+                let key_value = self.registers.get(key);
+
+                match (dict_value, key_value) {
+                    (Value::Dict(d), Value::String(k)) => {
+                        let contains = d.contains_key(k.as_ref());
+                        self.registers.set(dst, Value::Bool(contains));
+                    }
+                    (Value::Dict(_), _) => {
+                        return Err(RuntimeError::TypeMismatch {
+                            expected: "string key".to_string(),
+                            found: key_value.type_of().to_string(),
+                        });
+                    }
+                    _ => {
+                        return Err(RuntimeError::TypeMismatch {
+                            expected: "dict".to_string(),
+                            found: dict_value.type_of().to_string(),
+                        });
+                    }
+                }
+            }
+
+            Instruction::DictKeysR { dst, dict } => {
+                let dict_value = self.registers.get(dict);
+
+                match dict_value {
+                    Value::Dict(d) => {
+                        let keys: Vec<Value> = d.keys()
+                            .map(|k| Value::String(Arc::new(k.clone())))
+                            .collect();
+                        self.registers.set(dst, Value::Array(Arc::new(keys)));
+                    }
+                    _ => {
+                        return Err(RuntimeError::TypeMismatch {
+                            expected: "dict".to_string(),
+                            found: dict_value.type_of().to_string(),
+                        });
+                    }
+                }
+            }
+
+            Instruction::DictValuesR { dst, dict } => {
+                let dict_value = self.registers.get(dict);
+
+                match dict_value {
+                    Value::Dict(d) => {
+                        let values: Vec<Value> = d.values().cloned().collect();
+                        self.registers.set(dst, Value::Array(Arc::new(values)));
+                    }
+                    _ => {
+                        return Err(RuntimeError::TypeMismatch {
+                            expected: "dict".to_string(),
+                            found: dict_value.type_of().to_string(),
+                        });
+                    }
+                }
+            }
+
+            Instruction::DictClearR { dict } => {
+                let dict_value = self.registers.get(dict);
+
+                match dict_value {
+                    Value::Dict(_) => {
+                        use std::collections::HashMap;
+                        self.registers.set(dict, Value::Dict(Arc::new(HashMap::new())));
+                    }
+                    _ => {
+                        return Err(RuntimeError::TypeMismatch {
+                            expected: "dict".to_string(),
+                            found: dict_value.type_of().to_string(),
+                        });
+                    }
+                }
+            }
+
+            Instruction::DictLenR { dst, dict } => {
+                let dict_value = self.registers.get(dict);
+
+                match dict_value {
+                    Value::Dict(d) => {
+                        self.registers.set(dst, Value::Int(d.len() as i64));
+                    }
+                    _ => {
+                        return Err(RuntimeError::TypeMismatch {
+                            expected: "dict".to_string(),
+                            found: dict_value.type_of().to_string(),
+                        });
+                    }
+                }
+            }
+
             // Debug
             Instruction::DebugPrint { src } => {
                 let value = self.registers.get(src);

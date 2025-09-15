@@ -2,6 +2,11 @@
 
 use machine_dialect_vm::{VM, Value};
 
+// Include dictionary tests
+mod integration {
+    mod test_dict;
+}
+
 #[test]
 fn test_basic_arithmetic() {
     let vm = VM::new();

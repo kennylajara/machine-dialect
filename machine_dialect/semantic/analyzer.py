@@ -58,6 +58,10 @@ class TypeInfo:
         Returns:
             True if compatible, False otherwise
         """
+        # Any type is compatible with all types (dynamic typing)
+        if self.type_name == "Any":
+            return True
+
         # Direct type match
         if self.type_name in allowed_types:
             return True
@@ -361,8 +365,33 @@ class SemanticAnalyzer:
                 self.errors.append(MDTypeError(error_msg, stmt.token.line, stmt.token.position))
                 return
 
-        # Mark variable as initialized
+        # Mark variable as initialized and track the assigned value
         self.symbol_table.mark_initialized(var_name)
+
+        # Store the assigned value for type tracking
+        if stmt.value and var_info:
+            # Update the variable info with the assigned value
+            var_info.last_assigned_value = stmt.value
+
+            # If it's a collection literal, track element types
+            if value_type:
+                if value_type.type_name in ["Ordered List", "Unordered List", "Named List"]:
+                    if value_type.is_literal and value_type.literal_value:
+                        # Extract element types from the literal
+                        element_types = set()
+                        if isinstance(value_type.literal_value, list):
+                            for element in value_type.literal_value:
+                                elem_type = self._infer_expression_type(element)
+                                if elem_type:
+                                    element_types.add(elem_type.type_name)
+                        elif isinstance(value_type.literal_value, dict):
+                            for element in value_type.literal_value.values():
+                                elem_type = self._infer_expression_type(element)
+                                if elem_type:
+                                    element_types.add(elem_type.type_name)
+
+                        if element_types:
+                            var_info.inferred_element_types = list(element_types)
 
     def _analyze_collection_mutation_statement(self, stmt: CollectionMutationStatement) -> None:
         """Analyze a collection mutation statement.
@@ -638,8 +667,133 @@ class SemanticAnalyzer:
 
         # Collection access
         elif isinstance(expr, CollectionAccessExpression):
-            # The return type depends on the collection being accessed
-            # For now, return a generic type
+            # For collection access, we need to determine the element type
+            # In Machine Dialect, lists can contain heterogeneous types,
+            # so we can't always determine the exact type statically
+            # However, if we have type hints or can infer from context, we should use them
+
+            # For now, check if we can infer the collection type
+            if expr.collection:
+                collection_type = self._infer_expression_type(expr.collection)
+                if collection_type:
+                    # If it's a literal collection with known elements
+                    if collection_type.is_literal and collection_type.literal_value:
+                        elements = collection_type.literal_value
+
+                        # For lists, try to determine element type
+                        if isinstance(elements, list) and len(elements) > 0:
+                            # Get the accessor to determine which element
+                            if expr.accessor:
+                                # Try to get the index
+                                index = None
+                                if isinstance(expr.accessor, int):
+                                    index = expr.accessor - 1  # Convert to 0-based
+                                elif isinstance(expr.accessor, Expression):
+                                    accessor_type = self._infer_expression_type(expr.accessor)
+                                    if (
+                                        accessor_type
+                                        and accessor_type.is_literal
+                                        and isinstance(accessor_type.literal_value, int)
+                                    ):
+                                        index = accessor_type.literal_value - 1  # Convert to 0-based
+
+                                # If we know the index and it's valid
+                                if index is not None and 0 <= index < len(elements):
+                                    element = elements[index]
+                                    # Infer type of the element
+                                    if hasattr(element, "__class__"):
+                                        element_type = self._infer_expression_type(element)
+                                        if element_type:
+                                            return element_type
+
+                            # If we can't determine the specific element, check if all elements have the same type
+                            element_types = set()
+                            for element in elements:
+                                if hasattr(element, "__class__"):
+                                    elem_type = self._infer_expression_type(element)
+                                    if elem_type:
+                                        element_types.add(elem_type.type_name)
+
+                            # If all elements have the same type, return that type
+                            if len(element_types) == 1:
+                                return TypeInfo(element_types.pop())
+
+                        # For dictionaries (Named Lists)
+                        elif isinstance(elements, dict) and len(elements) > 0:
+                            # If we know the key, we can determine the value type
+                            if expr.accessor:
+                                key = None
+                                if isinstance(expr.accessor, str):
+                                    key = expr.accessor
+                                elif isinstance(expr.accessor, Expression):
+                                    accessor_type = self._infer_expression_type(expr.accessor)
+                                    if accessor_type and accessor_type.is_literal:
+                                        key = str(accessor_type.literal_value)
+
+                                if key and key in elements:
+                                    element = elements[key]
+                                    if hasattr(element, "__class__"):
+                                        element_type = self._infer_expression_type(element)
+                                        if element_type:
+                                            return element_type
+
+                    # For non-literal collections (e.g., variables holding lists)
+                    # We need to check if the variable was set to a collection literal
+                    elif isinstance(expr.collection, Identifier):
+                        # Try to find what this variable was set to
+                        var_info = self.symbol_table.lookup(expr.collection.value)
+                        if var_info and var_info.initialized:
+                            # Check if we have tracked element types from assignment
+                            if var_info.inferred_element_types:
+                                # If all elements have the same type, return that type
+                                if len(var_info.inferred_element_types) == 1:
+                                    return TypeInfo(var_info.inferred_element_types[0])
+                                # Otherwise, we could return a union type or Any
+                                # For now, return Any for mixed types
+                                elif len(var_info.inferred_element_types) > 1:
+                                    return TypeInfo("Any")
+
+                            # If we have the last assigned value, try to infer from it
+                            elif var_info.last_assigned_value and isinstance(var_info.last_assigned_value, Expression):
+                                # Recursively infer the type of the assigned value
+                                assigned_type = self._infer_expression_type(var_info.last_assigned_value)
+                                if assigned_type and assigned_type.is_literal and assigned_type.literal_value:
+                                    # This is a literal collection, process it
+                                    elements = assigned_type.literal_value
+                                    if isinstance(elements, list) and len(elements) > 0:
+                                        # Try to get element type based on accessor
+                                        if expr.accessor:
+                                            index = None
+                                            if isinstance(expr.accessor, int):
+                                                index = expr.accessor - 1  # Convert to 0-based
+                                            elif isinstance(expr.accessor, Expression):
+                                                accessor_type = self._infer_expression_type(expr.accessor)
+                                                if (
+                                                    accessor_type
+                                                    and accessor_type.is_literal
+                                                    and isinstance(accessor_type.literal_value, int)
+                                                ):
+                                                    index = accessor_type.literal_value - 1
+
+                                            if index is not None and 0 <= index < len(elements):
+                                                element = elements[index]
+                                                element_type = self._infer_expression_type(element)
+                                                if element_type:
+                                                    return element_type
+
+                                        # Check if all elements have the same type
+                                        element_types = set()
+                                        for element in elements:
+                                            elem_type = self._infer_expression_type(element)
+                                            if elem_type:
+                                                element_types.add(elem_type.type_name)
+                                        if len(element_types) == 1:
+                                            return TypeInfo(element_types.pop())
+
+            # If we can't determine the exact type, return Any
+            # This is valid since Machine Dialect allows heterogeneous collections
+            # But we should try to be more specific when possible
+            # For now, return a more flexible type that won't cause type errors
             return TypeInfo("Any")
 
         # Error expressions always have unknown type

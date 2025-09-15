@@ -67,7 +67,7 @@ impl RustVM {
     /// Convert a Rust value to Python
     fn value_to_python(&self, py: Python<'_>, value: &crate::values::Value) -> PyObject {
         use crate::values::Value;
-        use pyo3::types::PyList;
+        use pyo3::types::{PyList, PyDict};
 
         match value {
             Value::Empty => py.None(),
@@ -82,6 +82,13 @@ impl RustVM {
                     .map(|v| self.value_to_python(py, v))
                     .collect();
                 PyList::new_bound(py, items).into_py(py)
+            }
+            Value::Dict(dict) => {
+                let py_dict = PyDict::new_bound(py);
+                for (key, val) in dict.iter() {
+                    py_dict.set_item(key, self.value_to_python(py, val)).unwrap();
+                }
+                py_dict.into_py(py)
             }
         }
     }

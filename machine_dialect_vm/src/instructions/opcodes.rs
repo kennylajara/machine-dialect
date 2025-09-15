@@ -120,6 +120,26 @@ pub enum Instruction {
 
     // No operation (for optimization)
     Nop,
+
+    // Dictionary Operations
+    /// Create new dictionary: r[dst] = new Dict()
+    DictNewR { dst: u8 },
+    /// Dictionary get: r[dst] = r[dict][r[key]]
+    DictGetR { dst: u8, dict: u8, key: u8 },
+    /// Dictionary set: r[dict][r[key]] = r[value]
+    DictSetR { dict: u8, key: u8, value: u8 },
+    /// Dictionary remove: del r[dict][r[key]]
+    DictRemoveR { dict: u8, key: u8 },
+    /// Dictionary contains: r[dst] = r[key] in r[dict]
+    DictContainsR { dst: u8, dict: u8, key: u8 },
+    /// Dictionary keys: r[dst] = r[dict].keys()
+    DictKeysR { dst: u8, dict: u8 },
+    /// Dictionary values: r[dst] = r[dict].values()
+    DictValuesR { dst: u8, dict: u8 },
+    /// Dictionary clear: r[dict].clear()
+    DictClearR { dict: u8 },
+    /// Dictionary length: r[dst] = len(r[dict])
+    DictLenR { dst: u8, dict: u8 },
 }
 
 impl Instruction {
@@ -184,6 +204,17 @@ impl Instruction {
             Instruction::BreakPoint => 1,         // opcode
             Instruction::Halt => 1,                // opcode
             Instruction::Nop => 1,                 // opcode
+
+            // Dictionary operations
+            Instruction::DictNewR { .. } => 2,       // opcode + dst
+            Instruction::DictGetR { .. } => 4,       // opcode + dst + dict + key
+            Instruction::DictSetR { .. } => 4,       // opcode + dict + key + value
+            Instruction::DictRemoveR { .. } => 3,    // opcode + dict + key
+            Instruction::DictContainsR { .. } => 4,  // opcode + dst + dict + key
+            Instruction::DictKeysR { .. } => 3,      // opcode + dst + dict
+            Instruction::DictValuesR { .. } => 3,    // opcode + dst + dict
+            Instruction::DictClearR { .. } => 2,     // opcode + dict
+            Instruction::DictLenR { .. } => 3,       // opcode + dst + dict
         }
     }
 }

@@ -1305,8 +1305,9 @@ class Parser:
         else:
             property_name = property_literal
 
-        # Skip the property name
-        self._advance_tokens()
+        # Note: We do NOT advance past the property name here.
+        # Expression parsers should leave current_token AT the last token of the expression,
+        # not after it. The caller will advance when needed.
 
         # Create a collection access expression with property access type
         return CollectionAccessExpression(

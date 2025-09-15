@@ -24,6 +24,8 @@ pub enum Type {
     URL,
     /// Array type
     Array,
+    /// Dictionary type
+    Dict,
     /// Unknown type (for type inference)
     Unknown,
 }
@@ -89,6 +91,7 @@ impl fmt::Display for Type {
             Type::Function => write!(f, "function"),
             Type::URL => write!(f, "url"),
             Type::Array => write!(f, "array"),
+            Type::Dict => write!(f, "dict"),
             Type::Unknown => write!(f, "unknown"),
         }
     }

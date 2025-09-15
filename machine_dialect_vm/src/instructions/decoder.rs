@@ -290,6 +290,54 @@ impl InstructionDecoder {
                 Ok(Instruction::Nop)
             }
 
+            // Dictionary operations
+            41 => { // DictNewR
+                let dst = cursor.read_u8()?;
+                Ok(Instruction::DictNewR { dst })
+            }
+            42 => { // DictGetR
+                let dst = cursor.read_u8()?;
+                let dict = cursor.read_u8()?;
+                let key = cursor.read_u8()?;
+                Ok(Instruction::DictGetR { dst, dict, key })
+            }
+            43 => { // DictSetR
+                let dict = cursor.read_u8()?;
+                let key = cursor.read_u8()?;
+                let value = cursor.read_u8()?;
+                Ok(Instruction::DictSetR { dict, key, value })
+            }
+            44 => { // DictRemoveR
+                let dict = cursor.read_u8()?;
+                let key = cursor.read_u8()?;
+                Ok(Instruction::DictRemoveR { dict, key })
+            }
+            45 => { // DictContainsR
+                let dst = cursor.read_u8()?;
+                let dict = cursor.read_u8()?;
+                let key = cursor.read_u8()?;
+                Ok(Instruction::DictContainsR { dst, dict, key })
+            }
+            46 => { // DictKeysR
+                let dst = cursor.read_u8()?;
+                let dict = cursor.read_u8()?;
+                Ok(Instruction::DictKeysR { dst, dict })
+            }
+            47 => { // DictValuesR
+                let dst = cursor.read_u8()?;
+                let dict = cursor.read_u8()?;
+                Ok(Instruction::DictValuesR { dst, dict })
+            }
+            48 => { // DictClearR
+                let dict = cursor.read_u8()?;
+                Ok(Instruction::DictClearR { dict })
+            }
+            49 => { // DictLenR
+                let dst = cursor.read_u8()?;
+                let dict = cursor.read_u8()?;
+                Ok(Instruction::DictLenR { dst, dict })
+            }
+
             _ => Err(RuntimeError::InvalidOpcode(opcode).into()),
         }
     }

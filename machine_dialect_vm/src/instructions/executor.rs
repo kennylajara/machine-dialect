@@ -52,6 +52,17 @@ impl InstructionExecutor {
             Instruction::BreakPoint => 38,
             Instruction::Halt => 39,
             Instruction::Nop => 40,
+
+            // Dictionary operations
+            Instruction::DictNewR { .. } => 41,
+            Instruction::DictGetR { .. } => 42,
+            Instruction::DictSetR { .. } => 43,
+            Instruction::DictRemoveR { .. } => 44,
+            Instruction::DictContainsR { .. } => 45,
+            Instruction::DictKeysR { .. } => 46,
+            Instruction::DictValuesR { .. } => 47,
+            Instruction::DictClearR { .. } => 48,
+            Instruction::DictLenR { .. } => 49,
         }
     }
 }

@@ -3,6 +3,7 @@
 //! This module defines the Value enum which represents all possible values
 //! in the Machine Dialect™ VM.
 
+use std::collections::HashMap;
 use std::fmt;
 use std::sync::Arc;
 
@@ -39,6 +40,8 @@ pub enum Value {
     URL(Arc<String>),
     /// Array value (reference-counted)
     Array(Arc<Vec<Value>>),
+    /// Dictionary value (reference-counted)
+    Dict(Arc<HashMap<String, Value>>),
 }
 
 impl Value {
@@ -53,6 +56,7 @@ impl Value {
             Value::Function(_) => Type::Function,
             Value::URL(_) => Type::URL,
             Value::Array(_) => Type::Array,
+            Value::Dict(_) => Type::Dict,
         }
     }
 
@@ -65,6 +69,7 @@ impl Value {
             Value::Float(f) => *f != 0.0 && !f.is_nan(),
             Value::String(s) => !s.is_empty(),
             Value::Array(a) => !a.is_empty(),
+            Value::Dict(d) => !d.is_empty(),
             _ => true,
         }
     }
@@ -128,6 +133,12 @@ impl Value {
                 let items: Vec<String> = a.iter().map(|v| v.to_string()).collect();
                 format!("[{}]", items.join(", "))
             }
+            Value::Dict(d) => {
+                let items: Vec<String> = d.iter()
+                    .map(|(k, v)| format!("{}: {}", k, v.to_string()))
+                    .collect();
+                format!("{{{}}}", items.join(", "))
+            }
         }
     }
 }
@@ -146,6 +157,7 @@ impl PartialEq for Value {
             (Value::URL(a), Value::URL(b)) => a == b,
             (Value::Function(a), Value::Function(b)) => a == b,
             (Value::Array(a), Value::Array(b)) => a == b,
+            (Value::Dict(a), Value::Dict(b)) => a == b,
             // Cross-type comparisons
             (Value::Int(a), Value::Float(b)) | (Value::Float(b), Value::Int(a)) => {
                 *a as f64 == *b && !b.is_nan()

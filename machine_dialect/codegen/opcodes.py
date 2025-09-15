@@ -67,22 +67,22 @@ class Opcode(IntEnum):
     ARRAY_SET_R = 35  # ArraySetR { array: u8, index: u8, value: u8 }
     ARRAY_LEN_R = 36  # ArrayLenR { dst: u8, array: u8 }
 
-    # Dictionaries (37-43)
-    DICT_NEW_R = 37  # DictNewR { dst: u8 }
-    DICT_GET_R = 38  # DictGetR { dst: u8, dict: u8, key: u8 }
-    DICT_SET_R = 39  # DictSetR { dict: u8, key: u8, value: u8 }
-    DICT_HAS_KEY_R = 40  # DictHasKeyR { dst: u8, dict: u8, key: u8 }
-    DICT_REMOVE_R = 41  # DictRemoveR { dict: u8, key: u8 }
-    DICT_KEYS_R = 42  # DictKeysR { dst: u8, dict: u8 }
-    DICT_VALUES_R = 43  # DictValuesR { dst: u8, dict: u8 }
+    # Debug (37-40)
+    DEBUG_PRINT = 37  # DebugPrint { src: u8 }
+    BREAKPOINT = 38  # BreakPoint
+    HALT = 39  # Halt execution
+    NOP = 40  # No operation
 
-    # Debug (44-45)
-    DEBUG_PRINT = 44  # DebugPrint { src: u8 }
-    BREAKPOINT = 45  # BreakPoint
-
-    # System (46-47)
-    HALT = 46  # Halt execution
-    NOP = 47  # No operation
+    # Dictionaries (41-49) - Now match VM implementation
+    DICT_NEW_R = 41  # DictNewR { dst: u8 }
+    DICT_GET_R = 42  # DictGetR { dst: u8, dict: u8, key: u8 }
+    DICT_SET_R = 43  # DictSetR { dict: u8, key: u8, value: u8 }
+    DICT_REMOVE_R = 44  # DictRemoveR { dict: u8, key: u8 }
+    DICT_CONTAINS_R = 45  # DictContainsR { dst: u8, dict: u8, key: u8 }
+    DICT_KEYS_R = 46  # DictKeysR { dst: u8, dict: u8 }
+    DICT_VALUES_R = 47  # DictValuesR { dst: u8, dict: u8 }
+    DICT_CLEAR_R = 48  # DictClearR { dict: u8 }
+    DICT_LEN_R = 49  # DictLenR { dst: u8, dict: u8 }
 
 
 # Type IDs for type operations

@@ -29,6 +29,7 @@ from machine_dialect.mir.mir_instructions import (
     Call,
     ConditionalJump,
     Copy,
+    DictClear,
     DictContains,
     DictCreate,
     DictGet,
@@ -375,6 +376,8 @@ class RegisterBytecodeGenerator:
             self.generate_dict_keys(inst)
         elif isinstance(inst, DictValues):
             self.generate_dict_values(inst)
+        elif isinstance(inst, DictClear):
+            self.generate_dict_clear(inst)
         elif isinstance(inst, Scope):
             self.generate_scope(inst)
         elif isinstance(inst, Print):
@@ -1240,13 +1243,13 @@ class RegisterBytecodeGenerator:
         key_reg = self.get_register(inst.key)
 
         self.track_vm_instruction()
-        self.emit_opcode(Opcode.DICT_HAS_KEY_R)
+        self.emit_opcode(Opcode.DICT_CONTAINS_R)
         self.emit_u8(dst)
         self.emit_u8(dict_reg)
         self.emit_u8(key_reg)
 
         if self.debug:
-            print(f"  -> Generated DictHasKeyR: r{dst} = r{key_reg} in r{dict_reg}")
+            print(f"  -> Generated DictContainsR: r{dst} = r{key_reg} in r{dict_reg}")
 
     def generate_array_remove(self, inst: ArrayRemove) -> None:
         """Generate array remove at index using copy emulation.
@@ -1627,6 +1630,22 @@ class RegisterBytecodeGenerator:
 
         if self.debug:
             print(f"  -> Generated DictValuesR: r{dst} = r{dict_reg}.values()")
+
+    def generate_dict_clear(self, inst: DictClear) -> None:
+        """Generate DictClearR instruction.
+
+        Args:
+            inst: DictClear instruction.
+        """
+        dict_reg = self.get_register(inst.dict_val)
+
+        # Emit DictClearR instruction
+        self.track_vm_instruction()
+        self.emit_opcode(Opcode.DICT_CLEAR_R)
+        self.emit_u8(dict_reg)
+
+        if self.debug:
+            print(f"  -> Generated DictClearR: r{dict_reg}.clear()")
 
     def generate_array_clear(self, inst: ArrayClear) -> None:
         """Generate array clear.

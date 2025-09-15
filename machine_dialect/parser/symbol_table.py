@@ -6,6 +6,10 @@ type checking for variable assignments.
 """
 
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from machine_dialect.ast import ASTNode
 
 
 @dataclass
@@ -19,6 +23,8 @@ class VariableInfo:
         definition_line: Line number where variable was defined
         definition_pos: Column position where variable was defined
         return_type: For functions, the return type (optional)
+        last_assigned_value: The last value assigned to this variable (for type tracking)
+        inferred_element_types: For collections, the inferred element types
     """
 
     type_spec: list[str]
@@ -27,6 +33,8 @@ class VariableInfo:
     definition_line: int = 0
     definition_pos: int = 0
     return_type: str | None = None
+    last_assigned_value: "ASTNode | None" = None  # Stores the AST node of the last assigned value
+    inferred_element_types: list[str] | None = None  # For tracking collection element types
 
     def allows_type(self, type_name: str) -> bool:
         """Check if this variable allows the given type.

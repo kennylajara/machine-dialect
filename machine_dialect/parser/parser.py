@@ -2850,7 +2850,9 @@ class Parser:
         # Now expect <details> tag - should be at current position
         if not self._current_token or self._current_token.type != TokenType.TAG_DETAILS_START:
             return self._report_error_and_recover(
-                template=EXPECTED_TOKEN, expected_token=TokenType.TAG_DETAILS_START, token="<details> tag"
+                template=EXPECTED_TOKEN,
+                token="<details> tag",
+                got_token_type=self._current_token.type.name if self._current_token else "EOF",
             )
 
         # Move past <details>

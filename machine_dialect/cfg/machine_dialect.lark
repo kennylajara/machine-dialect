@@ -10,36 +10,98 @@ program: utility_def* statement_list
        |               // Completely empty program
 
 // Utility definitions (markdown style) - parsed but treated as metadata
-utility_def: MARKDOWN_HEADER HTML_BLOCK? INPUTS_SECTION? OUTPUTS_SECTION?
+// The parser REQUIRES the HTML_BLOCK (details/summary), so it's not optional
+utility_def: MARKDOWN_HEADER HTML_BLOCK inputs_section? outputs_section?
 
-MARKDOWN_HEADER: /###\s+\*\*[^*]+\*\*:\s*`[^`]+`[^\n]*/
-HTML_BLOCK: /<details>[\s\S]*?<\/details>/
-INPUTS_SECTION: /####\s+Inputs:[^\n]*(\n-[^\n]*)*/
-OUTPUTS_SECTION: /####\s+Outputs:[^\n]*(\n-[^\n]*)*/
+// More restrictive: must be Action, Interaction, or Utility in English
+// The line must end immediately after the closing backtick - no extra text allowed
+MARKDOWN_HEADER: /###\s+\*\*(Action|Interaction|Utility)\*\*:\s*`[^`]+`\s*$/
+// HTML_BLOCK must include details and summary tags with the implementation inside
+// The summary provides a description, and the body contains the implementation statements
+HTML_BLOCK: /<details>\s*\n<summary>[^\n]+<\/summary>\s*\n([\s\S]*?)<\/details>/
+
+// Input parameters section with proper type enforcement
+inputs_section: "####" "Inputs" ":" input_param*
+input_param: "-" BACKTICK_IDENT "**as**" type_name "(" ("required" | "optional") ")"
+
+// Output values section with proper type enforcement
+outputs_section: "####" "Outputs" ":" output_spec*
+output_spec: "-" type_name ":" /[^\n]+/
+           | "-" BACKTICK_IDENT "**as**" type_name ("(" "default" ":" expression ")")?
 
 // Allow statements with or without periods, or single expressions
 statement_list: (statement ("." statement)* "."?)
               | expression       // Bare expression
 
-statement: set_stmt
+statement: define_stmt
+         | set_stmt
          | give_back_stmt
          | say_stmt
          | tell_stmt      // Add Tell as alias for Say
          | if_stmt
          | when_stmt      // Add When as alias for If
+         | while_stmt
+         | for_each_stmt
          | use_stmt       // Use is the only function call syntax
          | action_stmt
          | interaction_stmt
+         | list_mutation_stmt  // Add list mutation operations
 
-// Statements - includes type annotations
+// Define statement for variable declaration
+define_stmt: "Define"i identifier "as"i type_name
+           | "Define"i identifier "as"i type_name "(" "default"i ":" expression ")"  // With default value
+
+// Statements - includes type annotations and list item mutations
 set_stmt: "Set"i identifier "to"i expression
         | "Set"i identifier "as"i type_name "to"i expression                   // Type annotations
+        | "Set"i identifier "to"i ":" list_literal                             // List assignment
         | "Set"i identifier "using"i identifier ("with"i expression_list)?     // Set using with positional args
         | "Set"i identifier "using"i identifier ("where"i named_args)?         // Set using with named args
+        | "Set"i ("the"i)? ordinal_position "item"i "of"i identifier "to"i expression  // Set ordinal item
+        | "Set"i "item"i expression "of"i identifier "to"i expression          // Set numeric item
 
-// Type names for type annotations
-type_name: "Integer"i | "Float"i | "Number"i | "Text"i | "String"i | "Boolean"i | "Bool"i | "URL"i | IDENTIFIER
+// Type names for type annotations - must match TYPING_MAP in parser
+type_name: "Text"i
+         | "Whole"i "Number"i
+         | "Float"i
+         | "Number"i
+         | "Yes"i "/" "No"i
+         | "URL"i
+         | "Date"i
+         | "DateTime"i
+         | "Time"i
+         | "List"i
+         | "Ordered"i "List"i
+         | "Unordered"i "List"i
+         | "Named"i "List"i
+         | "Empty"i
 give_back_stmt: ("Give"i "back"i | "Gives"i "back"i) expression
+
+// List mutation operations
+list_mutation_stmt: add_stmt
+                  | remove_stmt
+                  | insert_stmt
+                  | clear_stmt
+                  | update_stmt
+
+// Add item to list or key-value to dictionary
+add_stmt: "Add"i expression "to"i identifier                                     // Add to list
+        | "Add"i expression "to"i identifier "with"i "value"i? expression       // Add to dictionary
+
+// Remove item from list or key from dictionary
+remove_stmt: "Remove"i expression "from"i identifier
+
+// Insert item at specific position in list
+insert_stmt: "Insert"i expression "at"i "position"i? expression "in"i identifier
+
+// Clear all items from collection
+clear_stmt: "Clear"i identifier
+
+// Update dictionary value for key
+update_stmt: "Update"i expression "in"i identifier "to"i expression
+
+// Ordinal positions (only these are supported)
+ordinal_position: "first"i | "second"i | "third"i | "last"i
 say_stmt: "Say"i expression
 tell_stmt: "Tell"i expression  // Alias for Say
 use_stmt: "Use"i identifier ("with"i expression_list)?  // Modern syntax
@@ -48,6 +110,12 @@ use_stmt: "Use"i identifier ("with"i expression_list)?  // Modern syntax
 // Support for When as alias for If
 when_stmt: "When"i expression "then"i ":" BLOCK_CONTENT? otherwise_clause?
 otherwise_clause: "Otherwise"i ":" BLOCK_CONTENT?
+
+// While loop
+while_stmt: "While"i expression ":" BLOCK_CONTENT?
+
+// For each loop
+for_each_stmt: "For"i "each"i identifier "in"i expression ":" BLOCK_CONTENT?
 
 // Action and Interaction with simplified blocks
 // For CFG validation, we'll accept the structure but not fully parse blocks
@@ -120,10 +188,35 @@ factor: "-" factor
 atom: "(" expression ")"
     | literal
     | identifier
+    | list_literal  // Inline list literals
+    | list_access   // List item access
 
-// Identifier can be plain, backtick-wrapped, or bold-wrapped
-identifier: IDENT
-          | BACKTICK_IDENT
+// Identifier must be backtick-wrapped (CFG enforces proper syntax)
+identifier: BACKTICK_IDENT
+
+// Collection access patterns
+list_access: ("the"i)? ordinal_position "item"i "of"i identifier  // the first item of `list`
+           | "item"i expression "of"i identifier                   // item _5_ of `list`
+           | identifier "'s"i identifier                           // `dict`'s name (possessive)
+           | "the"i dict_extract_type "of"i identifier             // the names/contents of `dict`
+
+// Dictionary extraction types
+dict_extract_type: "names"i | "contents"i | "keys"i | "values"i
+
+// List literals - three types of lists
+list_literal: unordered_list | ordered_list | named_list | "blank"i  // "blank" for empty list
+
+// Unordered list: dash-prefixed items with period at end
+unordered_list: ("-" expression "." )+
+
+// Ordered list: number-prefixed items with period at end
+ordered_list: (NUMBER "." expression "." )+
+
+// Named list: key-value pairs with dash prefix and colon separator
+named_list: ("-" expression ":" expression "." )+
+
+// Number for ordered lists (any positive integer)
+NUMBER: /\d+/
 
 // Literals - parse with underscores as complete tokens
 literal: LITERAL_FLOAT
@@ -137,33 +230,28 @@ literal: LITERAL_FLOAT
        | LITERAL_URL
 
 // Literal patterns - these are complete tokens including underscores
-// Higher priority than IDENT to ensure they match first
 // Support scientific notation for floats
-LITERAL_FLOAT.3: /_-?\d+\.\d+([eE][+-]?\d+)?_/ | /_-?\d+[eE][+-]?\d+_/
-LITERAL_INT.3: /_-?\d+_/
+LITERAL_FLOAT: /_-?\d+\.\d+([eE][+-]?\d+)?_/ | /_-?\d+[eE][+-]?\d+_/
+LITERAL_INT: /_-?\d+_/
 // Support single, double, and triple-quoted strings
-LITERAL_STRING.3: /_"""[\s\S]*?"""_|_'''[\s\S]*?'''_|_"(?:[^"\\]|\\.)*"_|_'(?:[^'\\]|\\.)*'_/
-LITERAL_TRUE.3: /_yes_/i
-LITERAL_FALSE.3: /_yes_/i
-LITERAL_YES.3: /_yes_/i       // Yes literal
-LITERAL_NO.3: /_no_/i         // No literal
-LITERAL_EMPTY.3: /_empty_/i
-LITERAL_URL.3: /_https?:\/\/[^\s]+_/
+LITERAL_STRING: /_"""[\s\S]*?"""_|_'''[\s\S]*?'''_|_"(?:[^"\\]|\\.)*"_|_'(?:[^'\\]|\\.)*'_/
+LITERAL_TRUE: /_true_/i
+LITERAL_FALSE: /_false_/i
+LITERAL_YES: /_yes_/i       // Yes literal
+LITERAL_NO: /_no_/i         // No literal
+LITERAL_EMPTY: /_empty_/i
+LITERAL_URL: /_https?:\/\/[^\s]+_/
 
 // Backtick identifier - can contain spaces and special characters
-BACKTICK_IDENT.2: /`[^`]+`/
+BACKTICK_IDENT: /`[^`]+`/
 
-// Use IDENT instead of IDENTIFIER to avoid conflicts with literal patterns
-IDENT: /[a-zA-Z][a-zA-Z0-9_]*|[a-zA-Z_][a-zA-Z0-9_]+/
-// This pattern ensures single underscore is not matched as identifier
-
-// For places where IDENTIFIER was used
-IDENTIFIER: IDENT
+// IDENTIFIER is used in action/interaction statements for names
+IDENTIFIER: /[a-zA-Z][a-zA-Z0-9_]*|[a-zA-Z_][a-zA-Z0-9_]+/
 
 // Block content - matches everything after : until end or next statement
 // This is a simplified approach for CFG validation
 // Supports nested blocks with multiple > markers
-BLOCK_CONTENT.2: /(\n[ \t]*>+[^\n]*)+/
+BLOCK_CONTENT: /(\n[ \t]*>+[^\n]*)+/
 
 COMMENT: /#[^\n]*/
 

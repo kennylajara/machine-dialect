@@ -321,6 +321,153 @@ def disasm(bytecode_file: str) -> None:
 @cli.command()
 @click.argument("task", nargs=-1, required=True)
 @click.option(
+    "--iterations",
+    type=int,
+    default=5,
+    help="Maximum iterations to attempt (default: 5)",
+)
+@click.option(
+    "--api-key",
+    help="AI API key (or set in .mdconfig file or MD_AI_API_KEY env var)",
+)
+@click.option(
+    "--model",
+    help="AI model to use (e.g., gpt-5). If not specified, uses .mdconfig or env vars",
+)
+@click.option(
+    "-o",
+    "--output",
+    type=click.Path(),
+    help="Save final code to file",
+)
+@click.option(
+    "--save-history",
+    type=click.Path(),
+    help="Save iteration history to JSON file",
+)
+@click.option(
+    "-q",
+    "--quiet",
+    is_flag=True,
+    help="Minimal output",
+)
+def agent(
+    task: tuple[str, ...],
+    iterations: int,
+    api_key: str | None,
+    model: str | None,
+    output: str | None,
+    save_history: str | None,
+    quiet: bool,
+) -> None:
+    """Iteratively develop Machine Dialect™ code with AI assistance.
+
+    The agent will automatically generate, compile, execute, and fix code
+    until it successfully completes the task or reaches the iteration limit.
+
+    Examples:
+        machine-dialect agent "calculate the factorial of 5"
+        machine-dialect agent "sort a list of numbers" --iterations 3
+        machine-dialect agent "check if a number is prime" --output prime.md
+    """
+    # Join task arguments
+    task_description = " ".join(task)
+
+    if not task_description.strip():
+        click.echo("Error: Task description cannot be empty", err=True)
+        sys.exit(1)
+
+    # Load configuration
+    from machine_dialect.cfg.config import ConfigLoader
+
+    loader = ConfigLoader()
+    config = loader.load()
+
+    # Override with command-line arguments if provided
+    if api_key:
+        config.key = api_key
+    if model:
+        config.model = model
+
+    # Check configuration
+    if not config.key:
+        click.echo("Error: No API key configured", err=True)
+        click.echo(loader.get_error_message(), err=True)
+        sys.exit(1)
+
+    if not config.model:
+        click.echo("Error: No AI model configured", err=True)
+        click.echo(loader.get_error_message(), err=True)
+        sys.exit(1)
+
+    try:
+        # Import OpenAI
+        try:
+            from openai import OpenAI
+        except ImportError:
+            click.echo("Error: OpenAI library not installed", err=True)
+            click.echo("Install with: pip install openai", err=True)
+            sys.exit(1)
+
+        # Initialize client
+        client = OpenAI(api_key=config.key)
+
+        # Create agent
+        from machine_dialect.agent import Agent
+
+        agent = Agent(client, config.model, verbose=not quiet)
+
+        # Solve the task
+        result = agent.solve(task_description, max_iterations=iterations)
+
+        # Display results
+        if not quiet:
+            click.echo("\n" + "=" * 60)
+
+        if result.success:
+            click.echo(f"✨ SUCCESS in {result.iterations} iteration(s)!")
+            if result.output:
+                click.echo(f"Output: {result.output}")
+
+            # Save code if requested
+            if output and result.code:
+                with open(output, "w") as f:
+                    f.write(result.code)
+                click.echo(f"\nCode saved to: {output}")
+            elif not quiet:
+                click.echo("\nFinal code:")
+                click.echo("-" * 40)
+                click.echo(result.code)
+                click.echo("-" * 40)
+
+        else:
+            click.echo(f"❌ Failed after {result.iterations} iterations", err=True)
+            if not quiet:
+                click.echo("Try with more iterations or a clearer task description.", err=True)
+
+        # Save history if requested
+        if save_history and result.history:
+            import json
+
+            with open(save_history, "w") as f:
+                json.dump(result.history, f, indent=2)
+            click.echo(f"History saved to: {save_history}")
+
+        # Exit with appropriate code
+        sys.exit(0 if result.success else 1)
+
+    except Exception as e:
+        click.echo(f"Error: {e}", err=True)
+        if not quiet:
+            import traceback
+
+            traceback.print_exc()
+        sys.exit(1)
+
+
+@cli.command()
+@click.argument("task", nargs=-1, required=True)
+@click.option(
     "--api-key",
     help="AI API key (or set in .mdconfig file or MD_AI_API_KEY env var)",
 )
@@ -435,7 +582,7 @@ def llm(
         click.echo(f"Generating Machine Dialect™ code with {config.model}...")
 
         try:
-            generated_code = generate_with_openai(
+            generated_code, _token_info = generate_with_openai(
                 client=client,
                 model=config.model,
                 task_description=task_description,

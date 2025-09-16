@@ -327,8 +327,8 @@ class TestInfixExpressions:
             ("2 is fewer than 5", 2, "<", 5),
             ("errors is fewer than threshold", "errors", "<", "threshold"),
             # Greater than or equal variations
-            ("10 is greater or equal to 10", 10, ">=", 10),
-            ("x is greater or equal to min", "x", ">=", "min"),
+            ("10 is greater than or equal to 10", 10, ">=", 10),
+            ("x is greater than or equal to min", "x", ">=", "min"),
             ("5 is at least 5", 5, ">=", 5),
             ("score is at least passing", "score", ">=", "passing"),
             ("10 is no less than 5", 10, ">=", 5),

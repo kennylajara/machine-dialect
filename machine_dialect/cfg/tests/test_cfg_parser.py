@@ -196,9 +196,9 @@ Else:
             tree = self.parser.parse(code)
             assert tree is not None
 
-    def test_call_statement(self) -> None:
-        """Test parsing Call statements."""
-        code = 'Call `print` with _"Hello"_, _42_.'
+    def test_use_statement(self) -> None:
+        """Test parsing Use statements."""
+        code = 'Use `print` with _"Hello"_, _42_.'
         tree = self.parser.parse(code)
         assert tree is not None
 

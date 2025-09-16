@@ -4,7 +4,7 @@ This module tests the parser's panic mode recovery mechanism which allows
 the parser to recover from errors and continue parsing to find more errors.
 """
 
-from machine_dialect.errors.exceptions import MDNameError, MDSyntaxError
+from machine_dialect.errors.exceptions import MDSyntaxError
 from machine_dialect.parser import Parser
 
 
@@ -20,7 +20,7 @@ class TestPanicModeRecovery:
 
         # Should have one error for the illegal @ character
         assert len(parser.errors) == 1
-        assert isinstance(parser.errors[0], MDNameError)
+        assert isinstance(parser.errors[0], MDSyntaxError)
         assert "@" in str(parser.errors[0])
 
         # Should have parsed the statements successfully
@@ -41,7 +41,7 @@ class TestPanicModeRecovery:
 
         # Should have one error for the illegal @ character
         assert len(parser.errors) == 1
-        assert isinstance(parser.errors[0], MDNameError)
+        assert isinstance(parser.errors[0], MDSyntaxError)
 
         # Should have one statement (incomplete due to error)
         assert len(program.statements) == 1
@@ -57,6 +57,7 @@ class TestPanicModeRecovery:
         assert len(parser.errors) == 2
         assert "@" in str(parser.errors[0])
         assert "#" in str(parser.errors[1])
+        # @ is now MDSyntaxError (illegal token), # remains MDNameError (unexpected identifier)
 
         # Should have four statements (Define + 3 Sets)
         assert len(program.statements) == 4
@@ -70,7 +71,7 @@ class TestPanicModeRecovery:
 
         # Should have one error for the illegal @ in expression
         assert len(parser.errors) == 1
-        assert isinstance(parser.errors[0], MDNameError)
+        assert isinstance(parser.errors[0], MDSyntaxError)
 
         # Should have four statements (2 defines + 2 sets)
         assert len(program.statements) == 4
@@ -126,7 +127,7 @@ class TestPanicModeRecovery:
 
         # Should have one error for illegal @
         assert len(parser.errors) == 1
-        assert isinstance(parser.errors[0], MDNameError)
+        assert isinstance(parser.errors[0], MDSyntaxError)
 
         # Should have two return statements
         assert len(program.statements) == 2

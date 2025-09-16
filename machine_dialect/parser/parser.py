@@ -54,6 +54,7 @@ from machine_dialect.errors.messages import (
     EXPECTED_IDENTIFIER_AFTER,
     EXPECTED_TOKEN,
     EXPECTED_TOKEN_AFTER,
+    ILLEGAL_TOKEN,
     INVALID_ARGUMENT_VALUE,
     INVALID_FLOAT_LITERAL,
     INVALID_INTEGER_LITERAL,
@@ -385,20 +386,30 @@ class Parser:
         elif error_type == "type":
             error = MDTypeError(message=template, line=token.line, column=token.position, **kwargs)
         else:  # syntax
-            # Special case: if we expected an identifier and got something else, it's a name error
-            # This covers illegal characters, punctuation, keywords, etc. being used as identifiers
+            # Special case: if we expected an identifier and got something else
+            # Check if it's an illegal token (syntax error) or something else (name error)
             if expected_token == TokenType.MISC_IDENT and token.type != TokenType.MISC_IDENT:
-                from machine_dialect.errors.messages import ILLEGAL_CHARACTER
+                # If it's an illegal token, it's a syntax error
+                if token.type == TokenType.MISC_ILLEGAL:
+                    error = MDSyntaxError(
+                        message=ILLEGAL_TOKEN,
+                        line=token.line,
+                        column=token.position,
+                        token=token.literal,
+                    )
+                else:
+                    # Otherwise, it's still a name error (e.g., keyword used as identifier)
+                    from machine_dialect.errors.messages import ILLEGAL_CHARACTER
 
-                # Get a human-readable name for the expected token
-                expected_name = "identifier"
-                error = MDNameError(
-                    message=ILLEGAL_CHARACTER,
-                    line=token.line,
-                    column=token.position,
-                    expected=expected_name,
-                    character=token.literal,
-                )
+                    # Get a human-readable name for the expected token
+                    expected_name = "identifier"
+                    error = MDNameError(
+                        message=ILLEGAL_CHARACTER,
+                        line=token.line,
+                        column=token.position,
+                        expected=expected_name,
+                        character=token.literal,
+                    )
             else:
                 error = MDSyntaxError(message=template, line=token.line, column=token.position, **kwargs)
 
@@ -494,11 +505,11 @@ class Parser:
 
         # Handle illegal tokens
         if self._current_token.type == TokenType.MISC_ILLEGAL:
-            # Use unified error handling for undefined names
+            # Report as syntax error, not name error
             result = self._report_error_and_recover(
-                template=NAME_UNDEFINED,
-                error_type="name",
-                name=self._current_token.literal,
+                template=ILLEGAL_TOKEN,
+                error_type="syntax",
+                token=self._current_token.literal,
                 skip_recovery=True,  # Don't recover - let caller handle advancement
                 is_expression=True,
             )

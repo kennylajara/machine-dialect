@@ -79,13 +79,15 @@ ignore_missing_imports = true
 module = [
     "machine_dialect.*.tests.*",
     "machine_dialect.acceptance.*",
-    "machine_dialect.__main__"
+    "machine_dialect.__main__",
+    "tests.*"
 ]
 disable_error_code = ["misc"]
 
 [tool.pytest.ini_options]
 testpaths = ["machine_dialect", "machine_dialect_vm", "tests"]
 pythonpath = []
+xfail_strict = true
 addopts = [
     "--cov=machine_dialect",
     "--cov-report=term-missing:skip-covered",

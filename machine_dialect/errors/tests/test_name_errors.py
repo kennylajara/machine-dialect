@@ -4,7 +4,7 @@ This module tests the parser's ability to collect and report errors
 from the lexer, including lexical errors like illegal characters.
 """
 
-from machine_dialect.errors.exceptions import MDNameError
+from machine_dialect.errors.exceptions import MDSyntaxError
 from machine_dialect.parser import Parser
 
 
@@ -21,9 +21,9 @@ class TestParserErrors:
         # Errors are reported during parsing, not before
         parser.parse(source)
 
-        # Parser should have reported the error for @
+        # Parser should have reported the error for @ as a syntax error (illegal token)
         assert len(parser.errors) == 1
-        assert isinstance(parser.errors[0], MDNameError)
+        assert isinstance(parser.errors[0], MDSyntaxError)
         assert "@" in str(parser.errors[0])
 
     def test_parser_has_errors_method(self) -> None:
@@ -53,9 +53,9 @@ class TestParserErrors:
         parser = Parser()
         parser.parse(source)
 
-        # Should have 3 errors for illegal characters
+        # Should have 3 errors for illegal characters (all syntax errors)
         assert len(parser.errors) == 3
-        assert all(isinstance(error, MDNameError) for error in parser.errors)
+        assert all(isinstance(error, MDSyntaxError) for error in parser.errors)
 
         # Check that all illegal characters are in the errors
         error_messages = [str(error) for error in parser.errors]

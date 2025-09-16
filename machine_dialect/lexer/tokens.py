@@ -244,7 +244,7 @@ keywords_mapping: dict[str, TokenType] = {
     #   Use `make noise` where `sound` is _"WEE-OO"_, `volume` is _80_.
     # TODO: Implement proper 'apply' statement with its own token type (KW_APPLY)
     #       Should support: apply rule `add` with **1** and **5**
-    #                      apply formula `calculate` with `left` = **1** and `right` = **5**
+    #                       apply formula `calculate` with `left` = **1** and `right` = **5**
     # "apply": TokenType.KW_APPLY,  # Reserved for future use
     "Use": TokenType.KW_USE,
     # type indicator: set `a` as integer
@@ -318,6 +318,7 @@ keywords_mapping: dict[str, TokenType] = {
     "is exactly equal to": TokenType.OP_STRICT_EQ,
     "is identical to": TokenType.OP_STRICT_EQ,
     # Strict inequality (!==)
+    # TODO: Simplify support for comparisons
     "is not strictly equal to": TokenType.OP_STRICT_NOT_EQ,
     "is not exactly equal to": TokenType.OP_STRICT_NOT_EQ,
     "is not identical to": TokenType.OP_STRICT_NOT_EQ,
@@ -326,7 +327,7 @@ keywords_mapping: dict[str, TokenType] = {
     "is less than": TokenType.OP_LT,
     "is under": TokenType.OP_LT,
     "is fewer than": TokenType.OP_LT,
-    "is greater or equal to": TokenType.OP_GTE,
+    "is greater than or equal to": TokenType.OP_GTE,
     "is at least": TokenType.OP_GTE,
     "is no less than": TokenType.OP_GTE,
     "is less than or equal to": TokenType.OP_LTE,

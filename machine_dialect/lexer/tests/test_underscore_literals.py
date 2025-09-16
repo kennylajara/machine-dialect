@@ -284,3 +284,60 @@ class TestUnderscoreLiterals:
         int_literals = [t for t in tokens if t.type == TokenType.LIT_WHOLE_NUMBER]
         assert len(int_literals) == 1
         assert int_literals[0].literal == "-5"
+
+    def test_malformed_underscore_string_literal(self) -> None:
+        """Test malformed underscore string literal like _\"unclosed."""
+        source = '_"unclosed.'
+        lexer = Lexer(source)
+
+        # This should be treated as a single ILLEGAL token
+        token = lexer.next_token()
+        assert token.type == TokenType.MISC_ILLEGAL
+        assert token.literal == '_"unclosed.'
+
+        # Verify EOF
+        assert_eof(lexer.next_token())
+
+    def test_malformed_underscore_single_quote_literal(self) -> None:
+        """Test malformed underscore string literal with single quotes."""
+        source = "_'unclosed string"
+        lexer = Lexer(source)
+
+        # This should be treated as a single ILLEGAL token
+        token = lexer.next_token()
+        assert token.type == TokenType.MISC_ILLEGAL
+        assert token.literal == "_'unclosed string"
+
+        # Verify EOF
+        assert_eof(lexer.next_token())
+
+    def test_underscore_string_missing_closing_underscore(self) -> None:
+        """Test underscore string literal missing closing underscore."""
+        source = '_"complete string"'
+        lexer = Lexer(source)
+
+        # Without closing underscore, the opening _ is an identifier
+        # and the string is a separate token
+        token1 = lexer.next_token()
+        assert token1.type == TokenType.MISC_IDENT
+        assert token1.literal == "_"
+
+        token2 = lexer.next_token()
+        assert token2.type == TokenType.LIT_TEXT
+        assert token2.literal == '"complete string"'
+
+        # Verify EOF
+        assert_eof(lexer.next_token())
+
+    def test_underscore_with_escaped_quote(self) -> None:
+        """Test underscore literal with escaped quote inside."""
+        source = '_"text with \\" escaped quote"_'
+        lexer = Lexer(source)
+
+        # Should parse correctly as a string literal
+        token = lexer.next_token()
+        assert token.type == TokenType.LIT_TEXT
+        assert token.literal == '"text with \\" escaped quote"'
+
+        # Verify EOF
+        assert_eof(lexer.next_token())

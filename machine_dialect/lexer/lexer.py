@@ -577,6 +577,11 @@ class Lexer:
                     url_to_check = string_content
                     token_type = TokenType.LIT_URL if is_valid_url(url_to_check) else TokenType.LIT_TEXT
                     return full_literal, token_type, start_line, literal_column
+            else:
+                # String is unclosed - this is a malformed underscore literal
+                # Don't restore position, we've already consumed the content
+                # Return None to indicate it's invalid, but keep the consumed position
+                return None
         elif self.current_char.isalpha():
             # Read alphabetic characters only (no underscores) for potential boolean literal
             # Minus sign is not valid before boolean literals

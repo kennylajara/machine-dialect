@@ -11,6 +11,8 @@ Statements include:
 - SetStatement: Assigns a value to a variable
 - BlockStatement: Contains a list of statements with a specific depth
 - IfStatement: Conditional statement with consequence and optional alternative
+- WhileStatement: Loop that executes while a condition is true
+- ForEachStatement: Loop that iterates over elements in a collection
 - ErrorStatement: Represents a statement that failed to parse
 - Parameter: Represents a parameter with type and optional default value
 """
@@ -18,7 +20,7 @@ Statements include:
 from enum import Enum, auto
 
 from machine_dialect.ast import ASTNode, Expression, Identifier
-from machine_dialect.lexer import Token
+from machine_dialect.lexer import Token, TokenType
 
 
 class FunctionVisibility(Enum):
@@ -1189,3 +1191,243 @@ class FunctionStatement(Statement):
             self.description,
         )
         return desugared
+
+
+class WhileStatement(Statement):
+    """A while loop statement in Machine Dialect™.
+
+    While statements follow the pattern: "While <condition>: <body>"
+    They repeatedly execute the body block as long as the condition evaluates to true.
+
+    Attributes:
+        condition: The expression to evaluate for loop continuation.
+        body: The block of statements to execute while condition is true.
+    """
+
+    def __init__(self, token: Token, condition: Expression | None = None, body: BlockStatement | None = None) -> None:
+        """Initialize a WhileStatement node.
+
+        Args:
+            token: The 'while' token that begins the statement.
+            condition: The loop condition expression.
+            body: The block of statements to execute.
+        """
+        super().__init__(token)
+        self.condition = condition
+        self.body = body
+
+    def __str__(self) -> str:
+        """Return the string representation of the while statement.
+
+        Returns:
+            A string like "While <condition>: <body>".
+        """
+        out = f"While {self.condition}:"
+        if self.body:
+            out += f"\n{self.body}"
+        return out
+
+    def desugar(self) -> "WhileStatement":
+        """Desugar while statement by recursively desugaring condition and body.
+
+        Returns:
+            A new WhileStatement with desugared components.
+        """
+        desugared = WhileStatement(self.token)
+        if self.condition:
+            desugared.condition = self.condition.desugar()
+        if self.body:
+            body_result = self.body.desugar()
+            # Ensure body is a BlockStatement
+            if isinstance(body_result, BlockStatement):
+                desugared.body = body_result
+            else:
+                # This shouldn't happen but handle gracefully
+                desugared.body = BlockStatement(self.token)
+                desugared.body.statements = [body_result]
+        return desugared
+
+    def to_hir(self) -> "WhileStatement":
+        """Convert to HIR by desugaring.
+
+        Returns:
+            HIR representation of the while statement.
+        """
+        return self.desugar()
+
+
+class ForEachStatement(Statement):
+    """A for-each loop statement in Machine Dialect™.
+
+    For-each statements follow the pattern: "For each <item> in <collection>: <body>"
+    They iterate over each element in a collection.
+
+    Attributes:
+        item: The identifier for the loop variable.
+        collection: The expression that evaluates to the collection to iterate over.
+        body: The block of statements to execute for each item.
+    """
+
+    # Class-level counter for generating unique synthetic variable names
+    _gensym_counter = 0
+
+    def __init__(
+        self,
+        token: Token,
+        item: Identifier | None = None,
+        collection: Expression | None = None,
+        body: BlockStatement | None = None,
+    ) -> None:
+        """Initialize a ForEachStatement node.
+
+        Args:
+            token: The 'for' token that begins the statement.
+            item: The loop variable identifier.
+            collection: The collection to iterate over.
+            body: The block of statements to execute.
+        """
+        super().__init__(token)
+        self.item = item
+        self.collection = collection
+        self.body = body
+
+    def __str__(self) -> str:
+        """Return the string representation of the for-each statement.
+
+        Returns:
+            A string like "For each <item> in <collection>: <body>".
+        """
+        out = f"For each {self.item} in {self.collection}:"
+        if self.body:
+            out += f"\n{self.body}"
+        return out
+
+    @classmethod
+    def _gensym(cls, prefix: str) -> Identifier:
+        """Generate a unique identifier for internal synthetic variables.
+
+        Uses a $ prefix which is not valid in user-defined identifiers
+        to guarantee no name collisions.
+
+        Args:
+            prefix: A descriptive prefix for the synthetic variable.
+
+        Returns:
+            A unique Identifier that cannot collide with user variables.
+        """
+        cls._gensym_counter += 1
+        # Use $ prefix to ensure no collision with user variables
+        # $ is not a valid character in Machine Dialect identifiers
+        name = f"${prefix}_{cls._gensym_counter}"
+        # Create a synthetic token for the identifier
+        synthetic_token = Token(TokenType.MISC_IDENT, name, 0, 0)
+        return Identifier(synthetic_token, name)
+
+    def desugar(self) -> "Statement":
+        """Desugar for-each loop into a while loop.
+
+        Transforms:
+            For each `item` in `collection`:
+                body
+
+        Into:
+            index = 0
+            length = len(collection)
+            While index < length:
+                item = collection[index]
+                body
+                index = index + 1
+
+        Returns:
+            A WhileStatement representing the desugared for-each loop.
+        """
+        if not self.item or not self.collection:
+            # If malformed, return an empty while statement
+            return WhileStatement(self.token)
+
+        # Import here to avoid circular imports
+        from machine_dialect.ast.call_expression import CallExpression
+        from machine_dialect.ast.expressions import CollectionAccessExpression, InfixExpression
+        from machine_dialect.ast.literals import WholeNumberLiteral
+
+        # Generate unique synthetic variables
+        index_var = self._gensym("foreach_idx")
+        length_var = self._gensym("foreach_len")
+
+        # Create synthetic tokens for literals
+        zero_token = Token(TokenType.LIT_WHOLE_NUMBER, "0", 0, 0)
+        one_token = Token(TokenType.LIT_WHOLE_NUMBER, "1", 0, 0)
+
+        # Build the initialization statements:
+        # Set index to 0
+        init_index = SetStatement(Token(TokenType.KW_SET, "Set", 0, 0), index_var, WholeNumberLiteral(zero_token, 0))
+
+        # Set length to len(collection)
+        # Import Arguments for function call
+        from machine_dialect.ast.expressions import Arguments
+
+        call_args = Arguments(Token(TokenType.MISC_IDENT, "args", 0, 0))
+        call_args.positional = [self.collection.desugar() if self.collection else self.collection]
+        call_args.named = []
+
+        len_call = CallExpression(
+            Token(TokenType.MISC_IDENT, "len", 0, 0),
+            Identifier(Token(TokenType.MISC_IDENT, "len", 0, 0), "len"),
+            call_args,
+        )
+        init_length = SetStatement(Token(TokenType.KW_SET, "Set", 0, 0), length_var, len_call)
+
+        # Build the while condition: index < length
+        condition = InfixExpression(Token(TokenType.OP_LT, "<", 0, 0), "<", index_var)
+        condition.right = length_var
+
+        # Build the while body
+        while_body = BlockStatement(self.token)
+        while_body.statements = []
+
+        # Add: item = collection[index]
+        collection_access = CollectionAccessExpression(
+            Token(TokenType.MISC_IDENT, "access", 0, 0),  # Token for the access operation
+            self.collection.desugar() if self.collection else self.collection,
+            index_var,
+            "numeric",  # Using numeric access type
+        )
+        set_item = SetStatement(
+            Token(TokenType.KW_SET, "Set", 0, 0),
+            self.item,
+            collection_access,
+        )
+        while_body.statements.append(set_item)
+
+        # Add the original body statements
+        if self.body:
+            desugared_body = self.body.desugar()
+            if isinstance(desugared_body, BlockStatement):
+                while_body.statements.extend(desugared_body.statements)
+            else:
+                while_body.statements.append(desugared_body)
+
+        # Add: index = index + 1
+        increment = InfixExpression(Token(TokenType.OP_PLUS, "+", 0, 0), "+", index_var)
+        increment.right = WholeNumberLiteral(one_token, 1)
+        set_increment = SetStatement(Token(TokenType.KW_SET, "Set", 0, 0), index_var, increment)
+        while_body.statements.append(set_increment)
+
+        # Create the while statement
+        while_stmt = WhileStatement(Token(TokenType.KW_WHILE, "While", 0, 0), condition, while_body)
+
+        # Wrap everything in a block statement
+        result_block = BlockStatement(self.token)
+        result_block.statements = [init_index, init_length, while_stmt]
+
+        # Since we need to return a Statement, we'll return the block
+        # The HIR generation will handle this properly
+        return result_block
+
+    def to_hir(self) -> "Statement":
+        """Convert to HIR by desugaring to while loop.
+
+        Returns:
+            HIR representation (desugared while loop).
+        """
+        return self.desugar()

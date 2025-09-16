@@ -21,6 +21,7 @@ from machine_dialect.ast import (
     Expression,
     ExpressionStatement,
     FloatLiteral,
+    ForEachStatement,
     FunctionStatement,
     FunctionVisibility,
     Identifier,
@@ -40,6 +41,7 @@ from machine_dialect.ast import (
     UnorderedListLiteral,
     URLLiteral,
     UtilityStatement,
+    WhileStatement,
     WholeNumberLiteral,
     YesNoLiteral,
 )
@@ -233,6 +235,13 @@ class HIRToMIRLowering:
             self.lower_say_statement(stmt)
         elif isinstance(stmt, CollectionMutationStatement):
             self.lower_collection_mutation(stmt)
+        elif isinstance(stmt, WhileStatement):
+            self.lower_while_statement(stmt)
+        elif isinstance(stmt, ForEachStatement):
+            # ForEachStatement should be desugared to while in HIR
+            # But if it reaches here, desugar and lower
+            desugared = stmt.desugar()
+            self.lower_statement(desugared)
         elif isinstance(stmt, BlockStatement):
             self.lower_block_statement(stmt)
         elif isinstance(stmt, ExpressionStatement):
@@ -623,6 +632,71 @@ class HIRToMIRLowering:
 
         # Continue with merge block
         self.current_block = merge_block
+
+    def lower_while_statement(self, stmt: WhileStatement) -> None:
+        """Lower a while statement to MIR.
+
+        Args:
+            stmt: The while statement to lower.
+        """
+        if not self.current_function or not self.current_block:
+            return
+
+        # Get source location from the statement
+        source_loc = stmt.get_source_location()
+        if source_loc is None:
+            source_loc = (0, 0)  # Default location for while statements
+
+        # Create blocks for the while loop
+        loop_header_label = self.generate_label("while_header")
+        loop_body_label = self.generate_label("while_body")
+        loop_exit_label = self.generate_label("while_exit")
+
+        loop_header = BasicBlock(loop_header_label)
+        loop_body = BasicBlock(loop_body_label)
+        loop_exit = BasicBlock(loop_exit_label)
+
+        self.current_function.cfg.add_block(loop_header)
+        self.current_function.cfg.add_block(loop_body)
+        self.current_function.cfg.add_block(loop_exit)
+
+        # Jump to loop header from current block
+        self._add_instruction(Jump(loop_header_label, source_loc), stmt)
+        self.current_function.cfg.connect(self.current_block, loop_header)
+
+        # Switch to loop header block
+        self.current_block = loop_header
+
+        # Lower and evaluate the condition
+        if stmt.condition is not None:
+            condition = self.lower_expression(stmt.condition)
+        else:
+            raise ValueError("While statement missing condition")
+
+        # Load constant into temporary if needed
+        if isinstance(condition, Constant):
+            temp = self.current_function.new_temp(condition.type)
+            self._add_instruction(LoadConst(temp, condition, source_loc), stmt)
+            condition = temp
+
+        # Add conditional jump: if condition true, go to body, else exit
+        self._add_instruction(ConditionalJump(condition, loop_body_label, source_loc, loop_exit_label), stmt)
+        self.current_function.cfg.connect(self.current_block, loop_body)
+        self.current_function.cfg.connect(self.current_block, loop_exit)
+
+        # Lower the loop body
+        self.current_block = loop_body
+        if stmt.body:
+            for s in stmt.body.statements:
+                self.lower_statement(s)
+
+        # Jump back to loop header at end of body
+        if not self.current_block.is_terminated():
+            self._add_instruction(Jump(loop_header_label, source_loc), stmt)
+            self.current_function.cfg.connect(self.current_block, loop_header)
+
+        # Continue with exit block
+        self.current_block = loop_exit
 
     def lower_return_statement(self, stmt: ReturnStatement) -> None:
         """Lower a return statement to MIR.

@@ -19,6 +19,7 @@ from machine_dialect.ast import (
     Expression,
     ExpressionStatement,
     FloatLiteral,
+    ForEachStatement,
     Identifier,
     IfStatement,
     InfixExpression,
@@ -37,13 +38,16 @@ from machine_dialect.ast import (
     UnorderedListLiteral,
     URLLiteral,
     UtilityStatement,
+    WhileStatement,
     WholeNumberLiteral,
     YesNoLiteral,
 )
 from machine_dialect.errors.exceptions import MDBaseException, MDNameError, MDSyntaxError, MDTypeError
 from machine_dialect.errors.messages import (
     EMPTY_ELSE_BLOCK,
+    EMPTY_FOR_EACH_BODY,
     EMPTY_IF_CONSEQUENCE,
+    EMPTY_WHILE_BODY,
     EXPECTED_DETAILS_CLOSE,
     EXPECTED_EXPRESSION,
     EXPECTED_FUNCTION_NAME,
@@ -2666,6 +2670,102 @@ class Parser:
 
         return if_statement
 
+    def _parse_while_statement(self) -> WhileStatement | ErrorStatement:
+        """Parse a while loop statement.
+
+        Expects: while <condition>: <block>
+
+        Returns:
+            A WhileStatement AST node.
+        """
+        assert self._current_token is not None
+        while_statement = WhileStatement(token=self._current_token)
+
+        # Advance past 'while'
+        self._advance_tokens()
+
+        # Parse the condition expression
+        while_statement.condition = self._parse_expression(Precedence.LOWEST)
+
+        # Expect colon
+        if error := self._expect_token(TokenType.PUNCT_COLON, "while condition"):
+            assert isinstance(error, ErrorStatement)
+            return error
+
+        # Parse the body block
+        expected_depth = self._block_depth + 1
+        while_statement.body = self._parse_block_statement(expected_depth)
+
+        # Check if the body block is empty - this is an error
+        if not while_statement.body or len(while_statement.body.statements) == 0:
+            self._report_error_and_recover(
+                template=EMPTY_WHILE_BODY,
+                skip_recovery=True,  # No recovery needed, continue parsing
+            )
+
+        return while_statement
+
+    def _parse_for_each_statement(self) -> ForEachStatement | ErrorStatement:
+        """Parse a for-each loop statement.
+
+        Expects: for each <item> in <collection>: <block>
+
+        Returns:
+            A ForEachStatement AST node.
+        """
+        assert self._current_token is not None
+        for_statement = ForEachStatement(token=self._current_token)
+
+        # Advance past 'for'
+        self._advance_tokens()
+
+        # Expect 'each'
+        if self._current_token and self._current_token.type != TokenType.KW_EACH:
+            if error := self._expect_token(TokenType.KW_EACH, "'for' keyword"):
+                assert isinstance(error, ErrorStatement)
+                return error
+        self._advance_tokens()  # Move past 'each'
+
+        # Parse the loop variable (item)
+        for_statement.item = self._parse_identifier_or_keyword_as_identifier()
+        if not for_statement.item:
+            error_stmt = self._report_error_and_recover(
+                template=EXPECTED_IDENTIFIER_AFTER,
+                context="'each'",
+                skip_recovery=True,
+            )
+            assert isinstance(error_stmt, ErrorStatement)
+            return error_stmt
+        self._advance_tokens()
+
+        # Expect 'in'
+        if self._current_token and self._current_token.type != TokenType.KW_IN:
+            if error := self._expect_token(TokenType.KW_IN, "loop variable"):
+                assert isinstance(error, ErrorStatement)
+                return error
+        self._advance_tokens()  # Move past 'in'
+
+        # Parse the collection expression
+        for_statement.collection = self._parse_expression(Precedence.LOWEST)
+
+        # Expect colon
+        if error := self._expect_token(TokenType.PUNCT_COLON, "for-each header"):
+            assert isinstance(error, ErrorStatement)
+            return error
+
+        # Parse the body block
+        expected_depth = self._block_depth + 1
+        for_statement.body = self._parse_block_statement(expected_depth)
+
+        # Check if the body block is empty - this is an error
+        if not for_statement.body or len(for_statement.body.statements) == 0:
+            self._report_error_and_recover(
+                template=EMPTY_FOR_EACH_BODY,
+                skip_recovery=True,  # No recovery needed, continue parsing
+            )
+
+        return for_statement
+
     def _parse_action_interaction_or_utility(
         self,
     ) -> ActionStatement | InteractionStatement | UtilityStatement | ErrorStatement:
@@ -3102,6 +3202,8 @@ class Parser:
             TokenType.KW_SET: self._parse_set_statement,
             TokenType.KW_RETURN: self._parse_return_statement,
             TokenType.KW_IF: self._parse_if_statement,
+            TokenType.KW_WHILE: self._parse_while_statement,
+            TokenType.KW_FOR: self._parse_for_each_statement,
             TokenType.KW_SAY: self._parse_say_statement,
             TokenType.KW_TELL: self._parse_say_statement,  # Tell is an alias for Say
             TokenType.KW_USE: self._parse_call_statement,

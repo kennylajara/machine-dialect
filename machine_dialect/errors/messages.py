@@ -39,6 +39,8 @@ EXPECTED_EXPRESSION = ErrorTemplate("expected expression, got $got")
 # Block and control flow errors
 EMPTY_IF_CONSEQUENCE = ErrorTemplate("If statement must have a non-empty consequence block")
 EMPTY_ELSE_BLOCK = ErrorTemplate("Else/otherwise block must not be empty. If no alternative is needed, omit it.")
+EMPTY_WHILE_BODY = ErrorTemplate("While loop must have a non-empty body block")
+EMPTY_FOR_EACH_BODY = ErrorTemplate("For-each loop must have a non-empty body block")
 EXPECTED_DETAILS_CLOSE = ErrorTemplate("Expected </details> tag after action body, got $token_type")
 EXPECTED_BLOCK_MARKER = ErrorTemplate("Expected block marker '>', got $token_type")
 EXPECTED_PREFIX_OPERATOR = ErrorTemplate("Expected prefix operator, got $token_type")

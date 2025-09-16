@@ -145,6 +145,7 @@ class TokenType(Enum):
     KW_UTILITY = auto()
     KW_VALUE = auto()  # For dictionary operations: Add "key" to `dict` with value _x_
     KW_WHERE = auto()
+    KW_WHILE = auto()  # For while loops: While `condition`:
     KW_WHOLE_NUMBER = auto()
     KW_WITH = auto()
     KW_YES_NO = auto()
@@ -288,6 +289,7 @@ keywords_mapping: dict[str, TokenType] = {
     "if": TokenType.KW_IF,
     "when": TokenType.KW_IF,
     "whenever": TokenType.KW_IF,
+    "while": TokenType.KW_WHILE,
     # iteration: for each item in list
     "in": TokenType.KW_IN,
     # inputs section for parameters

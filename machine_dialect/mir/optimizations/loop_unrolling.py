@@ -45,6 +45,10 @@ class LoopUnrolling(OptimizationPass):
         self.max_body_size = 20  # Maximum instructions in loop body
         self.stats = {"unrolled": 0, "loops_processed": 0}
 
+    def initialize(self) -> None:
+        """Initialize the pass before running."""
+        self.stats = {"unrolled": 0, "loops_processed": 0}
+
     def get_info(self) -> PassInfo:
         """Get pass information.
 

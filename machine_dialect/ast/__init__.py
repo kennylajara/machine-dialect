@@ -19,6 +19,7 @@ from .statements import (
     DefineStatement,
     ErrorStatement,
     ExpressionStatement,
+    ForEachStatement,
     FunctionStatement,
     FunctionVisibility,
     IfStatement,
@@ -30,6 +31,7 @@ from .statements import (
     SetStatement,
     Statement,
     UtilityStatement,
+    WhileStatement,
 )
 from .program import Program
 from .literals import (
@@ -66,6 +68,7 @@ __all__ = [
     "Expression",
     "ExpressionStatement",
     "FloatLiteral",
+    "ForEachStatement",
     "FunctionStatement",
     "FunctionVisibility",
     "Identifier",
@@ -86,6 +89,7 @@ __all__ = [
     "URLLiteral",
     "UnorderedListLiteral",
     "UtilityStatement",
+    "WhileStatement",
     "WholeNumberLiteral",
     "YesNoLiteral",
 ]

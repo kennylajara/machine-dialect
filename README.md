@@ -499,6 +499,11 @@ We welcome contributions! Please follow these guidelines:
 > ⚠️ **Alpha Stage**: This project is under active development. The syntax and implementation
 > are evolving. Expect breaking changes.
 
+## License
+
+This project is licensed under the Apache License, Version 2.0 - see the [LICENSE](LICENSE) file
+for details.
+
 ## Acknowledgments
 
 The Machine Dialect™ language is inspired by efforts to make programming more accessible and AI-friendly,

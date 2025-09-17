@@ -139,6 +139,8 @@ jobs:
     - name: Build VM (Unix)
       run: |
         source .venv/bin/activate
+        # Ensure Rust is in PATH
+        export PATH="$HOME/.cargo/bin:$PATH"
         chmod +x build_vm.sh
         RUSTFLAGS="" ./build_vm.sh
       shell: bash

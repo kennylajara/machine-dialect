@@ -35,7 +35,7 @@ zstd = "=0.13.3"
 bitvec = "=1.0.1"
 
 [dependencies.pyo3]
-version = "=0.24.0"
+version = "=0.24.1"
 features = ["extension-module", "abi3-py39"]
 optional = true
 

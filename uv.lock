@@ -1,6 +1,6 @@
 version = 1
 revision = 2
-requires-python = ">=3.10"
+requires-python = ">=3.10, <=13"
 
 [[package]]
 name = "annotated-types"
@@ -628,7 +628,7 @@ wheels = [
 
 [[package]]
 name = "machine-dialect"
-version = "0.1.0a1"
+version = "0.1.0a2"
 source = { editable = "." }
 dependencies = [
     { name = "click" },
@@ -658,7 +658,7 @@ dev = [
 requires-dist = [
     { name = "click", specifier = "==8.2.1" },
     { name = "lark", specifier = "==1.2.2" },
-    { name = "machine-dialect-vm", specifier = "==0.1.0a1" },
+    { name = "machine-dialect-vm", specifier = "==0.1.0a2" },
     { name = "openai", specifier = "==1.99.9" },
     { name = "rfc3986", specifier = "==2.0.0" },
 ]
@@ -681,10 +681,15 @@ dev = [
 
 [[package]]
 name = "machine-dialect-vm"
-version = "0.1.0a1"
+version = "0.1.0a2"
 source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/fd/e8/035b3586f63e6855b23cebbb59ec7e0a57fbeaea5f7915a555901ede83cc/machine_dialect_vm-0.1.0a2.tar.gz", hash = "sha256:ce9bf51505a182d68545a4864cf91493b1d79b48db495f7a6135d83a8c56705f", size = 46396, upload-time = "2025-09-17T13:16:10.134Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ec/ca/f396ed5e98b30abd04f8fa781e224375407fa4b264152072a0a7888b735a/machine_dialect_vm-0.1.0a1-cp39-abi3-manylinux_2_34_x86_64.whl", hash = "sha256:7d58312c75eec0af65f656f030719733e3926815ad8d281f194732956ad3b61a", size = 272572, upload-time = "2025-09-17T12:11:24.135Z" },
+    { url = "https://files.pythonhosted.org/packages/15/8d/b20a3b6dd8c527ea8c395c2d0796b59b958cc97703182e51d31547ef4e42/machine_dialect_vm-0.1.0a2-cp39-abi3-macosx_10_12_x86_64.whl", hash = "sha256:c1824458137cd6a493261630f866b72a011130093b3b067e3eb1644ed5890118", size = 262320, upload-time = "2025-09-17T13:16:04.844Z" },
+    { url = "https://files.pythonhosted.org/packages/cb/3e/63cfefe26ab3a97ff98edee790ed5d865627dca1ef7d7725f74ff0480806/machine_dialect_vm-0.1.0a2-cp39-abi3-macosx_11_0_arm64.whl", hash = "sha256:e0eed0060c23a47712b84c6e1487833f816203e66a81d22121b457aa93caa589", size = 243224, upload-time = "2025-09-17T13:16:05.998Z" },
+    { url = "https://files.pythonhosted.org/packages/2b/44/71e374a9a9a2ba8a68bd83a5931edeafceae1ae6ae9721f0bc0436396b29/machine_dialect_vm-0.1.0a2-cp39-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:bc6ec8f45ae23a1bc9e1aaf2c5e68d20124670e79651810a0cbe3417e1a29a58", size = 255118, upload-time = "2025-09-17T13:16:07.237Z" },
+    { url = "https://files.pythonhosted.org/packages/66/c8/2c9a61c4fec6f8aec6a29752c6e99b09cccfa71c41d0bba7a11e8bc34a0c/machine_dialect_vm-0.1.0a2-cp39-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:17fa57d1c1d10baf5454878ec6bf9a189768a01c17e679f56e23391b0084619a", size = 272952, upload-time = "2025-09-17T13:16:08.132Z" },
+    { url = "https://files.pythonhosted.org/packages/e0/dc/c076359f74c3207115671fc5409d70e01f69fd2d2582037456e5969f9387/machine_dialect_vm-0.1.0a2-cp39-abi3-win_amd64.whl", hash = "sha256:2fa51b452f44ef3f28f004ffca581a48ad10f25fd844a69662dc8ccdf84f0a48", size = 185436, upload-time = "2025-09-17T13:16:09.328Z" },
 ]
 
 [[package]]

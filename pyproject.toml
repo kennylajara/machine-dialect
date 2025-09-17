@@ -30,7 +30,7 @@ dependencies = [
     "click==8.2.1",
     "lark==1.2.2",
     "openai==1.99.9",
-    "machine-dialect-vm==0.1.0a1",  # Rust VM (update version as needed)
+    "machine-dialect-vm==0.1.0a2",  # Rust VM (update version as needed)
 ]
 
 [project.scripts]

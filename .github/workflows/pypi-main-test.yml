@@ -1,4 +1,4 @@
-name: Deploy to Test PyPI
+name: Test PyPI - Main Package
 
 on:
   workflow_dispatch:
@@ -16,7 +16,7 @@ on:
 
 jobs:
   deploy-test:
-    uses: ./.github/workflows/publish-pypi.yml
+    uses: pypi-main-publish.yml
     with:
       use_test_pypi: true
       version_suffix: ${{ github.event.inputs.version_suffix }}

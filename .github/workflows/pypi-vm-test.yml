@@ -1,4 +1,4 @@
-name: Test VM PyPI Deployment
+name: Test PyPI - VM Package
 
 on:
   workflow_dispatch:

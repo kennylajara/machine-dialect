@@ -1,4 +1,4 @@
-name: Publish VM to PyPI
+name: PyPI - Publish VM Package
 
 on:
   workflow_dispatch:
@@ -174,7 +174,7 @@ jobs:
   publish:
     needs: [build-sdist, build-wheels]
     runs-on: ubuntu-latest
-    name: Publish VM to PyPI
+    name: Publish VM Package to PyPI
     environment:
       name: ${{ inputs.use_test_pypi == true || github.event.inputs.use_test_pypi == 'true' && 'test-pypi' || 'pypi' }}
       url: ${{ inputs.use_test_pypi == true || github.event.inputs.use_test_pypi == 'true' && 'https://test.pypi.org/project/machine-dialect-vm/' || 'https://pypi.org/project/machine-dialect-vm/' }}

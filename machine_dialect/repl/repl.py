@@ -8,10 +8,13 @@ It can operate in multiple modes:
 - AST mode (--ast): Show HIR/AST without executing
 """
 
-import readline  # noqa
 import argparse
 import sys
 from typing import Any
+
+# readline provides command history and line editing, but is not available on Windows
+if sys.platform != "win32":
+    import readline  # noqa: F401
 
 from machine_dialect.compiler.config import CompilerConfig
 from machine_dialect.compiler.context import CompilationContext

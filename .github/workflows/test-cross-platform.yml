@@ -86,9 +86,14 @@ jobs:
 
     - name: Install dependencies (Windows)
       run: |
-        .venv\Scripts\activate
+        # UV should automatically detect and use the .venv
         uv sync --all-groups
+        # Install the package in editable mode
         uv pip install -e .
+        # Explicitly install dev dependencies in case uv sync didn't work
+        uv pip install pytest pytest-cov maturin mypy ruff
+        # Verify installations using uv pip list instead of pip
+        uv pip list | Select-String "pytest|maturin"
       shell: powershell
       if: runner.os == 'Windows'
 
@@ -102,10 +107,9 @@ jobs:
 
     - name: Build VM (Windows)
       run: |
-        .venv\Scripts\activate
         $env:RUSTFLAGS = ""
         cd machine_dialect_vm
-        maturin develop --features pyo3
+        ..\.venv\Scripts\python.exe -m maturin develop --features pyo3
         cd ..
       shell: powershell
       if: runner.os == 'Windows'
@@ -119,8 +123,7 @@ jobs:
 
     - name: Run tests (Windows)
       run: |
-        .venv\Scripts\activate
-        python -m pytest -v
+        .venv\Scripts\python.exe -m pytest -v
       shell: powershell
       if: runner.os == 'Windows'
 
@@ -133,8 +136,7 @@ jobs:
 
     - name: Run MyPy type checking (Windows)
       run: |
-        .venv\Scripts\activate
-        mypy machine_dialect --strict
+        .venv\Scripts\python.exe -m mypy machine_dialect --strict
       shell: powershell
       if: runner.os == 'Windows'
 
@@ -147,7 +149,6 @@ jobs:
 
     - name: Run Ruff linting (Windows)
       run: |
-        .venv\Scripts\activate
-        ruff check machine_dialect
+        .venv\Scripts\python.exe -m ruff check machine_dialect
       shell: powershell
       if: runner.os == 'Windows'

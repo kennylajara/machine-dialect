@@ -39,14 +39,32 @@ jobs:
 
     - name: Update version if suffix provided
       if: inputs.version_suffix != '' || github.event.inputs.version_suffix != ''
+      working-directory: machine_dialect_vm
+      shell: python
       run: |
-        cd machine_dialect_vm
-        VERSION_SUFFIX="${{ inputs.version_suffix || github.event.inputs.version_suffix }}"
-        CURRENT_VERSION=$(grep '^version = ' pyproject.toml | sed 's/version = "\(.*\)"/\1/')
-        NEW_VERSION="${CURRENT_VERSION}.${VERSION_SUFFIX}"
-        # Use Python for cross-platform compatibility
-        python3 -c "import re; content = open('pyproject.toml').read(); content = re.sub(r'^version = .*', 'version = \"${NEW_VERSION}\"', content, flags=re.MULTILINE); open('pyproject.toml', 'w').write(content)"
-        echo "Updated version from ${CURRENT_VERSION} to ${NEW_VERSION}"
+        import re
+        import os
+
+        version_suffix = "${{ inputs.version_suffix || github.event.inputs.version_suffix }}"
+
+        # Read current version
+        with open('pyproject.toml', 'r') as f:
+            content = f.read()
+
+        # Extract current version
+        match = re.search(r'^version = "(.*)"', content, re.MULTILINE)
+        if match:
+            current_version = match.group(1)
+            new_version = f"{current_version}.{version_suffix}"
+
+            # Update version
+            content = re.sub(r'^version = ".*"', f'version = "{new_version}"', content, flags=re.MULTILINE)
+
+            # Write back
+            with open('pyproject.toml', 'w') as f:
+                f.write(content)
+
+            print(f"Updated version from {current_version} to {new_version}")
 
     - name: Build sdist
       run: |
@@ -112,14 +130,32 @@ jobs:
 
     - name: Update version if suffix provided
       if: inputs.version_suffix != '' || github.event.inputs.version_suffix != ''
+      working-directory: machine_dialect_vm
+      shell: python
       run: |
-        cd machine_dialect_vm
-        VERSION_SUFFIX="${{ inputs.version_suffix || github.event.inputs.version_suffix }}"
-        CURRENT_VERSION=$(grep '^version = ' pyproject.toml | sed 's/version = "\(.*\)"/\1/')
-        NEW_VERSION="${CURRENT_VERSION}.${VERSION_SUFFIX}"
-        # Use Python for cross-platform compatibility
-        python3 -c "import re; content = open('pyproject.toml').read(); content = re.sub(r'^version = .*', 'version = \"${NEW_VERSION}\"', content, flags=re.MULTILINE); open('pyproject.toml', 'w').write(content)"
-        echo "Updated version from ${CURRENT_VERSION} to ${NEW_VERSION}"
+        import re
+        import os
+
+        version_suffix = "${{ inputs.version_suffix || github.event.inputs.version_suffix }}"
+
+        # Read current version
+        with open('pyproject.toml', 'r') as f:
+            content = f.read()
+
+        # Extract current version
+        match = re.search(r'^version = "(.*)"', content, re.MULTILINE)
+        if match:
+            current_version = match.group(1)
+            new_version = f"{current_version}.{version_suffix}"
+
+            # Update version
+            content = re.sub(r'^version = ".*"', f'version = "{new_version}"', content, flags=re.MULTILINE)
+
+            # Write back
+            with open('pyproject.toml', 'w') as f:
+                f.write(content)
+
+            print(f"Updated version from {current_version} to {new_version}")
 
     - name: Build wheels
       uses: PyO3/maturin-action@86b9d133d34bc1b40018696f782949dac11bd380  # v1.49.4

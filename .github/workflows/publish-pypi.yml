@@ -32,7 +32,8 @@ on:
 
 env:
   # Works with both workflow_dispatch and workflow_call
-  USE_TEST_PYPI: ${{ inputs.use_test_pypi || github.event.inputs.use_test_pypi || false }}
+  # Convert boolean to string to handle both input types consistently
+  USE_TEST_PYPI: ${{ (inputs.use_test_pypi == true || github.event.inputs.use_test_pypi == 'true') && 'true' || 'false' }}
   VERSION_SUFFIX: ${{ inputs.version_suffix || github.event.inputs.version_suffix || '' }}
 
 jobs:

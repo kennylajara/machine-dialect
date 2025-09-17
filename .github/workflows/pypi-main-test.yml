@@ -16,7 +16,7 @@ on:
 
 jobs:
   deploy-test:
-    uses: pypi-main-publish.yml
+    uses: ./.github/workflows/pypi-main-publish.yml
     with:
       use_test_pypi: true
       version_suffix: ${{ github.event.inputs.version_suffix }}

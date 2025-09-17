@@ -3,8 +3,12 @@
 
 set -e
 
+# Parse command line arguments
+BUILD_MODE="${1:-develop}"  # Default to develop mode
+
 echo "Building Machine Dialect™ Rust VM..."
 echo "=================================="
+echo "Build mode: $BUILD_MODE"
 echo ""
 
 # Check if maturin is installed
@@ -22,14 +26,24 @@ fi
 cd machine_dialect_vm
 
 # Build the Rust VM with PyO3 bindings
-echo "Building Rust VM with Python bindings..."
-maturin develop --features pyo3
+if [ "$BUILD_MODE" = "release" ]; then
+    echo "Building Rust VM wheel for release..."
+    maturin build --release --features pyo3
+    echo ""
+    echo "✅ Release build complete!"
+    echo "Wheel files created in: target/wheels/"
+elif [ "$BUILD_MODE" = "develop" ]; then
+    echo "Building Rust VM with Python bindings for development..."
+    maturin develop --features pyo3
+    echo ""
+    echo "✅ Development build complete!"
+    echo "You can now import the VM in Python:"
+    echo "  import machine_dialect_vm"
+else
+    echo "❌ Invalid build mode: $BUILD_MODE"
+    echo "Usage: ./build_vm.sh [develop|release]"
+    exit 1
+fi
 
-echo ""
-echo "✅ Build complete!"
-echo ""
-echo "You can now import the VM in Python:"
-echo "  import machine_dialect_vm"
-
-# Change to rood directory
+# Change to root directory
 cd ..

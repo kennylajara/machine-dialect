@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "machine-dialect-vm"
-version = "0.1.0"
+version = "0.1.0a2"
 description = "High-performance Rust VM for Machine Dialect™"
 readme = "README.md"
 requires-python = ">=3.9"

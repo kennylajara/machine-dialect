@@ -5,7 +5,9 @@
 Machine Dialect™ is currently in ALPHA stage. **Only the latest release receives security
 updates and support.** Older releases are immediately deprecated when a new version is released.
 
-### Python Versions
+### Runtime Versions
+
+#### Python
 
 | Python Version | Supported          |
 | -------------- | ------------------ |
@@ -14,6 +16,14 @@ updates and support.** Older releases are immediately deprecated when a new vers
 | 3.11.x         | ✅                 |
 | 3.10.x         | ✅                 |
 | < 3.10         | ❌                 |
+
+#### Rust
+
+| Rust Version   | Supported          |
+| -------------- | ------------------ |
+| Stable (latest)| ✅                 |
+| Beta           | ⚠️ (best effort)   |
+| Nightly        | ❌                 |
 
 ### Operating Systems
 
@@ -57,9 +67,10 @@ When contributing to Machine Dialect™:
    - Handle edge cases safely
 
 3. **Follow secure coding guidelines**
-   - Use type hints for better safety
-   - Run security linters
+   - Use type hints (Python) and strict typing (Rust)
+   - Run security linters (ruff for Python, clippy for Rust)
    - Keep dependencies updated
+   - No unsafe Rust code without thorough review
 
 4. **Test security implications**
    - Consider security in your tests
@@ -68,9 +79,17 @@ When contributing to Machine Dialect™:
 
 ## Dependency Management
 
-- Dependencies are managed through UV and pyproject.toml
-- Regular security audits are performed
+### Python Dependencies
+
+- Managed through UV and pyproject.toml
+- Regular security audits via `pip audit`
 - Known vulnerabilities are patched promptly
+
+### Rust Dependencies
+
+- Managed through Cargo.toml
+- Regular audits via `cargo audit`
+- Dependencies are kept minimal for security
 
 ## Alpha Stage Notice
 

@@ -60,11 +60,6 @@ jobs:
       with:
         python-version: '3.12'
 
-    - name: Set up Rust
-      uses: actions-rust-lang/setup-rust-toolchain@v1
-      with:
-        toolchain: stable
-
     - name: Install UV
       run: |
         curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -75,9 +70,7 @@ jobs:
         uv venv .venv
         source .venv/bin/activate
         uv sync --all-groups
-        # Build the Rust VM first
-        chmod +x build_vm.sh
-        RUSTFLAGS="" ./build_vm.sh
+
         # Add version suffix if provided (for test releases)
         if [ -n "${{ env.VERSION_SUFFIX }}" ]; then
           echo "Adding version suffix: ${{ env.VERSION_SUFFIX }}"
@@ -86,7 +79,8 @@ jobs:
           sed -i "s/^version = .*/version = \"${NEW_VERSION}\"/" pyproject.toml
           echo "Updated version from ${CURRENT_VERSION} to ${NEW_VERSION}"
         fi
-        # Build Python package
+
+        # Build main Python package
         uv build
 
     - name: Publish to Test PyPI
@@ -109,12 +103,22 @@ jobs:
       if: success()
       run: |
         if [ "${{ env.USE_TEST_PYPI }}" == "true" ]; then
-          echo "📦 Published to Test PyPI!"
-          echo "Install with: pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ machine-dialect"
+          echo "📦 Published machine-dialect to Test PyPI!"
+          echo ""
+          echo "Install with:"
+          echo "  pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ machine-dialect"
+          echo ""
+          echo "Note: machine-dialect-vm must be published separately and will be installed as a dependency."
         elif [ "${{ github.event.release.prerelease }}" == "true" ]; then
           echo "📦 Published pre-release to PyPI!"
+          echo ""
           echo "Install with: pip install --pre machine-dialect"
+          echo ""
+          echo "Note: This requires machine-dialect-vm to be available on PyPI."
         else
-          echo "📦 Published to PyPI!"
+          echo "📦 Published machine-dialect to PyPI!"
+          echo ""
           echo "Install with: pip install machine-dialect"
+          echo ""
+          echo "Note: This will automatically install machine-dialect-vm as a dependency."
         fi

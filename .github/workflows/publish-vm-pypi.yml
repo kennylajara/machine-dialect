@@ -1,0 +1,196 @@
+name: Publish VM to PyPI
+
+on:
+  workflow_dispatch:
+    inputs:
+      use_test_pypi:
+        description: 'Deploy to Test PyPI instead of production'
+        required: false
+        type: boolean
+        default: false
+      confirm_version:
+        description: 'Type the version from machine_dialect_vm/pyproject.toml to confirm (e.g., 0.1.0a1)'
+        required: true
+        type: string
+
+jobs:
+  validate-version:
+    runs-on: ubuntu-latest
+    name: Validate Version
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Validate version confirmation
+      id: version
+      run: |
+        # Extract version from pyproject.toml
+        ACTUAL_VERSION=$(grep '^version = ' machine_dialect_vm/pyproject.toml | sed 's/version = "\(.*\)"/\1/')
+        CONFIRMED_VERSION="${{ github.event.inputs.confirm_version }}"
+
+        echo "Version in pyproject.toml: $ACTUAL_VERSION"
+        echo "Confirmed version: $CONFIRMED_VERSION"
+
+        if [ "$ACTUAL_VERSION" != "$CONFIRMED_VERSION" ]; then
+          echo "❌ Version mismatch!"
+          echo "Please confirm the correct version from machine_dialect_vm/pyproject.toml"
+          exit 1
+        fi
+
+        echo "✅ Version confirmed: $ACTUAL_VERSION"
+        echo "version=$ACTUAL_VERSION" >> $GITHUB_OUTPUT
+
+  build-sdist:
+    needs: validate-version
+    runs-on: ubuntu-latest
+    name: Build source distribution
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install maturin
+      run: pip install maturin
+
+    - name: Build sdist
+      run: |
+        cd machine_dialect_vm
+        maturin sdist
+
+    - name: Upload sdist
+      uses: actions/upload-artifact@v4
+      with:
+        name: sdist
+        path: machine_dialect_vm/target/wheels/*.tar.gz
+
+  build-wheels:
+    needs: validate-version
+    strategy:
+      matrix:
+        include:
+          # Linux
+          - os: ubuntu-latest
+            target: x86_64
+            manylinux: auto
+          - os: ubuntu-latest
+            target: aarch64
+            manylinux: auto
+          # macOS
+          - os: macos-13  # Intel Mac
+            target: x86_64
+            manylinux: false
+          - os: macos-14  # Apple Silicon Mac (M1/M2)
+            target: aarch64
+            manylinux: false
+          # Windows
+          - os: windows-latest
+            target: x86_64
+            manylinux: false
+
+    runs-on: ${{ matrix.os }}
+    name: Build wheels for ${{ matrix.os }} (${{ matrix.target }})
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+
+    - name: Set up Rust
+      uses: actions-rust-lang/setup-rust-toolchain@v1
+      with:
+        toolchain: stable
+
+    - name: Set up QEMU (for Linux ARM builds)
+      if: matrix.os == 'ubuntu-latest' && matrix.target == 'aarch64'
+      uses: docker/setup-qemu-action@v3
+      with:
+        platforms: linux/arm64
+
+    - name: Install maturin
+      run: |
+        pip install maturin
+
+    - name: Build wheels
+      uses: PyO3/maturin-action@v1
+      with:
+        target: ${{ matrix.target }}
+        args: --release --features pyo3 --out dist
+        manylinux: ${{ matrix.manylinux }}
+        working-directory: machine_dialect_vm
+
+    - name: Upload wheels
+      uses: actions/upload-artifact@v4
+      with:
+        name: wheels-${{ matrix.os }}-${{ matrix.target }}
+        path: machine_dialect_vm/dist/*.whl
+
+  publish:
+    needs: [build-sdist, build-wheels]
+    runs-on: ubuntu-latest
+    name: Publish VM to PyPI
+    environment:
+      name: ${{ github.event.inputs.use_test_pypi == 'true' && 'test-pypi' || 'pypi' }}
+      url: ${{ github.event.inputs.use_test_pypi == 'true' && 'https://test.pypi.org/project/machine-dialect-vm/' || 'https://pypi.org/project/machine-dialect-vm/' }}
+
+    steps:
+    - name: Download all wheels
+      uses: actions/download-artifact@v4
+      with:
+        pattern: wheels-*
+        path: dist/
+        merge-multiple: true
+
+    - name: Download sdist
+      uses: actions/download-artifact@v4
+      with:
+        name: sdist
+        path: dist/
+
+    - name: List distribution files
+      run: |
+        echo "📦 Distribution files to publish:"
+        ls -la dist/
+
+    - name: Publish to Test PyPI
+      if: ${{ github.event.inputs.use_test_pypi == 'true' }}
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        repository-url: https://test.pypi.org/legacy/
+        password: ${{ secrets.TEST_PYPI_API_TOKEN }}
+        skip-existing: true
+        verbose: true
+
+    - name: Publish to Production PyPI
+      if: ${{ github.event.inputs.use_test_pypi != 'true' }}
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        password: ${{ secrets.PYPI_API_TOKEN }}
+        verbose: true
+
+    - name: Output Installation Instructions
+      if: success()
+      run: |
+        if [ "${{ github.event.inputs.use_test_pypi }}" == "true" ]; then
+          echo "📦 Published machine-dialect-vm to Test PyPI!"
+          echo ""
+          echo "Version: ${{ github.event.inputs.confirm_version }}"
+          echo ""
+          echo "Install with:"
+          echo "  pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ machine-dialect-vm==${{ github.event.inputs.confirm_version }}"
+        else
+          echo "📦 Published machine-dialect-vm to PyPI!"
+          echo ""
+          echo "Version: ${{ github.event.inputs.confirm_version }}"
+          echo ""
+          echo "Install with:"
+          echo "  pip install machine-dialect-vm==${{ github.event.inputs.confirm_version }}"
+        fi
+        echo ""
+        echo "⚠️  Remember to update the main package's dependency version if needed!"

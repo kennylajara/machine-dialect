@@ -1,0 +1,17 @@
+name: Test VM PyPI Deployment
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_version:
+        description: 'Type the version from machine_dialect_vm/pyproject.toml to confirm (e.g., 0.1.0a1)'
+        required: true
+        type: string
+
+jobs:
+  deploy-to-test-pypi:
+    uses: ./.github/workflows/publish-vm-pypi.yml
+    with:
+      use_test_pypi: true
+      confirm_version: ${{ github.event.inputs.confirm_version }}
+    secrets: inherit

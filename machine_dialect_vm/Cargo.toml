@@ -1,6 +1,6 @@
 [package]
 name = "machine_dialect_vm"
-version = "0.1.0"
+version = "0.1.0-alpha.1"
 edition = "2021"
 authors = ["Kenny Lajara"]
 description = "High-performance register-based VM for Machine Dialect™"

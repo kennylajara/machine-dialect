@@ -13,8 +13,10 @@ This guide will help you get started.
 ### Prerequisites
 
 - Python (supported version - see [SECURITY.md](SECURITY.md#supported-versions))
+- Rust (latest stable version)
 - Git
 - UV package manager (required - never use pip directly)
+- Maturin (for building Python-Rust bindings)
 
 ### Development Setup
 
@@ -40,7 +42,19 @@ This guide will help you get started.
    uv pip install -e .
    ```
 
-4. **Verify setup**
+4. **Build the Rust VM**
+
+   ```bash
+   # Linux/Mac/WSL
+   ./build_vm.sh
+
+   # Windows
+   cd machine_dialect_vm
+   maturin develop --features pyo3
+   cd ..
+   ```
+
+5. **Verify setup**
 
    ```bash
    python -m pytest
@@ -99,9 +113,18 @@ All commits must pass pre-commit checks:
 3. **Run tests and checks**
 
    ```bash
+   # Python tests
    python -m pytest
    mypy machine_dialect --strict
    ruff check machine_dialect
+
+   # Rust tests
+   cd machine_dialect_vm
+   cargo test
+   cargo clippy
+   cd ..
+
+   # All pre-commit hooks
    pre-commit run --all-files
    ```
 
@@ -138,7 +161,7 @@ machine_dialect/
 
 machine_dialect_vm/
 ├── src/
-│   ├── bindings/   # Python bindings
+│   ├── bindings/   # Python bindings (PyO3)
 │   ├── errors/     # VM error handling
 │   ├── instructions/ # Bytecode instructions
 │   ├── loader/     # Bytecode loader
@@ -146,9 +169,13 @@ machine_dialect_vm/
 │   ├── runtime/    # Runtime system
 │   ├── values/     # Value types
 │   └── vm/         # Virtual machine core
+├── Cargo.toml      # Rust dependencies
+└── pyproject.toml  # Maturin configuration
 ```
 
 ### Key Components
+
+#### Python Components
 
 - **Lexer**: Converts source text to tokens
 - **Parser**: Builds AST from tokens using recursive descent
@@ -156,11 +183,20 @@ machine_dialect_vm/
 - **HIR**: High-level intermediate representation
 - **MIR**: SSA-based mid-level IR for optimization
 - **Codegen**: Generates bytecode from MIR
-- **VM**: Executes bytecode
+
+#### Rust VM Components
+
+- **VM Core**: Stack-based virtual machine for bytecode execution
+- **Instructions**: Bytecode instruction set (opcodes)
+- **Values**: Runtime value representation and type system
+- **Memory**: Stack and heap management
+- **Python Bindings**: PyO3 integration for Python interop
 
 ## Testing
 
 ### Running Tests
+
+#### Python Tests
 
 ```bash
 # All tests
@@ -171,6 +207,20 @@ python -m pytest machine_dialect/lexer/tests/ -v
 
 # With coverage
 python -m pytest --cov=machine_dialect
+```
+
+#### Rust Tests
+
+```bash
+# Run Rust VM tests
+cd machine_dialect_vm
+cargo test
+
+# Run with verbose output
+cargo test -- --nocapture
+
+# Run specific test
+cargo test test_name
 ```
 
 ### Writing Tests

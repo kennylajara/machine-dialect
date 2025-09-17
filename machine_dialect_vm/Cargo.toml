@@ -16,34 +16,34 @@ pyo3 = ["dep:pyo3"]
 
 [dependencies]
 # Core dependencies
-thiserror = "1.0"
-anyhow = "1.0"
+thiserror = "=1.0.69"
+anyhow = "=1.0.99"
 
 # Data structures
-ahash = "0.8"  # Fast hasher for HashMap
-arc-swap = "1.7"  # Atomic Arc swapping for concurrent access
+ahash = "=0.8.12"  # Fast hasher for HashMap
+arc-swap = "=1.7.1"  # Atomic Arc swapping for concurrent access
 
 # Serialization
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-bincode = "1.3"
+serde = { version = "=1.0.219", features = ["derive"] }
+serde_json = "=1.0.143"
+bincode = "=1.3.3"
 
 # Compression for metadata
-zstd = "0.13"
+zstd = "=0.13.3"
 
 # Bit manipulation
-bitvec = "1.0"
+bitvec = "=1.0.1"
 
 [dependencies.pyo3]
-version = "0.24"
+version = "=0.24.0"
 features = ["extension-module", "abi3-py39"]
 optional = true
 
 [dev-dependencies]
-criterion = { version = "0.5", features = ["html_reports"] }
-proptest = "1.4"
-pretty_assertions = "1.4"
-tempfile = "3.8"
+criterion = { version = "=0.5.1", features = ["html_reports"] }
+proptest = "=1.7.0"
+pretty_assertions = "=1.4.1"
+tempfile = "=3.21.0"
 
 [profile.release]
 lto = true

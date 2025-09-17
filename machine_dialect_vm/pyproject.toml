@@ -7,22 +7,22 @@ name = "machine-dialect-vm"
 version = "0.1.0a2"
 description = "High-performance Rust VM for Machine Dialect™"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10,<=13"
 authors = [
     {name = "Kenny Lajara"},
 ]
+keywords = ["programming-language", "natural-language", "markdown", "virtual machine", "vm"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: Apache Software License",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Programming Language :: Rust",
-    "Topic :: Software Development :: Compilers",
-    "Topic :: Software Development :: Interpreters",
+    "Topic :: Software Development",
 ]
 
 [tool.maturin]

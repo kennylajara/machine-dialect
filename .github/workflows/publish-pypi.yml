@@ -53,10 +53,10 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b  # v4.1.4
 
     - name: Set up Python
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@39cd14951b08e74b54015e9e001cdefcf80e669f  # v5.1.1
       with:
         python-version: '3.12'
 
@@ -85,7 +85,7 @@ jobs:
 
     - name: Publish to Test PyPI
       if: env.USE_TEST_PYPI == 'true'
-      uses: pypa/gh-action-pypi-publish@release/v1
+      uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e  # release/v1.13.0
       with:
         repository-url: https://test.pypi.org/legacy/
         password: ${{ secrets.TEST_PYPI_API_TOKEN || secrets.PYPI_API_TOKEN }}
@@ -94,7 +94,7 @@ jobs:
 
     - name: Publish to Production PyPI
       if: env.USE_TEST_PYPI != 'true'
-      uses: pypa/gh-action-pypi-publish@release/v1
+      uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e  # release/v1.13.0
       with:
         password: ${{ secrets.PYPI_API_TOKEN }}
         verbose: true

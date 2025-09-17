@@ -3,15 +3,34 @@ name: Test VM PyPI Deployment
 on:
   workflow_dispatch:
     inputs:
-      confirm_version:
-        description: 'Type the version from machine_dialect_vm/pyproject.toml to confirm (e.g., 0.1.0a1)'
-        required: true
+      version_suffix:
+        description: 'Version suffix (e.g., dev1, rc1). Leave empty for current version'
+        required: false
         type: string
+        default: ''
 
 jobs:
+  prepare-version:
+    runs-on: ubuntu-latest
+    outputs:
+      version_suffix: ${{ steps.version.outputs.suffix }}
+    steps:
+    - name: Generate version suffix
+      id: version
+      run: |
+        if [ -n "${{ github.event.inputs.version_suffix }}" ]; then
+          SUFFIX="${{ github.event.inputs.version_suffix }}"
+        else
+          # Generate timestamp-based suffix for test releases if not provided
+          SUFFIX="dev$(date +%Y%m%d%H%M%S)"
+        fi
+        echo "suffix=${SUFFIX}" >> $GITHUB_OUTPUT
+        echo "Using version suffix: ${SUFFIX}"
+
   deploy-to-test-pypi:
+    needs: prepare-version
     uses: ./.github/workflows/publish-vm-pypi.yml
     with:
       use_test_pypi: true
-      confirm_version: ${{ github.event.inputs.confirm_version }}
+      version_suffix: ${{ needs.prepare-version.outputs.version_suffix }}
     secrets: inherit

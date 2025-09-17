@@ -8,52 +8,25 @@ on:
         required: false
         type: boolean
         default: false
-      confirm_version:
-        description: 'Type the version from machine_dialect_vm/pyproject.toml to confirm (e.g., 0.1.0a1)'
-        required: true
+      version_suffix:
+        description: 'Version suffix for test releases (e.g., dev1, rc1). Leave empty for current version'
+        required: false
         type: string
+        default: ''
   workflow_call:
     inputs:
       use_test_pypi:
         required: false
         type: boolean
         default: false
-      confirm_version:
-        required: true
+      version_suffix:
+        required: false
         type: string
+        default: ''
 
 jobs:
-  validate-version:
-    runs-on: ubuntu-latest
-    name: Validate Version
-    outputs:
-      version: ${{ steps.version.outputs.version }}
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b  # v4.1.4
-
-    - name: Validate version confirmation
-      id: version
-      run: |
-        # Extract version from pyproject.toml
-        ACTUAL_VERSION=$(grep '^version = ' machine_dialect_vm/pyproject.toml | sed 's/version = "\(.*\)"/\1/')
-        CONFIRMED_VERSION="${{ inputs.confirm_version || github.event.inputs.confirm_version }}"
-
-        echo "Version in pyproject.toml: $ACTUAL_VERSION"
-        echo "Confirmed version: $CONFIRMED_VERSION"
-
-        if [ "$ACTUAL_VERSION" != "$CONFIRMED_VERSION" ]; then
-          echo "❌ Version mismatch!"
-          echo "Please confirm the correct version from machine_dialect_vm/pyproject.toml"
-          exit 1
-        fi
-
-        echo "✅ Version confirmed: $ACTUAL_VERSION"
-        echo "version=$ACTUAL_VERSION" >> $GITHUB_OUTPUT
 
   build-sdist:
-    needs: validate-version
     runs-on: ubuntu-latest
     name: Build source distribution
 
@@ -63,6 +36,16 @@ jobs:
 
     - name: Install maturin
       run: pip install maturin
+
+    - name: Update version if suffix provided
+      if: inputs.version_suffix != '' || github.event.inputs.version_suffix != ''
+      run: |
+        cd machine_dialect_vm
+        VERSION_SUFFIX="${{ inputs.version_suffix || github.event.inputs.version_suffix }}"
+        CURRENT_VERSION=$(grep '^version = ' pyproject.toml | sed 's/version = "\(.*\)"/\1/')
+        NEW_VERSION="${CURRENT_VERSION}.${VERSION_SUFFIX}"
+        sed -i "s/^version = .*/version = \"${NEW_VERSION}\"/" pyproject.toml
+        echo "Updated version from ${CURRENT_VERSION} to ${NEW_VERSION}"
 
     - name: Build sdist
       run: |
@@ -76,7 +59,6 @@ jobs:
         path: machine_dialect_vm/target/wheels/*.tar.gz
 
   build-wheels:
-    needs: validate-version
     strategy:
       matrix:
         include:
@@ -126,6 +108,16 @@ jobs:
     - name: Install maturin
       run: |
         pip install maturin
+
+    - name: Update version if suffix provided
+      if: inputs.version_suffix != '' || github.event.inputs.version_suffix != ''
+      run: |
+        cd machine_dialect_vm
+        VERSION_SUFFIX="${{ inputs.version_suffix || github.event.inputs.version_suffix }}"
+        CURRENT_VERSION=$(grep '^version = ' pyproject.toml | sed 's/version = "\(.*\)"/\1/')
+        NEW_VERSION="${CURRENT_VERSION}.${VERSION_SUFFIX}"
+        sed -i "s/^version = .*/version = \"${NEW_VERSION}\"/" pyproject.toml
+        echo "Updated version from ${CURRENT_VERSION} to ${NEW_VERSION}"
 
     - name: Build wheels
       uses: PyO3/maturin-action@86b9d133d34bc1b40018696f782949dac11bd380  # v1.49.4
@@ -187,20 +179,28 @@ jobs:
     - name: Output Installation Instructions
       if: success()
       run: |
+        # Get the actual version that was published
+        cd machine_dialect_vm 2>/dev/null || cd ${{ github.workspace }}
+        if [ -f machine_dialect_vm/pyproject.toml ]; then
+          PUBLISHED_VERSION=$(grep '^version = ' machine_dialect_vm/pyproject.toml | sed 's/version = "\(.*\)"/\1/')
+        else
+          PUBLISHED_VERSION="Check PyPI for version"
+        fi
+
         if [ "${{ inputs.use_test_pypi }}" == "true" ] || [ "${{ github.event.inputs.use_test_pypi }}" == "true" ]; then
           echo "📦 Published machine-dialect-vm to Test PyPI!"
           echo ""
-          echo "Version: ${{ inputs.confirm_version || github.event.inputs.confirm_version }}"
+          echo "Version: ${PUBLISHED_VERSION}"
           echo ""
           echo "Install with:"
-          echo "  pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ machine-dialect-vm==${{ inputs.confirm_version || github.event.inputs.confirm_version }}"
+          echo "  pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ machine-dialect-vm"
         else
           echo "📦 Published machine-dialect-vm to PyPI!"
           echo ""
-          echo "Version: ${{ inputs.confirm_version || github.event.inputs.confirm_version }}"
+          echo "Version: ${PUBLISHED_VERSION}"
           echo ""
           echo "Install with:"
-          echo "  pip install machine-dialect-vm==${{ inputs.confirm_version || github.event.inputs.confirm_version }}"
+          echo "  pip install machine-dialect-vm"
         fi
         echo ""
         echo "⚠️  Remember to update the main package's dependency version if needed!"

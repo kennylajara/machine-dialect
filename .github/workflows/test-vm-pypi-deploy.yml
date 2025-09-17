@@ -10,27 +10,9 @@ on:
         default: ''
 
 jobs:
-  prepare-version:
-    runs-on: ubuntu-latest
-    outputs:
-      version_suffix: ${{ steps.version.outputs.suffix }}
-    steps:
-    - name: Generate version suffix
-      id: version
-      run: |
-        if [ -n "${{ github.event.inputs.version_suffix }}" ]; then
-          SUFFIX="${{ github.event.inputs.version_suffix }}"
-        else
-          # Generate timestamp-based suffix for test releases if not provided
-          SUFFIX="dev$(date +%Y%m%d%H%M%S)"
-        fi
-        echo "suffix=${SUFFIX}" >> $GITHUB_OUTPUT
-        echo "Using version suffix: ${SUFFIX}"
-
   deploy-to-test-pypi:
-    needs: prepare-version
     uses: ./.github/workflows/publish-vm-pypi.yml
     with:
       use_test_pypi: true
-      version_suffix: ${{ needs.prepare-version.outputs.version_suffix }}
+      version_suffix: ${{ github.event.inputs.version_suffix }}
     secrets: inherit

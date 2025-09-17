@@ -861,7 +861,7 @@ class SemanticAnalyzer:
                             index_value = accessor_type.literal_value
 
                             # Handle ordinal keywords
-                            if expr.access_type == "ordinal" and isinstance(expr.accessor, (str, Expression)):
+                            if expr.access_type == "ordinal" and isinstance(expr.accessor, str | Expression):
                                 # For ordinal access, accessor is a string like "first", "second"
                                 if isinstance(expr.accessor, str):
                                     accessor_str = expr.accessor
@@ -886,7 +886,7 @@ class SemanticAnalyzer:
                                     index_value = len(elements)
 
                             # Check for invalid indices
-                            if isinstance(index_value, (int, float)):
+                            if isinstance(index_value, int | float):
                                 if index_value <= 0:
                                     error_msg = ErrorTemplate(
                                         f"Invalid index {index_value}: Machine Dialect uses one-based "

@@ -1,0 +1,44 @@
+name: Deploy to Test PyPI
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_suffix:
+        description: 'Version suffix (e.g., dev1, rc1). Leave empty for timestamp'
+        required: false
+        type: string
+        default: ''
+      skip_tests:
+        description: 'Skip tests for faster deployment (use with caution!)'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  prepare-version:
+    runs-on: ubuntu-latest
+    outputs:
+      version_suffix: ${{ steps.version.outputs.suffix }}
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Generate version suffix
+      id: version
+      run: |
+        if [ -n "${{ github.event.inputs.version_suffix }}" ]; then
+          SUFFIX="${{ github.event.inputs.version_suffix }}"
+        else
+          SUFFIX="dev$(date +%Y%m%d%H%M%S)"
+        fi
+        echo "suffix=${SUFFIX}" >> $GITHUB_OUTPUT
+        echo "Using version suffix: ${SUFFIX}"
+
+  deploy-test:
+    needs: prepare-version
+    uses: ./.github/workflows/publish-pypi.yml
+    with:
+      use_test_pypi: true
+      version_suffix: ${{ needs.prepare-version.outputs.version_suffix }}
+      skip_tests: ${{ github.event.inputs.skip_tests == 'true' }}
+    secrets: inherit

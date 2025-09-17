@@ -1,0 +1,120 @@
+name: Publish to PyPI
+
+on:
+  release:
+    types: [published]  # Trigger when a release is published (not draft)
+  workflow_dispatch:
+    inputs:
+      use_test_pypi:
+        description: 'Deploy to Test PyPI instead of production'
+        required: false
+        type: boolean
+        default: false
+      version_suffix:
+        description: 'Version suffix for test releases (e.g., rc1, dev1)'
+        required: false
+        type: string
+        default: ''
+  workflow_call:
+    inputs:
+      use_test_pypi:
+        required: false
+        type: boolean
+        default: false
+      version_suffix:
+        required: false
+        type: string
+        default: ''
+      skip_tests:
+        required: false
+        type: boolean
+        default: false
+
+env:
+  # Works with both workflow_dispatch and workflow_call
+  USE_TEST_PYPI: ${{ inputs.use_test_pypi || github.event.inputs.use_test_pypi || false }}
+  VERSION_SUFFIX: ${{ inputs.version_suffix || github.event.inputs.version_suffix || '' }}
+
+jobs:
+  # Run tests one more time before publishing
+  test:
+    if: ${{ !inputs.skip_tests }}
+    uses: ./.github/workflows/test-cross-platform.yml
+    name: Final Tests Before PyPI
+
+  publish:
+    needs: test  # Only publish if tests pass
+    if: ${{ always() && (inputs.skip_tests || needs.test.result == 'success') }}
+    runs-on: ubuntu-latest
+    name: Build and Publish to PyPI
+    environment:
+      name: pypi
+      url: https://pypi.org/project/machine-dialect/
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+
+    - name: Set up Rust
+      uses: actions-rust-lang/setup-rust-toolchain@v1
+      with:
+        toolchain: stable
+
+    - name: Install UV
+      run: |
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+        echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+    - name: Build distribution
+      run: |
+        uv venv .venv
+        source .venv/bin/activate
+        uv sync --all-groups
+        # Build the Rust VM first
+        chmod +x build_vm.sh
+        RUSTFLAGS="" ./build_vm.sh
+        # Add version suffix if provided (for test releases)
+        if [ -n "${{ env.VERSION_SUFFIX }}" ]; then
+          echo "Adding version suffix: ${{ env.VERSION_SUFFIX }}"
+          CURRENT_VERSION=$(grep '^version = ' pyproject.toml | sed 's/version = "\(.*\)"/\1/')
+          NEW_VERSION="${CURRENT_VERSION}.${VERSION_SUFFIX}"
+          sed -i "s/^version = .*/version = \"${NEW_VERSION}\"/" pyproject.toml
+          echo "Updated version from ${CURRENT_VERSION} to ${NEW_VERSION}"
+        fi
+        # Build Python package
+        uv build
+
+    - name: Publish to Test PyPI
+      if: env.USE_TEST_PYPI == 'true'
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        repository-url: https://test.pypi.org/legacy/
+        password: ${{ secrets.TEST_PYPI_API_TOKEN || secrets.PYPI_API_TOKEN }}
+        skip-existing: true
+        verbose: true
+
+    - name: Publish to Production PyPI
+      if: env.USE_TEST_PYPI != 'true'
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        password: ${{ secrets.PYPI_API_TOKEN }}
+        verbose: true
+
+    - name: Output Installation Instructions
+      if: success()
+      run: |
+        if [ "${{ env.USE_TEST_PYPI }}" == "true" ]; then
+          echo "📦 Published to Test PyPI!"
+          echo "Install with: pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ machine-dialect"
+        elif [ "${{ github.event.release.prerelease }}" == "true" ]; then
+          echo "📦 Published pre-release to PyPI!"
+          echo "Install with: pip install --pre machine-dialect"
+        else
+          echo "📦 Published to PyPI!"
+          echo "Install with: pip install machine-dialect"
+        fi

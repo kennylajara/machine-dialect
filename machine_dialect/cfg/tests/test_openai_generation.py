@@ -16,7 +16,9 @@ class TestGenerateWithOpenAI:
         mock_client = MagicMock()
         mock_response = MagicMock()
 
-        # GPT-5 returns output in a specific format with custom tools
+        # Set up the response to have output_text directly (primary path)
+        mock_response.output_text = "Set x to _10_.\nGive back x."
+        # Also set up output as fallback
         mock_output = MagicMock()
         mock_output.input = "Set x to _10_.\nGive back x."
         mock_response.output = [MagicMock(), mock_output]  # First is text, second is tool output
@@ -31,7 +33,12 @@ class TestGenerateWithOpenAI:
             temperature=0.7,
         )
 
-        assert result == "Set x to _10_.\nGive back x."
+        # Result should be a tuple of (code, token_info)
+        assert isinstance(result, tuple)
+        assert len(result) == 2
+        code, token_info = result
+        assert code == "Set x to _10_.\nGive back x."
+        assert isinstance(token_info, dict)
 
         # Verify API call structure
         call_args = mock_client.responses.create.call_args
@@ -72,6 +79,9 @@ class TestGenerateWithOpenAI:
         """Test that gpt-5-mini is recognized as supporting CFG."""
         mock_client = MagicMock()
         mock_response = MagicMock()
+        # Set up the response to have output_text directly
+        mock_response.output_text = 'Give back _"Hello"_.'
+        # Also set up output as fallback
         mock_output = MagicMock()
         mock_output.input = 'Give back _"Hello"_.'
         mock_response.output = [MagicMock(), mock_output]
@@ -81,41 +91,54 @@ class TestGenerateWithOpenAI:
             client=mock_client, model="gpt-5-mini", task_description="say hello", max_tokens=50
         )
 
-        assert result == 'Give back _"Hello"_.'
+        # Result should be a tuple of (code, token_info)
+        assert isinstance(result, tuple)
+        assert len(result) == 2
+        code, token_info = result
+        assert code == 'Give back _"Hello"_.'
+        assert isinstance(token_info, dict)
         assert mock_client.responses.create.called
 
     def test_empty_response_raises_error(self) -> None:
         """Test that empty response raises ValueError."""
         mock_client = MagicMock()
         mock_response = MagicMock()
+        # Make response have no valid attributes
+        mock_response.output_text = None
         mock_response.output = []  # Empty output
         mock_client.responses.create.return_value = mock_response
 
-        with pytest.raises(ValueError, match="No valid output"):
+        with pytest.raises(ValueError, match="Failed to extract valid code"):
             generate_with_openai(client=mock_client, model="gpt-5", task_description="test task", max_tokens=100)
 
     def test_empty_code_raises_error(self) -> None:
         """Test that empty generated code raises ValueError."""
         mock_client = MagicMock()
         mock_response = MagicMock()
-        mock_output = MagicMock()
-        mock_output.input = ""  # Empty code
-        mock_response.output = [MagicMock(), mock_output]
+        # Set up response to have empty code
+        mock_response.output_text = ""  # Empty code
+        del mock_response.output  # Remove output attribute
         mock_client.responses.create.return_value = mock_response
 
-        with pytest.raises(ValueError, match="Empty code generated"):
+        with pytest.raises(ValueError, match="Failed to extract valid code"):
             generate_with_openai(client=mock_client, model="gpt-5", task_description="test task", max_tokens=100)
 
     def test_input_messages_structure(self) -> None:
         """Test that input messages are structured correctly."""
         mock_client = MagicMock()
         mock_response = MagicMock()
+        # Set up the response to have output_text directly
+        mock_response.output_text = "test"
+        # Also set up output as fallback
         mock_output = MagicMock()
         mock_output.input = "test"
         mock_response.output = [MagicMock(), mock_output]
         mock_client.responses.create.return_value = mock_response
 
-        generate_with_openai(client=mock_client, model="gpt-5-nano", task_description="test task", max_tokens=50)
+        result = generate_with_openai(
+            client=mock_client, model="gpt-5-nano", task_description="test task", max_tokens=50
+        )
+        assert isinstance(result, tuple)  # Verify it returns a tuple
 
         # Get the input messages passed to the API
         call_args = mock_client.responses.create.call_args

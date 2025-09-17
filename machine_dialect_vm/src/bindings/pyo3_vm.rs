@@ -68,27 +68,29 @@ impl RustVM {
     fn value_to_python(&self, py: Python<'_>, value: &crate::values::Value) -> PyObject {
         use crate::values::Value;
         use pyo3::types::{PyList, PyDict};
+        use pyo3::conversion::IntoPyObjectExt;
 
         match value {
             Value::Empty => py.None(),
-            Value::Bool(b) => b.into_py(py),
-            Value::Int(i) => i.into_py(py),
-            Value::Float(f) => f.into_py(py),
-            Value::String(s) => s.as_ref().into_py(py),
-            Value::URL(u) => u.as_ref().into_py(py),
-            Value::Function(f) => format!("function<{}>", f.name).into_py(py),
+            Value::Bool(b) => b.into_py_any(py).unwrap(),
+            Value::Int(i) => i.into_py_any(py).unwrap(),
+            Value::Float(f) => f.into_py_any(py).unwrap(),
+            Value::String(s) => s.as_ref().into_py_any(py).unwrap(),
+            Value::URL(u) => u.as_ref().into_py_any(py).unwrap(),
+            Value::Function(f) => format!("function<{}>", f.name).into_py_any(py).unwrap(),
             Value::Array(arr) => {
                 let items: Vec<PyObject> = arr.iter()
                     .map(|v| self.value_to_python(py, v))
                     .collect();
-                PyList::new_bound(py, items).into_py(py)
+                let list = PyList::new(py, items).unwrap();
+                list.unbind().into()
             }
             Value::Dict(dict) => {
-                let py_dict = PyDict::new_bound(py);
+                let py_dict = PyDict::new(py);
                 for (key, val) in dict.iter() {
                     py_dict.set_item(key, self.value_to_python(py, val)).unwrap();
                 }
-                py_dict.into_py(py)
+                py_dict.unbind().into()
             }
         }
     }

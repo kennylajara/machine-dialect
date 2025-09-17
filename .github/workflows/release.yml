@@ -1,0 +1,77 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., v0.1.0)'
+        required: true
+        type: string
+      prerelease:
+        description: 'Is this a pre-release?'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  # First, run all tests
+  test:
+    uses: ./.github/workflows/test-cross-platform.yml
+    name: Pre-release Tests
+
+  # Only create release if tests pass
+  release:
+    needs: test  # This job depends on test job succeeding
+    runs-on: ubuntu-latest
+    name: Create Release
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Create Release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.event.inputs.version }}
+        release_name: Release ${{ github.event.inputs.version }}
+        draft: false
+        prerelease: ${{ github.event.inputs.prerelease }}
+        body: |
+          ## Release ${{ github.event.inputs.version }}
+
+          ### ✅ Pre-release Testing
+          All tests passed across:
+          - Python 3.10, 3.11, 3.12, 3.13
+          - Ubuntu, Windows, macOS
+
+          ### 📝 Changes
+          See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details.
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+
+    - name: Install UV
+      run: |
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+        echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+    - name: Build Python package
+      run: |
+        uv venv .venv
+        source .venv/bin/activate
+        uv sync --all-groups
+        uv build
+
+    - name: Upload Release Assets
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./dist/
+        asset_name: machine-dialect-${{ github.event.inputs.version }}.tar.gz
+        asset_content_type: application/gzip

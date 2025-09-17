@@ -1,0 +1,153 @@
+name: Cross-Platform Tests
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+    tags-ignore:
+      - '**'  # Prevent double run when creating release tags
+  release:
+    types: [created]  # Run when a release is created
+  workflow_call:  # Allow this workflow to be called by other workflows
+
+jobs:
+  test:
+    name: Test Python ${{ matrix.python-version }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ['3.10', '3.11', '3.12', '3.13']
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Set up Rust
+      uses: actions-rust-lang/setup-rust-toolchain@v1
+      with:
+        toolchain: stable
+        cache: false
+
+    - name: Cache Rust dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/bin/
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+          machine_dialect_vm/target/
+        key: ${{ runner.os }}-cargo-${{ hashFiles('machine_dialect_vm/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-
+
+    - name: Install UV
+      run: |
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+      shell: bash
+      if: runner.os != 'Windows'
+
+    - name: Install UV (Windows)
+      run: |
+        irm https://astral.sh/uv/install.ps1 | iex
+      shell: powershell
+      if: runner.os == 'Windows'
+
+    - name: Add UV to PATH (Unix)
+      run: echo "$HOME/.local/bin" >> $GITHUB_PATH
+      if: runner.os != 'Windows'
+
+    - name: Add UV to PATH (Windows)
+      run: echo "$env:LOCALAPPDATA\Programs\uv" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+      shell: powershell
+      if: runner.os == 'Windows'
+
+    - name: Create virtual environment
+      run: |
+        uv venv .venv
+      shell: bash
+
+    - name: Install dependencies (Unix)
+      run: |
+        source .venv/bin/activate
+        uv sync --all-groups
+        uv pip install -e .
+      shell: bash
+      if: runner.os != 'Windows'
+
+    - name: Install dependencies (Windows)
+      run: |
+        .venv\Scripts\activate
+        uv sync --all-groups
+        uv pip install -e .
+      shell: powershell
+      if: runner.os == 'Windows'
+
+    - name: Build VM (Unix)
+      run: |
+        source .venv/bin/activate
+        chmod +x build_vm.sh
+        RUSTFLAGS="" ./build_vm.sh
+      shell: bash
+      if: runner.os != 'Windows'
+
+    - name: Build VM (Windows)
+      run: |
+        .venv\Scripts\activate
+        $env:RUSTFLAGS = ""
+        cd machine_dialect_vm
+        maturin develop --features pyo3
+        cd ..
+      shell: powershell
+      if: runner.os == 'Windows'
+
+    - name: Run tests (Unix)
+      run: |
+        source .venv/bin/activate
+        python -m pytest -v
+      shell: bash
+      if: runner.os != 'Windows'
+
+    - name: Run tests (Windows)
+      run: |
+        .venv\Scripts\activate
+        python -m pytest -v
+      shell: powershell
+      if: runner.os == 'Windows'
+
+    - name: Run MyPy type checking (Unix)
+      run: |
+        source .venv/bin/activate
+        mypy machine_dialect --strict
+      shell: bash
+      if: runner.os != 'Windows'
+
+    - name: Run MyPy type checking (Windows)
+      run: |
+        .venv\Scripts\activate
+        mypy machine_dialect --strict
+      shell: powershell
+      if: runner.os == 'Windows'
+
+    - name: Run Ruff linting (Unix)
+      run: |
+        source .venv/bin/activate
+        ruff check machine_dialect
+      shell: bash
+      if: runner.os != 'Windows'
+
+    - name: Run Ruff linting (Windows)
+      run: |
+        .venv\Scripts\activate
+        ruff check machine_dialect
+      shell: powershell
+      if: runner.os == 'Windows'

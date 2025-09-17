@@ -320,6 +320,8 @@ http-client.private.env.json
 
 ### Custom
 
+bin/*
+
 asimov/*
 BUSINESS_ROADMAP.md
 TECH_SPEC_RUST_VM.md

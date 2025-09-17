@@ -69,6 +69,18 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
+    - name: Cache Rust dependencies
+      uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809  # v4.2.4
+      with:
+        path: |
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+          machine_dialect_vm/target/
+        key: ${{ runner.os }}-cargo-${{ hashFiles('machine_dialect_vm/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-
+
     - name: Set up Rust
       uses: actions-rust-lang/setup-rust-toolchain@2fcdc490d667999e01ddbbf0f2823181beef6b39  # v1.15.0
       with:
@@ -78,25 +90,21 @@ jobs:
     - name: Install Rust (macOS fallback)
       if: startsWith(matrix.os, 'macos')
       run: |
-        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable
-        echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+        # Remove broken symlinks first
+        rm -rf $HOME/.cargo/bin/*
+        # Install rustup and Rust toolchain
+        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable --profile minimal
+        # Source the environment
         source "$HOME/.cargo/env"
+        # Install the stable toolchain explicitly
+        rustup toolchain install stable
+        rustup default stable
+        # Add to PATH for subsequent steps
+        echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+        # Verify installation
         rustc --version
         cargo --version
       shell: bash
-
-    - name: Cache Rust dependencies
-      uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809  # v4.2.4
-      with:
-        path: |
-          ~/.cargo/bin/
-          ~/.cargo/registry/index/
-          ~/.cargo/registry/cache/
-          ~/.cargo/git/db/
-          machine_dialect_vm/target/
-        key: ${{ runner.os }}-cargo-${{ hashFiles('machine_dialect_vm/Cargo.lock') }}
-        restore-keys: |
-          ${{ runner.os }}-cargo-
 
 
     - name: Install UV
@@ -148,14 +156,10 @@ jobs:
 
     - name: Verify Rust installation
       run: |
-        echo "PATH: $PATH"
-        echo "Checking for rustc and cargo..."
-        which rustc || echo "rustc not found in PATH"
-        which cargo || echo "cargo not found in PATH"
-        rustc --version || echo "rustc not working"
-        cargo --version || echo "cargo not working"
-        echo "Checking .cargo/bin directory..."
-        ls -la $HOME/.cargo/bin/ || echo ".cargo/bin not found"
+        echo "Verifying Rust installation..."
+        rustc --version
+        cargo --version
+        maturin --version || echo "maturin not yet installed"
       shell: bash
       if: runner.os != 'Windows'
 
@@ -167,9 +171,6 @@ jobs:
           source "$HOME/.cargo/env"
         fi
         export PATH="$HOME/.cargo/bin:$PATH"
-        echo "PATH after export: $PATH"
-        which rustc || echo "rustc still not found"
-        which cargo || echo "cargo still not found"
         chmod +x build_vm.sh
         RUSTFLAGS="" ./build_vm.sh
       shell: bash

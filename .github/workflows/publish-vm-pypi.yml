@@ -146,8 +146,8 @@ jobs:
     runs-on: ubuntu-latest
     name: Publish VM to PyPI
     environment:
-      name: ${{ (inputs.use_test_pypi || github.event.inputs.use_test_pypi) == 'true' && 'test-pypi' || 'pypi' }}
-      url: ${{ (inputs.use_test_pypi || github.event.inputs.use_test_pypi) == 'true' && 'https://test.pypi.org/project/machine-dialect-vm/' || 'https://pypi.org/project/machine-dialect-vm/' }}
+      name: ${{ inputs.use_test_pypi == true || github.event.inputs.use_test_pypi == 'true' && 'test-pypi' || 'pypi' }}
+      url: ${{ inputs.use_test_pypi == true || github.event.inputs.use_test_pypi == 'true' && 'https://test.pypi.org/project/machine-dialect-vm/' || 'https://pypi.org/project/machine-dialect-vm/' }}
 
     steps:
     - name: Download all wheels
@@ -169,7 +169,7 @@ jobs:
         ls -la dist/
 
     - name: Publish to Test PyPI
-      if: ${{ (inputs.use_test_pypi || github.event.inputs.use_test_pypi) == 'true' }}
+      if: ${{ inputs.use_test_pypi == true || github.event.inputs.use_test_pypi == 'true' }}
       uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e  # release/v1.13.0
       with:
         repository-url: https://test.pypi.org/legacy/
@@ -178,7 +178,7 @@ jobs:
         verbose: true
 
     - name: Publish to Production PyPI
-      if: ${{ (inputs.use_test_pypi || github.event.inputs.use_test_pypi) != 'true' }}
+      if: ${{ inputs.use_test_pypi != true && github.event.inputs.use_test_pypi != 'true' }}
       uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e  # release/v1.13.0
       with:
         password: ${{ secrets.PYPI_API_TOKEN }}
@@ -187,7 +187,7 @@ jobs:
     - name: Output Installation Instructions
       if: success()
       run: |
-        if [ "${{ inputs.use_test_pypi || github.event.inputs.use_test_pypi }}" == "true" ]; then
+        if [ "${{ inputs.use_test_pypi }}" == "true" ] || [ "${{ github.event.inputs.use_test_pypi }}" == "true" ]; then
           echo "📦 Published machine-dialect-vm to Test PyPI!"
           echo ""
           echo "Version: ${{ inputs.confirm_version || github.event.inputs.confirm_version }}"

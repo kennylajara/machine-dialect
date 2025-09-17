@@ -27,11 +27,13 @@ updates and support.** Older releases are immediately deprecated when a new vers
 
 ### Operating Systems
 
-| Platform       | Supported          |
-| -------------- | ------------------ |
-| Ubuntu (latest)| ✅                 |
-| Windows (latest)| ✅                |
-| macOS (latest) | ✅                 |
+| Platform              | Architecture       | Supported | Built | Tested |
+| --------------------- | ------------------ | --------- | ----- | ------ |
+| Linux (Ubuntu latest) | x86_64            | ✅        | ✅    | ✅     |
+| Linux (Ubuntu latest) | ARM64/aarch64     | ⚠️        | ✅    | ❌     |
+| Windows (latest)      | x86_64            | ✅        | ✅    | ✅     |
+| macOS 13+             | x86_64 (Intel)    | ✅        | ✅    | ✅     |
+| macOS 14+             | ARM64 (Apple Silicon) | ✅    | ✅    | ✅     |
 
 ## Reporting a Vulnerability
 

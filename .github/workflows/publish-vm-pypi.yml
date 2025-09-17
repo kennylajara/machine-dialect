@@ -44,7 +44,8 @@ jobs:
         VERSION_SUFFIX="${{ inputs.version_suffix || github.event.inputs.version_suffix }}"
         CURRENT_VERSION=$(grep '^version = ' pyproject.toml | sed 's/version = "\(.*\)"/\1/')
         NEW_VERSION="${CURRENT_VERSION}.${VERSION_SUFFIX}"
-        sed -i "s/^version = .*/version = \"${NEW_VERSION}\"/" pyproject.toml
+        # Use Python for cross-platform compatibility
+        python3 -c "import re; content = open('pyproject.toml').read(); content = re.sub(r'^version = .*', 'version = \"${NEW_VERSION}\"', content, flags=re.MULTILINE); open('pyproject.toml', 'w').write(content)"
         echo "Updated version from ${CURRENT_VERSION} to ${NEW_VERSION}"
 
     - name: Build sdist
@@ -116,7 +117,8 @@ jobs:
         VERSION_SUFFIX="${{ inputs.version_suffix || github.event.inputs.version_suffix }}"
         CURRENT_VERSION=$(grep '^version = ' pyproject.toml | sed 's/version = "\(.*\)"/\1/')
         NEW_VERSION="${CURRENT_VERSION}.${VERSION_SUFFIX}"
-        sed -i "s/^version = .*/version = \"${NEW_VERSION}\"/" pyproject.toml
+        # Use Python for cross-platform compatibility
+        python3 -c "import re; content = open('pyproject.toml').read(); content = re.sub(r'^version = .*', 'version = \"${NEW_VERSION}\"', content, flags=re.MULTILINE); open('pyproject.toml', 'w').write(content)"
         echo "Updated version from ${CURRENT_VERSION} to ${NEW_VERSION}"
 
     - name: Build wheels

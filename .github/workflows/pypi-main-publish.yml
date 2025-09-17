@@ -3,19 +3,7 @@ name: PyPI - Publish Main Package
 on:
   release:
     types: [published]  # Trigger when a release is published (not draft)
-  workflow_dispatch:
-    inputs:
-      use_test_pypi:
-        description: 'Deploy to Test PyPI instead of production'
-        required: false
-        type: boolean
-        default: false
-      version_suffix:
-        description: 'Version suffix for test releases (e.g., rc1, dev1)'
-        required: false
-        type: string
-        default: ''
-  workflow_call:
+  workflow_call:  # Can only be triggered by other workflows, not manually
     inputs:
       use_test_pypi:
         required: false

@@ -11,15 +11,27 @@ program: utility_def* statement_list
 
 // Utility definitions (markdown style) - parsed but treated as metadata
 // The parser REQUIRES the HTML_BLOCK (details/summary), so it's not optional
-utility_def: MARKDOWN_HEADER HTML_BLOCK inputs_section? outputs_section?
+// The body inside the details block MUST be a proper BLOCK_CONTENT (with > prefixes)
+utility_def: MARKDOWN_HEADER details_block inputs_section? outputs_section?
+
+// Details block contains summary and block content
+details_block: DETAILS_OPEN SUMMARY_LINE UTILITY_BLOCK_CONTENT DETAILS_CLOSE
 
 // More restrictive: must be Action, Interaction, or Utility in English
 // The line must end immediately after the closing backtick - no extra text allowed
 // Removed the $ anchor to allow content after the header on following lines
 MARKDOWN_HEADER: /###\s+(Action|Interaction|Utility):\s*`[^`]+`/
-// HTML_BLOCK must include details and summary tags with the implementation inside
-// The summary provides a description, and the body contains the implementation statements
-HTML_BLOCK: /<details>\s*\n<summary>[^\n]+<\/summary>\s*\n([\s\S]*?)<\/details>/
+
+// HTML tags for details/summary structure
+DETAILS_OPEN: /<details>\s*\n/
+SUMMARY_LINE: /<summary>[^\n]+<\/summary>/
+DETAILS_CLOSE: /<\/details>/
+
+// Utility block content - statements prefixed with > symbols
+// This matches the block body between summary and closing details tag
+// Must have at least one statement line with > prefix
+// Allow optional empty lines before and after the block content
+UTILITY_BLOCK_CONTENT: /\n+([ \t]*>+[^\n]*\n)+\s*/
 
 // Input parameters section with proper type enforcement
 inputs_section: "####" "Inputs" ":" input_param*

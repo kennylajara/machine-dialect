@@ -65,78 +65,90 @@ syntax.
 
 **MANDATORY REQUIREMENTS**:
 
-1. **ALWAYS use virtual environment** - NEVER install packages globally
-1. **UV is the ONLY package manager** - NEVER use pip directly
-1. **Virtual environment MUST be activated** before ANY operations
+1. **UV manages everything** - Virtual environment and packages
+2. **NEVER use pip directly** - UV is the ONLY package manager
+3. **UV automatically handles virtual environment** - No manual activation needed
 
 ```bash
-# ALWAYS activate virtual environment FIRST
-source .venv/bin/activate  # Linux/Mac/WSL
-# or
-.venv\Scripts\activate     # Windows
+# UV automatically manages the virtual environment
+# No need to manually activate .venv - UV handles it!
 
 # FORBIDDEN: Never use pip directly
 # ❌ pip install ...  # NEVER DO THIS
 # ❌ python -m pip install ...  # NEVER DO THIS
 
 # REQUIRED: Always use UV for package management
-# ✅ uv sync  # Sync dependencies
+# ✅ uv sync  # Sync all dependencies from pyproject.toml
+# ✅ uv sync --all-groups  # Sync main and dev dependencies
 # ✅ uv pip install -e .  # Install package in editable mode
-# ✅ uv pip install <package>  # Install new packages
+# ✅ uv add <package>  # Add new package to project
+# ✅ uv add --dev <package>  # Add new dev dependency
+# ✅ uv run <command>  # Run command in UV-managed environment
 ```
 
-**IMPORTANT**: If virtual environment is not activated, ALL operations will fail. The `.venv`
-directory contains the isolated Python environment for this project.
+**IMPORTANT**: UV automatically manages the `.venv` directory. When you use `uv run` or
+`uv sync`, it ensures the correct environment is used.
 
 ## Development Commands
 
 ### Setup Environment
 
 ```bash
-# Step 1: ALWAYS activate virtual environment first
-source .venv/bin/activate  # Linux/Mac/WSL
-# or
-.venv\Scripts\activate     # Windows
+# Step 1: Sync all dependencies (UV handles the virtual environment automatically)
+uv sync --all-groups
 
-# Step 2: Install package in editable mode using UV
+# Step 2: Install package in editable mode
 uv pip install -e .
 ```
 
 ### Running Tests
 
 ```bash
-# Run all tests
-python -m pytest
+# Run all tests (UV ensures correct environment)
+uv run python -m pytest
 
 # Run specific test file
-python -m pytest machine_dialect/lexer/tests/test_lexer.py -v
+uv run python -m pytest machine_dialect/lexer/tests/test_lexer.py -v
 
 # Run parser tests
-python -m pytest machine_dialect/parser/tests/test_parser.py -v
+uv run python -m pytest machine_dialect/parser/tests/test_parser.py -v
+
+# Or use the task command
+uv run task test
+uv run task test-verbose
 ```
 
 ### Code Quality Checks
 
 ```bash
 # Run MyPy type checking
-mypy machine_dialect --strict
+uv run mypy machine_dialect --strict
 
 # Run Ruff linting and formatting
-ruff check machine_dialect
-ruff format machine_dialect
+uv run ruff check machine_dialect
+uv run ruff format machine_dialect
 
 # Run all pre-commit hooks
-pre-commit run --all-files
+uv run pre-commit run --all-files
+
+# Or use task commands
+uv run task typecheck
+uv run task lint
+uv run task format
+uv run task check
 ```
 
 ### Running the REPL
 
 ```bash
 # Start interactive REPL in AST mode (default)
-python -m machine_dialect
+uv run python -m machine_dialect
 
 # Start REPL in token debug mode
-python -m machine_dialect --debug-tokens
+uv run python -m machine_dialect --debug-tokens
+
+# Or use the task command
+uv run task repl
 ```
 
 ## Architecture & Key Components
@@ -259,12 +271,16 @@ Tests are organized by component in `tests/` subdirectories:
 
 - **UV**: MANDATORY package manager - NEVER use pip directly
   - `uv sync` - Sync all dependencies from pyproject.toml
-  - `uv pip install` - Install packages through UV's pip interface
+  - `uv sync --all-groups` - Sync main and dev dependencies
+  - `uv add <package>` - Add new package to project
+  - `uv add --dev <package>` - Add new dev dependency
+  - `uv remove <package>` - Remove package from project
   - `uv pip install -e .` - Install project in editable mode
-- **Python 3.12+** required
-- **Virtual Environment**: ALWAYS use `.venv` - activate before ANY operations
-- **Dependencies**: rfc3986 (URL validation)
-- **Dev tools**: pytest, mypy, ruff, pre-commit, pyupgrade
+  - `uv run <command>` - Run command in UV-managed environment
+- **Python 3.10-3.13** supported
+- **Virtual Environment**: Automatically managed by UV in `.venv`
+- **Dependencies**: rfc3986 (URL validation), click (CLI), lark (parsing), openai (AI features)
+- **Dev tools**: pytest, mypy, ruff, pre-commit, pyupgrade, taskipy
 
 ## Auxiliary Tools
 

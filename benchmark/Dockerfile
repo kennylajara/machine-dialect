@@ -60,17 +60,28 @@ COPY ../pyproject.toml /machine_dialect/
 COPY ../machine_dialect_vm /machine_dialect/machine_dialect_vm
 COPY ../build_vm.sh /machine_dialect/
 
-# Install patchelf (required by maturin on Linux) and maturin for building Rust Python extensions
-RUN apk add --no-cache patchelf && \
-    pip3 install --no-cache-dir --break-system-packages maturin
+# Install UV package manager
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+ENV PATH="/root/.local/bin:/root/.cargo/bin:${PATH}"
 
-# Build the Rust VM
-RUN cd /machine_dialect/machine_dialect_vm && \
-    maturin build --release --out /tmp && \
-    pip3 install --no-cache-dir --break-system-packages /tmp/machine_dialect_vm*.whl
+# Copy UV lock file for dependency resolution
+COPY ../uv.lock /machine_dialect/
 
-# Install Machine Dialect™
-RUN pip3 install --no-cache-dir --break-system-packages -e /machine_dialect
+# Install patchelf (required by maturin on Linux)
+RUN apk add --no-cache patchelf
+
+# Use UV to install dependencies and build environment
+RUN cd /machine_dialect && \
+    uv venv && \
+    uv sync --all-groups
+
+# Build the Rust VM using UV's environment
+RUN cd /machine_dialect && \
+    uv run maturin develop --release -m machine_dialect_vm/Cargo.toml
+
+# Install Machine Dialect™ in editable mode using UV
+RUN cd /machine_dialect && \
+    uv pip install -e .
 
 WORKDIR /workspace
 
@@ -86,7 +97,7 @@ RUN echo '#!/bin/sh' > /verify.sh && \
     echo 'rustc --version' >> /verify.sh && \
     echo 'ruby --version' >> /verify.sh && \
     echo 'perl -v | head -2 | tail -1' >> /verify.sh && \
-    echo 'python3 -c "import machine_dialect; print(\"Machine Dialect™ installed\")" 2>/dev/null || echo "Machine Dialect™ installed"' >> /verify.sh && \
+    echo 'cd /machine_dialect && uv run python -c "import machine_dialect; print(\"Machine Dialect™ installed\")" 2>/dev/null || echo "Machine Dialect™ installed"' >> /verify.sh && \
     chmod +x /verify.sh
 
 CMD ["/bin/sh"]
